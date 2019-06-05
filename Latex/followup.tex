@@ -1,0 +1,974 @@
+\documentclass{amsart}
+\usepackage{amssymb,epsfig,mathrsfs,mathpazo}
+%\usepackage{showkeys}
+\usepackage{color}
+\usepackage{epsfig,bm}
+\usepackage[multiple]{footmisc}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+\numberwithin{equation}{section}
+
+\newcommand{\eps}{\varepsilon}
+\newcommand{\cA}{\mathcal A}
+\newcommand{\R}{\mathbb R}
+\newcommand{\C}{\mathbb C}
+\newcommand{\K}{\mathbb K}
+\newcommand{\N}{\mathbb N}
+\newcommand{\Z}{\mathbb Z}
+
+\newcommand{\cF}{\mathcal F}
+\newcommand{\cY}{\mathcal Y}
+\newcommand{\cX}{\mathcal X}
+\newcommand{\cE}{\mathcal E}
+\newcommand{\cZ}{\mathcal Z}
+\newcommand{\cL}{\mathcal L}
+\newcommand{\Lis}{\cL\mathrm{is}}
+
+
+\newcommand{\identity}{\mathrm{Id}}
+\newcommand{\cB}{\mathcal{B}}
+
+\DeclareMathOperator{\ran}{ran}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\clos}{clos}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\blockdiag}{blockdiag}
+\DeclareMathOperator{\diam}{diam}
+\DeclareMathOperator{\dist}{dist}
+
+\newcommand{\ds}{\displaystyle}
+
+\DeclareMathOperator{\divv}{div}
+\DeclareMathOperator{\moddiv}{\mbox{$\widetilde{\rm div}$}}
+\DeclareMathOperator{\Span}{span}
+\newcommand{\veecirc}{\raisebox{.21ex}[1.7ex]{$\stackrel{\raisebox{-.6ex}{$\scriptstyle \circ$}}{\vee}$}}
+
+\newcommand{\nrm}{| \! | \! |}
+
+\renewcommand{\mod}{\mathrm{mod}}
+
+\newcommand{\rem}[1]{{\color{blue}{[#1]}}}
+
+\newcommand{\rs}[1]{{\color{red}{RS: #1}}}
+\newcommand{\jw}[1]{{\color{red}{JW: #1}}}
+
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+
+\newcommand{\1}{\mathbb 1}
+
+
+\newcommand{\bbT}{\mathbb{T}}
+\newcommand{\bbP}{\mathbb{P}}
+\newcommand{\tria}{{\mathcal T}}
+\newcommand{\cP}{{\mathcal P}}
+
+
+\newcommand{\aumlaut}{{\"a}}
+\newcommand{\uumlaut}{{\"u}}
+
+\newcommand{\parent}{{\tt parent}} 
+\newcommand{\gen}{{\tt gen}} 
+
+\title{BLA parabolic}
+
+\date{\today}
+
+\author{RS}
+
+\address{
+Korteweg-de Vries (KdV) Institute for Mathematics, University of Amsterdam, P.O. Box 94248, 1090 GE Amsterdam, The Netherlands.
+}
+%\email{r.p.stevenson@uva.nl, j.h.westerdiep@uva.nl}
+
+%\thanks{The first author has been supported by NSF Grant DMS 172029. The second author has been supported by the Netherlands Organization for Scientific Research (NWO) under contract.~no.~613.001.652}
+
+\subjclass[2010]{
+}
+
+%\keywords{Parabolic PDEs, space-time variational formulations, quasi-best approximations, stability}
+
+
+\begin{document}
+
+\begin{abstract}  
+\end{abstract}
+
+\maketitle
+
+\section{Inf-sup stability} \label{Sinfsup}
+$V, H$ be separable Hilbert spaces. Gelfand triple $V \hookrightarrow H \simeq H' \hookrightarrow V'$.
+
+$X:=L_2(I;V) \cap H^1(I;V)$, $Y:=L_2(I;V)$.
+Central  issue in this section is the construction of families of pairs of closed subspaces $X^\delta \subset X$, $Y^\delta \subset Y$, s.t.
+\be \label{infinfsup}
+\inf_{\delta \in \Delta} \inf_{0 \neq x^\delta \in X^\delta} \sup_{0 \neq y^\delta \in Y^\delta} \frac{\langle \partial_t x^\delta,y^\delta \rangle_{L_2(I)\otimes H}}{\|\partial_t x^\delta\|_{Y'}\|y^\delta\|_{Y}} \gtrsim1.
+\ee
+
+The following result generalizes \cite[Lemma 6.2]{11} and \cite[Proposition 2.5]{258.4} in the sense that $W \neq \tilde W$ is allowed.
+
+\begin{proposition} \label{prop1} Let $W$ and $\tilde W$ be closed subspaces of $H$ such that there exists a (biorthogonal) projector $Q \in \cL(H,H)$  exists with $\ran Q=W$ and $\ran (\identity -Q)={\tilde W}^\perp$. 
+Then, when $W \subset V$, it holds that $\gamma:=\inf_{0 \neq \tilde w \in \tilde W}\sup_{0 \neq w \in W}\frac{\langle \tilde w,w\rangle}{\|\tilde w\|_{V'}\|w\|_V}>0$ if and only if $Q \in \cL(V,V)$, in which case $\gamma=\|Q\|_{\cL(V,V)}^{-1}$.
+\end{proposition}
+
+\begin{proof} If $Q\in \cL(V,V)$, then for $\tilde w \in \tilde W$,
+$$
+\sup_{0 \neq w \in W}\frac{\langle \tilde w,w\rangle}{\|w\|_V}=\sup_{0 \neq v \in V}\frac{\langle \tilde w, v\rangle}{\|Qv\|_V}
+\geq \|Q\|_{\cL(V,V)}^{-1} \|\tilde w\|_{V'},
+$$
+or $\gamma \geq \|Q\|_{\cL(V,V)}^{-1}$. If on the other hand $\gamma>0$, then for any $u \in H$,
+$$
+\gamma \|Q' u\|_{V'} \leq \sup_{0 \neq w \in W}\frac{\langle Q'u,w\rangle}{\|w\|_V} =
+ \sup_{0 \neq w \in W}\frac{\langle u,w\rangle}{\|w\|_V} \leq \|u\|_{V'},
+ $$
+so that from $H$ being dense in $V'$, $\|Q\|_{\cL(V,V)}=\|Q'\|_{\cL(V',V')}\leq \gamma^{-1}$.
+\end{proof}
+
+\rem{Voor $H=L_2(\Omega)$, $V=H^1_0(\Omega)$, $W=\tilde W$ continuous fem space w.r.t. partition created by NVB in 2D, condities vervuld.
+Wellicht ook interessant $W$ van hogere orde te nemen.
+
+Vb. $W\neq \tilde W$: Als $W$ cont. piecewise quadratics w.r.t. partition, en $\tilde W$ cont. piecewise linears w.r.t. verfijnde partitie, dan biorthogonale $Q \in \cL(H,H)$ bestaat (zie \cite{56}). Uit $Q=\Pi+Q(I-\Pi)$ voor zeg $\Pi$ is Scott-Zhang, volgt in ieder geval voor quasi-uniforme meshes dat $Q \in \cL(V,V)$ uniform in de mesh-size.
+
+(Ik vermoed dat $W \neq \tilde W$ in dit verhaal uiteindelijk geen nuttige toepassingen zal hebben.)}
+
+\newpage
+{\LARGE Unnecessarily complicated:}
+
+{\tiny \begin{theorem}[{\cite[Theorem 4.1]{249.95}}] \label{thm1} Let $\Psi=\{\psi_\lambda\colon \lambda \in \vee\}$, $\tilde{\Psi}=\{\tilde{\psi}_\lambda\colon \lambda \in \vee\}$ be biorthogonal Riesz bases for $L_2(I)$ such that $\{2^{-|\lambda|}\psi_\lambda\colon \lambda \in \vee\}$ is a Riesz basis for $H^1(I)$, and
+for some $\hat{\lambda} \in \nabla$, $\psi_{\hat{\lambda}}\in \Span\{\1\}$. Then with $\underline{\vee}:=\vee \setminus \{\hat{\lambda}\}$, it holds that
+$\Psi^-=\{\psi^-_\lambda\colon \lambda \in \underline{\vee}\}$ defined by $\psi^-_\lambda:=2^{-|\lambda|}\psi_\lambda'$ is a Riesz basis for $L_2(I)$ with dual basis
+$\tilde{\Psi}^+=\{\tilde{\psi}^+_\lambda\colon \lambda \in \underline{\vee}\}$ defined by $\tilde{\psi}^+_\lambda:=x \mapsto \int_0^x 2^{|\lambda|} \tilde{\psi}_\lambda \,dx$.
+Moreover $\supp \psi^-_\lambda \subset \supp \psi_\lambda$ and ${\rm conv hull}(\supp \tilde{\psi}^+_\lambda) \subset \supp \tilde{\psi}_\lambda$.
+\end{theorem}
+
+\rem{Corresponding results about scaling functions in \cite[Proposition 5.1]{249.95}.}
+
+\rem{Vb. neem $\Psi=\tilde{\Psi}$ piecewise polynomial orthogonal (multi-) wavelet basis uit \cite{65.5} aangepast aan interval zonder randvoorwaarden (kan maar is denk ik niet gedaan).}
+
+\rem{Vb. Neem $\Psi \neq \tilde{\Psi}$ de biorthogonal wavelets uit \cite{45} (primals splines, duals implicitly defined) aangepast aan interval zonder randvoorwaarden. Zie bijv. \cite[Ch. 2]{64.65} of \cite{245.1}.}
+
+\rem{Vb. Neem $\Psi \neq \tilde{\Psi}$ de biorthogonal (multi-) wavelets uit \cite{75.6} (primals and duals splines) aangepast aan interval zonder randvoorwaarden (kan maar is denk ik niet gedaan).}
+
+
+\begin{proposition} \label{prop2}
+Let $\Psi^-=\{\psi^-_\lambda\colon \lambda \in \underline{\vee}\}$,
+$\tilde{\Psi}^+=\{\tilde{\psi}^+_\lambda\colon \lambda \in \underline{\vee}\}$ be biorthogonal Riesz bases for $L_2(I)$, and let $\kappa$ denote the spectral condition number of $\langle \Psi^-,\Psi^-\rangle$.
+
+Let ${\mathcal O}$ be a collection of pairs of closed subspaces of $H$ as in Proposition~\ref{prop1} such that for some $\mu>0$, for each $(W,\tilde W) \in {\mathcal O}$, 
+$$
+\inf_{0 \neq \tilde w \in \tilde W}\sup_{0 \neq w \in W}\frac{\langle \tilde w,w\rangle}{\|\tilde w\|_{V'}\|w\|_V} \geq \mu.
+$$
+For $\delta \in \Delta$ and $\lambda \in \underline{\vee}$, select $(W^\delta_\lambda,{\tilde W}^\delta_\lambda) \in {\mathcal O}$ or $(W^\delta_\lambda,{\tilde W}^\delta_\lambda):=\{(0,0)\}$. Then for $G^\delta:=\clos_{V'} \Span \{\psi^-_\lambda \otimes \tilde{W}^\delta_\lambda\}$ and $Y^\delta:=\clos_{V} \Span \{\tilde{\psi}^+_\lambda \otimes W^\delta_\lambda\}$, it holds that
+$$
+\inf_{0 \neq g \in G^\delta}\sup_{0 \neq y \in Y^\delta} \frac{\langle g, y\rangle_{L_2(I;H)}}{\|g\|_{Y'} \|y\|_Y} \geq \mu \kappa^{-\frac12}.
+$$
+\end{proposition}
+
+
+\begin{proof} For any finite $\Lambda \subset \underline{\vee}$, let $g:=\sum_{\lambda \in \Lambda} \psi^-_\lambda \otimes \tilde{w}_\lambda$ for some ${\tilde w}_\lambda \in {\tilde W}^\delta_\lambda$. For any fixed $\eps \in (0,\mu)$, there exists a $w_\lambda \in W^\delta_\lambda$ with $\|w_\lambda\|_V=\|\tilde{w}_\lambda\|_{V'}$ and $\langle \tilde{w}_\lambda,w_\lambda\rangle \geq (\mu-\eps) \|\tilde{w}_\lambda\|_{V'}^2$.
+For $y:=\sum_{\lambda \in \Lambda} \tilde{\psi}^+_\lambda \otimes w_\lambda$, we find that
+\begin{align*}
+\langle g, y\rangle_{L_2(I;H)} &= \sum_{\lambda \in \Lambda} \langle \tilde{w}_\lambda,w_\lambda\rangle
+\geq (\mu-\eps) \sum_{\lambda \in \Lambda}\|\tilde{w}_\lambda\|_{V'}^2\\
+&=(\mu-\eps) \sqrt{\sum_{\lambda \in \Lambda} \|\tilde{w}_\lambda\|_{V'}^2}
+\sqrt{\sum_{\lambda \in \Lambda} \|w_\lambda\|_{V}^2}\\
+&\geq  (\mu-\eps)\rho\big(\langle \Psi^-,\Psi^-\rangle_{L_2(I)}\big)^{-\frac12}\big\| g\big\|_{Y'}
+\rho\big(\langle \Psi^-,\Psi^-\rangle_{L_2(I)}^{-1}\big)^{-\frac12} \big\|y\|_{Y},
+\end{align*}
+where we used that $\langle \tilde{\Psi}^+,\tilde{\Psi}^+\rangle_{L_2(I)}=\langle \Psi^-,\Psi^-\rangle_{L_2(I)}^{-1}$. Since $\eps \in (0,\mu)$ was arbitrary, the proof is completed.
+\end{proof}
+
+\rem{In ``full'' tensor product setting is alles simpeler: Zij $G^\delta=R \otimes \tilde{W}$ en $Y^\delta=\tilde{R} \otimes W$ z.d.d. $(R,\tilde{R})$ is $(L_2,L_2)$ inf-sup stable (bijv $R=\tilde R$), en $(\tilde W,W)$ is $(V',V)$ inf-sup stable, dan $(G^\delta,Y^\delta$) is $(Y',Y)$ inf-sup stable.}
+
+
+\rem{Neem je in Proposition~\ref{prop2} $\Psi^-,\tilde{\Psi}^+$ als geconstrueerd in Thm.~\ref{thm1} dan is probleem dat alle $\tilde{\psi}^+_\lambda$ verdwijnen op rand.
+Dit geeft beroerde approximatie eigenschappen voor $Y^\delta$.
+Plan: Maak $L_2$-Riesz basis $\hat{\Psi}$ z.d.d. het  approximatie properties heeft als $\tilde{\Psi}^+$ maar dan ook voor functies welke niet verdwijnen aan de rand, en z.d.d. de interior wavelets gelijk zijn, en $\Span\{\hat{\psi}_\lambda \colon |\lambda|\leq L\} \supset \Span\{\tilde{\psi}^+_\lambda \colon |\lambda|\leq L\}$.
+Gegeven $G^\delta:=\clos_{V'} \Span \{\psi^-_\lambda \otimes \tilde{W}^\delta_\lambda\}$ neem  dan $Y^\delta \supset \clos_{V} \Span \{\tilde{\psi}^+_\lambda \otimes W^\delta_\lambda\}$, dan 
+inf-sup als in Proposition~\ref{prop2}}
+
+\rem{We denken aan $X^\delta:=\Span\{\psi_\lambda \otimes \tilde{W}^\delta_\lambda\colon \lambda \in \Lambda\}$ met ook $\tilde{W}^\delta_\lambda \subset V$, en
+$\Span\{\tilde{\psi}^+_\lambda  \otimes W^\delta_\lambda\colon \lambda \in \Lambda \setminus \{\hat{\lambda}\} \}\subset Y^\delta $.}
+} % end tiny
+
+\newpage
+{\LARGE Better approach:}
+
+Let ${\mathcal O}$ be a collection of pairs of closed subspaces $(W,\tilde{W})$ as in Proposition~\ref{prop1} with a uniform inf-sup constant $\gamma>0$.
+
+Let $\Sigma=\{\sigma_\lambda \colon \lambda \in \vee_\Sigma\}$ be, properly scaled, a Riesz basis for $L_2(I)$ and $H^1(I)$ (important later for preconditioning).
+
+Let $\Psi=\{\psi_\lambda \colon \lambda \in \vee_\Psi\}$ be a Riesz basis for $L_2(I)$, with dual basis denoted as $\tilde{\Psi}$.
+
+Given
+$$
+\framebox{$X^\delta=\sum_{\lambda \in \vee_\Sigma} \sigma_\lambda \otimes \tilde{W}_\lambda^\delta,$}
+$$
+where \framebox{$(W_\lambda^\delta,\tilde{W}_\lambda^\delta) \in {\mathcal O}$ or $W_\lambda^\delta=\tilde{W}_\lambda^\delta=\{0\}$}, let
+$$
+\framebox{$Y^\delta=\sum_{\mu \in \vee_\Psi} \psi_\mu \otimes V_\mu^\delta$},
+$$
+ $\tilde{Y}^\delta=\sum_{\mu \in \vee_\Psi} \tilde{\psi}_\mu \otimes \tilde{V}_\mu^\delta$ 
+where \framebox{$(V^\delta_\mu,\tilde{V}^\delta_\mu) \in {\mathcal O}$ or $V_\lambda^\delta=\tilde{V}_\lambda^\delta=\{0\}$} is such that 
+\be \label{19}
+\langle \sigma'_\lambda,\psi_\mu\rangle_{L_2(I)} \neq 0 \Longrightarrow \tilde{V}^\delta_\mu \supset \tilde{W}^\delta_\lambda.
+\ee
+Thanks to $\sigma'_\lambda=\sum_{\mu \in \vee_\Psi} \langle \sigma'_\lambda,\psi_\mu\rangle_{L_2(I)}\tilde{\psi}_\mu$ this ensures that
+\be \label{20}
+\partial_t X^\delta \subset \tilde{Y}^\delta.
+\ee
+
+Let $\tilde v=\sum_{\mu \in \vee_\Psi} \tilde{\psi}_\mu \otimes \tilde{v}_\mu \in \tilde{Y}^\delta$.
+Then, for any constant $\eps\in (0,\gamma)$, there exists a $v=\sum_{\mu \in \vee_\Psi} \psi_\mu \otimes v_\mu \in Y^\delta$  with $\langle \tilde v_\mu,v_\mu\rangle \geq (\gamma-\eps) \|\tilde{v}_\mu\|_{V'} \|v_\mu\|_V$ and $\|\tilde{v}_\mu\|_{V'}= \|v_\mu\|_V$, and so
+\be \label{21}
+\langle\tilde v, v\rangle_{L_2(I)\otimes H}
+= \sum_{\mu \in \vee_\Psi} \langle \tilde{v}_\mu,v_\mu\rangle \geq (\gamma-\eps) 
+\sum_{\mu \in \vee_\Psi} \|\tilde{v}_\lambda\|_{V'}^2
+\eqsim \|\tilde v\|_{Y'} \|v\|_Y.
+\ee
+From \eqref{20} and \eqref{21}, we conclude that $(X^\delta,Y^\delta)_{\delta \in \Delta}$ satisfies \eqref{infinfsup} with uniform inf-sup constant $\gamma$.
+
+To ensure \eqref{19}, we will assume that 
+that for  $\ell \in \N_0$,
+$$
+\Span\{\sigma'_\lambda\colon |\lambda|\leq \ell\} \subset \Span\{\tilde{\psi}_\lambda\colon |\lambda|\leq \ell\}.
+$$
+ so that
+\be \label{22}
+|\mu| >|\lambda| \Longrightarrow \langle \sigma'_\lambda,\psi_\mu\rangle_{L_2(I)}=0.
+\ee
+Now \eqref{19} is ensured under the condition that
+\be \label{23}
+|\mu| \leq |\lambda| \wedge|\supp \psi_\mu \cap \supp \sigma_\lambda|>0 \Longrightarrow \tilde{V}^\delta_\mu \supset  \tilde{W}^\delta_\lambda.
+\ee
+
+We will assume that $\Sigma$ and $\Psi$ are locally supported, which in particular means that
+$\diam \supp \sigma_\lambda \lesssim 2^{-|\lambda|}$ and $\diam \supp \psi_\lambda \lesssim 2^{-|\lambda|}$.
+Furthermore, to ensure an efficient stiffness matrix evaluation, in the next section we will impose a multi-level constraint on $X^\delta$ which will have the consequence
+that for any $\lambda \in \vee_\Sigma$ with $\tilde{W}_\lambda^\delta \neq \{0\}$, and any $\ell <|\lambda|$, there exists a $\mu \in \vee_\Sigma$ with $|\mu|=\ell$ ($\mu$ being the `ancestor' of $\lambda$)
+with $\dist(\supp \sigma_\mu,\supp \sigma_\lambda)\lesssim 2^{-|\mu|}$ and $\tilde{W}_\mu^\delta \supset \tilde{W}_\lambda^\delta$.
+We infer that \eqref{23} and thus \eqref{20} can be ensured for $Y^\delta$ with $\dim Y^\delta \lesssim \dim X^\delta$.
+
+In particular, for $\lambda \in \vee_\Psi$, let $S(\lambda)$ be the neighborhood of $\supp \psi_\lambda$ with $\diam S(\lambda) \lesssim 2^{-|\lambda|}$ s.t. $S(\lambda) \subset S(\mu)$ whenever $\lambda$ is a child of $\mu \in \vee_\Psi$.
+Then assuming the multilevel constraint on $X^\delta$, \eqref{23} is ensured under the condition that
+\be \label{24}
+|\mu| = |\lambda| \wedge|\supp \psi_\mu \cap \supp S(\lambda)|>0 \Longrightarrow \tilde{V}^\delta_\mu \supset  \tilde{W}^\delta_\lambda.
+\ee
+
+
+\begin{example} Let $W=\tilde{W}$ for any pair $(W,\tilde{W}) \in {\mathcal O}$. Let any $\sigma_\lambda$ be a continuous piecewise polynomial of degree $d-1$ w.r.t. a uniform partition of $I$ into $2^{|\lambda|}$ subintervals, and let 
+$\Psi=\tilde{\Psi}$ be such that 
+$\Span\{\tilde{\psi}_\lambda\colon |\mu| \leq |\lambda|\}$ includes all piecewise polynomials of degree $d-2$ w.r.t. a uniform partition of $I$ into $2^{|\lambda|}$ subintervals (Alpert basis) so that \eqref{22} is satisfied.
+If $\Span\{\tilde{\psi}_\lambda\colon |\mu| \leq |\lambda|\}$ even includes all piecewise polynomials of degree $d-1$ w.r.t. a uniform partition of $I$ into $2^{|\lambda|}$ subintervals, then 
+$Y^\delta$ as constructed above additionally satisfies
+$$
+\framebox{$X^\delta \subset Y^\delta$}.
+$$
+\rem{We zullen $X^\delta \subset Y^\delta$ nodig hebben alsook $\partial X^\delta \subset \tilde{Y}^\delta$. Met het oog hierop zie ik momenteel geen toepassingen voor $W \neq \tilde{W}$ en $\Psi \neq \tilde{\Psi}$}
+
+
+
+Although later we might consider quadratic temporal wavelets and quadratic spatial finite element spaces, perhaps wise to start with considering 
+linear temporal wavelets and linear spatial finite element spaces.
+Then for $\Sigma$ we can take the 3-point hierarchical basis. For this basis $S(\lambda)=\supp \sigma_\lambda$.
+Then we take for $\Psi$ the orthonormal (discontinuous) piecewise linear wavelet basis. See figures.
+\begin{figure}
+\begin{center}
+\input{threepoint.pdf_t}
+\end{center}
+\caption{3-point hierarchical basis.}
+\end{figure}
+\begin{figure}
+\begin{center}
+\input{discont_linears.pdf_t}
+\end{center}
+\caption{Orthonormal (w.r.t. $L_2(0,1)$) (discontinuous) piecewise linear wavelet basis $\Psi$.}
+\end{figure}
+\end{example}
+
+\section{Preconditioning}
+For each $\delta \in \Delta$, let $X^\delta$,  $Y^\delta$ be finite dimensional.
+
+Thanks to $\Psi$ Riesz for $L_2(I)$,  any $y \in Y$ is of the form $\sum_{\lambda \in \vee_\Psi} \psi_\lambda \otimes w_\lambda$ for some $w_\lambda \in V$ (with $\sum_{\lambda \in \vee_\Psi} \|w_\lambda\|_V^2<\infty$), on $Y \times Y$ we define the bounded, symmetric, and coercive bilinear form
+$$
+(D_Y \sum_{\lambda \in \vee_\Psi} \psi_\lambda \otimes w_\lambda)(\sum_{\mu \in \vee_\Psi} \psi_\mu \otimes v_\lambda):=\sum_{\lambda \in \vee_\Psi} \langle w_\lambda, v_\lambda\rangle_V.
+$$
+Denoting with $E_Y^\delta$ the trivial embedding of $Y^\delta=\sum_{\lambda\in \vee_\Psi} \psi_\lambda \otimes V_\lambda^\delta$ into $Y$, we set $D_Y^\delta:={E_Y^\delta}' D_Y E_Y^\delta\in \Lis(Y^\delta,{Y^\delta}')$, whose norm and norm of its inverse are bounded uniformly in $\delta \in \Delta$.
+Equipping $Y^\delta$ with basis of type $\cup_{\lambda} \psi_\lambda \otimes \Sigma_\lambda^\delta$, the matrix representation of $D_Y^\delta$ reads as
+$$
+{\bf D}_Y^\delta=\blockdiag[{\bf A}_\lambda^\delta]_{\lambda}.
+$$
+where ${\bf A}_\lambda^\delta:=\langle \Sigma_\lambda^\delta, \Sigma_\lambda^\delta\rangle_V$.
+For ${\bf B}_\lambda^\delta \eqsim ({\bf A}_\lambda^\delta)^{-1}$, we have
+$$
+({\bf D}_Y^\delta)^{-1}\eqsim \blockdiag[{\bf B}_\lambda^\delta]_{\lambda},
+$$
+so that the right-hand side is a uniform preconditioner.
+For ${\mathcal O}$ being a family of finite element spaces w.r.t. possibly locally refined partitions, such ${\bf B}_\lambda^\delta$, that moreover can be applied in linear complexity, are provided by \emph{multi-grid methods}.
+
+\rem{Om te beginnen ${\bf B}_\lambda^\delta = ({\bf A}_\lambda^\delta)^{-1}$ nemen, d.w.z. directe solver in spatial direction.}
+
+Let $\Sigma=\{\sigma_\lambda \colon \lambda \in \vee_\Sigma\}$ a Riesz basis for $L_2(I)$ s.t.
+$\{2^{-|\lambda|} \sigma_\lambda \colon \lambda \in \vee_\Sigma\}$ is a Riesz basis for $H^1(I)$.
+Using that any $u \in X$ is of the form $\sum_{\lambda \in \vee_\Sigma} \sigma_\lambda \otimes w_\lambda$ for some $w_\lambda \in V$
+with $\|x\|_X^2 \eqsim \sum_{\lambda \in \vee_\Sigma} \|w_\lambda\|_V^2+4^{-|\lambda|}\|w_\lambda\|_{V'}^2<\infty$, on $X \times X$ we define the bounded, symmetric, and coercive bilinear form
+$$
+(D_X \sum_{\lambda \in \vee_\Sigma} \sigma_\lambda \otimes w_\lambda)(\sum_{\mu \in \vee_\Sigma} \sigma_\mu \otimes v_\mu):=\sum_{\lambda \in \vee_\Sigma} \langle w_\lambda, v_\lambda\rangle_V+4^{-|\lambda|}\langle w_\lambda, v_\lambda\rangle_{V'}.
+$$
+Denoting with $E_X^\delta$ the trivial embedding of $X^\delta=\sum_{\lambda\in \vee_\Sigma} \sigma_\lambda \otimes \tilde{W}_\lambda^\delta$ into $X$, we set $D_X^\delta:={E_X^\delta}' D_X E_X^\delta\in \Lis(X^\delta,{X^\delta}')$, whose norm and norm of its inverse are bounded uniformly in $\delta \in \Delta$.
+Equipping $X^\delta$ with basis of type $\cup_{\lambda} \psi_\lambda \otimes \tilde{\Sigma}_\lambda^\delta$, the matrix representation of $D_X^\delta$ reads as
+$$
+{\bf D}_X^\delta=\blockdiag[{\bf A}_\lambda^\delta+4^{-|\lambda|}\langle \tilde{\Sigma}_\lambda^\delta, \tilde{\Sigma}_\lambda^\delta\rangle_{V'}]_{\lambda}.
+$$
+where ${\bf A}_\lambda^\delta:=\langle \tilde{\Sigma}_\lambda^\delta, \tilde{\Sigma}_\lambda^\delta\rangle_V$.
+For $u \in \tilde{W}_\lambda^\delta$, it holds that $\|u\|_{V'} \geq \sup_{0 \neq w \in \tilde{W}_\lambda^\delta} \frac{\langle u,w\rangle}{\|w\|_V} \geq \gamma \|u\|_{V'}$ \rem{aannemende dat $L_2$-orthogonal projector onto $\tilde{W}_\lambda^\delta$ uniform bounded is in $V$-norm, hetgeen ok als voor de collectie van paren $(W,\tilde{W}) \in {\mathcal O}$ geldt dat $\tilde{W}=W$}.
+With ${\bf u}$  denoting the representation of $u$ w.r.t. $\tilde{\Sigma}_\lambda^\delta$, it holds that
+$$
+\sup_{0 \neq w \in \tilde{W}_\lambda^\delta} \frac{\langle u,w\rangle}{\|w\|_V}=
+\|({\bf A}_\lambda^\delta)^{-\frac12} {\bf M}_\lambda^\delta {\bf u}\|,
+$$
+where ${\bf M}_\lambda^\delta=\langle \tilde{\Sigma}_\lambda^\delta, \tilde{\Sigma}_\lambda^\delta\rangle$, so that
+$$
+\gamma^2 \langle \tilde{\Sigma}_\lambda^\delta, \tilde{\Sigma}_\lambda^\delta\rangle_{V'} \leq  
+{\bf M}_\lambda^\delta ({\bf A}_\lambda^\delta)^{-1} {\bf M}_\lambda^\delta
+ \leq \langle \tilde{\Sigma}_\lambda^\delta, \tilde{\Sigma}_\lambda^\delta\rangle_{V'}.
+$$
+
+As follows from \cite[Thm. 4]{242.817}, it holds that
+\begin{align*}
+{\textstyle \frac{1}{2}}\big( {\bf A}_\lambda^\delta\!+\!4^{-|\lambda|} {\bf M}^\delta_\lambda ({\bf A}^\delta_\lambda)^{-1}  {\bf M}^\delta_\lambda\big)
+\!\leq \! ({\bf A}_\lambda^\delta\!+\!4^{-|\lambda|}{\bf M}^\delta_\lambda) ({\bf A}_\lambda^\delta)^{-1} ({\bf A}_\lambda^\delta\!+\!4^{-|\lambda|}{\bf M}^\delta_\lambda)
+\!\leq\!
+{\bf A}_\lambda^\delta\!+\!4^{-|\lambda|} {\bf M}^\delta_\lambda ({\bf A}^\delta_\lambda)^{-1}  {\bf M}^\delta_\lambda.
+\end{align*}
+Now assuming that
+\be \label{robustmg}
+{\bf C}^\delta_{\lambda} \eqsim ({\bf A}_\lambda^\delta+4^{-|\lambda|}{\bf M}^\delta_\lambda)^{-1}
+\ee
+(uniformly in $\delta$ and $|\lambda| \in \N_0$), we infer that
+$$
+({\bf D}_X^\delta)^{-1} \eqsim
+\blockdiag\Big[{\bf C}^\delta_{\lambda} {\bf A}_\lambda^\delta {\bf C}^\delta_{\lambda}\Big]_{\lambda}
+.
+$$
+In \cite{241.1,173.4} it was shown that a V-cycle multi-grid method yields a ${\bf C}^\delta_{\lambda}$ that satisfies \eqref{robustmg}, and that moreover  can be applied in linear complexity.
+These results were shown for uniformly refined meshes, but similarly as for $4^{-|\lambda|} = 0$, we expect them to hold for locally refined meshes as well.
+\rem{Dit is waar door grofste rooster in space decomposition sufficiently fine te nemen (Joachim) zodat tegelijkertijd op dat level $A+4^{-|\lambda|} M \eqsim 4^{-|\lambda|} M$ dus well-conditioned.}
+
+\rem{Om te beginnen ${\bf C}^\delta_{\lambda} = ({\bf A}_\lambda^\delta+4^{-|\lambda|}{\bf M}^\delta_\lambda)^{-1}$ nemen, d.w.z. directe solver in spatial direction.}
+
+
+\section{Evaluation stiffness matrix in linear complexity}
+For $* \in \{\ldots\}$, let $\Psi^*=\{\psi^*_\lambda\colon \lambda \in \vee^*\}$ be a (multilevel) collection of functions on some domain $\Omega$.
+We assume that the $\psi_\lambda^*$ are \emph{locally supported} in the sense that with $|\lambda| \in \N_0$ denoting the \emph{level} of $\lambda$, 
+\begin{align} \label{c1}
+& \sup_{\lambda \in \vee^*} 2^{|\lambda|} \diam \psi^*_\lambda <\infty,\\
+\label{c2}
+& \sup_{\ell \in \N_0} \sup_{x \in \Omega} \#\{ \lambda \in \vee^*\colon |\lambda|=\ell \wedge
+ \supp \psi^*_\lambda \cap B(x;2^{-\ell}) \neq\emptyset\} <\infty.
+\end{align}
+\rem{Factor $2$ in \eqref{c1}-\eqref{c2} en verder, kan gelezen worden als e.o.a. constante $>1$, evt. verschillend voor temporal en spatial functions.
+Bijv. voor NVB in $n$ space dimensies, ligt het afhankelijk van de definitie van de level van een functie misschien voor de hand om $2^{1/n}$ te nemen.}
+
+We will refer to the functions $\psi^*_\lambda$ as being {\em wavelets}, although not necessarily they have vanishing moments or other specific wavelet properties.
+
+For $\ell \in \N_0$, and any $\Lambda \subset \vee^*$, we set $\Lambda_\ell:=\{\lambda \in \Lambda:|\lambda|=\ell\}$ and 
+$\Lambda_{\ell\uparrow}:=\{\lambda \in \Lambda:|\lambda| \geq \ell\}$, and write $\Psi^*_\ell:=\Psi^*|_{\vee^*_\ell}$.
+%We write $\Psi^*_\ell:=\Psi^*|_{\vee^*_\ell}$, and add the harmless assumption that for any $\ell \in \N_0$,
+%\begin{equation} \label{c3}
+%\Omega = \cup_{\psi^*_\lambda \in \Psi^*_\ell} \supp \psi^*_\lambda.
+%\end{equation}
+
+For $\ell \in \N_0$, we assume a collection
+$
+\Phi^*_\ell=\{\phi^*_\lambda\colon \lambda \in \Delta^*_\ell\},
+$
+whose members will be referred to as being {\em scaling functions},
+with
+\begin{align} \label{c4}
+& \Span \Phi^*_{\ell+1} \supseteq  \Span \Phi^*_{\ell} \cup \Psi^*_{\ell+1},\quad \Phi^*_0=\Psi^*_0 \quad(\Delta_0^*:=\vee_0^*), \\
+\label{c5}
+& \sup_{\ell \in \N_0}\sup_{\lambda \in \Delta^*_\ell} 2^{\ell} \diam \supp \phi^*_\lambda <\infty, \\
+\label{c6}
+& \sup_{\ell \in \N_0} \sup_{x \in \Omega} \#\{\lambda \in \Delta^*_\ell: \supp \phi^*_\lambda \cap B(x;2^{-\ell}) \neq \emptyset\} <\infty,\\
+\label{c7}
+& \{\phi^*_\lambda|_\Sigma: \lambda \in \Delta^*_\ell,\,\phi^*_\lambda|_\Sigma \not\equiv 0\} \text{ is independent } (\text{for all open } \Sigma \subset \Omega,\,\ell \in \N_0).
+\end{align}
+W.l.o.g. we assume that the index sets $\Delta^*_\ell$ for different $\ell$ are mutually disjoint, and set $\Phi^*:=\cup_{\ell \in \N_0} \Phi^*_\ell$ with index set $\Delta^*:=\cup_{\ell \in \N_0} \Delta^*_\ell$. For $\lambda \in \Delta^*$, we set $|\lambda|:=\ell$ when $\lambda \in \Delta^*_\ell$.
+
+Viewing $\Psi^*_\ell$, $\Phi^*_\ell$ as column vectors, the assumptions we made so far guarantee the existence of matrices $p^*_{\ell}$, $q^*_{\ell}$ such that
+$$
+\left[\begin{array}{@{}cc@{}} (\Phi^*_{\ell-1})^\top & (\Psi^*_\ell)^\top \end{array} \right] = (\Phi^*_{\ell})^\top
+\left[\begin{array}{@{}cc@{}} p^*_{\ell} & q^*_{\ell} \end{array} \right],
+$$
+where the number of non-zeros per row and column of $p^*_{\ell}$ and $q^*_{\ell}$ is finite, uniformly in the rows and columns and in $\ell \in \N$ (here also \eqref{c7} has been used).
+
+To each $\lambda \in \vee^*$ with $|\lambda|>0$, we associate one or more $\mu \in \vee^*$ with $|\mu|=|\lambda|-1$ and $|\supp \psi^*_\lambda \cap \supp \psi^*_\mu|>0$.
+We call $\mu$ the (a) {\em parent} of $\lambda$, and so $\lambda$ a {\em child} of $\mu$.
+
+To each $\lambda \in \vee^*$, we associate some neighbourhood  $S^*(\lambda)$ of $\supp \psi^*_\lambda$, with diameter $\lesssim2^{-|\lambda|}$, such that for $|\lambda|>0$,
+$S^*(\lambda) \subset \cup_{\mu \in \parent(\lambda)} S^*(\mu)$.
+
+\begin{remark}
+Such a neighborhood always exists even when a child has only one parent. Indeed with $C:=\sup_{\lambda \in \vee^*} 2^{|\lambda|} \diam \psi^*_\lambda$ and
+$S^*(\lambda):=\{x \in \Omega \colon \dist(x,\supp \psi^*_\lambda) < C 2^{-|\lambda|}\}$,
+for $\mu$ being a parent of $\lambda$ and  $x \in S^*(\lambda)$, $\dist(x,\supp \psi^*_\mu)\leq \dist(x,\supp \psi^*_\lambda)+\diam(\supp \psi^*_\lambda)< 2 C 2^{-|\lambda|}=C 2^{-|\mu|}$, i.e.,
+$x \in S^*(\mu)$.
+\end{remark}
+
+%We call a finite $\Lambda \subset \vee^\ast$ a {\em tree}, if it contains all $\lambda \in \vee^*$ with $|\lambda|=0$, as well as the parent of any $\lambda \in \Lambda$ with $|\lambda|>0$.
+%A finite subset $\Lambda \subset \vee_{\ell \uparrow}^\ast$ is called an $\ell$-tree, or simply a tree when the value of $\ell$ is clear from the context, if for any $\lambda \in \Lambda$ its parent in $\vee_{\ell \uparrow}^\ast$ is in $\Lambda$.
+
+A finite $\Lambda \subset \vee_{\ell \uparrow}^\ast$ is called an \emph{$\ell$-tree}, or simply a \emph{tree} when $\ell=0$,  when for any $\lambda \in \Lambda$ its parent(s) in $\vee_{\ell \uparrow}^\ast$ is(are) in $\Lambda$.
+
+\bigskip
+\rem{Bekijk conforming NVB in 2 dimensies. Neem aan initial triangulation ${\mathcal T}_\bot$ satisfies matching condition. Bekijk figuur:
+\begin{figure}[h]
+\begin{center}
+\input{nvb.pdf_t}
+\end{center}
+\end{figure}
+
+In deze situatie geldt altijd $\gen(T_1)=\gen(T_2)$. Call nodal basis function associated to new node the hierarchical basis associated to this node (it is independent of the rest of the triangulation).
+It parents are the hierarchical basis functions associated to the nodes near the arrows. Def. $|\lambda|=\gen(T_i)+1$. Dan $\diam \supp \psi_\lambda \eqsim (\sqrt{2})^{-|\lambda|}$.
+With this parent-child relation, there is an 1-1 correspondency between conforming $P_1$ finite element spaces w.r.t. conforming NVB triangulations and the span of hierarchical basis functions whose indices form trees (with the additional condition that all roots should be part of a tree). See \cite{64.59}.
+}
+
+%%%%%%
+\subsection{A routine \texttt{eval}} \label{Seval}
+On several places the restriction of a vector (of scalars or of functions) to its indices in some subset of the index set should be read as the vector of full length where the entries with indices outside this subset are replaced by zeros.
+
+Let $a\colon \Span \breve{\Phi} \times \Span \Phi \rightarrow \R$ be linear in its first argument, and local in the sense that $a(v,u)=a(v,u|_{\supp v})$ for all $(v,u) \in \Span \breve{\Phi} \times \Span \Phi$.
+(Maybe better later swap the arguments of $a$).\medskip
+
+{\em \begin{tabbing}
+$[\vec{e},\,\vec{f}]:=\mathtt{eval}(a)(\ell,  \breve{\Pi},\breve{\Lambda},\Pi,\Lambda,\vec{d},\vec{c})$\\
+%
+{\em \%} Input: \= $\ell \in \N$,
+$\breve{\Pi} \subset \breve{\Delta}_{\ell-1}, \Pi \subset \Delta_{\ell-1}$, 
+$\ell$-trees $\breve{\Lambda} \subset \breve{\vee}_{\ell\uparrow}$ and $\Lambda \subset {\vee}_{\ell\uparrow}$,\\
+{\em \%} \> $\vec{d}\in \R^{\# \Pi},\, \vec{c}\in  \R^{\#  \Lambda}$. \\
+%
+{\em \%} Output: With $u:=\vec{d}^\top \Phi|_{\Pi}+\vec{c}^\top \Psi|_{\Lambda}$,\\
+{\em \%} \> $\vec{e}=a(\breve{\Phi}|_{\breve{\Pi}},u)$,
+$\vec{f}=a(\breve{\Psi}|_{\breve{\Lambda}},u)$.\\ \\
+%
+%
+{\em \texttt{if}} \= $\breve{\Pi}\cup \breve{\Lambda}\neq \emptyset$ {\em \texttt{then}} \\
+%
+%
+\>$\breve{\Pi}_B:=\{\lambda \in \breve{\Pi}\colon \big|\supp \breve{\phi}_\lambda \cap \cup_{\mu \in \Lambda_\ell}S(\mu)\big|>0$, $\breve{\Pi}_A:=\breve{\Pi} \setminus \breve{\Pi}_B$\\
+\>$\Pi_B:=\{\lambda \in \Pi\colon \big|\supp \phi_\lambda \cap \big(\cup_{\mu \in \breve{\Lambda}_\ell} \breve{S}(\mu) \cup_{\gamma \in \breve{\Pi}_B} \supp \breve{\phi}_\gamma \big)\big|>0\}$, $\Pi_A:=\Pi \setminus \Pi_B$\\
+\>$\breve{\underline{\Pi}}:=\{\lambda \in \breve{\Delta}_{\ell}\colon \supp \breve{\phi}_\lambda \subset \big(\cup_{\mu \in \breve{\Pi}_B} \supp \breve{\phi}_\mu \cup_{\gamma \in \breve{\Lambda}_\ell} \supp\breve{\psi}_\gamma\big)\}$\\
+\>$\underline{\Pi}:=\{\lambda \in \Delta_{\ell}\colon \supp \phi_\lambda \subset \big(\cup_{\mu \in \Pi_B} \supp \phi_\mu \cup_{\gamma \in \Lambda_\ell} \supp\psi_\gamma\big)\}$\\ 
+%
+\>$\underline{\vec{d}}:=\big(\mathfrak{p}_{\ell} \vec{d}|_{\Pi_B}+\mathfrak{q}_\ell \vec{c}|_{\Lambda_{\ell}}\big)|_{\underline{\Pi}}$\\
+\>$[\underline{\vec{e}},\,\underline{\vec{f}}]:=\mathtt{eval}(a)(\ell+1, \breve{\underline{\Pi}}, \breve{\Lambda}_{\ell+1\uparrow}, \underline{\Pi}, \Lambda_{\ell+1\uparrow},\underline{\vec{d}}, \vec{c}|_{\Lambda_{\ell+1\uparrow}})$\\
+\>$\vec{e}=
+\left[\begin{array}{@{}l@{}} \vec{e}|_{\breve{\Pi}_A}\\ \vec{e}|_{\breve{\Pi}_B}\end{array}\right]
+:=
+\left[\begin{array}{@{}l@{}} a(\breve{\Phi}|_{\breve{\Pi}_A},\vec{d}^\top\Phi|_{\Pi}) \\ 
+(\breve{\mathfrak{p}}_{\ell} ^\top \underline{\vec{e}})|_{\breve{\Pi}_B}
+\end{array}\right]$\\
+\>$\vec{f}=
+\left[\begin{array}{@{}l@{}} \vec{f}|_{\breve{\Lambda}_\ell} \\ \vec{f}|_{\breve{\Lambda}_{\ell+1\uparrow}}\end{array}\right]
+:=
+\left[\begin{array}{@{}l@{}} (\mathfrak{\breve{q}}_\ell^\top \underline{\vec{e}})|_{\breve{\Lambda}_{\ell}} \\ \underline{\vec{f}} \end{array}\right]$\\
+{\em \texttt{endif}}
+ \end{tabbing}}
+ 
+   \begin{remark}  Let $\breve{\Lambda} \subset \breve{\vee}$, $\Lambda \subset \vee$ be  trees, and $\vec{c} \in \ell_2(\Lambda)$, then
+ $$
+  [\vec{e},\,\vec{f}]:=\mathtt{eval}(a)(1,\breve{\Lambda}_{0},\breve{\Lambda}_{1 \uparrow},\Lambda_{0},\Lambda_{1 \uparrow},\vec{c}|_{\Lambda_0},\vec{c}|_{\Lambda_{1 \uparrow}}),
+ $$
+satisfies
+$$
+a(\breve{\Psi}|_{\breve{\Lambda}},\vec{c}^\top \Psi|_{\Lambda})
+=
+\left[\begin{array}{@{}c@{}} \vec{e} \\ \vec{f}
+ \end{array}\right].
+$$
+\end{remark}
+
+\newpage
+ 
+ \begin{theorem} A call of \texttt{eval} yields the output as specified, at the cost of
+ ${\mathcal O}(\# \breve{\Pi}+\# \breve{\Lambda}+\# \Pi+\# \Lambda)$ operations.
+ 
+ \end{theorem}
+ 
+ \begin{proof}
+By its definition, $\# \breve{\underline{\Pi}} \lesssim \#\breve{\Pi}_B +\# \breve{\Lambda}_\ell \lesssim \# \Lambda_\ell+\# \breve{\Lambda}_\ell$. So after sufficiently many recursive calls, the current set  $\breve{\Pi}  \cup \breve{\Lambda}$ will be empty.
+For use later, we note that 
+ $\# \underline{\Pi}  \lesssim \#\Pi_B +\#\Lambda_\ell \lesssim \#\breve{\Lambda}_\ell+\#\breve{\Pi}_B +\#\Lambda_\ell \lesssim \#\Lambda_\ell+\#\breve{\Lambda}_\ell$.
+
+ For $\breve{\Pi}  \cup \breve{\Lambda}= \emptyset$, the call produces nothing, which is correct.
+  
+
+Now let  $\breve{\Pi}  \cup \breve{\Lambda} \neq \emptyset$.
+From $\Lambda$ being an $\ell$-tree, the definitions of $S(\cdot)$ and $\breve{\Pi}_A$, and the locality of $a$, one has
+ $$
+ \vec{e}|_{\breve{\Pi}_A}=a(\breve{\Phi}|_{\breve{\Pi}_A},u)=a(\breve{\Phi}|_{\breve{\Pi}_A},\vec{d}^\top\Phi|_{\Pi}).
+ $$
+ 
+ Thanks to \eqref{c7}, the definition of $\underline{\Pi}$ shows that $\supp \big( \mathfrak{p}_{\ell} \vec{d}|_{\Pi_B}+\mathfrak{q}_\ell \vec{c}|_{\Lambda_{\ell}}\big) \subset \underline{\Pi}$, and so
+  $$
+ \underline{u}:=\underline{\vec{d}}^\top\Phi|_{\underline{\Pi}}+\vec{c}|_{\Lambda_{\ell+1\uparrow}}^\top \Psi|_{\Lambda_{\ell+1\uparrow}} =(\vec{d}|_{\Pi_B})^\top \Phi|_{\Pi_B} +\vec{c}^\top \Psi|_{\Lambda}=u-(\vec{d}|_{\Pi_A})^\top \Phi|_{\Pi_A}.
+ $$
+ 
+By induction the recursive call  yields
+ $\underline{\vec{e}}=a(\breve{\Phi}|_{\breve{\underline{\Pi}}}, \underline{u})$, and
+ $\underline{\vec{f}}=a(\breve{\Psi}|_{\breve{\Lambda}_{\ell+1 \uparrow}}, \underline{u})$.
+ From  $\breve{\Lambda}$ being an $\ell$-tree, the definitions of $\breve{S}(\cdot)$ and $\Pi_A$, and the locality of $a$, we have
+ $$
+ a(\breve{\Psi}|_{\breve{\Lambda}_{\ell \uparrow}}, u)=a(\breve{\Psi}|_{\breve{\Lambda}_{\ell \uparrow}}, \underline{u}),
+ $$
+and so in particular $\vec{f}|_{\Lambda_{\ell+1,\uparrow}}=\underline{\vec{f}}$.
+
+Thanks to \eqref{c7}, the definition of $\breve{\underline{\Pi}}$ shows that
+$$
+ \breve{\Phi}|_{\breve{\Pi}_B}=(\breve{\mathfrak{p}}_{\ell} ^\top \breve{\Phi}|_{\underline{\breve{\Pi}}})|_{\breve{\Pi}_B},\quad \breve{\Psi}|_{\breve{\Lambda}_\ell}=(\mathfrak{\breve{q}}_\ell^\top \breve{\Phi}|_{\underline{\breve{\Pi}}})|_{\breve{\Lambda}_\ell}.
+ $$
+We conclude that 
+ $$
+  \vec{f}|_{\breve{\Lambda}_\ell}= a(\breve{\Psi}|_{\breve{\Lambda}_\ell}, u) =a(\breve{\Psi}|_{\breve{\Lambda}_\ell}, \underline{u})=
+   \big(\mathfrak{\breve{q}}_\ell^\top \underline{\vec{e}}\big)|_{\breve{\Lambda}_\ell},
+ $$ 
+ and from $|\supp \phi_\lambda \cap \supp \breve{\phi}_\mu|=0$ for $(\lambda,\mu) \in \Pi_A \times\breve{\Pi}_B$, that
+$$
+ \vec{e}|_{\breve{\Pi}_B}=  a(\breve{\Phi}|_{\breve{\Pi}_B}, u)= a(\breve{\Phi}|_{\breve{\Pi}_B}, \underline{u})=   \big(\breve{\mathfrak{p}}_{\ell} ^\top \underline{\vec{e}}\big)|_{\breve{\Pi}_B}.
+$$
+ 
+ From the assumptions on the collections $\Phi$, $\breve{\Phi}$, $\breve{\Psi}$, and $\Psi$, and their consequences on the sparsity of the matrices $\mathfrak{p}_{\ell} $, $\breve{\mathfrak{p}}_{\ell}$, $\mathfrak{q}_\ell$, and $\mathfrak{\breve{q}}_\ell$, one infers that the total cost of the evaluations of the statements in \texttt{eval} is ${\mathcal O}(\# \breve{\Pi}+\# \breve{\Lambda}_\ell+\# \Pi+\# \Lambda_\ell)$ plus the cost of the recursive call. Using 
+ $ \# \breve{\underline{\Pi}} + \# \underline{\Pi} \lesssim \# \breve{\Lambda}_\ell+\# \Lambda_\ell$
+ and induction, we conclude the second statement of the theorem.
+ \end{proof}
+ 
+  
+
+
+
+ \newpage
+ \subsection{A routine \texttt{evalupp} } \mbox{}
+ 
+Let $a\colon \Span \breve{\Phi} \times \Span \Phi \rightarrow \R$ be local and {\em bilinear}.
+Set $U=[a(\breve{\psi}_\lambda,\psi_\mu)]_{|\lambda| \leq |\mu|}$, $L=[a(\breve{\psi}_\lambda,\psi_\mu)]_{|\lambda| > |\mu|}$, so that $A=[a(\breve{\psi}_\lambda,\psi_\mu)]_{(\lambda,\mu) \in \breve{\vee}\times \vee}$ satisfies $A=L+U$. This splitting is going to be useful in the tensor product setting. \bigskip
+
+{\em \begin{tabbing}
+$[\vec{e},\,\vec{f}]:=\mathtt{evalupp}(a)(\ell,  \breve{\Pi},\breve{\Lambda},\Pi,\Lambda,\vec{d},\vec{c})$\\
+%
+{\em \%} Input: \= $\ell \in \N$,
+$\breve{\Pi} \subset \breve{\Delta}_{\ell-1}, \Pi \subset \Delta_{\ell-1}$, 
+$\ell$-trees $\breve{\Lambda} \subset \breve{\vee}_{\ell\uparrow}$ and $\Lambda \subset {\vee}_{\ell\uparrow}$,\\
+{\em \%} \> $\vec{d}\in \R^{\# \Pi},\, \vec{c}\in  \R^{\#  \Lambda}$. \\
+%
+{\em \%} Output: With $u:=\vec{d}^\top \Phi|_{\Pi}+\vec{c}^\top \Psi|_{\Lambda}$,\\
+{\em \%} \> $\vec{e}=a(\breve{\Phi}|_{\breve{\Pi}},u)$,
+$\vec{f}=U|_{\breve{\Lambda} \times \Lambda} \vec{c}$.\\ \\
+%
+%
+%
+%
+{\em \texttt{if}} \= $\breve{\Pi}\cup \breve{\Lambda}\neq \emptyset$ {\em \texttt{then}} \\
+\>$\breve{\Pi}_B:=\{\lambda \in \breve{\Pi}\colon \big|\supp \breve{\phi}_\lambda \cap \cup_{\mu \in \Lambda_\ell}S(\mu)\big|>0$, $\breve{\Pi}_A:=\breve{\Pi} \setminus \breve{\Pi}_B$\\
+\>$\breve{\underline{\Pi}}:=\{\lambda \in \breve{\Delta}_{\ell}\colon \supp \breve{\phi}_\lambda \subset \big(\cup_{\mu \in \breve{\Pi}_B} \supp \breve{\phi}_\mu \cup_{\gamma \in \breve{\Lambda}_\ell} \supp\breve{\psi}_\gamma\big)\}$\\
+\>$\underline{\Pi}:=\{\lambda \in \Delta_{\ell}\colon \supp \phi_\lambda \subset \ \cup_{\gamma \in \Lambda_\ell} \supp\psi_\gamma\}$\\ 
+%
+\>$\underline{\vec{d}}:=\big(\mathfrak{q}_\ell \vec{c}|_{\Lambda_{\ell}}\big)|_{\underline{\Pi}}$\\
+\>$[\underline{\vec{e}},\,\underline{\vec{f}}]:=\mathtt{evalupp}(a)(\ell+1, \breve{\underline{\Pi}}, \breve{\Lambda}_{\ell+1\uparrow}, \underline{\Pi}, \Lambda_{\ell+1\uparrow},\underline{\vec{d}}, \vec{c}|_{\Lambda_{\ell+1\uparrow}})$\\
+\>$\vec{e}=
+\left[\begin{array}{@{}l@{}} \vec{e}|_{\breve{\Pi}_A}\\ \vec{e}|_{\breve{\Pi}_B}\end{array}\right]
+:=
+\left[\begin{array}{@{}l@{}} a(\breve{\Phi}|_{\breve{\Pi}_A},\vec{d}^\top\Phi|_{\Pi}) \\ 
+a(\breve{\Phi}|_{\breve{\Pi}_B},\vec{d}^\top\Phi|_{\Pi})+(\breve{\mathfrak{p}}_{\ell} ^\top \underline{\vec{e}})|_{\breve{\Pi}_B}
+\end{array}\right]$\\
+\>$\vec{f}=
+\left[\begin{array}{@{}l@{}} \vec{f}|_{\breve{\Lambda}_\ell} \\ \vec{f}|_{\breve{\Lambda}_{\ell+1\uparrow}}\end{array}\right]
+:=
+\left[\begin{array}{@{}l@{}} (\mathfrak{\breve{q}}_\ell^\top \underline{\vec{e}})|_{\breve{\Lambda}_{\ell}} \\ \underline{\vec{f}} \end{array}\right]$\\
+{\em \texttt{endif}}
+ \end{tabbing}}
+ 
+  \begin{remark} Let $\breve{\Lambda} \subset \breve{\vee}$, $\Lambda \subset \vee$ be  trees, and $\vec{c} \in \ell_2(\Lambda)$, then
+   $$
+ [\vec{e},\,\vec{f}]:=\mathtt{evalupp}(a)(1,\breve{\Lambda}_{0},\breve{\Lambda}_{1 \uparrow},\Lambda_0,\Lambda_{1 \uparrow},\vec{c}|_{\Lambda_0},\vec{c}|_{\Lambda_{1 \uparrow}}),
+ $$
+satisfies
+$$
+U|_{\breve{\Lambda} \times \Lambda} \vec{c}
+=
+\left[\begin{array}{@{}c@{}} \vec{e} \\ \vec{f}
+ \end{array}\right].
+$$
+\end{remark}
+
+\newpage
+ \begin{theorem} A call of \texttt{evalupp} yields the output as specified, at the cost of
+ ${\mathcal O}(\# \breve{\Pi}+\# \breve{\Lambda}+\# \Pi+\# \Lambda)$ operations.
+ \end{theorem}
+
+ \begin{proof}
+By its definition, $\# \breve{\underline{\Pi}} \lesssim \#\breve{\Pi}_B +\# \breve{\Lambda}_\ell \lesssim \# \Lambda_\ell+\# \breve{\Lambda}_\ell$. So after sufficiently many recursive calls, the current set  $\breve{\Pi}  \cup \breve{\Lambda}$ will be empty.
+Notice that 
+ $\# \underline{\Pi}  \lesssim \#\Lambda_\ell$.
+
+ For $\breve{\Pi}  \cup \breve{\Lambda}= \emptyset$, the call produces nothing, which is correct.
+  
+
+Now let  $\breve{\Pi}  \cup \breve{\Lambda} \neq \emptyset$.
+From $\Lambda$ being an $\ell$-tree, the definitions of $S(\cdot)$ and $\breve{\Pi}_A$, and the locality of $a$, one has
+ $$
+ \vec{e}|_{\breve{\Pi}_A}=a(\breve{\Phi}|_{\breve{\Pi}_A},u)=a(\breve{\Phi}|_{\breve{\Pi}_A},\vec{d}^\top\Phi|_{\Pi}).
+ $$
+ 
+ Thanks to \eqref{c7}, the definition of $\underline{\Pi}$ shows that $\supp \big(\mathfrak{q}_\ell \vec{c}|_{\Lambda_{\ell}}\big) \subset \underline{\Pi}$, and so
+  $$
+ \underline{u}:=\underline{\vec{d}}^\top\Phi|_{\underline{\Pi}}+\vec{c}|_{\Lambda_{\ell+1\uparrow}}^\top \Psi|_{\Lambda_{\ell+1\uparrow}} =\vec{c}^\top \Psi|_{\Lambda}=u-\vec{d}^\top \Phi|_{\Pi}.
+ $$
+ 
+By induction the recursive call  yields
+ $\underline{\vec{e}}=a(\breve{\Phi}|_{\breve{\underline{\Pi}}}, \underline{u})$, and
+ $\underline{\vec{f}}=U_{\breve{\Lambda}_{\ell+1 \uparrow} \times \Lambda_{\ell+1 \uparrow}} c|_{\Lambda_{\ell+1 \uparrow}}=\vec{f}|_{\breve{\Lambda}_{\ell+1 \uparrow}}$.
+
+Thanks to \eqref{c7}, the definition of $\breve{\underline{\Pi}}$ shows that
+$$
+ \breve{\Phi}|_{\breve{\Pi}_B}=(\breve{\mathfrak{p}}_{\ell} ^\top \breve{\Phi}|_{\underline{\breve{\Pi}}})|_{\breve{\Pi}_B},\quad \breve{\Psi}|_{\breve{\Lambda}_\ell}=(\mathfrak{\breve{q}}_\ell^\top \breve{\Phi}|_{\underline{\breve{\Pi}}})|_{\breve{\Lambda}_\ell}.
+ $$
+We conclude that 
+ $$
+  \vec{f}|_{\breve{\Lambda}_\ell}= a(\breve{\Psi}|_{\breve{\Lambda}_\ell}, \vec{c}^\top \Psi|_{\Lambda}) =a(\breve{\Psi}|_{\breve{\Lambda}_\ell}, \underline{u})=
+   \big(\mathfrak{\breve{q}}_\ell^\top \underline{\vec{e}}\big)|_{\breve{\Lambda}_\ell},
+ $$ 
+and
+$$
+ \vec{e}|_{\breve{\Pi}_B}=  a(\breve{\Phi}|_{\breve{\Pi}_B}, u)= a(\breve{\Phi}|_{\breve{\Pi}_B}, \underline{u})+a(\breve{\Phi}|_{\breve{\Pi}_B},\vec{d}^\top\Phi|_{\Pi})=   \big(\mathfrak{p}_{\ell} ^\top \underline{\vec{e}}\big)|_{\breve{\Pi}_B}+a(\breve{\Phi}|_{\breve{\Pi}_B},\vec{d}^\top\Phi|_{\Pi}).
+$$
+
+
+ 
+ From the assumptions on the collections $\Phi$, $\breve{\Phi}$, $\breve{\Psi}$, and $\Psi$, and their consequences on the sparsity of the matrices $\mathfrak{p}_{\ell} $, $\breve{\mathfrak{p}}_{\ell}$, $\mathfrak{q}_\ell$, and $\mathfrak{\breve{q}}_\ell$, one infers that the total cost of the evaluations of the statements in \texttt{eval} is ${\mathcal O}(\# \breve{\Pi}+\# \breve{\Lambda}_\ell+\# \Pi+\# \Lambda_\ell)$ plus the cost of the recursive call. Using 
+ $ \# \breve{\underline{\Pi}} + \# \underline{\Pi} \lesssim \# \breve{\Lambda}_\ell+\# \Lambda_\ell$
+ and induction, we conclude the second statement of the theorem.
+ \end{proof}
+ 
+ \newpage
+  \subsection{A routine \texttt{evallow}} \label{SevalL}
+  Let $a\colon \Span \breve{\Phi} \times \Span \Phi \rightarrow \R$ be local and {\em bilinear}.
+Recall $L=[a(\breve{\psi}_\lambda,\psi_\mu)]_{|\lambda| > |\mu|}$.
+
+ 
+ {\em \begin{tabbing}
+$\vec{f}:=\mathtt{evallow}(a)(\ell,\breve{\Lambda},\Pi,\Lambda,\vec{d},\vec{c})$\\
+%
+{\em \%} Input: \= $\ell \in \N$,
+$\Pi\subset \Delta_{\ell-1}$, 
+$\ell$-trees $\breve{\Lambda} \subset \breve{\vee}_{\ell\uparrow}$ and $\Lambda \subset {\vee}_{\ell\uparrow}$,\\
+{\em \%} \> $\vec{d} \in \R^{\# \Pi},\, \vec{c} \in \R^{\# \Lambda}$. \\
+%
+{\em \%} Output: 
+$\vec{f}=a(\breve{\Psi}|_{\breve{\Lambda}},\Phi|_{\Pi})\vec{d}+L|_{\breve{\Lambda} \times \Lambda} \vec{c}$.\\ \\
+%
+%
+{\em \texttt{if}} \= $\breve{\Pi} \cup \breve{\Lambda}\neq \emptyset$ {\em \texttt{then}}\\
+%
+%
+\>$\Pi_B:=\{\lambda \in \Pi\colon \big|\supp \phi_\lambda \cap \cup_{\mu \in \breve{\Lambda}_\ell} \breve{S}(\mu) \big|>0\}$,\\
+\>$\underline{\Pi}:=\{\lambda \in \Delta_{\ell}\colon \supp \phi_\lambda \subset \big(\cup_{\mu \in \Pi_B} \supp \phi_\mu \cup_{\gamma \in \Lambda_\ell} \supp\psi_\gamma\big)\}$\\ 
+
+\>$\underline{\Pi}_B:=\{\lambda \in \Delta_{\ell}\colon \supp \phi_\lambda \subset \cup_{\mu \in \Pi_B} \supp \phi_\mu\}$\\
+\>$\underline{\breve{\Pi}}_B:=\{\lambda \in \breve{\Delta}_{\ell}\colon \supp \breve{\phi}_\lambda \subset \cup_{\lambda  \in \breve{\Lambda}_\ell} \supp \psi_\lambda\}$\\
+%
+\>$\underline{\vec{e}}:=a(\breve{\Phi}|_{\underline{\breve{\Pi}}_B},\Phi|_{\underline{\Pi}_B}) \mathfrak{p}_{\ell} \vec{d}|_{\Pi_B}$\\
+\>$\underline{\vec{d}}:=(\mathfrak{p}_{\ell} \vec{d}|_{\Pi_B}+\mathfrak{q}_\ell \vec{c}|_{\Lambda_{\ell}})|_{\underline{\Pi}}$\\
+\>$\vec{f}=
+\left[\begin{array}{@{}l@{}} \vec{f}|_{\breve{\Lambda}_\ell} \\ \vec{f}|_{\breve{\Lambda}_{\ell+1\uparrow}}\end{array}\right]
+:=
+\left[\begin{array}{@{}l@{}} (\mathfrak{\breve{q}}_\ell^\top \underline{\vec{e}})|_{\breve{\Lambda}_{\ell}} \\ 
+\mathtt{evallow}(a)(\ell+1, \breve{\Lambda}_{\ell+1\uparrow}, \underline{\Pi}, \Lambda_{\ell+1\uparrow},\underline{\vec{d}}, \vec{c}|_{\Lambda_{\ell+1\uparrow}}) \end{array}\right]$\\
+{\em \texttt{endif}}
+ \end{tabbing}}
+ 
+ 
+ \begin{remark} \label{rem3}
+ Let $\breve{\Lambda} \subset \breve{\vee}$, $\Lambda \subset \vee$ be trees, and $\vec{c} \in \ell_2(\Lambda)$, then 
+ $$
+ L|_{\breve{\Lambda} \times \Lambda} \vec{c}=
+\mathtt{evallow}(a)(1,\breve{\Lambda}_{1 \uparrow},\Lambda_0,\Lambda_{1 \uparrow},\vec{c}|_{\Lambda_0},\vec{c}|_{\Lambda_{1 \uparrow}}).
+ $$
+\end{remark}
+ \newpage
+
+\begin{theorem} A call of \texttt{evallow} yields the output as specified, at the cost of
+ ${\mathcal O}(\# \breve{\Lambda}+\# \Pi+\# \Lambda)$ operations.
+ 
+ \end{theorem}
+ 
+ \begin{proof}
+Notice that
+ $\# \underline{\Pi}  \lesssim \#\Lambda_\ell+\#\Pi_B \lesssim  \#\Lambda_\ell+\#\breve{\Lambda}_\ell$.
+
+ For $\breve{\Pi} \cup \breve{\Lambda}= \emptyset$, the call produces nothing, which is correct.
+  
+
+Now let  $\breve{\Pi} \cup \breve{\Lambda}\neq \emptyset$. The definitions of $\underline{\breve{\Pi}}_B$ and $\underline{\Pi}_B$ together with \eqref{c7} show that \begin{align*}
+\vec{f}|_{\breve{\Lambda}_\ell} = a(\breve{\Psi}_{\breve{\Lambda}_\ell},\Phi|_{\Pi})\vec{d}= a(\breve{\Psi}_{\breve{\Lambda}_\ell},\Phi|_{\Pi})\vec{d}|_{\Pi_B}&=(\mathfrak{\breve{q}}_\ell^\top a(\breve{\Phi}|_{\underline{\breve{\Pi}}_B},\Phi|_{\underline{\Pi}_B})\mathfrak{p}_{\ell} \vec{d}|_{\Pi_B})|_{\breve{\Lambda}_{\ell}}\\
+&=(\mathfrak{\breve{q}}_\ell^\top \underline{\vec{e}})|_{\breve{\Lambda}_{\ell}}
+\end{align*}
+
+From  $\breve{\Lambda}$ being an $\ell$-tree, the definitions of $\breve{S}(\cdot)$ and $\Pi_B$, and the locality of $a$, and for the third equality, the definition of $\underline{\Pi}$ and \eqref{c7}, one has
+\begin{align*}
+f|_{\breve{\Lambda}_{\ell+1 \uparrow}}&=a(\breve{\Psi}|_{\breve{\Lambda}_{\ell+1 \uparrow}},\Phi|_\Pi)\vec{d}
++
+L|_{\breve{\Lambda}_{\ell+1 \uparrow} \times \Lambda_\ell}\vec{c}|_{\Lambda_\ell}+
+L|_{\breve{\Lambda}_{\ell+1 \uparrow} \times \Lambda_{\ell+1 \uparrow }}\vec{c}|_{\Lambda_{\ell+1\uparrow}}\\
+& = a(\breve{\Psi}|_{\breve{\Lambda}_{\ell+1 \uparrow}},\Phi|_\Pi)\vec{d}|_{\Pi_B}+
+a(\breve{\Psi}|_{\breve{\Lambda}_{\ell+1 \uparrow}},\Psi|_{\Lambda_\ell})
+\vec{c}|_{\Lambda_\ell}+L|_{\breve{\Lambda}_{\ell+1 \uparrow} \times \Lambda_{\ell+1 \uparrow }}\vec{c}|_{\Lambda_{\ell+1\uparrow}}
+\\
+& = a(\breve{\Psi}|_{\breve{\Lambda}_{\ell+1 \uparrow}},\Phi|_{\underline{\Pi}})\underline{\vec{d}}+L|_{\breve{\Lambda}_{\ell+1 \uparrow} \times \Lambda_{\ell+1 \uparrow }}\vec{c}|_{\Lambda_{\ell+1\uparrow}}\\
+& =\mathtt{evallow}(a)(\ell+1, \breve{\Lambda}_{\ell+1\uparrow}, \underline{\Pi}, \Lambda_{\ell+1\uparrow},\underline{\vec{d}}, \vec{c}|_{\Lambda_{\ell+1\uparrow}}) \end{align*}
+ by induction.
+ 
+ From the assumptions on the collections $\Phi$, $\breve{\Psi}$, and $\Psi$, and their consequences on the sparsity of the matrices $\mathfrak{p}_{\ell} $, $\mathfrak{q}_\ell$, and $\mathfrak{\breve{q}}_\ell$, one easily infers that the total cost of the evaluations of the statements in \texttt{evallow} is ${\mathcal O}(\# \breve{\Lambda}_\ell+\# \Pi+\# \Lambda_\ell)$ plus the cost of the recursive call. Using 
+ $ \# \underline{\Pi} \lesssim \# \breve{\Lambda}_\ell+\# \Lambda_\ell$
+ and induction, we conclude the second statement of the theorem.
+ \end{proof}
+
+ \newpage
+%%%%%%%%%%% 
+\section{The application of tensor product operators} \label{Sappl-of-tensors}
+For $i \in \{1,2\}$, let $a_i\colon \Span \breve{\Phi}_i \times \Span \Phi_i \rightarrow \R$ be local and {\em bilinear}, and 
+let $A_i:=a_i(\breve{\Psi}_i,\Psi_i)$ be splitted into $L_i+U_i$, where $U_i:=[(A_i)_{\lambda,\mu}]_{|\lambda| \leq |\mu|}$, $L_i:=[(A_i)_{\lambda,\mu}]_{|\lambda| > |\mu|}$.
+
+For $i \in \{1,2\}$, let $\neg i$ be the value in $\{1,2\}$ unequal to $i$.
+
+Let the coordinate projector $P_i (b_1,b_2):=b_i$. \rem{In our setting, it seems best when first coordinate corresponds to the temporal spaces, and the second coordinate corresponds to the spatial spaces.} For $\bm{\Lambda} \subset \{\breve{\vee}^{1} \times \breve{\vee}^2,\vee^1 \times \breve{\vee}^2, \breve{\vee}^1 \times \vee^2, \vee^1 \times \vee^2\}$, we call $\bm{\Lambda}$ an {\em double-tree} when for $i \in \{1,2\}$ and any $\mu\in P_{\lnot i}\bm{\Lambda}$, the fiber
+$$
+\bm{\Lambda}_{i,\mu}:=P_i(P_{\lnot i}|_{\bm{\Lambda}})^{-1} \{\mu\}
+$$
+is a tree (in $\breve{\vee}^i $ or $\vee^i$). That is, $\bm{\Lambda}$ is a double-tree when `frozen' in each of its coordinates, at any value of that coordinate, it is a tree in the remaining coordinate.
+
+\rem{$X^\delta=\sum_{\lambda \in \vee_\Sigma} \sigma_\lambda \otimes \tilde{W}_\lambda^\delta$ is a multi-tree iff $\tilde{W}_\lambda^\delta \subset \tilde{W}_\mu^\delta$ whenever $\mu$ is parent of $\lambda$, and each $\tilde{W}_\lambda^\delta$ is either $\{0\}$ or a fem space w.r.t. conforming NVB partition (with fixed $\tria_\bot$).}
+
+\begin{figure}
+\begin{center}
+\input{multitrees.pdf_t}
+\end{center}
+\caption{Projection of a subset $\bm{\Lambda}$ of the Cartesian product of two index sets onto a coordinate, and fibers.}
+\end{figure}
+
+From $\bm{\Lambda}=\cup_{\mu\in P_{\lnot i}\bm{\Lambda}} (P_{\lnot i}|_{\bm{\Lambda}})^{-1} \{\mu\}$, we have 
+$P_i \bm{\Lambda}=\cup_{\mu\in P_{\lnot i}\bm{\Lambda}} \bm{\Lambda}_{i,\mu}$, which, being a union of trees, is a tree itself.
+
+For a subset $\lhd$ of a (double) index set $\Diamond$, let $I_\lhd^\Diamond$ denote the extension operator with zeros of a vector supported on $\lhd$ to one on $\Diamond$, and let $R_\lhd^\Diamond$ denotes its (formal) adjoint, being the restriction operator of a vector supported on $\Diamond$ to one on $\lhd$. Since the set $\Diamond$ will always be clear from the context, we will denote these operators simply by $I_\lhd$ and $R_\lhd$.%
+
+A generalization of the following theorem to double-trees, i.e., multi-index sets that frozen in all but any coordinate direction are trees, was given in \cite[Thm.~3.1]{171.7}, with a different definition of a (single) tree though.
+Therefore, for completeness we include a proof.
+
+\begin{theorem} \label{thm1} Let $\bm{\breve{\Lambda}} \subset \breve{\vee}^1 \times \breve{\vee}^2$, $\bm{\Lambda} \subset \vee^1 \times \vee^2$ be finite double-trees. Then
+\begin{align*}
+\bm{\Sigma}&:=\bigcup_{\lambda \in P_1 \bm{\Lambda}} \{\lambda\} \times \big\{
+\bm{\breve{\Lambda}}_{2,\mu}
+:\mu \in P_1 \bm{\breve{\Lambda}},\,|\mu|=|\lambda|+1,\,|\breve{S}^1(\mu) \cap S^1(\lambda)|>0\big\},\\
+\bm{\Theta}&:=\bigcup_{\lambda \in P_{2} \bm{\Lambda}} 
+\{\mu \in  P_{1} \bm{\breve{\Lambda}} : \exists \gamma \in \bm{\Lambda}_{1,\lambda} \text{ s.t. } |\gamma|= |\mu|,\,|\breve{S}^1(\mu) \cap S^1(\gamma)|>0\}
+ \times \{\lambda\},
+\end{align*}
+are double-trees with $\# \bm{\Sigma} \lesssim \# \bm{\breve{\Lambda}}$ and $\# \bm{\Theta} \lesssim \# \bm{\Lambda}$, and
+\begin{equation} \label{splitting}
+\begin{split}
+R_{\bm{\breve{\Lambda}}} (A_1 \otimes A_2) I_{\bm{\Lambda}}=
+ & R_{\bm{\breve{\Lambda}}} (L_1 \otimes \mathrm{Id}) I_{\bm{\Sigma}}  R_{\bm{\Sigma}} (\mathrm{Id} \otimes A_2) I_{\bm{\Lambda}}+\\
+& R_{\bm{\breve{\Lambda}}} (\mathrm{Id} \otimes A_2) I_{\bm{\Theta}}  R_{\bm{\Theta}} (U_1 \otimes \mathrm{Id}) I_{\bm{\Lambda}}.
+\end{split}
+\end{equation}
+\end{theorem}
+
+\begin{proof}We write
+\begin{align} \nonumber
+R_{\bm{\breve{\Lambda}}} (A_1 \otimes A_2) I_{\bm{\Lambda}}=&R_{\bm{\breve{\Lambda}}} ((L_1+U_1) \otimes A_2) I_{\bm{\Lambda}}\\ 
+\label{first}
+=&R_{\bm{\breve{\Lambda}}} (L_1\otimes \mathrm{Id})(\mathrm{Id} \otimes A_2) I_{\bm{\Lambda}}+
+\\ 
+\label{second}
+&R_{\bm{\breve{\Lambda}}} (\mathrm{Id} \otimes A_2) (U_1 \otimes \mathrm{Id}) I_{\bm{\Lambda}}.
+\end{align}
+
+Considering \eqref{first}, the range of $(\mathrm{Id} \otimes A_2) I_{\bm{\Lambda}}$ consists of vectors whose entries with first index outside $P_1\bm{\Lambda}$ are zero.
+In view of the subsequent application of $L_1 \otimes I$, furthermore only those indices $(\lambda,\gamma) \in P_1\bm{\Lambda} \times \breve{\vee}^2$ of these vectors might be relevant for which $\exists (\mu,\gamma) \in \bm{\breve{\Lambda}}$, i.e. $\gamma \in \bm{\Lambda}_{2,\mu}$, with $|\mu|>|\lambda|$ and $|\breve{S}^1(\mu) \cap S^1(\lambda)|>0$.
+Indeed $|\breve{S}^1(\mu) \cap S^1(\lambda)|=0$ implies
+$|\supp \breve{\psi}^1_\mu \cap \supp \psi^1_\lambda|=0$, and so $a_1(\breve{\psi}^1_\mu,\psi^1_\lambda)=0$. 
+If for given $(\lambda,\gamma)$ such a pair $(\mu,\gamma)$ exists for  $|\mu|>|\lambda|$, then such a pair exists for $|\mu|=|\lambda|+1$ as well, because $\bm{\breve{\Lambda}}_{1,\gamma}$ is a tree, and $\breve{S}^1(\mu') \supset \breve{S}^1(\mu)$ for any ancestor $\mu'$ of $\mu$.
+In order words, the condition $|\mu|>|\lambda|$ can be read as $|\mu|=|\lambda|+1$. The set of $(\lambda,\gamma)$ that we just described is given by the set $\bm{\Sigma}$, and so we infer that
+$$
+R_{\bm{\breve{\Lambda}}} (L_1\otimes \mathrm{Id})(\mathrm{Id} \otimes A_2) I_{\bm{\Lambda}}=R_{\bm{\breve{\Lambda}}} (L_1\otimes \mathrm{Id})I_{\bm{\Sigma}}  R_{\bm{\Sigma}}(\mathrm{Id} \otimes A_2) I_{\bm{\Lambda}}.
+$$
+
+Now let $(\lambda,\gamma) \in \bm{\Sigma}$. Using that $P_1\bm{\Lambda}$ is a tree, and $S^1(\lambda) \subset S^1(\lambda')$ for any ancestor $\lambda'$ of $\lambda$, we infer that $(\lambda',\gamma) \in \bm{\Sigma}$. Using that for any $\mu \in P_1 \bm{\breve{\Lambda}}$, $\bm{\breve{\Lambda}}_{2,\mu}$ is a tree, we infer that for any ancestor $\gamma'$ of $\gamma$, $(\lambda,\gamma') \in \bm{\Sigma}$, so that $\bm{\Sigma}$ is a double-tree.
+
+For any $\mu \in \breve{\vee}^1$, the number of $\lambda \in \vee^1$ with $|\mu|=|\lambda|+1$ and $|\breve{S}^1(\mu) \cap S^1(\lambda)|>0$ is uniformly bounded, 
+from which we infer that $\# \bm{\Sigma} \lesssim \sum_{\mu \in P_1 \bm{\breve{\Lambda}}} \#\bm{\breve{\Lambda}}_{2,\mu}=\#\bm{\breve{\Lambda}}$.
+
+Considering \eqref{second}, the range of $(U_1 \otimes \mathrm{Id}) I_{\bm{\Lambda}}$ consists of vectors that can only have non-zero entries for indices $(\mu,\lambda) \in \breve{\vee}^1 \times P_2\bm{\Lambda}$ for which there exists a $\gamma \in \bm{\Lambda}_{1,\lambda}$ with $|\gamma|\geq |\mu|$ and $|\breve{S}^1(\mu) \cap S^1(\gamma)|>0$.
+Since $\bm{\Lambda}_{1,\lambda}$ is a tree, and $S^1(\gamma') \supset S^1(\gamma)$ for any ancestor $\gamma'$ of $\gamma$, 
+equivalently $|\gamma|\geq |\mu|$ can be read as $|\gamma|= |\mu|$. Furthermore, in view of the subsequent application of $R_{\bm{\breve{\Lambda}}} (\mathrm{Id} \otimes A_2)$, it suffices to consider 
+those indices $(\mu,\lambda)$ with $\mu \in P_1\bm{\breve{\Lambda}}$. 
+The set of $(\mu,\lambda)$ that we just described is given by the set $\bm{\Theta}$, and so we infer that
+$$
+R_{\bm{\breve{\Lambda}}} (\mathrm{Id} \otimes A_2) (U_1 \otimes \mathrm{Id}) I_{\bm{\Lambda}}=R_{\bm{\breve{\Lambda}}} (\mathrm{Id} \otimes A_2) I_{\bm{\Theta}} R_{\bm{\Theta}} (U_1 \otimes \mathrm{Id}) I_{\bm{\Lambda}}.
+$$
+
+Now let $(\mu,\lambda) \in \bm{\Theta}$. If $\lambda'$ is an ancestor of $\lambda$, then 
+from $P_1 \bm{\Lambda}$ being a tree, and $\bm{\Lambda}_{1,\lambda} \subset \bm{\Lambda}_{1,\lambda'}$, we have $(\mu,\lambda') \in \bm{\Theta}$. If $\mu'$ is an ancestor of $\mu$, then from $P_1 \bm{\breve{\Lambda}}$ being a tree, and $\breve{S}^1(\mu') \supset \breve{S}^1(\mu)$, we infer that $(\mu',\lambda) \in \bm{\Theta}$, and thus that $\bm{\Theta}$ is a double-tree. 
+
+For any $\gamma \in \vee^1$, the number of $\mu \in \breve{\vee}^1$ with $|\mu|=|\gamma|$ and $|\breve{S}^1(\mu) \cap S^1(\gamma)|>0$ is uniformly bounded, 
+from which we infer that $\# \bm{\Theta} \lesssim \sum_{\lambda \in P_2 \bm{\Lambda}} \#\bm{\Lambda}_{1,\lambda}=\#\bm{\Lambda}$.
+\end{proof}
+
+The application of $R_{\bm{\breve{\Lambda}}} (L_1 \otimes \mathrm{Id}) I_{\bm{\Sigma}}$ boils down to the application of 
+$R_{\bm{\breve{\Lambda}}_{1,\mu}} L_1 I_{\bm{\Sigma}_{1,\mu}}$ for any $\mu \in P_2 \bm{\Sigma}\cap P_2\bm{\breve{\Lambda}}$.
+Such an application can be performed in ${\mathcal O}(\#\bm{\breve{\Lambda}}_{1,\mu}+\#\bm{\Sigma}_{1,\mu})$ operations by means of a call of $\mathtt{evallow}(a_1)$.
+Since
+$\sum_{\mu \in \breve{\vee}_2}\#\bm{\breve{\Lambda}}_{1,\mu} + \#\bm{\Sigma}_{1,\mu} = \# \bm{\breve{\Lambda}}+ \# \bm{\Sigma}$,
+we conclude that the application of $R_{\bm{\breve{\Lambda}}} (L_1 \otimes \mathrm{Id}) I_{\bm{\Sigma}}$ can be performed in ${\mathcal O}(\#\bm{\breve{\Lambda}}+\#\bm{\Sigma})$ operations.
+
+Similarly, the applications of 
+$R_{\bm{\Sigma}} (\mathrm{Id} \otimes A_2) I_{\bm{\Lambda}}$,
+$R_{\bm{\breve{\Lambda}}} (\mathrm{Id} \otimes A_2) I_{\bm{\Theta}}$, and
+$R_{\bm{\Theta}} (U_1 \otimes \mathrm{Id}) I_{\bm{\Lambda}}$
+by means of calls of $\mathtt{eval}(a_2)$, $\mathtt{eval}(a_2)$, and $\mathtt{evalupp}(a_1)$, respectively,
+can be performed in ${\mathcal O}(\# \bm{\Sigma}+ \# \bm{\Lambda})$, ${\mathcal O}(\#\bm{\breve{\Lambda}}+ \#\bm{\Theta})$, and ${\mathcal O}(\#\bm{\Theta}+ \#\bm{\Lambda})$ operations. From the bounds $\# \bm{\Sigma} \lesssim \# \bm{\breve{\Lambda}}$ and $\# \bm{\Theta} \lesssim \# \bm{\Lambda}$ we conclude the following:
+
+\begin{corollary} Let $\bm{\breve{\Lambda}} \subset \breve{\vee}^1 \times \breve{\vee}^2$, $\bm{\Lambda} \subset \vee^1 \times \vee^2$ be finite double-trees, then $R_{\bm{\breve{\Lambda}}} (A_1 \otimes A_2) I_{\bm{\Lambda}}$ can be applied in ${\mathcal O}(\# \bm{\breve{\Lambda}}+\#\bm{\Lambda})$ operations. 
+\end{corollary}
+
+\rem{Voor efficiente evaluatie van tensor product operatoren op $X^\delta=\sum_\lambda \sigma_\lambda \otimes \tilde{W}_\lambda^\delta$ ($\tilde{W}_\lambda^\delta=W_\lambda^\delta$) en/of $Y^\delta=\sum_\lambda \psi_\lambda \otimes V_\lambda^\delta$ met $W_\lambda^\delta$, $V_\lambda^\delta$ continuous piecewise linears w.r.t conforme NVB partitie moeten we deze fem spaces uitrusten met hierarchische bases. Noteer zo'n basis als $\Psi^{hb}_\Lambda$ met $\Lambda$ een familie-tree (child heeft gewoonlijk 2 parents).
+Binnen de evaluatie van die tensor product operatoren moeten we voor verschillende familie-trees $\Lambda$, $a_2(\Psi^{hb}_\Lambda,\Psi^{hb}_\Lambda)$ evalueren (misschien ook $a_2(\Psi^{hb}_{\Lambda_1},\Psi^{hb}_{\Lambda_2})$ voor $\Lambda_1\neq\Lambda_2$).
+
+We kunnen dit doen met de routine eval($a_2$). Hiertoe moeten we dan ook $\Phi_\ell$ definieren. Bijv. als de nodale basis van de uniform verfijnde partitie op level $\ell$. Wellicht is er een betere optie:
+
+$\Span \Psi_\Lambda^{hb}$ is een standaard fem space w.r.t. een conforme NVB triangulatie ${\mathcal T}$. Zo'n space heeft een natural single scale basis $\Phi_{\mathcal T}$, (welke voor ${\mathcal T}$ een niet-uniforme verfijning van de initial triangulatie $\tria_\bot$ geen subset is van $\cup_\ell \Phi_\ell$).
+De evaluatie van $a_2(\Phi_{\mathcal T},\Phi_{\mathcal T})$ is echter standaard (bereken de lokale stiffness/mass per triangle and assemble), en daar willen we dus gebruik van maken (i.p.v. van de algemene routine eval($a_2$)).
+ Met $T$ z.d.d. $(\Psi^{hb}_{\Lambda})^\top=\Phi_{\mathcal T}^\top T^\top$, geldt
+ $a_2(\Psi^{hb}_\Lambda,\Psi^{hb}_\Lambda)= T^\top a_2(\Phi_{\mathcal T},\Phi_{\mathcal T}) T$.
+ De toepassing van $T$ kan bottom up in linear complexity (assuming a suitable data structure) (en dus transpose top-down) geconstrueerd als compositie van deze elementaire transformaties:
+\begin{figure}[h]
+\begin{center}
+\input{nvb2.pdf_t}
+$
+\left[
+\begin{array}{@{}ccccc@{}}
+1 & 0 & 0 & 0 & 0\\
+0 & 1 & 0 & 0 & 0\\
+0 & 0 & 1 & 0 & 0\\
+0 & 0 & 0 & 1 & 0\\
+0 & 0 & \frac12 & \frac12 & 1\\
+\end{array}
+\right]
+$
+\end{center}
+\end{figure}
+Merk op de parents 1, 2 van 5 zijn hier niet van belang, maar de godfathers 3 en 4.
+}
+
+\section{Error reduction} \label{Sreduction}
+Consider abstract elliptic problem to find $u \in X$ (here some Hilbert space) s.t.
+\be \label{n1}
+a(u,v)=f(v)\quad (v \in X).
+\ee
+On $X$, define energy-norm $\|\cdot\|_E=a(\cdot,\cdot)^{\frac12} \eqsim \|\cdot\|_X$.
+We aim to improve a current approximation $\tilde{u}^\delta$ for $u$.
+Typically $\tilde{u}^\delta$ is an approximate Galerkin solution from some closed subspace $X^\delta \subset X$.
+
+We assume that we can determine a closed subspace $\bar{X}^\delta \subset X$ with $X^\delta \subset \bar{X}^\delta$ s.t. for some constant $\varsigma<1$, and with $\bar{u}^\delta$ denoting the Galerkin solution from $\bar{X}^\delta$, it holds that
+\be \label{n2}
+\|u-\bar{u}^\delta\|_E \leq \varsigma \|u-\tilde{u}^\delta\|_E \quad \text{(saturation assumption)}.
+\ee
+(Verified in \cite{35.937} for Poisson problem under a smallness condition on the data-oscillation)
+
+With the aim to achieve the best possible rate, we do not simply take $\bar{u}^\delta$ as the next approximation.
+Instead, for some constants $\eps$ and $\rho<1$, let $v \in \bar{X}^\delta$ 
+a Galerkin approximation on some space intermediate of $X^\delta$ and $\bar{X}^\delta$ constructed by bulk chasing such that
+\be \label{n3}
+\|\hat{u}^\delta-v\|_E \leq \rho \|\hat{u}^\delta-\tilde{u}^\delta\|_E,
+\ee
+where $\hat{u}^\delta \in \bar{X^\delta}$ is close to $\hat{u}^\delta$ in the sense that
+\be \label{n4}
+\|u-\hat{u}^\delta\|_E \leq \sqrt{1+\eps^2} \|u-\bar{u}^\delta\|_E.
+\ee
+Think of $\hat{u}^\delta$ being the Galerkin solution on $\bar{X}^\delta$ of a slightly perturbed elliptic problem.
+
+
+Then one can show that
+$$
+\|u-v\|_E \leq \sqrt{\varsigma^2+\tilde{\rho}^2(1-\varsigma^2)}\|u-\tilde{u}^\delta\|_E
+$$
+where $\tilde{\rho}=(1-\rho) \eps \sqrt{\frac{\varsigma^2}{1-\varsigma^2}}+\rho$.
+We will have to ensure that $\eps \varsigma$ is small enough such that $\tilde{\rho}<1$ (we don't want to assume that $\rho$ is small enough).
+
+To realize bulk chasing: Consider first the case that $\tilde{u}^\delta$ and $\hat{u}^\delta$ are the Galerkin solutions of the unperturbed elliptic problem from $X^\delta$ and $\bar{X}^\delta$, respectively.
+Let $\bar{X}^\delta=X^\delta \oplus V^\delta$ be a stable decomposition w.r.t. $a(\,,\,)$, and let $\bar{X}^\delta$ be equipped with a basis that consists of some basis for $X^\delta$ plus a basis for $V^\delta$, where the latter basis is $a(\,,\,)$-stable.
+Then compute the residual of $\tilde{u}^\delta$ restricted to those entries corresponding to the basis functions for $V^\delta$ (the other entries are zero), and collect the absolute largest entries that make up a $\theta$-fraction of the whole residual.
+Add the span of those basis functions to  $X^\delta$ (and extend to multi-tree)  to form the new Galerkin space, cf. \cite[Lemmas 5 and 6, and Proposition 5]{249.92}.
+Then convergence and optimal rates are realized.
+Perturbutions as a consequence of $\varsigma>0$, and $\eps>0$ (application of a perturbed elliptic problem in the bulk chasing process)
+ yet have to be dealt with.
+
+
+
+\subsection{Application to parabolic problem}
+With $X=L_2(I;V) \cap H^1(I;V')$, $Y:=L_2(I,V)$, consider $\left[\begin{array}{@{}c@{}} B \\ \gamma_0\end{array}\right] u=\left[\begin{array}{@{}c@{}} g \\ u_0\end{array} \right]$. Recall that $\left[\begin{array}{@{}c@{}} B \\ \gamma_0\end{array}\right] \in \Lis(X,Y' \times H)$.
+With $0<\bar{A}=\bar{A}' \in \Lis(Y,Y')$ (not necessarily $\bar{A}=A_s$), on $Y \times H \times X$ consider
+\be \label{m1}
+\left[\begin{array}{@{}ccc@{}} \bar{A} & 0 & B\\ 0 & \identity & \gamma_0\\ B' & \gamma_0' & 0\end{array}\right]
+\left[\begin{array}{@{}c@{}} \mu \\ \sigma \\ u \end{array}\right]=
+\left[\begin{array}{@{}c@{}} g \\ u_0 \\ 0 \end{array}\right],
+\ee
+or
+\be \label{m2}
+(B' \bar{A}^{-1} B+\gamma_0'\gamma_0)u=B' \bar{A}^{-1}g+\gamma_0' u_0.
+\ee
+The elliptic system \eqref{m2} will play the role of \eqref{n1}.
+
+We will ``ensure'' saturation by enlarging the current $X^\delta$ in the spatial and temporal direction (for the moment using heuristics) to a space $\bar{X}^\delta$.
+\rem{Voorstel:
+Zij $X^\delta=\sum_{\lambda} \sigma_\lambda \otimes W_{\lambda}^\delta$ waarbij ik alleen sommeer over die $\lambda$ waarvoor $W_{\lambda}^\delta \neq \{0\}$ (de set of these $\lambda$ form a tree $\Lambda$).
+Construeer $\bar{X}^\delta$ door, voor iedere $\lambda \in \Lambda$, de triangulatie $\tria_\lambda$ welke correspondeert met de fem space $W_{\lambda}^\delta$ te vervangen door $\tria^{++}_\lambda$, en verder,
+voor alle $\lambda \not\in \Lambda$ met een parent in $\Lambda$, de ruimte $\sigma_\lambda \otimes W_0$ aan $X^\delta$ toe te voegen, waarbij $W_0$ de fem-space is w.r.t. the initial mesh $\tria_\bot$. 
+
+Merk op: Resulterende $\bar{X}^\delta$ is een multi-tree. 
+
+Voor het realiseren van de bulk chasing procedure zullen we gebruiken maken van het feit 
+dat de splitting van $\bar{X}^\delta$ in $X^\delta$ en de ruimte die we toegevoegd hebben $X$-stabiel is, en dat we de ruimte die we toegevoegd hebben kunnen uitrusten met en $X$-stabiele basis.
+}
+
+Given any close subspace $X^\delta \subset X$, we will approximate the Galerkin solution of \eqref{m2} by the third component of the Galerkin solution of \eqref{m1} with subspace $Y^\delta \times H^\delta \times X^\delta$.
+This is the `slightly perturbed' elliptic problem mentioned in Sect.~\ref{Sreduction}. 
+Assuming $Y^\delta \supset X^\delta$ and $H^\delta \supset \ran \gamma_0|_{X^\delta}$, we have \eqref{n4} with
+\be \label{m3}
+\sqrt{1+\eps^2}\leq\Big(\inf_{u \in X^\delta} \sup_{0 \neq w \in Y^\delta} \frac{(\partial_t u)(w)}{\|\partial_t u\|_{Y'}\|w\|_Y} 
+\Big)^{-1}
+\ee
+\rem{This estimate isn't possible with the new variational formulation developed in \cite{249.99}. Indeed, with that formulation the upper bound for $\|u -\hat{u}^\delta\|_X$ in \eqref{n4} will also depend on $\inf_{w \in Y^\delta}\|u-w\|_Y$ which, unless $X^\delta \subset Y^\delta$ (in which case the new formulation doesn't provide advantages), cannot be controlled by a multiple of $\|u-u^\delta\|_X$}
+In Sect.~\ref{Sinfsup} (``Better approach'') we have seen how to choose $Y^\delta \times H^\delta$, dependent on $X^\delta$ to ensure 
+ $Y^\delta \supset \bar{X}^\delta$, $H^\delta \supset \ran \gamma_0|_{X^\delta}$, and \eqref{m3}, with in particular the right-hand side of \eqref{m3} bounded uniformly in $X^\delta$.
+For the analysis in Sect.~\ref{Sreduction} it is needed that $\eps$ is sufficiently small, which we expect can be guaranteed by making $Y^\delta$ sufficiently large.
+Likely this isn't needed in practice, so for the moment let us not go into that.
+
+
+\bibliographystyle{alpha}
+\bibliography{../ref}
+\end{document}
+
