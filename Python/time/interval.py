@@ -1,4 +1,6 @@
 class Interval(object):
+    """ Represents an open or closed interval (a,b). """
+
     def __init__(self, a, b):
         self.a = a
         self.b = b
@@ -17,6 +19,8 @@ class Interval(object):
 
 
 class IntervalSet(object):
+    """ Represents a collection of intervals with fast merging of overlap. """
+
     def __init__(self, intervals):
         sorted_intervals = sorted(intervals, key=lambda interval: interval.a)
         stack = []
@@ -32,4 +36,5 @@ class IntervalSet(object):
             self.intervals = []
 
     def covers(self, interval):
+        """ Test if the interval set contains the given interval completely."""
         return any([iv.contains(interval) for iv in self.intervals])

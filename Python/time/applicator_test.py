@@ -1,6 +1,7 @@
 from basis import HaarBasis, OrthonormalDiscontinuousLinearBasis
 from applicator import Applicator
-from index import IndexSet, IndexedVector
+from index_set import IndexSet
+from indexed_vector import IndexedVector
 import numpy as np
 import pytest
 
@@ -36,8 +37,7 @@ def test_haar_apply_upp_low_vs_full():
             applicator = Applicator(b, b.singlescale_mass, Lambda)
             c = IndexedVector(Lambda, np.random.rand(len(Lambda)))
             res_full_op = applicator.apply(c)
-            res_upp_low = IndexedVector.sum(applicator.apply_upp(c),
-                                            applicator.apply_low(c))
+            res_upp_low = applicator.apply_upp(c) + applicator.apply_low(c)
             assert np.allclose(res_full_op.asarray(), res_upp_low.asarray())
 
 
@@ -79,8 +79,7 @@ def test_orthonormal_multiscale_damping_correct():
         res_matrix = eye
         for i in range(len(Lambda)):
             vec = IndexedVector(Lambda, eye[i, :])
-            res = IndexedVector.sum(applicator.apply_low(vec),
-                                    applicator.apply_upp(vec))
+            res = applicator.apply_low(vec) + applicator.apply_upp(vec)
             res_matrix[:, i] = res.asarray()
     assert np.allclose(res_matrix,
                        reference_damping_matrix[:len(Lambda), :len(Lambda)])
@@ -98,8 +97,7 @@ def test_orthonormal_multiscale_damping_equivalent():
         for i in range(len(Lambda)):
             vec = IndexedVector(Lambda, eye[i, :])
             res = applicator.apply(vec)
-            res_ul = IndexedVector.sum(applicator.apply_upp(vec),
-                                       applicator.apply_low(vec))
+            res_ul = applicator.apply_upp(vec) + applicator.apply_low(vec)
             res_matrix[:, i] = res.asarray()
             res_matrix_ul[:, i] = res_ul.asarray()
             #assert np.allclose(res.asarray(), res_ul.asarray())

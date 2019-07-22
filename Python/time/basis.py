@@ -1,4 +1,5 @@
-from index import IndexSet, IndexedVector
+from index_set import IndexSet
+from indexed_vector import IndexedVector
 from interval import Interval, IntervalSet
 import numpy as np
 

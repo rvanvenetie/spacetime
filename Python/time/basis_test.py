@@ -1,5 +1,6 @@
 from basis import HaarBasis, OrthonormalDiscontinuousLinearBasis
-from index import IndexSet, IndexedVector
+from index_set import IndexSet
+from indexed_vector import IndexedVector
 import numpy as np
 import pytest
 

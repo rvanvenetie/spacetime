@@ -1,9 +1,10 @@
-from index import IndexSet, IndexedVector
+from index_set import IndexSet
+from indexed_vector import IndexedVector
 from interval import Interval, IntervalSet
 
 
 class Applicator(object):
-    """ Class that can apply multiscale operators in linear time. """
+    """ Class that can apply multiscale operators with minimal overhead. """
 
     def __init__(self, basis, A_ss, Lambda):
         """ Initialize the applicator.
@@ -18,7 +19,7 @@ class Applicator(object):
         self.Lambda = Lambda
 
     def apply(self, vec):
-        """ Apply the multiscale operator in linear time.
+        """ Apply the multiscale operator.
 
         Arguments:
             vec: an IndexedVector with indices on self.Lambda.
@@ -29,14 +30,14 @@ class Applicator(object):
                                  Pi=self.Lambda.on_level(0),
                                  d=vec.on_level(0),
                                  c=vec.from_level(1))
-        return IndexedVector.sum(e, f)
+        return e + f
 
     def apply_upp(self, vec):
         e, f = self._apply_upp_recur(l=1,
                                      Pi=self.Lambda.on_level(0),
                                      d=vec.on_level(0),
                                      c=vec.from_level(1))
-        return IndexedVector.sum(e, f)
+        return e + f
 
     def apply_low(self, vec):
         f = self._apply_low_recur(l=1,
@@ -45,21 +46,21 @@ class Applicator(object):
                                   c=vec.from_level(1))
         return f
 
-    def _apply_P(self, l, Pi_B, Pi_bar, d):
+    #  Private methods from here on out.
+
+    def _apply_P(self, Pi_B, Pi_bar, d):
         """ Apply P_l: ell_2(Pi_B) to ell_2(Pi_bar).
 
         P_l is the matrix for which Phi_{l-1}^top = Phi_l^top P_l.
         It is the matrix corresponding with embedding sp Phi_{l-1} in sp Phi_l.
 
         Arguments:
-            l: the current level
             Pi_B: the single-scale indices on the previous level
             Pi_bar: the single-scale indices on this level
             d: a vector with nonzero coefficients only on Pi_B.
         Output:
             res: a vector with nonzero coefficients only on Pi_bar.
         """
-        assert l > 0
         res = IndexedVector({
             labda: sum([
                 d[k] * v for (k, v) in zip(self.basis.scaling_parents(labda),
@@ -69,20 +70,18 @@ class Applicator(object):
         })
         return res
 
-    def _apply_Q(self, l, Lambda_l, Pi_bar, c):
+    def _apply_Q(self, Lambda_l, Pi_bar, c):
         """ Apply Q: ell_2(Lambda_l) to ell_2(Pi_bar).
 
         This is the matrix corresponding with embedding sp Psi_l in sp Phi_l.
 
         Arguments:
-            l: the current level
             Lambda_l: the multiscale indices on this level
             Pi_bar: the single-scale indices on this level
             c: a vector with nonzero coefficients only on Lambda_l.
         Output:
             res: a vector with nonzero coefficients only on Pi_bar.
         """
-        assert l > 0
         res = IndexedVector({
             labda: sum([
                 c[k] * v for (k, v) in zip(self.basis.scaling_siblings(labda),
@@ -92,9 +91,8 @@ class Applicator(object):
         })
         return res
 
-    def _apply_PT(self, l, Pi_bar, Pi_B, e_bar):
+    def _apply_PT(self, Pi_bar, Pi_B, e_bar):
         """ Apply P^top: ell_2(Pi_bar) to ell_2(Pi_B). """
-        assert l > 0
         res = IndexedVector({
             labda: sum([
                 e_bar[k] * v
@@ -105,9 +103,8 @@ class Applicator(object):
         })
         return res
 
-    def _apply_QT(self, l, Pi_bar, Lambda_l, e_bar):
+    def _apply_QT(self, Pi_bar, Lambda_l, e_bar):
         """ Apply Q^top: ell_2(Pi_bar) to ell_2(Lambda_l). """
-        assert l > 0
         res = IndexedVector({
             labda: sum([
                 e_bar[k] * v
@@ -155,19 +152,16 @@ class Applicator(object):
                 [self.basis.scaling_support(index) for index in Pi_B] +
                 [self.basis.wavelet_support(index) for index in Lambda_l])
             Pi_bar = self._singlescale_supports_covered_by(l, ivs_all)
-            d_bar = IndexedVector.sum(self._apply_P(l, Pi_B, Pi_bar, d),
-                                      self._apply_Q(l, Lambda_l, Pi_bar, c))
+            d_bar = self._apply_P(Pi_B, Pi_bar, d) + \
+                    self._apply_Q(Lambda_l, Pi_bar, c)
             e_bar, f_bar = self._apply_recur(l + 1, Pi_bar, d_bar,
                                              c.from_level(l + 1))
-            e = IndexedVector.sum(self.operator(l - 1, Pi, Pi_A, d),
-                                  self._apply_PT(l, Pi_bar, Pi_B, e_bar))
-            f = IndexedVector.sum(self._apply_QT(l, Pi_bar, Lambda_l, e_bar),
-                                  f_bar)
+            e = self.operator(l - 1, Pi, Pi_A, d) + \
+                self._apply_PT(Pi_bar, Pi_B, e_bar)
+            f = self._apply_QT(Pi_bar, Lambda_l, e_bar) + f_bar
             return e, f
         else:
-            # d and c are zero vectors, i.e. contain only zeros.
-            # TODO: We could also explicitly return zero vectors.
-            return d, c
+            return IndexedVector.Zero(), IndexedVector.Zero()
 
     def _apply_upp_recur(self, l, Pi, d, c):
         Lambda_lup = self.Lambda.from_level(l)
@@ -178,16 +172,15 @@ class Applicator(object):
             ivs_multi = IntervalSet(
                 [self.basis.wavelet_support(index) for index in Lambda_l])
             Pi_bar = self._singlescale_supports_covered_by(l, ivs_multi)
-            d_bar = self._apply_Q(l, Lambda_l, Pi_bar, c)
+            d_bar = self._apply_Q(Lambda_l, Pi_bar, c)
             e_bar, f_bar = self._apply_upp_recur(l + 1, Pi_bar, d_bar,
                                                  c.from_level(l + 1))
-            e = IndexedVector.sum(self.operator(l - 1, Pi, Pi, d),
-                                  self._apply_PT(l, Pi_bar, Pi_B, e_bar))
-            f = IndexedVector.sum(self._apply_QT(l, Pi_bar, Lambda_l, e_bar),
-                                  f_bar)
+            e = self.operator(l - 1, Pi, Pi, d) + \
+                self._apply_PT(Pi_bar, Pi_B, e_bar)
+            f = self._apply_QT(Pi_bar, Lambda_l, e_bar) + f_bar
             return e, f
         else:
-            return d, c
+            return IndexedVector.Zero(), IndexedVector.Zero()
 
     def _apply_low_recur(self, l, Pi, d, c):
         Lambda_lup = self.Lambda.from_level(l)
@@ -205,15 +198,13 @@ class Applicator(object):
                 [self.basis.scaling_support(index) for index in Pi_B])
             Pi_B_bar_flup = self._singlescale_supports_covered_by(l, ivs_multi)
 
-            # NB: operator is applied at level `l` -- difference with evalA.
+            # NB: operator is applied at level `l` -- difference w/ apply_recur.
             e_bar = self.operator(l, Pi_B_bar, Pi_B_bar_flup,
-                                  self._apply_P(l, Pi_B, Pi_B_bar, d))
-            d_bar = IndexedVector.sum(self._apply_P(l, Pi_B, Pi_bar, d),
-                                      self._apply_Q(l, Lambda_l, Pi_bar, c))
-            f = IndexedVector.sum(
-                self._apply_QT(l, Pi_B_bar, Lambda_l, e_bar),
-                self._apply_low_recur(l + 1, Pi_bar, d_bar,
-                                      c.from_level(l + 1)))
+                                  self._apply_P(Pi_B, Pi_B_bar, d))
+            d_bar = self._apply_P(Pi_B, Pi_bar, d) + \
+                    self._apply_Q(Lambda_l, Pi_bar, c)
+            f = self._apply_QT(Pi_B_bar, Lambda_l, e_bar) + \
+                self._apply_low_recur(l + 1, Pi_bar, d_bar, c.from_level(l + 1))
             return f
         else:
-            return c
+            return IndexedVector.Zero()
