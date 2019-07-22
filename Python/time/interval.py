@@ -29,7 +29,7 @@ class IntervalSet(object):
             stack.append(sorted_intervals[0])
             for interval in sorted_intervals:
                 if interval.intersects(stack[-1], closed=True):
-                    stack[-1].b = interval.b
+                    stack[-1].b = max(stack[-1].b, interval.b)
                 else:
                     stack.append(interval)
             self.intervals = stack

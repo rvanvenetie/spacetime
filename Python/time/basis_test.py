@@ -83,7 +83,7 @@ def test_orthonormal_singlescale_damping():
 
 def test_basis_PQ():
     """ Test that the apply_P and apply_Q methods do what you would expect. """
-    x = np.linspace(0, 1, 8)
+    x = np.linspace(0, 1, 1025)
     for basis in [HaarBasis(), OrthonormalDiscontinuousLinearBasis()]:
         for l in range(1, 6):
             Pi_B = basis.scaling_indices_on_level(l - 1)

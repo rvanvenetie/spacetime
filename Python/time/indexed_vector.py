@@ -20,7 +20,6 @@ class IndexedVector(object):
     def __getitem__(self, key):
         if key in self.vector:
             return self.vector[key]
-        print(key)
         return 0.0
 
     def keys(self):

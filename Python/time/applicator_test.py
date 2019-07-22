@@ -43,7 +43,7 @@ def test_haar_apply_upp_low_vs_full():
 def test_orthonormal_multiscale_mass():
     """ Test that the multiscale mass operator is the identity. """
     b = OrthonormalDiscontinuousLinearBasis()
-    for l in range(1, 7):
+    for l in range(1, 6):
         for Lambda in [
                 b.uniform_wavelet_indices(max_level=l),
                 b.origin_refined_wavelet_indices(max_level=l)
@@ -55,8 +55,6 @@ def test_orthonormal_multiscale_mass():
                 vec = IndexedVector(Lambda, eye[i, :])
                 res = applicator.apply(vec)
                 res_matrix[:, i] = res.asarray()
-            print(l, Lambda.indices)
-            print(res_matrix)
             assert np.allclose(eye, res_matrix)
 
             for _ in range(10):
@@ -92,7 +90,6 @@ def test_orthonormal_multiscale_damping_linear():
                     applicator.apply_upp(IndexedVector(Lambda, v3)).asarray())
 
 
-@pytest.mark.skip(reason="")
 def test_orthonormal_multiscale_damping_equivalent():
     b = OrthonormalDiscontinuousLinearBasis()
     for l in range(1, 3):
@@ -109,8 +106,6 @@ def test_orthonormal_multiscale_damping_equivalent():
             res_matrix_ul[:, i] = res_ul.asarray()
             assert np.allclose(res.asarray(), res_ul.asarray())
         np.set_printoptions(linewidth=10000)
-        print(res_matrix)
-        print(res_matrix_ul)
 
         vec = IndexedVector(Lambda, np.ones(len(Lambda)))
         res = applicator.apply(vec)
@@ -119,7 +114,6 @@ def test_orthonormal_multiscale_damping_equivalent():
         assert np.allclose(res.asarray(), res_ul.asarray())
 
 
-@pytest.mark.skip(reason="")
 def test_orthonormal_multiscale_damping_correct():
     # Computed with Mathematica.
     sq3 = np.sqrt(3)
