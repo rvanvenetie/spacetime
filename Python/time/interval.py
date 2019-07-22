@@ -22,6 +22,7 @@ class IntervalSet(object):
     """ Represents a collection of intervals with fast merging of overlap. """
 
     def __init__(self, intervals):
+        """ This runs in O(#intervals) time. """
         sorted_intervals = sorted(intervals, key=lambda interval: interval.a)
         stack = []
         if len(sorted_intervals):

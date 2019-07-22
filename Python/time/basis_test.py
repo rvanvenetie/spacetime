@@ -79,3 +79,35 @@ def test_orthonormal_singlescale_damping():
     d = IndexedVector(indices, [0, 0.12])
     res = b.singlescale_damping(l=0, Pi=indices, Pi_A=indices, d=d)
     assert np.allclose(res.asarray(), [0.12 * 2 * np.sqrt(3), 0])
+
+
+def test_basis_PQ():
+    """ Test that the apply_P and apply_Q methods do what you would expect. """
+    x = np.linspace(0, 1, 8)
+    for basis in [HaarBasis(), OrthonormalDiscontinuousLinearBasis()]:
+        for l in range(1, 6):
+            Pi_B = basis.scaling_indices_on_level(l - 1)
+            Pi_bar = basis.scaling_indices_on_level(l)
+            eye = np.eye(len(Pi_B))
+            for i, mu in enumerate(sorted(Pi_B.indices)):
+                vec = IndexedVector(Pi_B, eye[i, :])
+                res = basis.apply_P(Pi_B, Pi_bar, vec)
+                inner = np.sum([
+                    basis.eval_scaling(labda, x) * res[labda]
+                    for labda in res.keys()
+                ],
+                               axis=0)
+                print(basis, 'scaling', mu, inner, basis.eval_scaling(mu, x))
+                assert np.allclose(inner, basis.eval_scaling(mu, x))
+
+            Lambda_l = basis.wavelet_indices_on_level(l)
+            for i, mu in enumerate(sorted(Lambda_l.indices)):
+                vec = IndexedVector(Lambda_l, eye[i, :])
+                res = basis.apply_Q(Lambda_l, Pi_bar, vec)
+                inner = np.sum([
+                    basis.eval_scaling(labda, x) * res[labda]
+                    for labda in res.keys()
+                ],
+                               axis=0)
+                print(basis, 'wavelet', mu, inner, basis.eval_wavelet(mu, x))
+                assert np.allclose(inner, basis.eval_wavelet(mu, x))

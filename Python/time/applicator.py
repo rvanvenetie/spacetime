@@ -47,74 +47,6 @@ class Applicator(object):
         return f
 
     #  Private methods from here on out.
-
-    def _apply_P(self, Pi_B, Pi_bar, d):
-        """ Apply P_l: ell_2(Pi_B) to ell_2(Pi_bar).
-
-        P_l is the matrix for which Phi_{l-1}^top = Phi_l^top P_l.
-        It is the matrix corresponding with embedding sp Phi_{l-1} in sp Phi_l.
-
-        Arguments:
-            Pi_B: the single-scale indices on the previous level
-            Pi_bar: the single-scale indices on this level
-            d: a vector with nonzero coefficients only on Pi_B.
-        Output:
-            res: a vector with nonzero coefficients only on Pi_bar.
-        """
-        res = IndexedVector({
-            labda: sum([
-                d[k] * v for (k, v) in zip(self.basis.scaling_parents(labda),
-                                           self.basis.P_block(labda))
-            ])
-            for labda in Pi_bar
-        })
-        return res
-
-    def _apply_Q(self, Lambda_l, Pi_bar, c):
-        """ Apply Q: ell_2(Lambda_l) to ell_2(Pi_bar).
-
-        This is the matrix corresponding with embedding sp Psi_l in sp Phi_l.
-
-        Arguments:
-            Lambda_l: the multiscale indices on this level
-            Pi_bar: the single-scale indices on this level
-            c: a vector with nonzero coefficients only on Lambda_l.
-        Output:
-            res: a vector with nonzero coefficients only on Pi_bar.
-        """
-        res = IndexedVector({
-            labda: sum([
-                c[k] * v for (k, v) in zip(self.basis.scaling_siblings(labda),
-                                           self.basis.Q_block(labda))
-            ])
-            for labda in Pi_bar
-        })
-        return res
-
-    def _apply_PT(self, Pi_bar, Pi_B, e_bar):
-        """ Apply P^top: ell_2(Pi_bar) to ell_2(Pi_B). """
-        res = IndexedVector({
-            labda: sum([
-                e_bar[k] * v
-                for (k, v) in zip(self.basis.scaling_children(labda),
-                                  self.basis.PT_block(labda))
-            ])
-            for labda in Pi_B
-        })
-        return res
-
-    def _apply_QT(self, Pi_bar, Lambda_l, e_bar):
-        """ Apply Q^top: ell_2(Pi_bar) to ell_2(Lambda_l). """
-        res = IndexedVector({
-            labda: sum([
-                e_bar[k] * v
-                for (k, v) in zip(self.basis.wavelet_siblings(labda),
-                                  self.basis.QT_block(labda))
-            ])
-            for labda in Lambda_l
-        })
-        return res
-
     def _singlescale_supports_intersecting(self, l, Pi, Lambda_l):
         return IndexSet({
             index
@@ -152,13 +84,13 @@ class Applicator(object):
                 [self.basis.scaling_support(index) for index in Pi_B] +
                 [self.basis.wavelet_support(index) for index in Lambda_l])
             Pi_bar = self._singlescale_supports_covered_by(l, ivs_all)
-            d_bar = self._apply_P(Pi_B, Pi_bar, d) + \
-                    self._apply_Q(Lambda_l, Pi_bar, c)
+            d_bar = self.basis.apply_P(Pi_B, Pi_bar, d) + \
+                    self.basis.apply_Q(Lambda_l, Pi_bar, c)
             e_bar, f_bar = self._apply_recur(l + 1, Pi_bar, d_bar,
                                              c.from_level(l + 1))
             e = self.operator(l - 1, Pi, Pi_A, d) + \
-                self._apply_PT(Pi_bar, Pi_B, e_bar)
-            f = self._apply_QT(Pi_bar, Lambda_l, e_bar) + f_bar
+                self.basis.apply_PT(Pi_bar, Pi_B, e_bar)
+            f = self.basis.apply_QT(Pi_bar, Lambda_l, e_bar) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()
@@ -172,12 +104,12 @@ class Applicator(object):
             ivs_multi = IntervalSet(
                 [self.basis.wavelet_support(index) for index in Lambda_l])
             Pi_bar = self._singlescale_supports_covered_by(l, ivs_multi)
-            d_bar = self._apply_Q(Lambda_l, Pi_bar, c)
+            d_bar = self.basis.apply_Q(Lambda_l, Pi_bar, c)
             e_bar, f_bar = self._apply_upp_recur(l + 1, Pi_bar, d_bar,
                                                  c.from_level(l + 1))
             e = self.operator(l - 1, Pi, Pi, d) + \
-                self._apply_PT(Pi_bar, Pi_B, e_bar)
-            f = self._apply_QT(Pi_bar, Lambda_l, e_bar) + f_bar
+                self.basis.apply_PT(Pi_bar, Pi_B, e_bar)
+            f = self.basis.apply_QT(Pi_bar, Lambda_l, e_bar) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()
@@ -200,10 +132,10 @@ class Applicator(object):
 
             # NB: operator is applied at level `l` -- difference w/ apply_recur.
             e_bar = self.operator(l, Pi_B_bar, Pi_B_bar_flup,
-                                  self._apply_P(Pi_B, Pi_B_bar, d))
-            d_bar = self._apply_P(Pi_B, Pi_bar, d) + \
-                    self._apply_Q(Lambda_l, Pi_bar, c)
-            f = self._apply_QT(Pi_B_bar, Lambda_l, e_bar) + \
+                                  self.basis.apply_P(Pi_B, Pi_B_bar, d))
+            d_bar = self.basis.apply_P(Pi_B, Pi_bar, d) + \
+                    self.basis.apply_Q(Lambda_l, Pi_bar, c)
+            f = self.basis.apply_QT(Pi_B_bar, Lambda_l, e_bar) + \
                 self._apply_low_recur(l + 1, Pi_bar, d_bar, c.from_level(l + 1))
             return f
         else:
