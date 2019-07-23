@@ -19,5 +19,11 @@ class IndexSet(object):
     def from_level(self, level):
         return IndexSet({index for index in self.indices if index[0] >= level})
 
+    def until_level(self, level):
+        return IndexSet({index for index in self.indices if index[0] <= level})
+
     def difference(self, index_set):
         return IndexSet(self.indices.difference(index_set.indices))
+
+    def maximum_level(self):
+        return max([labda[0] for labda in self.indices])

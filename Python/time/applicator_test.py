@@ -105,7 +105,6 @@ def test_orthonormal_multiscale_damping_equivalent():
             res_matrix[:, i] = res.asarray()
             res_matrix_ul[:, i] = res_ul.asarray()
             assert np.allclose(res.asarray(), res_ul.asarray())
-        np.set_printoptions(linewidth=10000)
 
         vec = IndexedVector(Lambda, np.ones(len(Lambda)))
         res = applicator.apply(vec)

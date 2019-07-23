@@ -20,7 +20,7 @@ class Basis(object):
         pass
 
     def scaling_siblings(self, index):
-        """ Multiscale indices interacting with this singlescale index. """
+        """ MS-indices on this level interacting with this SS-index. """
         pass
 
     def scaling_children(self, index):
@@ -164,9 +164,6 @@ class HaarBasis(Basis):
             return Interval(2**-(index[0] - 1) * index[1],
                             2**-(index[0] - 1) * (index[1] + 1))
 
-    def wavelet_nbrhood(self, index):
-        return self.wavelet_support(index)
-
     def wavelet_indices_on_level(self, l):
         if l == 0:
             return IndexSet({0, 0})
@@ -264,14 +261,10 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
             return Interval(2**-(index[0] - 1) * index[1] // 2,
                             2**-(index[0] - 1) * (index[1] // 2 + 1))
 
-    def wavelet_nbrhood(self, index):
-        return self.wavelet_support(index)
-
     def wavelet_indices_on_level(self, l):
         if l == 0:
             return IndexSet({(0, 0), (0, 1)})
-        else:
-            return IndexSet({(l, n) for n in range(2 * 2**(l - 1))})
+        return IndexSet({(l, n) for n in range(2 * 2**(l - 1))})
 
     def scaling_support(self, index):
         return Interval(2**-index[0] * index[1] // 2,
