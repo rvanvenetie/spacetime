@@ -24,22 +24,6 @@ def test_haar_multiscale_mass():
                      for index in sorted(res.keys())], np_vec)
 
 
-def test_haar_apply_upp_low_vs_full():
-    for basis in [
-            HaarBasis.uniform_basis(max_level=5),
-            HaarBasis.origin_refined_basis(max_level=5)
-    ]:
-        for l in range(1, 6):
-            Lambda = basis.indices.until_level(l)
-            applicator = Applicator(basis, basis.singlescale_mass, Lambda)
-            for _ in range(10):
-                c = IndexedVector(Lambda, np.random.rand(len(Lambda)))
-                res_full_op = applicator.apply(c)
-                res_upp_low = applicator.apply_upp(c) + applicator.apply_low(c)
-                assert np.allclose(res_full_op.asarray(),
-                                   res_upp_low.asarray())
-
-
 def test_orthonormal_multiscale_mass():
     """ Test that the multiscale mass operator is the identity. """
     for basis in [
@@ -64,62 +48,8 @@ def test_orthonormal_multiscale_mass():
                 assert np.allclose(vec, res.asarray())
 
 
-def test_orthonormal_multiscale_damping_linear():
-    """ Test that applying the multiscale damping operator is linear. """
-    for basis in [
-            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=5),
-            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
-                max_level=5)
-    ]:
-        for l in range(1, 6):
-            Lambda = basis.indices.until_level(l)
-            applicator = Applicator(basis, basis.singlescale_damping, Lambda)
-            for _ in range(10):
-                v1 = np.random.rand(len(Lambda))
-                v2 = np.random.rand(len(Lambda))
-                v3 = v1 + v2
-                assert np.allclose(
-                    applicator.apply(IndexedVector(Lambda, v1)).asarray() +
-                    applicator.apply(IndexedVector(Lambda, v2)).asarray(),
-                    applicator.apply(IndexedVector(Lambda, v3)).asarray())
-                assert np.allclose(
-                    applicator.apply_low(IndexedVector(Lambda, v1)).asarray() +
-                    applicator.apply_low(IndexedVector(Lambda, v2)).asarray(),
-                    applicator.apply_low(IndexedVector(Lambda, v3)).asarray())
-                assert np.allclose(
-                    applicator.apply_upp(IndexedVector(Lambda, v1)).asarray() +
-                    applicator.apply_upp(IndexedVector(Lambda, v2)).asarray(),
-                    applicator.apply_upp(IndexedVector(Lambda, v3)).asarray())
-
-
-def test_orthonormal_multiscale_damping_equivalent():
-    for basis in [
-            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=5),
-            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
-                max_level=5)
-    ]:
-        for l in range(1, 6):
-            Lambda = basis.indices.until_level(l)
-            applicator = Applicator(basis, basis.singlescale_damping, Lambda)
-            eye = np.eye(len(Lambda))
-            res_matrix = np.zeros([len(Lambda), len(Lambda)])
-            res_matrix_ul = np.zeros([len(Lambda), len(Lambda)])
-            for i in range(len(Lambda)):
-                vec = IndexedVector(Lambda, eye[i, :])
-                res = applicator.apply(vec)
-                res_ul = applicator.apply_upp(vec) + applicator.apply_low(vec)
-                res_matrix[:, i] = res.asarray()
-                res_matrix_ul[:, i] = res_ul.asarray()
-                assert np.allclose(res.asarray(), res_ul.asarray())
-
-            vec = IndexedVector(Lambda, np.ones(len(Lambda)))
-            res = applicator.apply(vec)
-            res_ul = applicator.apply_upp(vec) + applicator.apply_low(vec)
-            assert np.allclose(np.sum(res_matrix, axis=1), res.asarray())
-            assert np.allclose(res.asarray(), res_ul.asarray())
-
-
 def test_orthonormal_multiscale_damping_correct():
+    """ Test that the multiscale damping matrix is correct. """
     # Computed with Mathematica.
     sq3 = np.sqrt(3)
     sq2 = np.sqrt(2)
@@ -137,13 +67,28 @@ def test_orthonormal_multiscale_damping_correct():
         Lambda = basis.indices.until_level(l)
         applicator = Applicator(basis, basis.singlescale_damping, Lambda)
         eye = np.eye(len(Lambda))
-        res_matrix = np.zeros([len(Lambda), len(Lambda)])
         for i in range(len(Lambda)):
             vec = IndexedVector(Lambda, eye[i, :])
-            res = applicator.apply_low(vec) + applicator.apply_upp(vec)
-            res_matrix[:, i] = res.asarray()
-        assert np.allclose(
-            res_matrix, reference_damping_matrix[:len(Lambda), :len(Lambda)])
-        vec = IndexedVector(Lambda, np.ones(len(Lambda)))
-        res = applicator.apply(vec)
-        assert np.allclose(np.sum(res_matrix, axis=1), res.asarray())
+            assert np.allclose(
+                applicator.apply(vec).asarray(),
+                reference_damping_matrix[:len(Lambda), i])
+
+
+def test_apply_upp_low_vs_full():
+    """ Test that apply_upp() + apply_low() == apply(). """
+    for basis in [
+            HaarBasis.uniform_basis(max_level=5),
+            HaarBasis.origin_refined_basis(max_level=5),
+            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=5),
+            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+                max_level=5)
+    ]:
+        for l in range(1, 6):
+            Lambda = basis.indices.until_level(l)
+            applicator = Applicator(basis, basis.singlescale_mass, Lambda)
+            for _ in range(10):
+                c = IndexedVector(Lambda, np.random.rand(len(Lambda)))
+                res_full_op = applicator.apply(c)
+                res_upp_low = applicator.apply_upp(c) + applicator.apply_low(c)
+                assert np.allclose(res_full_op.asarray(),
+                                   res_upp_low.asarray())
