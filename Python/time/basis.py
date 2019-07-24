@@ -7,6 +7,30 @@ sq3 = np.sqrt(3)
 
 
 class Basis(object):
+    def __init__(self, indices):
+        """ Default constructor. """
+        self.indices = indices
+
+    @classmethod
+    def uniform_basis(cls, max_level):
+        """ Constructor for basis wrt uniform refinement. """
+        return cls(indices=cls._uniform_multilevel_indices(max_level))
+
+    @classmethod
+    def _uniform_multilevel_indices(cls, max_level):
+        """ IndexSet of multiscale indices wrt uniform refinement. """
+        pass
+
+    @classmethod
+    def origin_refined_basis(cls, max_level):
+        """ Constructor for basis wrt refinement towards origin. """
+        return cls(indices=cls._origin_refined_multilevel_indices(max_level))
+
+    @classmethod
+    def _origin_refined_multilevel_indices(cls, max_level):
+        """ IndexSet of multiscale indices wrt refinement towards origin. """
+        pass
+
     def eval_scaling(self, labda, x):
         """ Debug method. """
         pass
@@ -144,18 +168,20 @@ class Basis(object):
 
     def wavelet_indices_on_level(self, l):
         """ IndexSet of multiscale indices on level l. """
-        pass
-
-    def uniform_wavelet_indices(self, max_level):
-        """ IndexSet of multiscale indices wrt uniform refinement. """
-        pass
-
-    def origin_refined_wavelet_indices(self, max_level):
-        """ IndexSet of multiscale indices wrt refinement towards origin. """
-        pass
+        return self.indices.on_level(l)
 
 
 class HaarBasis(Basis):
+    @classmethod
+    def _uniform_multilevel_indices(cls, max_level):
+        return IndexSet({(0, 0)} | {(l, n)
+                                    for l in range(1, max_level + 1)
+                                    for n in range(2**(l - 1))})
+
+    @classmethod
+    def _origin_refined_multilevel_indices(cls, max_level):
+        return IndexSet({(l, 0) for l in range(max_level + 1)})
+
     def eval_mother_scaling(self, x):
         return (0 <= x) & (x < 1)
 
@@ -181,12 +207,6 @@ class HaarBasis(Basis):
             return Interval(2**-(index[0] - 1) * index[1],
                             2**-(index[0] - 1) * (index[1] + 1))
 
-    def wavelet_indices_on_level(self, l):
-        if l == 0:
-            return IndexSet({0, 0})
-        else:
-            return IndexSet({(l, n) for n in range(2**(l - 1))})
-
     def scaling_support(self, index):
         return Interval(2**-index[0] * index[1], 2**-index[0] * (index[1] + 1))
 
@@ -204,14 +224,6 @@ class HaarBasis(Basis):
 
     def scaling_indices_on_level(self, l):
         return IndexSet({(l, n) for n in range(2**l)})
-
-    def uniform_wavelet_indices(self, max_level):
-        return IndexSet({(0, 0)} | {(l, n)
-                                    for l in range(1, max_level + 1)
-                                    for n in range(2**(l - 1))})
-
-    def origin_refined_wavelet_indices(self, max_level):
-        return IndexSet({(l, 0) for l in range(max_level + 1)})
 
     def P_block(self, labda):
         return [1]
@@ -241,6 +253,17 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
     It has two wavelets and scaling functions. Even index-offsets correspond
     with the first, odd with the second.
     """
+
+    @classmethod
+    def _uniform_multilevel_indices(cls, max_level):
+        return IndexSet({(0, 0), (0, 1)} | {(l, n)
+                                            for l in range(1, max_level + 1)
+                                            for n in range(2 * 2**(l - 1))})
+
+    @classmethod
+    def _origin_refined_multilevel_indices(cls, max_level):
+        return IndexSet({(l, i)
+                         for l in range(max_level + 1) for i in range(2)})
 
     def eval_mother_scaling(self, odd, x):
         if odd:
@@ -278,11 +301,6 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
             return Interval(2**-(index[0] - 1) * index[1] // 2,
                             2**-(index[0] - 1) * (index[1] // 2 + 1))
 
-    def wavelet_indices_on_level(self, l):
-        if l == 0:
-            return IndexSet({(0, 0), (0, 1)})
-        return IndexSet({(l, n) for n in range(2 * 2**(l - 1))})
-
     def scaling_support(self, index):
         return Interval(2**-index[0] * index[1] // 2,
                         2**-index[0] * (index[1] // 2 + 1))
@@ -302,15 +320,6 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
 
     def scaling_indices_on_level(self, l):
         return IndexSet({(l, n) for n in range(2 * 2**l)})
-
-    def uniform_wavelet_indices(self, max_level):
-        return IndexSet({(0, 0), (0, 1)} | {(l, n)
-                                            for l in range(1, max_level + 1)
-                                            for n in range(2 * 2**(l - 1))})
-
-    def origin_refined_wavelet_indices(self, max_level):
-        return IndexSet({(l, i)
-                         for l in range(max_level + 1) for i in range(2)})
 
     P_mask = np.array([[1, 0, 1, 0], [-sq3 / 2, 1 / 2.0, sq3 / 2, 1 / 2.0]])
     Q_mask = np.array([[-1 / 2.0, -sq3 / 2, 1 / 2.0, -sq3 / 2], [0, -1, 0, 1]])

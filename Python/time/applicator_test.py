@@ -8,13 +8,13 @@ import pytest
 
 def test_haar_multiscale_mass():
     """ Test that the multiscale Haar mass matrix is indeed diagonal. """
-    b = HaarBasis()
-    for l in range(1, 6):
-        for Lambda in [
-                b.uniform_wavelet_indices(max_level=l),
-                b.origin_refined_wavelet_indices(max_level=l)
-        ]:
-            applicator = Applicator(b, b.singlescale_mass, Lambda)
+    for basis in [
+            HaarBasis.uniform_basis(max_level=5),
+            HaarBasis.origin_refined_basis(max_level=5)
+    ]:
+        for l in range(1, 6):
+            Lambda = basis.indices.until_level(l)
+            applicator = Applicator(basis, basis.singlescale_mass, Lambda)
             for _ in range(10):
                 np_vec = np.random.rand(len(Lambda))
                 vec = IndexedVector(Lambda, np_vec)
@@ -25,13 +25,13 @@ def test_haar_multiscale_mass():
 
 
 def test_haar_apply_upp_low_vs_full():
-    b = HaarBasis()
-    for l in range(1, 6):
-        for Lambda in [
-                b.uniform_wavelet_indices(max_level=l),
-                b.origin_refined_wavelet_indices(max_level=l)
-        ]:
-            applicator = Applicator(b, b.singlescale_mass, Lambda)
+    for basis in [
+            HaarBasis.uniform_basis(max_level=5),
+            HaarBasis.origin_refined_basis(max_level=5)
+    ]:
+        for l in range(1, 6):
+            Lambda = basis.indices.until_level(l)
+            applicator = Applicator(basis, basis.singlescale_mass, Lambda)
             for _ in range(10):
                 c = IndexedVector(Lambda, np.random.rand(len(Lambda)))
                 res_full_op = applicator.apply(c)
@@ -42,13 +42,14 @@ def test_haar_apply_upp_low_vs_full():
 
 def test_orthonormal_multiscale_mass():
     """ Test that the multiscale mass operator is the identity. """
-    b = OrthonormalDiscontinuousLinearBasis()
-    for l in range(1, 6):
-        for Lambda in [
-                b.uniform_wavelet_indices(max_level=l),
-                b.origin_refined_wavelet_indices(max_level=l)
-        ]:
-            applicator = Applicator(b, b.singlescale_mass, Lambda)
+    for basis in [
+            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=5),
+            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+                max_level=5)
+    ]:
+        for l in range(1, 6):
+            Lambda = basis.indices.until_level(l)
+            applicator = Applicator(basis, basis.singlescale_mass, Lambda)
             eye = np.eye(len(Lambda))
             res_matrix = np.zeros([len(Lambda), len(Lambda)])
             for i in range(len(Lambda)):
@@ -65,13 +66,14 @@ def test_orthonormal_multiscale_mass():
 
 def test_orthonormal_multiscale_damping_linear():
     """ Test that applying the multiscale damping operator is linear. """
-    b = OrthonormalDiscontinuousLinearBasis()
-    for l in range(1, 6):
-        for Lambda in [
-                b.uniform_wavelet_indices(max_level=l),
-                b.origin_refined_wavelet_indices(max_level=l)
-        ]:
-            applicator = Applicator(b, b.singlescale_damping, Lambda)
+    for basis in [
+            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=5),
+            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+                max_level=5)
+    ]:
+        for l in range(1, 6):
+            Lambda = basis.indices.until_level(l)
+            applicator = Applicator(basis, basis.singlescale_damping, Lambda)
             for _ in range(10):
                 v1 = np.random.rand(len(Lambda))
                 v2 = np.random.rand(len(Lambda))
@@ -91,26 +93,30 @@ def test_orthonormal_multiscale_damping_linear():
 
 
 def test_orthonormal_multiscale_damping_equivalent():
-    b = OrthonormalDiscontinuousLinearBasis()
-    for l in range(1, 3):
-        Lambda = b.uniform_wavelet_indices(max_level=l)
-        applicator = Applicator(b, b.singlescale_damping, Lambda)
-        eye = np.eye(len(Lambda))
-        res_matrix = np.zeros([len(Lambda), len(Lambda)])
-        res_matrix_ul = np.zeros([len(Lambda), len(Lambda)])
-        for i in range(len(Lambda)):
-            vec = IndexedVector(Lambda, eye[i, :])
+    for basis in [
+            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=5),
+            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+                max_level=5)
+    ]:
+        for l in range(1, 6):
+            Lambda = basis.indices.until_level(l)
+            applicator = Applicator(basis, basis.singlescale_damping, Lambda)
+            eye = np.eye(len(Lambda))
+            res_matrix = np.zeros([len(Lambda), len(Lambda)])
+            res_matrix_ul = np.zeros([len(Lambda), len(Lambda)])
+            for i in range(len(Lambda)):
+                vec = IndexedVector(Lambda, eye[i, :])
+                res = applicator.apply(vec)
+                res_ul = applicator.apply_upp(vec) + applicator.apply_low(vec)
+                res_matrix[:, i] = res.asarray()
+                res_matrix_ul[:, i] = res_ul.asarray()
+                assert np.allclose(res.asarray(), res_ul.asarray())
+
+            vec = IndexedVector(Lambda, np.ones(len(Lambda)))
             res = applicator.apply(vec)
             res_ul = applicator.apply_upp(vec) + applicator.apply_low(vec)
-            res_matrix[:, i] = res.asarray()
-            res_matrix_ul[:, i] = res_ul.asarray()
+            assert np.allclose(np.sum(res_matrix, axis=1), res.asarray())
             assert np.allclose(res.asarray(), res_ul.asarray())
-
-        vec = IndexedVector(Lambda, np.ones(len(Lambda)))
-        res = applicator.apply(vec)
-        res_ul = applicator.apply_upp(vec) + applicator.apply_low(vec)
-        assert np.allclose(np.sum(res_matrix, axis=1), res.asarray())
-        assert np.allclose(res.asarray(), res_ul.asarray())
 
 
 def test_orthonormal_multiscale_damping_correct():
@@ -126,10 +132,10 @@ def test_orthonormal_multiscale_damping_correct():
          [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 4 * sq3],
          [0, 0, 0, 0, 0, 0, 0, 0]])
 
-    b = OrthonormalDiscontinuousLinearBasis()
+    basis = OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=5)
     for l in range(1, 3):
-        Lambda = b.uniform_wavelet_indices(max_level=l)
-        applicator = Applicator(b, b.singlescale_damping, Lambda)
+        Lambda = basis.indices.until_level(l)
+        applicator = Applicator(basis, basis.singlescale_damping, Lambda)
         eye = np.eye(len(Lambda))
         res_matrix = np.zeros([len(Lambda), len(Lambda)])
         for i in range(len(Lambda)):

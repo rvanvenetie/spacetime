@@ -48,8 +48,8 @@ def ss2ms(labda):
 
 
 class ThreePointBasis(Basis):
-    def __init__(self, multiscale_indices=None):
-        self.indices = multiscale_indices
+    def __init__(self, indices):
+        self.indices = indices
         self.ss_indices = [
             IndexSet({
                 ms2ss(level, labda)
@@ -57,6 +57,17 @@ class ThreePointBasis(Basis):
             }) for level in range(0,
                                   self.indices.maximum_level() + 1)
         ]
+
+    @classmethod
+    def _uniform_multilevel_indices(cls, max_level):
+        return IndexSet({(0, 0), (0, 1)} | {(l, n)
+                                            for l in range(1, max_level + 1)
+                                            for n in range(2**(l - 1))})
+
+    @classmethod
+    def _origin_refined_multilevel_indices(cls, max_level):
+        return IndexSet({(0, 0), (0, 1)} | {(l, 0)
+                                            for l in range(max_level + 1)})
 
     @staticmethod
     def sort_inorder(multiscale_indices):
@@ -146,18 +157,6 @@ class ThreePointBasis(Basis):
 
     def scaling_indices_on_level(self, l):
         return self.ss_indices[l]
-
-    def wavelet_indices_on_level(self, l):
-        return self.indices.on_level(l)
-
-    def uniform_wavelet_indices(self, max_level):
-        return IndexSet({(0, 0), (0, 1)} | {(l, n)
-                                            for l in range(1, max_level + 1)
-                                            for n in range(2**(l - 1))})
-
-    def origin_refined_wavelet_indices(self, max_level):
-        return IndexSet({(0, 0), (0, 1)} | {(l, 0)
-                                            for l in range(max_level + 1)})
 
     def scaling_parents(self, index):
         l, n = index
