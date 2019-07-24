@@ -82,7 +82,7 @@ def test_orthonormal_singlescale_damping():
 
 
 def test_basis_PQ():
-    """ Test that the apply_P and apply_Q methods do what you would expect. """
+    """ Test if we recover the scaling functions by applying P or Q. """
     x = np.linspace(0, 1, 1025)
     for basis in [HaarBasis(), OrthonormalDiscontinuousLinearBasis()]:
         for l in range(1, 6):
@@ -90,6 +90,7 @@ def test_basis_PQ():
             Pi_bar = basis.scaling_indices_on_level(l)
             eye = np.eye(len(Pi_B))
             for i, mu in enumerate(sorted(Pi_B.indices)):
+                # Write phi_mu on lv l-1 as combination of scalings on lv l.
                 vec = IndexedVector(Pi_B, eye[i, :])
                 res = basis.apply_P(Pi_B, Pi_bar, vec)
                 inner = np.sum([
@@ -97,11 +98,11 @@ def test_basis_PQ():
                     for labda in res.keys()
                 ],
                                axis=0)
-                print(basis, 'scaling', mu, inner, basis.eval_scaling(mu, x))
                 assert np.allclose(inner, basis.eval_scaling(mu, x))
 
             Lambda_l = basis.wavelet_indices_on_level(l)
             for i, mu in enumerate(sorted(Lambda_l.indices)):
+                # Write psi_mu on lv l as combination of scalings on lv l.
                 vec = IndexedVector(Lambda_l, eye[i, :])
                 res = basis.apply_Q(Lambda_l, Pi_bar, vec)
                 inner = np.sum([
@@ -109,5 +110,4 @@ def test_basis_PQ():
                     for labda in res.keys()
                 ],
                                axis=0)
-                print(basis, 'wavelet', mu, inner, basis.eval_wavelet(mu, x))
                 assert np.allclose(inner, basis.eval_wavelet(mu, x))

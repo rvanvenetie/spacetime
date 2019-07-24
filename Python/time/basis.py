@@ -16,41 +16,53 @@ class Basis(object):
         pass
 
     def scaling_parents(self, index):
-        """ Parent singlescale indices overlapping this singlescale index. """
+        """ Parent singlescale indices that build this singlescale index.
+        
+        Basically the indices of the nonzero elements of P_l[:,index].
+        """
         pass
 
     def scaling_siblings(self, index):
-        """ MS-indices on this level interacting with this SS-index. """
+        """ MS-indices on this level that interact with this SS-index.
+        
+        Basically the indices of the nonzero elements of Q_l[:,index].
+        """
         pass
 
     def scaling_children(self, index):
-        """ Children singlescale indices overlapping this singlescale index. """
+        """ Children singlescale indices overlapping this singlescale index.
+        
+        Basically the indices of the nonzero elements of P_l^T[:,index].
+        """
         pass
 
     def wavelet_siblings(self, index):
-        """ Singlescale indices interacting with this multiscale index. """
+        """ Singlescale indices interacting with this multiscale index.
+        
+        Basically the indices of the nonzero elements of Q_l^T[:,index].
+        """
         pass
 
     def P_block(self, labda):
-        """ The vector st phi_{labda} = Phi_ell^top P_block (|labda| = ell). """
+        """ The vector st phi_{labda} = Phi_ell^T P_block (|labda| = ell). """
         pass
 
     def Q_block(self, labda):
-        """ The vector st psi_{labda} = Phi_ell^top Q_block (|labda| = ell). """
+        """ The vector st psi_{labda} = Phi_ell^T Q_block (|labda| = ell). """
         pass
 
     def PT_block(self, labda):
-        """ The vector st phi_{labda} = P_block^top Phi_ell (|labda| = ell). """
+        """ The vector st phi_{labda} = P_block^T Phi_ell (|labda| = ell). """
         pass
 
     def QT_block(self, labda):
-        """ The vector st psi_{labda} = Q_block^top Phi_ell (|labda| = ell). """
+        """ The vector st psi_{labda} = Q_block^T Phi_ell (|labda| = ell). """
         pass
 
     def apply_P(self, Pi_B, Pi_bar, d):
         """ Apply P_l: ell_2(Pi_B) to ell_2(Pi_bar).
 
-        P_l is the matrix for which Phi_{l-1}^top = Phi_l^top P_l.
+        P_l is the matrix for which Phi_{l-1}^T = Phi_l^T P_l.
         It is the matrix corresponding with embedding sp Phi_{l-1} in sp Phi_l.
 
         Arguments:
@@ -73,6 +85,7 @@ class Basis(object):
     def apply_Q(self, Lambda_l, Pi_bar, c):
         """ Apply Q: ell_2(Lambda_l) to ell_2(Pi_bar).
 
+        Q_l is the matrix for which Psi_l^T = Phi_l^T Q_l.
         This is the matrix corresponding with embedding sp Psi_l in sp Phi_l.
 
         Arguments:
@@ -92,7 +105,7 @@ class Basis(object):
         return res
 
     def apply_PT(self, Pi_bar, Pi_B, e_bar):
-        """ Apply P^top: ell_2(Pi_bar) to ell_2(Pi_B). """
+        """ Apply P^T: ell_2(Pi_bar) to ell_2(Pi_B). """
         res = IndexedVector({
             labda: sum([
                 e_bar[k] * v if k in Pi_bar else 0.0 for (k, v) in zip(
@@ -103,7 +116,7 @@ class Basis(object):
         return res
 
     def apply_QT(self, Pi_bar, Lambda_l, e_bar):
-        """ Apply Q^top: ell_2(Pi_bar) to ell_2(Lambda_l). """
+        """ Apply Q^T: ell_2(Pi_bar) to ell_2(Lambda_l). """
         res = IndexedVector({
             labda: sum([
                 e_bar[k] * v if k in Pi_bar else 0.0 for (k, v) in zip(
@@ -127,6 +140,10 @@ class Basis(object):
 
     def scaling_indices_on_level(self, l):
         """ IndexSet of singlescale indices on level l. """
+        pass
+
+    def wavelet_indices_on_level(self, l):
+        """ IndexSet of multiscale indices on level l. """
         pass
 
     def uniform_wavelet_indices(self, max_level):
