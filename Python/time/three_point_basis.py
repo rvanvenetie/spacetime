@@ -1,5 +1,6 @@
 from basis import Basis
 from index_set import IndexSet
+from indexed_vector import IndexedVector
 from interval import Interval
 
 import numpy as np
@@ -57,6 +58,7 @@ class ThreePointBasis(Basis):
             }) for level in range(0,
                                   self.indices.maximum_level() + 1)
         ]
+        assert len(self.ss_indices) == self.indices.maximum_level() + 1
 
     @classmethod
     def _uniform_multilevel_indices(cls, max_level):
@@ -156,6 +158,8 @@ class ThreePointBasis(Basis):
         return result
 
     def scaling_indices_on_level(self, l):
+        if l >= len(self.ss_indices):
+            return IndexSet({})
         return self.ss_indices[l]
 
     def scaling_parents(self, index):
@@ -251,3 +255,40 @@ class ThreePointBasis(Basis):
         else:
             right = -1 / 3
         return [left, 1.0, right]
+
+    def singlescale_mass(self, l, Pi, Pi_A, d):
+        # TODO: dit klopt nog niet
+        indices = sorted(self.scaling_indices_on_level(l))
+
+        def mapping(labda):
+            _, n = labda
+            i = indices.index(labda)
+            if n == 0 and indices[1] == (l, 1):
+                return 1 / 3 * d[(l, 0)] + 1 / 6 * d[(l, 1)]
+            elif n == 0 and indices[1] == (l, 2):
+                # TODO: misshcien fout
+                return 2.0 * (1 / 3 * d[(l, 0)] + 1 / 6 * d[(l, 1)])
+            elif n == 2**l and indices[i - 1] == (l, 2**l - 1):
+                return 1 / 6 * d[(l, 2**l - 1)] + 1 / 3 * d[(l, 2**l)]
+            elif n == 2**l and indices[i - 1] == (l, 2**l - 2):
+                # TODO: misshcien fout
+                return 2.0 * (1 / 6 * d[(l, 2**l - 1)] + 1 / 3 * d[(l, 2**l)])
+            elif (n - indices[i - 1][1]) == 1 and (indices[i + 1][1] - n) == 1:
+                return 1 / 6 * d[(l, n - 1)] + 2 / 3 * d[(l, n)] + 1 / 6 * d[
+                    (l, n + 1)]
+            elif (n - indices[i - 1][1]) == 2 and (indices[i + 1][1] - n) == 1:
+                return 1 / 3 * d[(l, n - 1)] + d[(l,
+                                                  n)] + 1 / 6 * d[(l, n + 1)]
+            elif (n - indices[i - 1][1]) == 1 and (indices[i + 1][1] - n) == 2:
+                return 1 / 6 * d[(l, n - 1)] + d[(l,
+                                                  n)] + 1 / 3 * d[(l, n + 1)]
+            elif (n - indices[i - 1][1]) == 2 and (indices[i + 1][1] - n) == 2:
+                return 1 / 3 * d[(l, n - 1)] + 4 / 3 * d[(l, n)] + 1 / 3 * d[
+                    (l, n + 1)]
+            else:
+                assert False
+
+        res = IndexedVector(
+            {labda: mapping(labda) if labda in Pi else 0.0
+             for labda in Pi_A})
+        return res

@@ -13,14 +13,18 @@ class IndexedVector(object):
                 for (key, value) in zip(sorted(index_set.indices), values)
             }
 
-    @staticmethod
-    def Zero():
-        return IndexedVector(index_set={})
+    @classmethod
+    def Zero(cls):
+        """ Zero constructor. """
+        return cls(index_set={})
 
     def __getitem__(self, key):
         if key in self.vector:
             return self.vector[key]
         return 0.0
+
+    def __repr__(self):
+        return r"IndexedVector(%s)" % self.vector
 
     def keys(self):
         return self.vector.keys()

@@ -4,6 +4,9 @@ class IndexSet(object):
     def __init__(self, indices):
         self.indices = indices
 
+    def __repr__(self):
+        return r"IndexSet(%s)" % self.indices
+
     def __len__(self):
         return len(self.indices)
 

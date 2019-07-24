@@ -1,4 +1,5 @@
 from basis import HaarBasis, OrthonormalDiscontinuousLinearBasis
+from three_point_basis import ThreePointBasis
 from applicator import Applicator
 from index_set import IndexSet
 from indexed_vector import IndexedVector
@@ -81,7 +82,9 @@ def test_apply_upp_low_vs_full():
             HaarBasis.origin_refined_basis(max_level=5),
             OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=5),
             OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
-                max_level=5)
+                max_level=5),
+            ThreePointBasis.uniform_basis(max_level=5),
+            ThreePointBasis.origin_refined_basis(max_level=5)
     ]:
         for l in range(1, 6):
             Lambda = basis.indices.until_level(l)
