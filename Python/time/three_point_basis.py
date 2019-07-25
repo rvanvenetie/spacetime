@@ -132,6 +132,11 @@ class ThreePointBasis(Basis):
         return res
 
     def eval_wavelet(self, labda, x):
+        #return sum([
+        #    self.eval_scaling(ss_index, x) * qval for (
+        #        ss_index,
+        #        qval) in zip(self.scaling_siblings(labda), self.Q_block(labda))
+        #])
         if labda[0] == 0: return self.eval_scaling(labda, x)
 
         l, n = labda
@@ -141,14 +146,14 @@ class ThreePointBasis(Basis):
         result = self.eval_scaling(ss_indices[i], x)
         if n == 0:
             result -= self.eval_scaling(ss_indices[i - 1], x)
-        elif ss_indices[i - 2][0] == l:
+        elif (l, n - 1) in self.indices:
             result -= 1 / 2 * self.eval_scaling(ss_indices[i - 1], x)
         else:
             result -= 1 / 3 * self.eval_scaling(ss_indices[i - 1], x)
 
         if n == 2**(l - 1) - 1:
             result -= self.eval_scaling(ss_indices[i + 1], x)
-        elif ss_indices[i + 2][0] == l:
+        elif (l, n + 1) in self.indices:
             result -= 1 / 2 * self.eval_scaling(ss_indices[i + 1], x)
         else:
             result -= 1 / 3 * self.eval_scaling(ss_indices[i + 1], x)
@@ -175,15 +180,40 @@ class ThreePointBasis(Basis):
             return [0.5 / sq2, 0.5 / sq2]
 
     def scaling_siblings(self, index):
-        # Slow but it works..
-        # TODO: speed up or understand how this should work.
+        l, n = index
+        # If the singlescale index offset is odd, it must coincide with a
+        # multiscale index on this level.
+        if n % 2:
+            return [(l, n // 2)]
+        # If we are the leftmost singlescale index, it can only interact with
+        # multiscale index (l, 0).
+        if n == 0:
+            return [(l, 0)]
+        # Same idea for the rightmost singlescale index.
+        if n == 2**l:
+            return [(l, 2**(l - 1) - 1)]
+        # General case: we are between these two multiscale indices.
+        return [(l, (n - 1) // 2), (l, n // 2)]
+
+        # Slower code that works for sure...
         return sorted([
             i for i in self.indices.on_level(index[0])
             if index in self.wavelet_siblings(i)
         ])
 
     def Q_block(self, index):
-        # TODO: speed up and understand this magic
+        l, n = index
+        if n % 2:
+            return [1.0]
+        if n == 0 or n == 2**l:
+            return [-1.0]
+        # Note the swapping of n+1
+        return [
+            -1 / 2 if ss2ms((l, n + 1)) in self.indices else -1 / 3,
+            -1 / 2 if ss2ms((l, n - 1)) in self.indices else -1 / 3
+        ]
+
+        # Slower code that works for sure...
         def mapping(labda):
             if ms2ss(index[0], labda) == index:
                 return 1.0
@@ -205,26 +235,22 @@ class ThreePointBasis(Basis):
         return [(index[0], 2 * index[1] + i) for i in range(3)]
 
     def QT_block(self, index):
-        # Slow but correct..
-        # TODO: speed up
         if index == (0, 0):
             return [1.0, 0.0]
         elif index == (0, 1):
             return [0.0, 1.0]
 
         l, n = index
-        ss_indices = sorted(self.scaling_indices_on_level(l))
-        i = ss_indices.index(ms2ss(l, index))
         if n == 0:  # We are the leftmost wavelet fn
             left = -1.0
-        elif ss_indices[i - 2][0] == l:  # Our left-left nbr is our level
+        elif (l, n - 1) in self.indices:  # Our left nbr is an index too
             left = -1 / 2
-        else:  # Our left-left nbr is not our level
+        else:  # Our left nbr is no index.
             left = -1 / 3
 
         if n == 2**(l - 1) - 1:  # We are the rightmost wavelet fn
             right = -1.0
-        elif ss_indices[i + 2][0] == l:
+        elif (l, n + 1) in self.indices:
             right = -1 / 2
         else:
             right = -1 / 3
@@ -232,7 +258,7 @@ class ThreePointBasis(Basis):
         return [left, 1.0, right]
 
     def singlescale_mass(self, l, Pi, Pi_A, d):
-        # TODO: dit klopt nog niet
+        # TODO: Slow but correct..
         indices = sorted(self.scaling_indices_on_level(l))
 
         def mapping(labda):

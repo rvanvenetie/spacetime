@@ -1,10 +1,13 @@
 from basis import HaarBasis, OrthonormalDiscontinuousLinearBasis
-from three_point_basis import ThreePointBasis, ms2ss, ss2ms
+from three_point_basis import ThreePointBasis, ms2ss, ss2ms, position_ms
 from index_set import IndexSet
 from indexed_vector import IndexedVector
 import numpy as np
 from scipy.integrate import quad
+import matplotlib.pyplot as plt
 import pytest
+
+np.set_printoptions(linewidth=10000, precision=3)
 
 
 def test_haar_singlescale_mass():
@@ -92,10 +95,21 @@ def test_basis_PQ():
                 res = basis.apply_P(Pi_B, Pi_bar, vec)
                 inner = np.sum([
                     basis.eval_scaling(labda, x) * res[labda]
-                    for labda in res.keys()
+                    for labda in Pi_bar
                 ],
                                axis=0)
-                assert np.allclose(inner, basis.eval_scaling(mu, x))
+                try:
+                    assert np.allclose(inner, basis.eval_scaling(mu, x))
+                except AssertionError:
+                    plt.plot([
+                        mu[1] / 2**l
+                        for mu in basis.scaling_indices_on_level(l)
+                    ], [0] * len(basis.scaling_indices_on_level(l)), 'ko')
+                    plt.plot(x, inner, label=r'$(\Phi_{l-1}^T P_l)_\mu$')
+                    plt.plot(x, basis.eval_scaling(mu, x), label=r"$\phi_\mu$")
+                    plt.legend()
+                    plt.show()
+                    raise
 
             Lambda_l = basis.indices.on_level(l)
             for i, mu in enumerate(sorted(Lambda_l.indices)):
@@ -104,10 +118,67 @@ def test_basis_PQ():
                 res = basis.apply_Q(Lambda_l, Pi_bar, vec)
                 inner = np.sum([
                     basis.eval_scaling(labda, x) * res[labda]
-                    for labda in res.keys()
+                    for labda in Pi_bar
                 ],
                                axis=0)
-                assert np.allclose(inner, basis.eval_wavelet(mu, x))
+                try:
+                    assert np.allclose(inner, basis.eval_wavelet(mu, x))
+                except AssertionError:
+                    plt.plot([
+                        position_ms(mu) for mu in basis.indices.until_level(l)
+                    ], [0] * len(basis.indices.until_level(l)), 'ko')
+                    plt.plot(x, inner, label=r'$(\Phi_{l-1}^T Q_l)_\mu$')
+                    plt.plot(x, basis.eval_wavelet(mu, x), label=r"$\psi_\mu$")
+                    plt.legend()
+                    plt.show()
+                    raise
+
+
+def test_basis_PQ_matrix():
+    ml = 6
+    for basis in [
+            HaarBasis.uniform_basis(max_level=ml),
+            HaarBasis.origin_refined_basis(max_level=ml),
+            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=ml),
+            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+                max_level=ml),
+            ThreePointBasis.uniform_basis(max_level=ml),
+            ThreePointBasis.origin_refined_basis(max_level=ml)
+    ]:
+        for l in range(1, ml + 1):
+            Pi_B = basis.scaling_indices_on_level(l - 1)
+            Pi_bar = basis.scaling_indices_on_level(l)
+            Lambda_l = basis.indices.on_level(l)
+
+            B_eye = np.eye(len(Pi_B))
+            bar_eye = np.eye(len(Pi_bar))
+            l_eye = np.eye(len(Lambda_l))
+
+            P = np.zeros([len(Pi_B), len(Pi_bar)])
+            PT = np.zeros([len(Pi_bar), len(Pi_B)])
+            Q = np.zeros([len(Lambda_l), len(Pi_bar)])
+            QT = np.zeros([len(Pi_bar), len(Lambda_l)])
+
+            for i, mu in enumerate(sorted(Pi_B.indices)):
+                vec = IndexedVector(Pi_B, B_eye[i, :])
+                P[i, :] = basis.apply_P(Pi_B, Pi_bar, vec).asarray()
+            for i, mu in enumerate(sorted(Pi_bar.indices)):
+                vec = IndexedVector(Pi_bar, bar_eye[i, :])
+                PT[i, :] = basis.apply_PT(Pi_bar, Pi_B, vec).asarray()
+            for i, mu in enumerate(sorted(Lambda_l.indices)):
+                vec = IndexedVector(Lambda_l, l_eye[i, :])
+                Q[i, :] = basis.apply_Q(Lambda_l, Pi_bar, vec).asarray()
+            for i, mu in enumerate(sorted(Pi_bar.indices)):
+                vec = IndexedVector(Pi_bar, bar_eye[i, :])
+                QT[i, :] = basis.apply_QT(Pi_bar, Lambda_l, vec).asarray()
+
+            print(P)
+            print(PT.T)
+            print(Q)
+            print(QT.T)
+            assert np.allclose(P.T, PT)
+            assert np.allclose(Q.T, QT)
+    assert False
 
 
 def test_3point_ss2ms():
@@ -206,27 +277,60 @@ def test_singlescale_mass_quadrature():
 
 
 def test_3point_siblings_etc():
-    multiscale_indices = IndexSet({(0, 0), (0, 1), (1, 0), (2, 0), (2, 1),
-                                   (3, 0), (3, 3), (4, 0)})
-    basis = ThreePointBasis(multiscale_indices)
-    for index in multiscale_indices:
-        assert basis.wavelet_siblings(index) == sorted([
-            i for i in basis.scaling_indices_on_level(index[0])
-            if basis.wavelet_support(index).contains(basis.scaling_support(i))
-        ])
+    for basis in [
+            ThreePointBasis.uniform_basis(max_level=4),
+            ThreePointBasis.origin_refined_basis(max_level=4)
+    ]:
+        for index in basis.indices:
+            assert all(
+                basis.wavelet_support(index).contains(basis.scaling_support(i))
+                for i in basis.wavelet_siblings(index)
+                if i in basis.scaling_indices_on_level(index[0]))
 
-    for level, ss_indices_at_level in enumerate(basis.ss_indices):
-        if level > 0:
+        for level, ss_indices_at_level in enumerate(basis.ss_indices):
+            if level > 0:
+                for index in sorted(ss_indices_at_level):
+                    assert all(
+                        i for i in basis.scaling_indices_on_level(level - 1)
+                        if index in basis.scaling_children(
+                            i) in basis.scaling_parents(index))
+            if level < basis.indices.maximum_level():
+                for index in sorted(ss_indices_at_level):
+                    assert all(
+                        i for i in basis.scaling_indices_on_level(level + 1)
+                        if index in basis.scaling_parents(
+                            i) in basis.scaling_children(index))
             for index in sorted(ss_indices_at_level):
-                assert all(i for i in basis.scaling_indices_on_level(level - 1)
-                           if index in basis.scaling_children(i) in
-                           basis.scaling_parents(index))
-        if level < basis.indices.maximum_level():
-            for index in sorted(ss_indices_at_level):
-                assert all(i for i in basis.scaling_indices_on_level(level + 1)
-                           if index in basis.scaling_parents(i) in
-                           basis.scaling_children(index))
-        for index in sorted(ss_indices_at_level):
-            assert all(i for i in multiscale_indices
-                       if i[0] == level and index in basis.wavelet_siblings(i)
-                       in basis.scaling_siblings(index))
+                print(basis.indices, index, basis.scaling_siblings(index),
+                      basis.Q_block(index))
+                assert all(
+                    i for i in basis.indices
+                    if i[0] == level and index in basis.wavelet_siblings(
+                        i) in basis.scaling_siblings(index))
+
+
+def print_3point_functions():
+    x = np.linspace(0, 1, 1025)
+    for basis in [
+            ThreePointBasis.uniform_basis(max_level=4),
+            ThreePointBasis.origin_refined_basis(max_level=4)
+    ]:
+        for l in range(1, basis.indices.maximum_level()):
+            for labda in basis.scaling_indices_on_level(l):
+                plt.plot(
+                    [mu[1] / 2**l for mu in basis.scaling_indices_on_level(l)],
+                    [0] * len(basis.scaling_indices_on_level(l)), 'ko')
+                plt.plot(x, basis.eval_scaling(labda, x), label=labda)
+            plt.legend()
+            plt.show()
+
+        for labda in basis.indices:
+            plt.plot([position_ms(mu) for mu in basis.indices],
+                     [0] * len(basis.indices), 'ko')
+            plt.plot(x, basis.eval_wavelet(labda, x), label=labda)
+        plt.legend()
+        plt.show()
+
+
+if __name__ == "__main__":
+    print_3point_functions()
