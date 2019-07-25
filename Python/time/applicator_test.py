@@ -64,7 +64,7 @@ def test_multiscale_mass():
             ThreePointBasis.uniform_basis(max_level=ml),
             ThreePointBasis.origin_refined_basis(max_level=ml)
     ]:
-        for l in range(1, 6):
+        for l in range(1, ml + 1):
             Lambda = basis.indices.until_level(l)
             applicator = Applicator(basis, basis.singlescale_mass, Lambda)
             eye = np.eye(len(Lambda))
@@ -75,41 +75,32 @@ def test_multiscale_mass():
                 for j, mu in enumerate(sorted(Lambda)):
                     supp_mu = basis.wavelet_support(mu)
                     supp_total = supp_labda.intersection(supp_mu)
+                    true_val = 0.0
+                    if supp_total:
+                        true_val = quad(lambda x: basis.eval_wavelet(labda, x)
+                                        * basis.eval_wavelet(mu, x),
+                                        supp_total.a,
+                                        supp_total.b,
+                                        points=[
+                                            supp_labda.a, supp_labda.mid,
+                                            supp_labda.b, supp_mu.a,
+                                            supp_mu.mid, supp_mu.b,
+                                            supp_total.a, supp_total.mid,
+                                            supp_total.b
+                                        ])[0]
                     try:
-                        if supp_total:
-                            assert np.isclose(
-                                res[mu],
-                                quad(lambda x: basis.eval_wavelet(labda, x) *
-                                     basis.eval_wavelet(mu, x),
-                                     supp_total.a,
-                                     supp_total.b,
-                                     points=[
-                                         supp_labda.a, supp_labda.mid,
-                                         supp_labda.b, supp_mu.a, supp_mu.mid,
-                                         supp_mu.b, supp_total.a,
-                                         supp_total.mid, supp_total.b
-                                     ])[0])
-                        else:
-                            assert np.isclose(res[mu], 0.0)
+                        assert np.isclose(res[mu], true_val)
                     except AssertionError:
-
-                        xx = np.linspace(0, 1, 1025)
-                        plt.plot(xx, basis.eval_wavelet(labda, xx))
-                        plt.plot(xx, basis.eval_wavelet(mu, xx))
-                        plt.show()
-                        print(
-                            basis, l, Lambda, labda, mu, supp_total, res,
-                            quad(lambda x: basis.eval_wavelet(labda, x) * basis
-                                 .eval_wavelet(mu, x),
-                                 supp_total.a,
-                                 supp_total.b,
-                                 points=[
-                                     supp_labda.a, supp_labda.mid,
-                                     supp_labda.b, supp_mu.a, supp_mu.mid,
-                                     supp_mu.b, supp_total.a, supp_total.mid,
-                                     supp_total.b
-                                 ]))
-                        raise
+                        #xx = np.linspace(0, 1, 1025)
+                        #plt.plot(xx, basis.eval_wavelet(labda, xx))
+                        #plt.plot(xx, basis.eval_wavelet(mu, xx))
+                        #plt.show()
+                        print('basis=', basis, 'level=', l, 'Lambda=', Lambda,
+                              'labda=', labda, 'mu=', mu, 'found val=',
+                              res[mu], 'true val=', true_val, 'supp=',
+                              supp_total)
+                        #raise
+    assert False
 
 
 def test_orthonormal_multiscale_damping_correct():

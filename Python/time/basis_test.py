@@ -1,4 +1,5 @@
 from basis import HaarBasis, OrthonormalDiscontinuousLinearBasis
+from three_point_basis import ThreePointBasis, ms2ss, ss2ms
 from index_set import IndexSet
 from indexed_vector import IndexedVector
 import numpy as np
@@ -71,11 +72,17 @@ def test_orthonormal_singlescale_mass():
 def test_basis_PQ():
     """ Test if we recover the scaling functions by applying P or Q. """
     x = np.linspace(0, 1, 1025)
+    ml = 6
     for basis in [
-            HaarBasis.uniform_basis(max_level=5),
-            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=5)
+            HaarBasis.uniform_basis(max_level=ml),
+            HaarBasis.origin_refined_basis(max_level=ml),
+            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=ml),
+            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+                max_level=ml),
+            ThreePointBasis.uniform_basis(max_level=ml),
+            ThreePointBasis.origin_refined_basis(max_level=ml)
     ]:
-        for l in range(1, 6):
+        for l in range(1, ml + 1):
             Pi_B = basis.scaling_indices_on_level(l - 1)
             Pi_bar = basis.scaling_indices_on_level(l)
             eye = np.eye(len(Pi_B))
@@ -101,3 +108,125 @@ def test_basis_PQ():
                 ],
                                axis=0)
                 assert np.allclose(inner, basis.eval_wavelet(mu, x))
+
+
+def test_3point_ss2ms():
+    assert ss2ms((0, 0)) == (0, 0)
+    assert ss2ms((0, 1)) == (0, 1)
+
+    assert ss2ms((1, 0)) == (0, 0)
+    assert ss2ms((1, 1)) == (1, 0)
+    assert ss2ms((1, 2)) == (0, 1)
+
+    assert ss2ms((2, 0)) == (0, 0)
+    assert ss2ms((2, 1)) == (2, 0)
+    assert ss2ms((2, 2)) == (1, 0)
+    assert ss2ms((2, 3)) == (2, 1)
+    assert ss2ms((2, 4)) == (0, 1)
+
+    assert ss2ms((3, 0)) == (0, 0)
+    assert ss2ms((3, 1)) == (3, 0)
+    assert ss2ms((3, 2)) == (2, 0)
+    assert ss2ms((3, 3)) == (3, 1)
+    assert ss2ms((3, 4)) == (1, 0)
+    assert ss2ms((3, 5)) == (3, 2)
+    assert ss2ms((3, 6)) == (2, 1)
+    assert ss2ms((3, 7)) == (3, 3)
+    assert ss2ms((3, 8)) == (0, 1)
+
+    assert ss2ms((4, 0)) == (0, 0)
+    assert ss2ms((4, 1)) == (4, 0)
+    assert ss2ms((4, 2)) == (3, 0)
+    assert ss2ms((4, 3)) == (4, 1)
+    assert ss2ms((4, 4)) == (2, 0)
+    assert ss2ms((4, 5)) == (4, 2)
+    assert ss2ms((4, 6)) == (3, 1)
+    assert ss2ms((4, 7)) == (4, 3)
+    assert ss2ms((4, 8)) == (1, 0)
+    assert ss2ms((4, 9)) == (4, 4)
+    assert ss2ms((4, 10)) == (3, 2)
+    assert ss2ms((4, 11)) == (4, 5)
+    assert ss2ms((4, 12)) == (2, 1)
+    assert ss2ms((4, 13)) == (4, 6)
+    assert ss2ms((4, 14)) == (3, 3)
+    assert ss2ms((4, 15)) == (4, 7)
+    assert ss2ms((4, 16)) == (0, 1)
+
+    for l in range(1, 10):
+        for n in range(0, 2**l + 1):
+            assert ms2ss(l, ss2ms((l, n))) == (l, n)
+
+
+def test_3point_singlescale_indices():
+    multiscale_indices = IndexSet({(0, 0), (0, 1), (1, 0), (2, 0), (2, 1),
+                                   (3, 0), (3, 3)})
+    basis = ThreePointBasis(multiscale_indices)
+    assert basis.scaling_indices_on_level(1).indices == {(1, 0), (1, 1),
+                                                         (1, 2)}
+    assert basis.scaling_indices_on_level(2).indices == {(2, 0), (2, 1),
+                                                         (2, 2), (2, 3),
+                                                         (2, 4)}
+    assert basis.scaling_indices_on_level(3).indices == {
+        (3, 0), (3, 1), (3, 2), (3, 4), (3, 6), (3, 7), (3, 8)
+    }
+
+
+def test_singlescale_mass_quadrature():
+    """ Use quadrature to test the singlescale mass matrices. """
+    ml = 4
+    for basis in [
+            HaarBasis.uniform_basis(max_level=ml),
+            HaarBasis.origin_refined_basis(max_level=ml),
+            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=ml),
+            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+                max_level=ml),
+            ThreePointBasis.uniform_basis(max_level=ml),
+            ThreePointBasis.origin_refined_basis(max_level=ml)
+    ]:
+        for l in range(1, ml + 1):
+            Delta_l = basis.scaling_indices_on_level(l)
+            eye = np.eye(len(Delta_l))
+            for i, labda in enumerate(sorted(Delta_l)):
+                phi_supp = basis.scaling_support(labda)
+                unit_vec = IndexedVector(Delta_l, eye[i, :])
+                out = basis.singlescale_mass(l=l,
+                                             Pi=Delta_l,
+                                             Pi_A=Delta_l,
+                                             d=unit_vec)
+                for mu in sorted(Delta_l):
+                    supp = phi_supp.intersection(basis.scaling_support(mu))
+                    if supp:
+                        assert np.isclose(
+                            out[mu],
+                            quad(
+                                lambda x: basis.eval_scaling(labda, x) * basis.
+                                eval_scaling(mu, x), supp.a, supp.b)[0])
+                    else:
+                        assert np.isclose(out[mu], 0.0)
+
+
+def test_3point_siblings_etc():
+    multiscale_indices = IndexSet({(0, 0), (0, 1), (1, 0), (2, 0), (2, 1),
+                                   (3, 0), (3, 3), (4, 0)})
+    basis = ThreePointBasis(multiscale_indices)
+    for index in multiscale_indices:
+        assert basis.wavelet_siblings(index) == sorted([
+            i for i in basis.scaling_indices_on_level(index[0])
+            if basis.wavelet_support(index).contains(basis.scaling_support(i))
+        ])
+
+    for level, ss_indices_at_level in enumerate(basis.ss_indices):
+        if level > 0:
+            for index in sorted(ss_indices_at_level):
+                assert all(i for i in basis.scaling_indices_on_level(level - 1)
+                           if index in basis.scaling_children(i) in
+                           basis.scaling_parents(index))
+        if level < basis.indices.maximum_level():
+            for index in sorted(ss_indices_at_level):
+                assert all(i for i in basis.scaling_indices_on_level(level + 1)
+                           if index in basis.scaling_parents(i) in
+                           basis.scaling_children(index))
+        for index in sorted(ss_indices_at_level):
+            assert all(i for i in multiscale_indices
+                       if i[0] == level and index in basis.wavelet_siblings(i)
+                       in basis.scaling_siblings(index))

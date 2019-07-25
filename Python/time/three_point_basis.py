@@ -122,36 +122,33 @@ class ThreePointBasis(Basis):
         support = self.scaling_support(index)
         left_pos, right_pos = support.a, support.b
 
-        if my_pos == left_pos:
-            return 2**(index[0] / 2) * self.eval_mother_scaling(
+        res = 0 * x
+        if my_pos != right_pos:
+            res += 2**(index[0] / 2) * self.eval_mother_scaling(
                 False, (x - my_pos) / (right_pos - my_pos))
-        elif my_pos == right_pos:
-            return 2**(index[0] / 2) * self.eval_mother_scaling(
+        if my_pos != left_pos:
+            res += 2**(index[0] / 2) * self.eval_mother_scaling(
                 True, (x - left_pos) / (my_pos - left_pos))
-        return 2**(index[0] /
-                   2) * (self.eval_mother_scaling(True, (x - left_pos) /
-                                                  (my_pos - left_pos)) +
-                         self.eval_mother_scaling(False, (x - my_pos) /
-                                                  (right_pos - my_pos)))
+        return res
 
     def eval_wavelet(self, labda, x):
-        if labda[0] == 0:
-            return self.eval_scaling(labda, x)
+        if labda[0] == 0: return self.eval_scaling(labda, x)
 
-        ss_indices = sorted(self.scaling_indices_on_level(labda[0]))
-        i = ss_indices.index(ms2ss(labda[0], labda))
+        l, n = labda
+        ss_indices = sorted(self.scaling_indices_on_level(l))
+        i = ss_indices.index(ms2ss(l, labda))
 
         result = self.eval_scaling(ss_indices[i], x)
-        if i == 1:
+        if n == 0:
             result -= self.eval_scaling(ss_indices[i - 1], x)
-        elif ss_indices[i - 2][0] == labda[0]:
+        elif ss_indices[i - 2][0] == l:
             result -= 1 / 2 * self.eval_scaling(ss_indices[i - 1], x)
         else:
             result -= 1 / 3 * self.eval_scaling(ss_indices[i - 1], x)
 
-        if i == len(ss_indices) - 2:
+        if n == 2**(l - 1) - 1:
             result -= self.eval_scaling(ss_indices[i + 1], x)
-        elif ss_indices[i + 2][0] == labda[0]:
+        elif ss_indices[i + 2][0] == l:
             result -= 1 / 2 * self.eval_scaling(ss_indices[i + 1], x)
         else:
             result -= 1 / 3 * self.eval_scaling(ss_indices[i + 1], x)
@@ -187,46 +184,21 @@ class ThreePointBasis(Basis):
 
     def Q_block(self, index):
         # TODO: speed up and understand this magic
-        indices = sorted([
-            i for i in self.indices.on_level(index[0])
-            if index in self.wavelet_siblings(i)
-        ])
-
         def mapping(labda):
-            if labda == ss2ms(index):
+            if ms2ss(index[0], labda) == index:
                 return 1.0
-            if index[1] == 0 or index[1] == 2**index[0]:
+            elif index[1] == 0 or index[1] == 2**index[0]:
                 return -1.0
             else:
                 return -0.5
 
-        return [mapping(labda) for labda in indices]
+        return [mapping(labda) for labda in self.scaling_siblings(index)]
 
     def scaling_children(self, index):
-        # TODO: somewhat slow
-        l, n = index
-        if (l + 1, 2 * n - 1) in self.scaling_indices_on_level(l + 1) and \
-           (l + 1, 2 * n + 1) in self.scaling_indices_on_level(l + 1):
-            return [(l + 1, 2 * n + i) for i in range(-1, 2)]
-        elif (l + 1, 2 * n - 1) in self.scaling_indices_on_level(l + 1):
-            return [(l + 1, 2 * n + i) for i in range(-1, 1)]
-        elif (l + 1, 2 * n + 1) in self.scaling_indices_on_level(l + 1):
-            return [(l + 1, 2 * n + i) for i in range(0, 2)]
-        else:
-            return [(l + 1, 2 * n)]
+        return [(index[0] + 1, 2 * index[1] + i) for i in range(-1, 2)]
 
     def PT_block(self, index):
-        # TODO: somewhat slow
-        l, n = index
-        if (l + 1, 2 * n - 1) in self.scaling_indices_on_level(l + 1) and \
-           (l + 1, 2 * n + 1) in self.scaling_indices_on_level(l + 1):
-            return [0.5 / sq2, 1.0 / sq2, 0.5 / sq2]
-        elif (l + 1, 2 * n - 1) in self.scaling_indices_on_level(l + 1):
-            return [0.5 / sq2, 1.0 / sq2]
-        elif (l + 1, 2 * n + 1) in self.scaling_indices_on_level(l + 1):
-            return [1.0 / sq2, 0.5 / sq2]
-        else:
-            return [1.0 / sq2]
+        return [0.5 / sq2, 1.0 / sq2, 0.5 / sq2]
 
     def wavelet_siblings(self, index):
         if index[0] == 0: return [(0, 0), (0, 1)]
@@ -240,20 +212,23 @@ class ThreePointBasis(Basis):
         elif index == (0, 1):
             return [0.0, 1.0]
 
-        ss_indices = sorted(self.scaling_indices_on_level(index[0]))
-        i = ss_indices.index(ms2ss(index[0], index))
-        if i == 1:
+        l, n = index
+        ss_indices = sorted(self.scaling_indices_on_level(l))
+        i = ss_indices.index(ms2ss(l, index))
+        if n == 0:  # We are the leftmost wavelet fn
             left = -1.0
-        elif ss_indices[i - 2][0] == index[0]:
+        elif ss_indices[i - 2][0] == l:  # Our left-left nbr is our level
             left = -1 / 2
-        else:
+        else:  # Our left-left nbr is not our level
             left = -1 / 3
-        if i == len(ss_indices) - 2:
+
+        if n == 2**(l - 1) - 1:  # We are the rightmost wavelet fn
             right = -1.0
-        elif ss_indices[i + 2][0] == index[0]:
+        elif ss_indices[i + 2][0] == l:
             right = -1 / 2
         else:
             right = -1 / 3
+
         return [left, 1.0, right]
 
     def singlescale_mass(self, l, Pi, Pi_A, d):
