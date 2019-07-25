@@ -2,7 +2,11 @@ import numpy as np
 
 
 class IndexedVector(object):
-    """ Could perhaps be a subclass of `dict` """
+    """ Poss better: subclass of `dict`, or Tuple[IndexSet, scipy.sparse.*].
+    
+    If it is a Tuple[IndexSet, scipy.sparse.*], then methods like `on_level()`
+    and `from_level()` could be implemented efficiently, I think.
+    """
 
     def __init__(self, index_set, values=None):
         if isinstance(index_set, dict):
@@ -10,7 +14,7 @@ class IndexedVector(object):
         else:
             self.vector = {
                 key: value
-                for (key, value) in zip(sorted(index_set.indices), values)
+                for (key, value) in zip(sorted(index_set), values)
             }
 
     @classmethod

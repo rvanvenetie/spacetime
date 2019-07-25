@@ -4,6 +4,7 @@ from indexed_vector import IndexedVector
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.integrate import quad
 
 
 def print_functions():
@@ -81,6 +82,33 @@ def test_singlescale_indices():
     assert basis.scaling_indices_on_level(3).indices == {
         (3, 0), (3, 1), (3, 2), (3, 4), (3, 6), (3, 7), (3, 8)
     }
+
+
+def test_singlescale_mass():
+    """ Use quadrature to test the singlescale mass matrix. """
+    for basis in [
+            ThreePointBasis.uniform_basis(max_level=5),
+            ThreePointBasis.origin_refined_basis(max_level=5)
+    ]:
+        for l, Delta_l in enumerate(basis.ss_indices):
+            eye = np.eye(len(Delta_l))
+            for i, labda in enumerate(sorted(Delta_l)):
+                phi_supp = basis.scaling_support(labda)
+                unit_vec = IndexedVector(Delta_l, eye[i, :])
+                out = basis.singlescale_mass(l=l,
+                                             Pi=Delta_l,
+                                             Pi_A=Delta_l,
+                                             d=unit_vec)
+                for mu in sorted(Delta_l):
+                    supp = phi_supp.intersection(basis.scaling_support(mu))
+                    if supp:
+                        assert np.isclose(
+                            out[mu],
+                            quad(
+                                lambda x: basis.eval_scaling(labda, x) * basis.
+                                eval_scaling(mu, x), supp.a, supp.b)[0])
+                    else:
+                        assert np.isclose(out[mu], 0.0)
 
 
 def test_siblings_etc():

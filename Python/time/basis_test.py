@@ -2,6 +2,7 @@ from basis import HaarBasis, OrthonormalDiscontinuousLinearBasis
 from index_set import IndexSet
 from indexed_vector import IndexedVector
 import numpy as np
+from scipy.integrate import quad
 import pytest
 
 

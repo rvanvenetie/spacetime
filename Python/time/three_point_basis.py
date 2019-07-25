@@ -135,13 +135,13 @@ class ThreePointBasis(Basis):
                                                   (right_pos - my_pos)))
 
     def eval_wavelet(self, labda, x):
+        if labda[0] == 0:
+            return self.eval_scaling(labda, x)
+
         ss_indices = sorted(self.scaling_indices_on_level(labda[0]))
         i = ss_indices.index(ms2ss(labda[0], labda))
 
         result = self.eval_scaling(ss_indices[i], x)
-        if labda[0] == 0:
-            return result
-
         if i == 1:
             result -= self.eval_scaling(ss_indices[i - 1], x)
         elif ss_indices[i - 2][0] == labda[0]:
@@ -263,30 +263,16 @@ class ThreePointBasis(Basis):
         def mapping(labda):
             _, n = labda
             i = indices.index(labda)
-            if n == 0 and indices[1] == (l, 1):
-                return 1 / 3 * d[(l, 0)] + 1 / 6 * d[(l, 1)]
-            elif n == 0 and indices[1] == (l, 2):
-                # TODO: misshcien fout
-                return 2.0 * (1 / 3 * d[(l, 0)] + 1 / 6 * d[(l, 1)])
-            elif n == 2**l and indices[i - 1] == (l, 2**l - 1):
-                return 1 / 6 * d[(l, 2**l - 1)] + 1 / 3 * d[(l, 2**l)]
-            elif n == 2**l and indices[i - 1] == (l, 2**l - 2):
-                # TODO: misshcien fout
-                return 2.0 * (1 / 6 * d[(l, 2**l - 1)] + 1 / 3 * d[(l, 2**l)])
-            elif (n - indices[i - 1][1]) == 1 and (indices[i + 1][1] - n) == 1:
-                return 1 / 6 * d[(l, n - 1)] + 2 / 3 * d[(l, n)] + 1 / 6 * d[
-                    (l, n + 1)]
-            elif (n - indices[i - 1][1]) == 2 and (indices[i + 1][1] - n) == 1:
-                return 1 / 3 * d[(l, n - 1)] + d[(l,
-                                                  n)] + 1 / 6 * d[(l, n + 1)]
-            elif (n - indices[i - 1][1]) == 1 and (indices[i + 1][1] - n) == 2:
-                return 1 / 6 * d[(l, n - 1)] + d[(l,
-                                                  n)] + 1 / 3 * d[(l, n + 1)]
-            elif (n - indices[i - 1][1]) == 2 and (indices[i + 1][1] - n) == 2:
-                return 1 / 3 * d[(l, n - 1)] + 4 / 3 * d[(l, n)] + 1 / 3 * d[
-                    (l, n + 1)]
-            else:
-                assert False
+            res = 0.0
+            if n > 0:
+                dist_left = indices[i][1] - indices[i - 1][1]
+                res += dist_left * (1 / 6 * d[indices[i - 1]] +
+                                    1 / 3 * d[indices[i]])
+            if n < 2**l:
+                dist_right = indices[i + 1][1] - indices[i][1]
+                res += dist_right * (1 / 3 * d[indices[i]] +
+                                     1 / 6 * d[indices[i + 1]])
+            return res
 
         res = IndexedVector(
             {labda: mapping(labda) if labda in Pi else 0.0

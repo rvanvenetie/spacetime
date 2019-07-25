@@ -5,17 +5,19 @@ class Interval(object):
         assert a < b
         self.a = a
         self.b = b
+        self.mid = (a + b) / 2
 
     def intersects(self, interval, closed=False):
-        if self.a > interval.a:
-            return interval.intersects(self)
-
         if not closed:
-            return self.b > interval.a or (self.a < interval.b
-                                           and self.b > interval.a)
+            if interval.a >= self.b or self.a >= interval.b: return False
+            return True
         else:
-            return self.b >= interval.a or (self.a <= interval.b
-                                            and self.b >= interval.a)
+            if interval.a > self.b or self.a > interval.b: return False
+            return True
+
+    def intersection(self, interval):
+        if interval.a >= self.b or self.a >= interval.b: return None
+        return Interval(max(self.a, interval.a), min(self.b, interval.b))
 
     def contains(self, interval):
         return self.a <= interval.a and interval.b <= self.b

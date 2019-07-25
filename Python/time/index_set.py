@@ -1,5 +1,5 @@
 class IndexSet(object):
-    """ Could perhaps be a subclass of `set` """
+    """ Could perhaps be a subclass of `set`, or List[SingleScaleIndexSet]. """
 
     def __init__(self, indices):
         self.indices = indices

@@ -39,11 +39,19 @@ class Basis(object):
         """ Debug method. """
         pass
 
+    def P_block(self, labda):
+        """ The vector st phi_{labda} = Phi_ell^T P_block (|labda| = ell). """
+        pass
+
     def scaling_parents(self, index):
         """ Parent singlescale indices that build this singlescale index.
         
         Basically the indices of the nonzero elements of P_l[:,index].
         """
+        pass
+
+    def Q_block(self, labda):
+        """ The vector st psi_{labda} = Phi_ell^T Q_block (|labda| = ell). """
         pass
 
     def scaling_siblings(self, index):
@@ -53,6 +61,10 @@ class Basis(object):
         """
         pass
 
+    def PT_block(self, labda):
+        """ The vector st phi_{labda} = P_block^T Phi_ell (|labda| = ell). """
+        pass
+
     def scaling_children(self, index):
         """ Children singlescale indices overlapping this singlescale index.
         
@@ -60,27 +72,15 @@ class Basis(object):
         """
         pass
 
+    def QT_block(self, labda):
+        """ The vector st psi_{labda} = Q_block^T Phi_ell (|labda| = ell). """
+        pass
+
     def wavelet_siblings(self, index):
         """ Singlescale indices interacting with this multiscale index.
         
         Basically the indices of the nonzero elements of Q_l^T[:,index].
         """
-        pass
-
-    def P_block(self, labda):
-        """ The vector st phi_{labda} = Phi_ell^T P_block (|labda| = ell). """
-        pass
-
-    def Q_block(self, labda):
-        """ The vector st psi_{labda} = Phi_ell^T Q_block (|labda| = ell). """
-        pass
-
-    def PT_block(self, labda):
-        """ The vector st phi_{labda} = P_block^T Phi_ell (|labda| = ell). """
-        pass
-
-    def QT_block(self, labda):
-        """ The vector st psi_{labda} = Q_block^T Phi_ell (|labda| = ell). """
         pass
 
     def apply_P(self, Pi_B, Pi_bar, d):
@@ -287,7 +287,7 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
 
     def eval_wavelet(self, labda, x):
         if labda[0] == 0:
-            return 1.0 * self.eval_mother_scaling(labda[1] % 1, x)
+            return 1.0 * self.eval_mother_scaling(labda[1] % 2, x)
         else:
             return 2**((labda[0] - 1) / 2) * self.eval_mother_wavelet(
                 labda[1] % 2, 2**(labda[0] - 1) * x - (labda[1] // 2))
