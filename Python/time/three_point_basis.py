@@ -193,12 +193,6 @@ class ThreePointBasis(Basis):
         # General case: we are between these two multiscale indices.
         return [(l, (n - 1) // 2), (l, n // 2)]
 
-        # Slower code that works for sure...
-        return sorted([
-            i for i in self.indices.on_level(index[0])
-            if index in self.wavelet_siblings(i)
-        ])
-
     def Q_block(self, index):
         l, n = index
         if n % 2:
@@ -210,17 +204,6 @@ class ThreePointBasis(Basis):
             -1 / 2 if ss2ms((l, n + 1)) in self.indices else -1 / 3,
             -1 / 2 if ss2ms((l, n - 1)) in self.indices else -1 / 3
         ]
-
-        # Slower code that works for sure...
-        def mapping(labda):
-            if ms2ss(index[0], labda) == index:
-                return 1.0
-            elif index[1] == 0 or index[1] == 2**index[0]:
-                return -1.0
-            else:
-                return -0.5
-
-        return [mapping(labda) for labda in self.scaling_siblings(index)]
 
     def scaling_children(self, index):
         return [(index[0] + 1, 2 * index[1] + i) for i in range(-1, 2)]
