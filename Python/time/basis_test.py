@@ -134,6 +134,34 @@ def test_basis_PQ():
                     raise
 
 
+def test_basis_correct_support():
+    N = 1024
+    x = np.linspace(0, 1, N + 1)
+    ml = 6
+    for basis in [
+            HaarBasis.uniform_basis(max_level=ml),
+            HaarBasis.origin_refined_basis(max_level=ml),
+            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=ml),
+            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+                max_level=ml),
+            ThreePointBasis.uniform_basis(max_level=ml),
+            ThreePointBasis.origin_refined_basis(max_level=ml)
+    ]:
+        for l in range(1, ml + 1):
+            Pi_B = basis.scaling_indices_on_level(l - 1)
+            Pi_bar = basis.scaling_indices_on_level(l)
+            Lambda_l = basis.indices.on_level(l)
+            for i, mu in enumerate(sorted(Pi_B.indices)):
+                nz = np.nonzero(basis.eval_scaling(mu, x))[0]
+                assert basis.scaling_support(mu).a >= (nz[0] - 1) / N
+                assert basis.scaling_support(mu).b <= (nz[-1] + 1) / N
+
+            for i, mu in enumerate(sorted(Lambda_l.indices)):
+                nz = np.nonzero(basis.eval_wavelet(mu, x))[0]
+                assert basis.wavelet_support(mu).a >= (nz[0] - 1) / N
+                assert basis.wavelet_support(mu).b <= (nz[-1] + 1) / N
+
+
 def test_basis_PQ_matrix():
     """ Test that P.T = PT and Q.T = QT as matrices. """
     ml = 6

@@ -78,11 +78,12 @@ class ThreePointBasis(Basis):
 
     def scaling_support(self, index):
         """ Inefficient but accurate. """
-        indices = sorted(self.scaling_indices_on_level(index[0]))
+        l, n = index
+        indices = sorted(self.scaling_indices_on_level(l))
         i = indices.index(index)
-        if i == 0:
+        if n == 0:
             return Interval(0, position_ss(indices[i + 1]))
-        elif i == len(indices) - 1:
+        elif n == 2**l:
             return Interval(position_ss(indices[i - 1]), 1)
 
         return Interval(position_ss(indices[i - 1]),
@@ -90,22 +91,19 @@ class ThreePointBasis(Basis):
 
     def wavelet_support(self, labda):
         """ Inefficient but accurate. """
-        if labda[0] == 0:
-            return Interval(0, 1)
-        elif labda[0] == 1:
+        l, n = labda
+        if l == 0:
             return Interval(0, 1)
 
         indices_sorted = ThreePointBasis.sort_inorder(
             self.indices.until_level(labda[0]))
         i = indices_sorted.index(labda)
-        if i == 1:
-            left_side = position_ms(indices_sorted[i - 1])
-        else:
-            left_side = position_ms(indices_sorted[i - 2])
-        if i == len(indices_sorted) - 2:
-            right_side = position_ms(indices_sorted[i + 1])
-        else:
-            right_side = position_ms(indices_sorted[i + 2])
+
+        if n == 0: left_side = 0
+        else: left_side = position_ms(indices_sorted[i - 2])
+
+        if n == 2**(l - 1) - 1: right_side = 1
+        else: right_side = position_ms(indices_sorted[i + 2])
 
         return Interval(left_side, right_side)
 

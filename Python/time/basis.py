@@ -298,11 +298,11 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
             return Interval(0, 1)
         else:
             assert 0 <= index[1] < 2 * 2**(index[0] - 1)
-            return Interval(2**-(index[0] - 1) * index[1] // 2,
+            return Interval(2**-(index[0] - 1) * (index[1] // 2),
                             2**-(index[0] - 1) * (index[1] // 2 + 1))
 
     def scaling_support(self, index):
-        return Interval(2**-index[0] * index[1] // 2,
+        return Interval(2**-index[0] * (index[1] // 2),
                         2**-index[0] * (index[1] // 2 + 1))
 
     def scaling_parents(self, index):
