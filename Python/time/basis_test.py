@@ -135,6 +135,7 @@ def test_basis_PQ():
 
 
 def test_basis_PQ_matrix():
+    """ Test that P.T = PT and Q.T = QT as matrices. """
     ml = 6
     for basis in [
             HaarBasis.uniform_basis(max_level=ml),
@@ -172,13 +173,10 @@ def test_basis_PQ_matrix():
                 vec = IndexedVector(Pi_bar, bar_eye[i, :])
                 QT[i, :] = basis.apply_QT(Pi_bar, Lambda_l, vec).asarray()
 
-            print(P)
-            print(PT.T)
-            print(Q)
-            print(QT.T)
             assert np.allclose(P.T, PT)
             assert np.allclose(Q.T, QT)
-    assert False
+            assert np.allclose(PT @ P, (PT @ P).T)
+            assert np.allclose(QT @ Q, (QT @ Q).T)
 
 
 def test_3point_ss2ms():

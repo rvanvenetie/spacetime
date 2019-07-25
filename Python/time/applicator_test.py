@@ -144,6 +144,7 @@ def test_multiscale_mass_matrix():
                                             supp_total.b
                                         ])[0]
                         truemat[i, j] = true_val
+            print(sorted(Lambda))
             print(np.round(resmat - truemat, decimals=5))
             assert np.allclose(resmat, truemat)
 

@@ -1,5 +1,9 @@
 class IndexSet(object):
-    """ Could perhaps be a subclass of `set`, or List[SingleScaleIndexSet]. """
+    """ Could perhaps be a subclass of `set`, or List[SingleScaleIndexSet].
+    
+    Would be nice if the elements in a singlescale index set would be sorted by
+    lexicographical order.
+    """
 
     def __init__(self, indices):
         self.indices = indices
