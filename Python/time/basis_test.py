@@ -1,7 +1,10 @@
-from basis import HaarBasis, OrthonormalDiscontinuousLinearBasis
+from haar_basis import HaarBasis
+from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
 from three_point_basis import ThreePointBasis, ms2ss, ss2ms, position_ms
+
 from index_set import IndexSet
 from indexed_vector import IndexedVector
+
 import numpy as np
 from scipy.integrate import quad
 import matplotlib.pyplot as plt

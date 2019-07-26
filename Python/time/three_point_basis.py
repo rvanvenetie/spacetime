@@ -114,27 +114,24 @@ class ThreePointBasis(Basis):
             return x * ((0 <= x) & (x < 1))
 
     def eval_scaling(self, index, x):
-        indices = sorted(self.scaling_indices_on_level(index[0]))
+        # Slow..
+        l, n = index
+        indices = sorted(self.scaling_indices_on_level(l))
         i = indices.index(index)
         my_pos = position_ss(index)
         support = self.scaling_support(index)
         left_pos, right_pos = support.a, support.b
 
         res = 0 * x
-        if my_pos != right_pos:
-            res += 2**(index[0] / 2) * self.eval_mother_scaling(
-                False, (x - my_pos) / (right_pos - my_pos))
-        if my_pos != left_pos:
-            res += 2**(index[0] / 2) * self.eval_mother_scaling(
+        if n > 0:
+            res += 2**(l / 2) * self.eval_mother_scaling(
                 True, (x - left_pos) / (my_pos - left_pos))
+        if n < 2**l:
+            res += 2**(l / 2) * self.eval_mother_scaling(
+                False, (x - my_pos) / (right_pos - my_pos))
         return res
 
     def eval_wavelet(self, labda, x):
-        #return sum([
-        #    self.eval_scaling(ss_index, x) * qval for (
-        #        ss_index,
-        #        qval) in zip(self.scaling_siblings(labda), self.Q_block(labda))
-        #])
         if labda[0] == 0: return self.eval_scaling(labda, x)
 
         l, n = labda

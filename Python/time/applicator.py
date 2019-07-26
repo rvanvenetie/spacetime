@@ -4,139 +4,229 @@ from interval import Interval, IntervalSet
 
 
 class Applicator(object):
-    """ Class that can apply multiscale operators with minimal overhead. """
+    """ Class that can apply multiscale operators with minimal overhead.
+    
+    Currently only works when the left- and righthand side bases are the same.
+    """
 
-    def __init__(self, basis, A_ss, Lambda):
+    def __init__(self,
+                 basis_in,
+                 singlescale_operator,
+                 Lambda_in=None,
+                 basis_out=None,
+                 Lambda_out=None):
         """ Initialize the applicator.
 
+        TODO: allow different bases on left- and righthand side.
+
         Arguments:
-            basis: A Basis object.
-            A_ss: the singlescale operator (eg basis.singlescale_mass).
-            Lambda: the multiscale indices to apply the multiscale operator on.
+            basis_in: A Basis object.
+            singlescale_operator: operator from basis_in to basis_out.
+            Lambda_in: multiscale indices to apply the multiscale operator on
+                (default: the full set of indices of basis_in).
+            basis_out: A Basis object (default: basis_in).
+            Lambda_out: multiscale indices to compute application on
+                (default: value of Lambda_in)
         """
-        self.basis = basis
-        self.operator = A_ss
-        self.Lambda = Lambda
+        self.basis_in = basis_in
+        self.basis_out = basis_out if basis_out else basis_in
+        self.operator = singlescale_operator
+        self.Lambda_in = Lambda_in if Lambda_in else basis_in.indices
+        self.Lambda_out = Lambda_out if Lambda_out else Lambda_in
 
     def apply(self, vec):
         """ Apply the multiscale operator.
 
         Arguments:
-            vec: an IndexedVector with indices on self.Lambda.
+            vec: an IndexedVector with indices on self.Lambda_in.
 
-        Returns: self.operator(Psi_Lambda)(Psi_Lambda) vec.
+        Returns:
+            self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
         e, f = self._apply_recur(l=1,
-                                 Pi=self.Lambda.on_level(0),
+                                 Pi_in=self.Lambda_in.on_level(0),
+                                 Pi_out=self.Lambda_out.on_level(0),
                                  d=vec.on_level(0),
                                  c=vec.from_level(1))
         return e + f
 
     def apply_upp(self, vec):
+        """ Apply the upper part of the multiscale operator.
+
+        Arguments:
+            vec: an IndexedVector with indices on self.Lambda_in.
+
+        Returns:
+            Upper part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
+        """
         e, f = self._apply_upp_recur(l=1,
-                                     Pi=self.Lambda.on_level(0),
+                                     Pi_in=self.Lambda_in.on_level(0),
+                                     Pi_out=self.Lambda_out.on_level(0),
                                      d=vec.on_level(0),
                                      c=vec.from_level(1))
         return e + f
 
     def apply_low(self, vec):
+        """ Apply the lower part of the multiscale operator.
+
+        Arguments:
+            vec: an IndexedVector with indices on self.Lambda_in.
+
+        Returns:
+            Lower part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
+        """
         f = self._apply_low_recur(l=1,
-                                  Pi=self.Lambda.on_level(0),
+                                  Pi_in=self.Lambda_in.on_level(0),
                                   d=vec.on_level(0),
                                   c=vec.from_level(1))
         return f
 
     #  Private methods from here on out.
-    def _singlescale_supports_intersecting(self, l, Pi, Lambda_l):
+    def _construct_Pi_B_out(self, Pi_out, Lambda_l_in):
+        """ Singlescale indices labda st supp(phi_labda) intersects Lambda_l.
+        
+        Finds the subset Pi_B of Pi such that the support of phi_labda
+        intersects some S(mu) for mu in Lambda_l.
+        Necessary for computing Pi_B in apply/apply_upp/apply_low.
+
+        Goal complexity: O(|Pi_B|). Current complexity: O(|Pi_B| |Lambda_l|).
+        TODO: make faster.
+
+        Arguments:
+            Pi_out: IndexSet of singlescale indices on level l-1.
+            Lambda_l_in: IndexSet of multiscale indices on level l.
+
+        Returns:
+            Pi_B_out: IndexSet of singlescale indices on level l-1.
+        """
         return IndexSet({
             index
-            for index in Pi if any([
-                self.basis.scaling_support(index).intersects(
-                    self.basis.wavelet_nbrhood(mu)) for mu in Lambda_l
-            ])
+            for index in Pi_out if any(
+                self.basis_out.scaling_support(index).intersects(
+                    self.basis_in.wavelet_nbrhood(mu)) for mu in Lambda_l_in)
         })
 
-    def _singlescale_supports_covered_by(self, l, interval_set):
+    def _construct_Pi_B_in(self, Pi_in, Lambda_l_out, Pi_B_out):
         return IndexSet({
             index
-            for index in self.basis.scaling_indices_on_level(l)
-            if interval_set.covers(self.basis.scaling_support(index))
+            for index in Pi_in if any(
+                self.basis_in.scaling_support(index).intersects(
+                    self.basis_out.wavelet_nbrhood(mu))
+                for mu in Lambda_l_out) or any(
+                    self.basis_in.scaling_support(index).intersects(
+                        self.basis_out.scaling_support(mu)) for mu in Pi_B_out)
+            if Pi_B_out
         })
 
-    def _apply_recur(self, l, Pi, d, c):
+    def _singlescale_supports_covered_by(self, l, basis, Pi_B, Lambda_l):
+        """ Singlescale supports that are completely covered by given supports.
+
+        Goal complexity: O(|Pi_bar|).
+        Current complexity: O(|Pi_bar|*(|Pi_B||Lambda_l|log[|Pi_B||Lambda_L|])).
+        TODO: make this quicker.
+
+        Arguments:
+            l: the current level.
+            basis: the basis to work on.
+            Pi_B: singlescale indices on level l-1.
+            Lambda_l: multiscale indices on level l.
+
+        Returns:
+            Pi_bar: singlescale indices on level l.
+        """
+        assert not (Pi_B is None and Lambda_l is None)
+        ivs = IntervalSet([basis.scaling_support(index) for index in Pi_B] +
+                          [basis.wavelet_support(index) for index in Lambda_l])
+        return IndexSet({
+            index
+            for index in basis.scaling_indices_on_level(l)
+            if ivs.covers(basis.scaling_support(index))
+        })
+
+    def _apply_recur(self, l, Pi_in, Pi_out, d, c):
         """ Apply the multiscale operator on level l.
         
         Arguments:
-            Pi: a collection of singlescale indices on level l-1.
-            d: a vector in ell_2(Pi).
-            c: a vector in ell_2(Lambda_{l up}).
+            l: the current level
+            Pi_in: a collection of singlescale indices on level l-1.
+            Pi_out: a collection of singlescale indices on level l-1.
+            d: a vector in ell_2(Pi_in).
+            c: a vector in ell_2(Lambda_{l up}_in).
 
         Output:
-            e: a vector in ell_2(Pi_bar)
-            f: a vector in ell_2(Lambda_{l+1 up}).
+            e: a vector in ell_2(Pi_bar_out)
+            f: a vector in ell_2(Lambda_{l+1 up}_out).
         """
-        Lambda_lup = self.Lambda.from_level(l)
-        if len(Pi) + len(Lambda_lup) > 0:
-            Lambda_l = Lambda_lup.on_level(l)
-            Pi_B = self._singlescale_supports_intersecting(l, Pi, Lambda_l)
-            Pi_A = Pi.difference(Pi_B)
-            ivs_all = IntervalSet(
-                [self.basis.scaling_support(index) for index in Pi_B] +
-                [self.basis.wavelet_support(index) for index in Lambda_l])
-            Pi_bar = self._singlescale_supports_covered_by(l, ivs_all)
-            d_bar = self.basis.apply_P(Pi_B, Pi_bar, d) + \
-                    self.basis.apply_Q(Lambda_l, Pi_bar, c)
-            e_bar, f_bar = self._apply_recur(l + 1, Pi_bar, d_bar,
-                                             c.from_level(l + 1))
-            e = self.operator(l - 1, Pi, Pi_A, d) + \
-                self.basis.apply_PT(Pi_bar, Pi_B, e_bar)
-            f = self.basis.apply_QT(Pi_bar, Lambda_l, e_bar) + f_bar
+        Lambda_l_in = self.Lambda_in.on_level(l)
+        Lambda_l_out = self.Lambda_out.on_level(l)
+        if len(Pi_out) + len(Lambda_l_out) > 0:
+            Pi_B_out = self._construct_Pi_B_out(Pi_out, Lambda_l_in)
+            Pi_A_out = Pi_out.difference(Pi_B_out)
+            Pi_B_in = self._construct_Pi_B_in(Pi_in, Lambda_l_out, Pi_B_out)
+            Pi_A_in = Pi_in.difference(Pi_B_in)
+
+            Pi_bar_out = self._singlescale_supports_covered_by(
+                l, self.basis_out, Pi_B_out, Lambda_l_out)
+            Pi_bar_in = self._singlescale_supports_covered_by(
+                l, self.basis_in, Pi_B_in, Lambda_l_in)
+            d_bar = self.basis_in.apply_P(Pi_B_in, Pi_bar_in, d) + \
+                    self.basis_in.apply_Q(Lambda_l_in, Pi_bar_in, c)
+            e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out,
+                                             d_bar, c.from_level(l + 1))
+            e = self.operator(l - 1, Pi_in, Pi_A_out, d) + \
+                self.basis_out.apply_PT(Pi_bar_out, Pi_B_out, e_bar)
+            f = self.basis_out.apply_QT(Pi_bar_out, Lambda_l_out,
+                                        e_bar) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()
 
-    def _apply_upp_recur(self, l, Pi, d, c):
-        Lambda_lup = self.Lambda.from_level(l)
-        Lambda_l = Lambda_lup.on_level(l)
-        if len(Pi) + len(Lambda_l) > 0:
-            Pi_B = self._singlescale_supports_intersecting(l, Pi, Lambda_l)
-            Pi_A = Pi.difference(Pi_B)
-            ivs_multi = IntervalSet(
-                [self.basis.wavelet_support(index) for index in Lambda_l])
-            Pi_bar = self._singlescale_supports_covered_by(l, ivs_multi)
-            d_bar = self.basis.apply_Q(Lambda_l, Pi_bar, c)
-            e_bar, f_bar = self._apply_upp_recur(l + 1, Pi_bar, d_bar,
-                                                 c.from_level(l + 1))
-            e = self.operator(l - 1, Pi, Pi, d) + \
-                self.basis.apply_PT(Pi_bar, Pi_B, e_bar)
-            f = self.basis.apply_QT(Pi_bar, Lambda_l, e_bar) + f_bar
+    def _apply_upp_recur(self, l, Pi_in, Pi_out, d, c):
+        Lambda_l_in = self.Lambda_in.on_level(l)
+        Lambda_l_out = self.Lambda_out.on_level(l)
+        if len(Pi_out) + len(Lambda_l_out) > 0:
+            Pi_B_out = self._construct_Pi_B_out(Pi_out, Lambda_l_in)
+            Pi_A_out = Pi_out.difference(Pi_B_out)
+
+            Pi_bar_out = self._singlescale_supports_covered_by(
+                l, self.basis_out, Pi_B_out, Lambda_l_out)
+            Pi_bar_in = self._singlescale_supports_covered_by(
+                l, self.basis_in, Pi_B={}, Lambda_l=Lambda_l_in)
+
+            d_bar = self.basis_in.apply_Q(Lambda_l_in, Pi_bar_in, c)
+            e_bar, f_bar = self._apply_upp_recur(l + 1, Pi_bar_in, Pi_bar_out,
+                                                 d_bar, c.from_level(l + 1))
+            e = self.operator(l - 1, Pi_in, Pi_out, d) + \
+                self.basis_out.apply_PT(Pi_bar_out, Pi_B_out, e_bar)
+            f = self.basis_out.apply_QT(Pi_bar_out, Lambda_l_out,
+                                        e_bar) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()
 
-    def _apply_low_recur(self, l, Pi, d, c):
-        Lambda_lup = self.Lambda.from_level(l)
-        Lambda_l = Lambda_lup.on_level(l)
-        if len(Pi) + len(Lambda_l) > 0:
-            Pi_B = self._singlescale_supports_intersecting(l, Pi, Lambda_l)
-            ivs_all = IntervalSet(
-                [self.basis.scaling_support(index) for index in Pi_B] +
-                [self.basis.wavelet_support(index) for index in Lambda_l])
-            Pi_bar = self._singlescale_supports_covered_by(l, ivs_all)
-            ivs_single = IntervalSet(
-                [self.basis.wavelet_support(index) for index in Lambda_l])
-            Pi_B_bar = self._singlescale_supports_covered_by(l, ivs_single)
-            ivs_multi = IntervalSet(
-                [self.basis.scaling_support(index) for index in Pi_B])
-            Pi_B_bar_flup = self._singlescale_supports_covered_by(l, ivs_multi)
+    def _apply_low_recur(self, l, Pi_in, d, c):
+        Lambda_l_in = self.Lambda_in.on_level(l)
+        Lambda_l_out = self.Lambda_out.on_level(l)
+        if len(Lambda_l_out) > 0:
+            Pi_B_in = self._construct_Pi_B_in(Pi_in, Lambda_l_out, Pi_B_out={})
+            Pi_bar_in = self._singlescale_supports_covered_by(
+                l, self.basis_in, Pi_B_in, Lambda_l_in)
+            Pi_B_bar_in = self._singlescale_supports_covered_by(l,
+                                                                self.basis_in,
+                                                                Pi_B=Pi_B_in,
+                                                                Lambda_l={})
+            Pi_B_bar_out = self._singlescale_supports_covered_by(
+                l, self.basis_out, Pi_B={}, Lambda_l=Lambda_l_out)
 
             # NB: operator is applied at level `l` -- difference w/ apply_recur.
-            e_bar = self.operator(l, Pi_B_bar, Pi_B_bar_flup,
-                                  self.basis.apply_P(Pi_B, Pi_B_bar, d))
-            d_bar = self.basis.apply_P(Pi_B, Pi_bar, d) + \
-                    self.basis.apply_Q(Lambda_l, Pi_bar, c)
-            f = self.basis.apply_QT(Pi_B_bar, Lambda_l, e_bar) + \
-                self._apply_low_recur(l + 1, Pi_bar, d_bar, c.from_level(l + 1))
+            e_bar = self.operator(
+                l, Pi_B_bar_in, Pi_B_bar_out,
+                self.basis_in.apply_P(Pi_B_in, Pi_B_bar_in, d))
+            d_bar = self.basis_in.apply_P(Pi_B_in, Pi_bar_in, d) + \
+                    self.basis_in.apply_Q(Lambda_l_in, Pi_bar_in, c)
+            f = self.basis_out.apply_QT(
+                Pi_B_bar_out, Lambda_l_out, e_bar) + self._apply_low_recur(
+                    l + 1, Pi_bar_in, d_bar, c.from_level(l + 1))
             return f
         else:
             return IndexedVector.Zero()
