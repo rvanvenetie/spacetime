@@ -94,10 +94,10 @@ def test_multiscale_mass():
                     try:
                         assert np.isclose(res[mu], true_val)
                     except AssertionError:
-                        xx = np.linspace(0, 1, 1025)
-                        plt.plot(xx, basis.eval_wavelet(labda, xx))
-                        plt.plot(xx, basis.eval_wavelet(mu, xx))
-                        plt.show()
+                        #xx = np.linspace(0, 1, 1025)
+                        #plt.plot(xx, basis.eval_wavelet(labda, xx))
+                        #plt.plot(xx, basis.eval_wavelet(mu, xx))
+                        #plt.show()
                         print('basis=', basis, 'level=', l, 'Lambda=', Lambda,
                               'labda=', labda, 'mu=', mu, 'found val=',
                               res[mu], 'true val=', true_val, 'supp=',

@@ -171,13 +171,16 @@ class ThreePointBasis(Basis):
             return [(l - 1, n // 2 + i) for i in range(2)]
 
     def P_block(self, index):
-        assert index[0] > 0
-        if index[1] % 2 == 0:
+        l, n = index
+        assert l > 0
+        if n % 2 == 0:
             return [1.0 / sq2]
         else:
             return [0.5 / sq2, 0.5 / sq2]
 
     def scaling_siblings(self, index):
+        if index[0] == 0: return [(0, 0), (0, 1)]
+
         l, n = index
         # If the singlescale index offset is odd, it must coincide with a
         # multiscale index on this level.
@@ -194,6 +197,11 @@ class ThreePointBasis(Basis):
         return [(l, (n - 1) // 2), (l, n // 2)]
 
     def Q_block(self, index):
+        if index == (0, 0):
+            return [1.0, 0.0]
+        elif index == (0, 1):
+            return [0.0, 1.0]
+
         l, n = index
         if n % 2:
             return [1.0]
@@ -201,8 +209,8 @@ class ThreePointBasis(Basis):
             return [-1.0]
         # Note the swapping of n+1
         return [
-            -1 / 2 if ss2ms((l, n + 1)) in self.indices else -1 / 3,
-            -1 / 2 if ss2ms((l, n - 1)) in self.indices else -1 / 3
+            -1 / 2.0 if ss2ms((l, n + 1)) in self.indices else -1 / 3.0,
+            -1 / 2.0 if ss2ms((l, n - 1)) in self.indices else -1 / 3.0
         ]
 
     def scaling_children(self, index):
@@ -225,16 +233,16 @@ class ThreePointBasis(Basis):
         if n == 0:  # We are the leftmost wavelet fn
             left = -1.0
         elif (l, n - 1) in self.indices:  # Our left nbr is an index too
-            left = -1 / 2
+            left = -1 / 2.0
         else:  # Our left nbr is no index.
-            left = -1 / 3
+            left = -1 / 3.0
 
         if n == 2**(l - 1) - 1:  # We are the rightmost wavelet fn
             right = -1.0
         elif (l, n + 1) in self.indices:
-            right = -1 / 2
+            right = -1 / 2.0
         else:
-            right = -1 / 3
+            right = -1 / 3.0
 
         return [left, 1.0, right]
 

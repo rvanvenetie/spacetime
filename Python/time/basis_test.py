@@ -153,13 +153,17 @@ def test_basis_correct_support():
             Lambda_l = basis.indices.on_level(l)
             for i, mu in enumerate(sorted(Pi_B.indices)):
                 nz = np.nonzero(basis.eval_scaling(mu, x))[0]
-                assert basis.scaling_support(mu).a >= (nz[0] - 1) / N
-                assert basis.scaling_support(mu).b <= (nz[-1] + 1) / N
+                assert (nz[0] + 1) / N >= basis.scaling_support(
+                    mu).a >= (nz[0] - 1) / N
+                assert (nz[-1] - 1) / N <= basis.scaling_support(
+                    mu).b <= (nz[-1] + 1) / N
 
             for i, mu in enumerate(sorted(Lambda_l.indices)):
                 nz = np.nonzero(basis.eval_wavelet(mu, x))[0]
-                assert basis.wavelet_support(mu).a >= (nz[0] - 1) / N
-                assert basis.wavelet_support(mu).b <= (nz[-1] + 1) / N
+                assert (nz[0] + 1) / N >= basis.wavelet_support(
+                    mu).a >= (nz[0] - 1) / N
+                assert (nz[-1] - 1) / N <= basis.wavelet_support(
+                    mu).b <= (nz[-1] + 1) / N
 
 
 def test_basis_PQ_matrix():
