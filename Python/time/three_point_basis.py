@@ -51,6 +51,12 @@ def ss2ms(labda):
 
 
 class ThreePointBasis(Basis):
+    """ Implements the three-point basis.
+    
+    Has a couple of expensive steps but we could fix that to be O(1) time if
+    we build something that tracks neighbors of wavelet/scaling indices.
+    """
+
     def __init__(self, indices):
         self.indices = indices
         self.ss_indices = [
@@ -75,8 +81,12 @@ class ThreePointBasis(Basis):
     def scaling_support(self, index):
         """ Inefficient but accurate. """
         l, n = index
-        indices = sorted(self.scaling_indices_on_level(l))
+
+        # BEGIN EXPENSIVE
+        indices = self.scaling_indices_on_level(l).asarray()
         i = indices.index(index)
+        # END EXPENSIVE
+
         if n == 0:
             return Interval(0, position_ss(indices[i + 1]))
         elif n == 2**l:
@@ -90,8 +100,10 @@ class ThreePointBasis(Basis):
         l, n = labda
         if l == 0: return Interval(0, 1)
 
-        indices = sorted(self.scaling_indices_on_level(l))
+        # BEGIN EXPENSIVE
+        indices = self.scaling_indices_on_level(l).asarray()
         i = indices.index(ms2ss(l, labda))
+        # END EXPENSIVE
 
         if n == 0: left_side = 0
         else: left_side = position_ss(indices[i - 2])
@@ -110,8 +122,12 @@ class ThreePointBasis(Basis):
     def eval_scaling(self, index, x):
         # Slow..
         l, n = index
-        indices = sorted(self.scaling_indices_on_level(l))
+
+        # BEGIN EXPENSIVE
+        indices = self.scaling_indices_on_level(l).asarray()
         i = indices.index(index)
+        # END EXPENSIVE
+
         my_pos = position_ss(index)
         support = self.scaling_support(index)
         left_pos, right_pos = support.a, support.b
@@ -129,23 +145,26 @@ class ThreePointBasis(Basis):
         if labda[0] == 0: return self.eval_scaling(labda, x)
 
         l, n = labda
-        ss_indices = sorted(self.scaling_indices_on_level(l))
-        i = ss_indices.index(ms2ss(l, labda))
 
-        result = self.eval_scaling(ss_indices[i], x)
+        # BEGIN EXPENSIVE
+        indices = self.scaling_indices_on_level(l).asarray()
+        i = indices.index(ms2ss(l, labda))
+        # END EXPENSIVE
+
+        result = self.eval_scaling(indices[i], x)
         if n == 0:
-            result -= self.eval_scaling(ss_indices[i - 1], x)
+            result -= self.eval_scaling(indices[i - 1], x)
         elif (l, n - 1) in self.indices:
-            result -= 1 / 2 * self.eval_scaling(ss_indices[i - 1], x)
+            result -= 1 / 2 * self.eval_scaling(indices[i - 1], x)
         else:
-            result -= 1 / 3 * self.eval_scaling(ss_indices[i - 1], x)
+            result -= 1 / 3 * self.eval_scaling(indices[i - 1], x)
 
         if n == 2**(l - 1) - 1:
-            result -= self.eval_scaling(ss_indices[i + 1], x)
+            result -= self.eval_scaling(indices[i + 1], x)
         elif (l, n + 1) in self.indices:
-            result -= 1 / 2 * self.eval_scaling(ss_indices[i + 1], x)
+            result -= 1 / 2 * self.eval_scaling(indices[i + 1], x)
         else:
-            result -= 1 / 3 * self.eval_scaling(ss_indices[i + 1], x)
+            result -= 1 / 3 * self.eval_scaling(indices[i + 1], x)
         return result
 
     def scaling_indices_on_level(self, l):
@@ -239,11 +258,14 @@ class ThreePointBasis(Basis):
 
     def singlescale_mass(self, l, Pi, Pi_A, d, out=None):
         # TODO: Slow but correct..
-        indices = sorted(self.scaling_indices_on_level(l))
+        # EXPENSIVE :-(
+        indices = self.scaling_indices_on_level(l).asarray()
 
         def mapping(labda):
             _, n = labda
+            # EXPENSIVE :-(
             i = indices.index(labda)
+
             res = 0.0
             if n > 0:
                 dist_left = indices[i][1] - indices[i - 1][1]

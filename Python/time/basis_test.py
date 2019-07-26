@@ -92,7 +92,7 @@ def test_basis_PQ():
             Pi_B = basis.scaling_indices_on_level(l - 1)
             Pi_bar = basis.scaling_indices_on_level(l)
             eye = np.eye(len(Pi_B))
-            for i, mu in enumerate(sorted(Pi_B.indices)):
+            for i, mu in enumerate(Pi_B.asarray()):
                 # Write phi_mu on lv l-1 as combination of scalings on lv l.
                 vec = IndexedVector(Pi_B, eye[i, :])
                 res = basis.apply_P(Pi_B, Pi_bar, vec)
@@ -115,7 +115,7 @@ def test_basis_PQ():
                     raise
 
             Lambda_l = basis.indices.on_level(l)
-            for i, mu in enumerate(sorted(Lambda_l.indices)):
+            for i, mu in enumerate(Lambda_l.asarray()):
                 # Write psi_mu on lv l as combination of scalings on lv l.
                 vec = IndexedVector(Lambda_l, eye[i, :])
                 res = basis.apply_Q(Lambda_l, Pi_bar, vec)
@@ -154,14 +154,14 @@ def test_basis_correct_support():
             Pi_B = basis.scaling_indices_on_level(l - 1)
             Pi_bar = basis.scaling_indices_on_level(l)
             Lambda_l = basis.indices.on_level(l)
-            for i, mu in enumerate(sorted(Pi_B.indices)):
+            for i, mu in enumerate(Pi_B.asarray()):
                 nz = np.nonzero(basis.eval_scaling(mu, x))[0]
                 assert (nz[0] + 1) / N >= basis.scaling_support(
                     mu).a >= (nz[0] - 1) / N
                 assert (nz[-1] - 1) / N <= basis.scaling_support(
                     mu).b <= (nz[-1] + 1) / N
 
-            for i, mu in enumerate(sorted(Lambda_l.indices)):
+            for i, mu in enumerate(Lambda_l.asarray()):
                 nz = np.nonzero(basis.eval_wavelet(mu, x))[0]
                 assert (nz[0] + 1) / N >= basis.wavelet_support(
                     mu).a >= (nz[0] - 1) / N
@@ -195,16 +195,16 @@ def test_basis_PQ_matrix():
             Q = np.zeros([len(Lambda_l), len(Pi_bar)])
             QT = np.zeros([len(Pi_bar), len(Lambda_l)])
 
-            for i, mu in enumerate(sorted(Pi_B.indices)):
+            for i, mu in enumerate(Pi_B.asarray()):
                 vec = IndexedVector(Pi_B, B_eye[i, :])
                 P[i, :] = basis.apply_P(Pi_B, Pi_bar, vec).asarray()
-            for i, mu in enumerate(sorted(Pi_bar.indices)):
+            for i, mu in enumerate(Pi_bar.asarray()):
                 vec = IndexedVector(Pi_bar, bar_eye[i, :])
                 PT[i, :] = basis.apply_PT(Pi_bar, Pi_B, vec).asarray()
-            for i, mu in enumerate(sorted(Lambda_l.indices)):
+            for i, mu in enumerate(Lambda_l.asarray()):
                 vec = IndexedVector(Lambda_l, l_eye[i, :])
                 Q[i, :] = basis.apply_Q(Lambda_l, Pi_bar, vec).asarray()
-            for i, mu in enumerate(sorted(Pi_bar.indices)):
+            for i, mu in enumerate(Pi_bar.asarray()):
                 vec = IndexedVector(Pi_bar, bar_eye[i, :])
                 QT[i, :] = basis.apply_QT(Pi_bar, Lambda_l, vec).asarray()
 
@@ -290,14 +290,14 @@ def test_singlescale_mass_quadrature():
         for l in range(1, ml + 1):
             Delta_l = basis.scaling_indices_on_level(l)
             eye = np.eye(len(Delta_l))
-            for i, labda in enumerate(sorted(Delta_l)):
+            for i, labda in enumerate(Delta_l.asarray()):
                 phi_supp = basis.scaling_support(labda)
                 unit_vec = IndexedVector(Delta_l, eye[i, :])
                 out = basis.singlescale_mass(l=l,
                                              Pi=Delta_l,
                                              Pi_A=Delta_l,
                                              d=unit_vec)
-                for mu in sorted(Delta_l):
+                for mu in Delta_l.asarray():
                     supp = phi_supp.intersection(basis.scaling_support(mu))
                     if supp:
                         assert np.isclose(
@@ -320,20 +320,21 @@ def test_3point_siblings_etc():
                 for i in basis.wavelet_siblings(index)
                 if i in basis.scaling_indices_on_level(index[0]))
 
-        for level, ss_indices_at_level in enumerate(basis.ss_indices):
+        for level in range(0, basis.indices.maximum_level):
+            indices = basis.scaling_indices_on_level(level)
             if level > 0:
-                for index in sorted(ss_indices_at_level):
+                for index in indices.asarray():
                     assert all(
                         i for i in basis.scaling_indices_on_level(level - 1)
                         if index in basis.scaling_children(
                             i) in basis.scaling_parents(index))
             if level < basis.indices.maximum_level:
-                for index in sorted(ss_indices_at_level):
+                for index in indices.asarray():
                     assert all(
                         i for i in basis.scaling_indices_on_level(level + 1)
                         if index in basis.scaling_parents(
                             i) in basis.scaling_children(index))
-            for index in sorted(ss_indices_at_level):
+            for index in indices.asarray():
                 print(basis.indices, index, basis.scaling_siblings(index),
                       basis.Q_block(index))
                 assert all(

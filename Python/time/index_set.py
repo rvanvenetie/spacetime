@@ -13,6 +13,15 @@ class SingleLevelIndexSet(object):
             assert index[0] == labda[0]
         self.indices = indices
 
+    def asarray(self):
+        """ Return a sorted array of ourselves.
+        
+        TODO: this is not a linear-time operation.
+        """
+        if not self.sorted:
+            self.sorted = sorted(self.indices)
+        return self.sorted
+
     def __repr__(self):
         return r"SLIS(%s)" % self.indices
 
