@@ -1,5 +1,5 @@
 from basis import Basis
-from index_set import IndexSet
+from index_set import IndexSet, SingleLevelIndexSet
 from indexed_vector import IndexedVector
 from interval import Interval
 
@@ -22,12 +22,14 @@ def position_ss(labda):
     return float(labda[1] / 2.0**labda[0])
 
 
-def ms2ss(goal_level, labda):
-    if labda[0] == 0: return (goal_level, 2**goal_level * labda[1])
-    return (goal_level, 2**(goal_level - labda[0]) * (2 * labda[1] + 1))
+def ms2ss(l, labda):
+    """ Singlescale index on level l of a multiscale index labda. """
+    if labda[0] == 0: return (l, 2**l * labda[1])
+    return (l, 2**(l - labda[0]) * (2 * labda[1] + 1))
 
 
 def ss2ms(labda):
+    """ Multiscale index of a singlescale index labda. """
     # Magic
     l, n = labda
     # Special case: we are one of the end points.
@@ -52,13 +54,12 @@ class ThreePointBasis(Basis):
     def __init__(self, indices):
         self.indices = indices
         self.ss_indices = [
-            IndexSet({
+            SingleLevelIndexSet({
                 ms2ss(level, labda)
                 for labda in self.indices.until_level(level)
-            }) for level in range(0,
-                                  self.indices.maximum_level() + 1)
+            }) for level in range(0, self.indices.maximum_level + 1)
         ]
-        assert len(self.ss_indices) == self.indices.maximum_level() + 1
+        assert len(self.ss_indices) == self.indices.maximum_level + 1
 
     @classmethod
     def _uniform_multilevel_indices(cls, max_level):
@@ -70,11 +71,6 @@ class ThreePointBasis(Basis):
     def _origin_refined_multilevel_indices(cls, max_level):
         return IndexSet({(0, 0), (0, 1)} | {(l, 0)
                                             for l in range(max_level + 1)})
-
-    @staticmethod
-    def sort_inorder(multiscale_indices):
-        """ Sort a collection of multiscale indices in order of position. """
-        return sorted(multiscale_indices, key=lambda labda: position_ms(labda))
 
     def scaling_support(self, index):
         """ Inefficient but accurate. """
@@ -92,18 +88,16 @@ class ThreePointBasis(Basis):
     def wavelet_support(self, labda):
         """ Inefficient but accurate. """
         l, n = labda
-        if l == 0:
-            return Interval(0, 1)
+        if l == 0: return Interval(0, 1)
 
-        indices_sorted = ThreePointBasis.sort_inorder(
-            self.indices.until_level(labda[0]))
-        i = indices_sorted.index(labda)
+        indices = sorted(self.scaling_indices_on_level(l))
+        i = indices.index(ms2ss(l, labda))
 
         if n == 0: left_side = 0
-        else: left_side = position_ms(indices_sorted[i - 2])
+        else: left_side = position_ss(indices[i - 2])
 
         if n == 2**(l - 1) - 1: right_side = 1
-        else: right_side = position_ms(indices_sorted[i + 2])
+        else: right_side = position_ss(indices[i + 2])
 
         return Interval(left_side, right_side)
 
@@ -156,7 +150,7 @@ class ThreePointBasis(Basis):
 
     def scaling_indices_on_level(self, l):
         if l >= len(self.ss_indices):
-            return IndexSet({})
+            return SingleLevelIndexSet({})
         return self.ss_indices[l]
 
     def scaling_parents(self, index):
@@ -243,7 +237,7 @@ class ThreePointBasis(Basis):
 
         return [left, 1.0, right]
 
-    def singlescale_mass(self, l, Pi, Pi_A, d):
+    def singlescale_mass(self, l, Pi, Pi_A, d, out=None):
         # TODO: Slow but correct..
         indices = sorted(self.scaling_indices_on_level(l))
 
@@ -261,7 +255,12 @@ class ThreePointBasis(Basis):
                                      1 / 6 * d[indices[i + 1]])
             return res
 
-        res = IndexedVector(
-            {labda: mapping(labda) if labda in Pi else 0.0
-             for labda in Pi_A})
-        return res
+        if not out:
+            res = IndexedVector({
+                labda: mapping(labda) if labda in Pi else 0.0
+                for labda in Pi_A
+            })
+            return res
+        else:
+            for labda in Pi_A:
+                out[labda] = mapping(labda) if labda in Pi else 0.0

@@ -1,17 +1,24 @@
+from index_set import IndexSet, SingleLevelIndexSet
 import numpy as np
 
 
 class IndexedVector(object):
-    """ Poss better: subclass of `dict`, or Tuple[IndexSet, scipy.sparse.*].
+    """ A vector defined on an index set.
     
     If it is a Tuple[IndexSet, scipy.sparse.*], then methods like `on_level()`
-    and `from_level()` could be implemented efficiently, I think.
+    could be implemented efficiently, I think.
     """
 
     def __init__(self, index_set, values=None):
+        """ Initialize the vector.
+        
+        This is done with either a dictionary of index:value pairs (faster),
+        or an IndexSet together with a list-like of values (slower).
+        """
         if isinstance(index_set, dict):
             self.vector = index_set
-        else:
+        elif isinstance(index_set, IndexSet) or isinstance(
+                index_set, SingleLevelIndexSet):
             self.vector = {
                 key: value
                 for (key, value) in zip(sorted(index_set), values)
@@ -33,15 +40,10 @@ class IndexedVector(object):
     def keys(self):
         return self.vector.keys()
 
-    def on_level(self, level):
+    def on_level(self, l):
         return IndexedVector(
-            {key: self[key]
-             for key in self.vector if key[0] == level})
-
-    def from_level(self, level):
-        return IndexedVector(
-            {key: self[key]
-             for key in self.vector if key[0] >= level})
+            {key: self.vector[key]
+             for key in self.vector if key[0] == l})
 
     def __add__(self, other):
         vec = self.vector
@@ -53,5 +55,5 @@ class IndexedVector(object):
         return IndexedVector(vec)
 
     def asarray(self):
-        return np.array([self[key] for key in sorted(self.vector.keys())],
-                        dtype=float)
+        """ Slightly expensive. Mainly for testing. """
+        return np.array([self[k] for k in sorted(self.keys())])

@@ -83,7 +83,7 @@ class Basis(object):
         """
         pass
 
-    def apply_P(self, Pi_B, Pi_bar, d):
+    def apply_P(self, Pi_B, Pi_bar, d, out=None):
         """ Apply P_l: ell_2(Pi_B) to ell_2(Pi_bar).
 
         P_l is the matrix for which Phi_{l-1}^T = Phi_l^T P_l.
@@ -92,21 +92,28 @@ class Basis(object):
         Arguments:
             Pi_B: the single-scale indices on the previous level
             Pi_bar: the single-scale indices on this level
-            d: a vector with nonzero coefficients only on Pi_B.
+            d: IndexedVector on (a superset of) Pi_B.
+            out: (optional) the output vector.
         Output:
             res: a vector with nonzero coefficients only on Pi_bar.
         """
-        res = IndexedVector({
-            labda: sum([
-                d[k] * v if k in Pi_B else 0.0 for (
-                    k,
-                    v) in zip(self.scaling_parents(labda), self.P_block(labda))
-            ])
-            for labda in Pi_bar
-        })
-        return res
+        if not out:
+            res = IndexedVector({
+                labda: sum([
+                    d[k] * v if k in Pi_B else 0.0 for (k, v) in zip(
+                        self.scaling_parents(labda), self.P_block(labda))
+                ])
+                for labda in Pi_bar
+            })
+            return res
+        else:
+            for labda in Pi_bar:
+                out[labda] = sum([
+                    d[k] * v if k in Pi_B else 0.0 for (k, v) in zip(
+                        self.scaling_parents(labda), self.P_block(labda))
+                ])
 
-    def apply_Q(self, Lambda_l, Pi_bar, c):
+    def apply_Q(self, Lambda_l, Pi_bar, c, out=None):
         """ Apply Q: ell_2(Lambda_l) to ell_2(Pi_bar).
 
         Q_l is the matrix for which Psi_l^T = Phi_l^T Q_l.
@@ -119,36 +126,57 @@ class Basis(object):
         Output:
             res: a vector with nonzero coefficients only on Pi_bar.
         """
-        res = IndexedVector({
-            labda: sum([
-                c[k] * v if k in Lambda_l else 0.0 for (k, v) in zip(
-                    self.scaling_siblings(labda), self.Q_block(labda))
-            ])
-            for labda in Pi_bar
-        })
-        return res
+        if not out:
+            res = IndexedVector({
+                labda: sum([
+                    c[k] * v if k in Lambda_l else 0.0 for (k, v) in zip(
+                        self.scaling_siblings(labda), self.Q_block(labda))
+                ])
+                for labda in Pi_bar
+            })
+            return res
+        else:
+            for labda in Pi_bar:
+                labda: sum([
+                    c[k] * v if k in Lambda_l else 0.0 for (k, v) in zip(
+                        self.scaling_siblings(labda), self.Q_block(labda))
+                ])
 
-    def apply_PT(self, Pi_bar, Pi_B, e_bar):
+    def apply_PT(self, Pi_bar, Pi_B, e_bar, out=None):
         """ Apply P^T: ell_2(Pi_bar) to ell_2(Pi_B). """
-        res = IndexedVector({
-            labda: sum([
-                e_bar[k] * v if k in Pi_bar else 0.0 for (k, v) in zip(
-                    self.scaling_children(labda), self.PT_block(labda))
-            ])
-            for labda in Pi_B
-        })
-        return res
+        if not out:
+            res = IndexedVector({
+                labda: sum([
+                    e_bar[k] * v if k in Pi_bar else 0.0 for (k, v) in zip(
+                        self.scaling_children(labda), self.PT_block(labda))
+                ])
+                for labda in Pi_B
+            })
+            return res
+        else:
+            for labda in Pi_B:
+                out[labda] = sum([
+                    e_bar[k] * v if k in Pi_bar else 0.0 for (k, v) in zip(
+                        self.scaling_children(labda), self.PT_block(labda))
+                ])
 
-    def apply_QT(self, Pi_bar, Lambda_l, e_bar):
+    def apply_QT(self, Pi_bar, Lambda_l, e_bar, out=None):
         """ Apply Q^T: ell_2(Pi_bar) to ell_2(Lambda_l). """
-        res = IndexedVector({
-            labda: sum([
-                e_bar[k] * v if k in Pi_bar else 0.0 for (k, v) in zip(
-                    self.wavelet_siblings(labda), self.QT_block(labda))
-            ])
-            for labda in Lambda_l
-        })
-        return res
+        if not out:
+            res = IndexedVector({
+                labda: sum([
+                    e_bar[k] * v if k in Pi_bar else 0.0 for (k, v) in zip(
+                        self.wavelet_siblings(labda), self.QT_block(labda))
+                ])
+                for labda in Lambda_l
+            })
+            return res
+        else:
+            for labda in Lambda_l:
+                out[labda] = sum([
+                    e_bar[k] * v if k in Pi_bar else 0.0 for (k, v) in zip(
+                        self.wavelet_siblings(labda), self.QT_block(labda))
+                ])
 
     def scaling_support(self, labda):
         """ The support of the scaling function phi_labda. """
@@ -163,9 +191,5 @@ class Basis(object):
         return self.wavelet_support(labda)
 
     def scaling_indices_on_level(self, l):
-        """ IndexSet of singlescale indices on level l. """
+        """ SingleLevelIndexSet of singlescale indices on level l. """
         pass
-
-    def wavelet_indices_on_level(self, l):
-        """ IndexSet of multiscale indices on level l. """
-        return self.indices.on_level(l)

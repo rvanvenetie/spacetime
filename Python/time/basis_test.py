@@ -327,7 +327,7 @@ def test_3point_siblings_etc():
                         i for i in basis.scaling_indices_on_level(level - 1)
                         if index in basis.scaling_children(
                             i) in basis.scaling_parents(index))
-            if level < basis.indices.maximum_level():
+            if level < basis.indices.maximum_level:
                 for index in sorted(ss_indices_at_level):
                     assert all(
                         i for i in basis.scaling_indices_on_level(level + 1)
@@ -348,7 +348,7 @@ def print_3point_functions():
             ThreePointBasis.uniform_basis(max_level=4),
             ThreePointBasis.origin_refined_basis(max_level=4)
     ]:
-        for l in range(1, basis.indices.maximum_level()):
+        for l in range(1, basis.indices.maximum_level):
             for labda in basis.scaling_indices_on_level(l):
                 plt.plot(
                     [mu[1] / 2**l for mu in basis.scaling_indices_on_level(l)],
