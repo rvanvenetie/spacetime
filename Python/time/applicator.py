@@ -90,7 +90,8 @@ class Applicator(object):
         intersects some S(mu) for mu in Lambda_l.
         Necessary for computing Pi_B in apply/apply_upp/apply_low.
 
-        Goal complexity: O(|Pi_B|). Current complexity: O(|Pi_B| |Lambda_l|).
+        Goal complexity: O(|Pi_B|).
+        Current complexity: O(|Pi_B| |Lambda_l|).
         TODO: make faster.
         TODO: it could be faster/easier to compute Pi_A?
 
@@ -109,6 +110,11 @@ class Applicator(object):
         })
 
     def _construct_Pi_B_in(self, Pi_in, Lambda_l_out, Pi_B_out):
+        """ Similar to previous method, only with extra `Pi_B_out`.
+
+        Goal complexity: O(|Pi_B_in|).
+        Current complexity: O(PiBin * (PiBout + Lambda_l)).
+        """
         return SingleLevelIndexSet({
             index
             for index in Pi_in if any(
@@ -126,7 +132,7 @@ class Applicator(object):
         span Phi_{Pi_B} cup span Psi_{Lambda_l} subset span Phi_{Pi_bar}.
 
         Goal complexity: O(|Pi_bar|).
-        Current complexity: O(|Pi_bar|*(|Pi_B||Lambda_l|log[|Pi_B||Lambda_L|])).
+        Current compl: O(|Pi_bar|*((Pi_B + Lambda_l) log[Pi_B + Lambda_L])).
         TODO: make this quicker.
 
         Arguments:
@@ -148,8 +154,6 @@ class Applicator(object):
 
     def _apply_recur(self, l, Pi_in, Pi_out, d, c):
         """ Apply the multiscale operator on level l.
-
-        TODO: make all the matvecs in-place.
         
         Arguments:
             l: the current level

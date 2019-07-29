@@ -36,9 +36,8 @@ def ss2ms(labda):
     
     This recursive function is slow, could even be linear in time. Also magic.
     We could fix this by tracking the multiscale index of every singlescale
-    index.
+    index. A simpler option could be to cache the results.
     """
-    # Magic
     l, n = labda
     # Special case: we are one of the end points.
     if n in [0, 2**l]:
@@ -46,9 +45,11 @@ def ss2ms(labda):
     # We are *right* on the middle point.
     elif n == 2**(l - 1):
         return (1, 0)
+
+    # Magic from here on.
     # We are to the left of the middle point.
     elif n < 2**(l - 1):
-        # Recurse and simply return.
+        # Recurse, magic, and simply return.
         ll, nn = ss2ms((l - 1, n))
         return (ll + 1, nn)
     # We are to the right of the middle point.
@@ -160,7 +161,6 @@ class ThreePointBasis(Basis):
         def row(labda):
             l, n = labda
 
-            # EXPENSIVE :-(
             left, right = self.scaling_indices_on_level(l).neighbours(labda)
 
             res = {labda: 0.0}
@@ -177,12 +177,9 @@ class ThreePointBasis(Basis):
         return LinearOperator(row)
 
     def scaling_support(self, labda):
-        """ Expensive (logarithmic time). """
         l, n = labda
 
-        # BEGIN EXPENSIVE
         left, right = self.scaling_indices_on_level(l).neighbours(labda)
-        # END EXPENSIVE
 
         if n == 0: return Interval(0, position_ss(right))
         elif n == 2**l: return Interval(position_ss(left), 1)
@@ -190,11 +187,9 @@ class ThreePointBasis(Basis):
         return Interval(position_ss(left), position_ss(right))
 
     def wavelet_support(self, labda):
-        """ Expensive (logarithmic time). """
         l, n = labda
         if l == 0: return Interval(0, 1)
 
-        # TODO: Calls to `neighbours` are currently expensive.
         left, right = self.scaling_indices_on_level(l).neighbours(
             ms2ss(l, labda))
         if n == 0:
@@ -221,10 +216,7 @@ class ThreePointBasis(Basis):
         # Slow..
         l, n = labda
 
-        # BEGIN EXPENSIVE
         left, right = self.scaling_indices_on_level(l).neighbours(labda)
-        # END EXPENSIVE
-
         my_pos = position_ss(labda)
         support = self.scaling_support(labda)
         left_pos, right_pos = support.a, support.b
@@ -243,10 +235,8 @@ class ThreePointBasis(Basis):
 
         l, n = labda
 
-        # BEGIN EXPENSIVE
         left, right = self.scaling_indices_on_level(l).neighbours(
             ms2ss(l, labda))
-        # END EXPENSIVE
 
         result = self.eval_scaling(ms2ss(l, labda), x)
         if n == 0:

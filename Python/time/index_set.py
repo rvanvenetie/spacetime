@@ -41,7 +41,11 @@ class SingleLevelIndexSet(IndexSet):
         return self.sorted
 
     def neighbours(self, labda):
-        """ This is too expensive (1 sort and later logarithmic time). """
+        """ Get the neighbours of this singlescale index.
+        
+        Current complexity: once O(N log N) and later O(log N).
+        Goal complexity: O(1).
+        """
         i = bisect.bisect_left(self.asarray(), labda)
         assert i == self.asarray().index(labda)
         return (self.sorted[i - 1] if 0 < i < len(self.sorted) else None,
