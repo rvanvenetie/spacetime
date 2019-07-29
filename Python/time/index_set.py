@@ -1,7 +1,8 @@
 import bisect
+import collections.abc
 
 
-class IndexSet(object):
+class IndexSet(collections.abc.Set):
     def __len__(self):
         pass
 
@@ -9,6 +10,9 @@ class IndexSet(object):
         pass
 
     def __next__(self):
+        pass
+
+    def __contains__(self, index):
         pass
 
 
@@ -45,6 +49,7 @@ class SingleLevelIndexSet(IndexSet):
         
         Current complexity: once O(N log N) and later O(log N).
         Goal complexity: O(1).
+        TODO: this will become the bottleneck for N = 30K.
         """
         i = bisect.bisect_left(self.asarray(), labda)
         return (self.sorted[i - 1] if 0 < i < len(self.sorted) else None,
@@ -61,6 +66,9 @@ class SingleLevelIndexSet(IndexSet):
 
     def __next__(self):
         return self.indices.__next__()
+
+    def __contains__(self, index):
+        return self.indices.__contains__(index)
 
     def __sub__(self, other):
         return SingleLevelIndexSet(self.indices - other.indices)
@@ -93,6 +101,9 @@ class MultiscaleIndexSet(IndexSet):
 
     def __next__(self):
         return self.indices.__next__()
+
+    def __contains__(self, index):
+        return self.indices.__contains__(index)
 
     def on_level(self, level):
         if level > self.maximum_level:

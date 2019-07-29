@@ -1,8 +1,9 @@
 from index_set import IndexSet
 import numpy as np
+import collections.abc
 
 
-class IndexedVector(object):
+class IndexedVector(collections.abc.Mapping):
     """ A vector defined on an index set.
     
     If it is a Tuple[IndexSet, scipy.sparse.*], then methods like `on_level()`
@@ -33,11 +34,17 @@ class IndexedVector(object):
             return self.vector[key]
         return 0.0
 
+    def __iter__(self):
+        return self.vector.__iter__()
+
+    def __next__(self):
+        return self.vector.__iter__()
+
+    def __len__(self):
+        return len(self.vector)
+
     def __repr__(self):
         return r"IndexedVector(%s)" % self.vector
-
-    def keys(self):
-        return self.vector.keys()
 
     def on_level(self, l):
         return IndexedVector(
@@ -59,5 +66,5 @@ class IndexedVector(object):
 
     def dot(self, index_mask, other):
         """ Dot-product; only treat indices in `index_mask` as nonzero. """
-        return sum(self.vector[labda] * other[labda]
-                   for labda in other.keys() & index_mask)
+        return sum(self.vector[labda] * other[labda] for labda in other.keys()
+                   if labda in index_mask)
