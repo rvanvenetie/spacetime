@@ -56,57 +56,8 @@ def test_orthonormal_multiscale_mass():
                 assert np.allclose(vec, res.asarray())
 
 
-def test_multiscale_mass():
-    """ Test that the multiscale mass operator is the identity. """
-    ml = 4
-    for basis in [
-            HaarBasis.uniform_basis(max_level=ml),
-            HaarBasis.origin_refined_basis(max_level=ml),
-            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=ml),
-            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
-                max_level=ml),
-            ThreePointBasis.uniform_basis(max_level=ml),
-            ThreePointBasis.origin_refined_basis(max_level=ml)
-    ]:
-        for l in range(1, ml + 1):
-            Lambda = basis.indices.until_level(l)
-            applicator = Applicator(basis, basis.singlescale_mass, Lambda)
-            eye = np.eye(len(Lambda))
-            for i, labda in enumerate(sorted(Lambda)):
-                supp_labda = basis.wavelet_support(labda)
-                vec = IndexedVector(Lambda, eye[i, :])
-                res = applicator.apply(vec)
-                for j, mu in enumerate(sorted(Lambda)):
-                    supp_mu = basis.wavelet_support(mu)
-                    supp_total = supp_labda.intersection(supp_mu)
-                    true_val = 0.0
-                    if supp_total:
-                        true_val = quad(lambda x: basis.eval_wavelet(labda, x)
-                                        * basis.eval_wavelet(mu, x),
-                                        supp_total.a,
-                                        supp_total.b,
-                                        points=[
-                                            supp_labda.a, supp_labda.mid,
-                                            supp_labda.b, supp_mu.a,
-                                            supp_mu.mid, supp_mu.b,
-                                            supp_total.a, supp_total.mid,
-                                            supp_total.b
-                                        ])[0]
-                    try:
-                        assert np.isclose(res[mu], true_val)
-                    except AssertionError:
-                        xx = np.linspace(0, 1, 1025)
-                        plt.plot(xx, basis.eval_wavelet(labda, xx))
-                        plt.plot(xx, basis.eval_wavelet(mu, xx))
-                        plt.show()
-                        print('basis=', basis, 'level=', l, 'Lambda=', Lambda,
-                              'labda=', labda, 'mu=', mu, 'found val=',
-                              res[mu], 'true val=', true_val, 'supp=',
-                              supp_total)
-                        raise
-
-
-def test_multiscale_mass_matrix():
+def test_multiscale_mass_matrix_quadrature():
+    """ Test that the mass matrix is the same as found with quadrature. """
     ml = 4
     for basis in [
             HaarBasis.uniform_basis(max_level=ml),
