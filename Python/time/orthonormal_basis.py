@@ -129,12 +129,3 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
                 return {}
 
         return LinearOperator(row, None)
-        """ The singlescale damping matrix int_0^1 phi_i phi_j' dt.
-        assert len(Pi) == 0 or next(iter(Pi))[0] == l  #Pi is on level l only.
-        if not out:
-            res = IndexedVector({
-                labda: 2 * sq3 * d[(labda[0], labda[1] + 1)]
-                if labda[1] % 2 == 0 and labda in Pi else 0.0
-                for labda in Pi_A
-            })
-            return res """

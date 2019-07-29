@@ -56,29 +56,31 @@ class HaarBasis(Basis):
         return (0 <= x) & (x < 1)
 
     def eval_scaling(self, labda, x):
-        return 1.0 * self.eval_mother_scaling(2**(labda[0]) * x - labda[1])
+        l, n = labda
+        return 1.0 * self.eval_mother_scaling(2**l * x - n)
 
     def eval_mother_wavelet(self, x):
         return 1.0 * ((0 <= x) & (x < 0.5)) - 1.0 * ((0.5 <= x) & (x < 1.0))
 
     def eval_wavelet(self, labda, x):
-        if labda[0] == 0:
-            return 1.0 * self.eval_mother_scaling(x)
+        l, n = labda
+        if l == 0:
+            return self.eval_mother_scaling(x)
         else:
-            return 1.0 * self.eval_mother_wavelet(2**(labda[0] - 1) * x -
-                                                  labda[1])
+            return self.eval_mother_wavelet(2**(l - 1) * x - n)
 
-    def wavelet_support(self, index):
-        if index[0] == 0:
-            assert index[1] == 0
+    def wavelet_support(self, labda):
+        l, n = labda
+        if l == 0:
+            assert n == 0
             return Interval(0, 1)
         else:
-            assert 0 <= index[1] < 2**(index[0] - 1)
-            return Interval(2**-(index[0] - 1) * index[1],
-                            2**-(index[0] - 1) * (index[1] + 1))
+            assert 0 <= n < 2**(l - 1)
+            return Interval(2**-(l - 1) * n, 2**-(l - 1) * (n + 1))
 
     def scaling_support(self, index):
-        return Interval(2**-index[0] * index[1], 2**-index[0] * (index[1] + 1))
+        l, n = labda
+        return Interval(2**-l * n, 2**-l * (n + 1))
 
     def scaling_indices_on_level(self, l):
         # TODO: this can be a much smaller set when the grid is non-uniform.
