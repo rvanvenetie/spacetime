@@ -1,4 +1,18 @@
-class SingleLevelIndexSet(object):
+import bisect
+
+
+class IndexSet(object):
+    def __len__(self):
+        pass
+
+    def __iter__(self):
+        pass
+
+    def __next__(self):
+        pass
+
+
+class SingleLevelIndexSet(IndexSet):
     """ Immutable set of indices on one level, either singlescale or multiscale.
     
     Would be nice if the elements in a singlescale index set would be sorted by
@@ -6,6 +20,7 @@ class SingleLevelIndexSet(object):
     """
 
     def __init__(self, indices):
+        """ Initialize a SLIS. Assume `indices` is a set(). """
         # Assert that all elements of this set are of the same level.
         for labda in indices:
             break
@@ -13,14 +28,24 @@ class SingleLevelIndexSet(object):
             assert index[0] == labda[0]
         self.indices = indices
 
+        # TODO: if we assume that `indices` is given to us in lexicographical
+        # ordering, we can save the list as `self.sorted` -- this also allows
+        # us to loop over it and save the neighbours of every index.
+        # This neighbour stuff is useful for the 3-point basis.
+        self.sorted = False
+
     def asarray(self):
-        """ Return a sorted array of ourselves.
-        
-        TODO: this is not a linear-time operation.
-        """
+        """ Expensive. Mainly for testing. """
         if not self.sorted:
             self.sorted = sorted(self.indices)
         return self.sorted
+
+    def neighbours(self, labda):
+        """ This is too expensive (1 sort and later logarithmic time). """
+        i = bisect.bisect_left(self.asarray(), labda)
+        assert i == self.asarray().index(labda)
+        return (self.sorted[i - 1] if 0 < i < len(self.sorted) else None,
+                self.sorted[i + 1] if i < len(self.sorted) - 1 else None)
 
     def __repr__(self):
         return r"SLIS(%s)" % self.indices
@@ -38,7 +63,7 @@ class SingleLevelIndexSet(object):
         return SingleLevelIndexSet(self.indices - other.indices)
 
 
-class IndexSet(object):
+class MultiscaleIndexSet(IndexSet):
     """ Immutable set of multiscale indices.
 
     I think Kestler does not differentiate between vectors on index sets and the
@@ -52,9 +77,10 @@ class IndexSet(object):
         for labda in indices:
             per_level[labda[0]].add(labda)
         self.per_level = [SingleLevelIndexSet(S) for S in per_level]
+        self.sorted = False
 
     def __repr__(self):
-        return r"IndexSet(%s)" % self.indices
+        return r"MSIS(%s)" % self.indices
 
     def __len__(self):
         return len(self.indices)
@@ -71,5 +97,7 @@ class IndexSet(object):
         return self.per_level[level]
 
     def until_level(self, level):
-        """ Expensive method. Mainly for testing. """
-        return IndexSet({index for index in self.indices if index[0] <= level})
+        """ Expensive (but linear in size) method. Mainly for testing. """
+        return MultiscaleIndexSet(
+            {index
+             for index in self.indices if index[0] <= level})

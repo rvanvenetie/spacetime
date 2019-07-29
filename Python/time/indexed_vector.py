@@ -1,4 +1,4 @@
-from index_set import IndexSet, SingleLevelIndexSet
+from index_set import IndexSet
 import numpy as np
 
 
@@ -17,8 +17,7 @@ class IndexedVector(object):
         """
         if isinstance(index_set, dict):
             self.vector = index_set
-        elif isinstance(index_set, IndexSet) or isinstance(
-                index_set, SingleLevelIndexSet):
+        elif isinstance(index_set, IndexSet):
             self.vector = {
                 key: value
                 for (key, value) in zip(sorted(index_set), values)
@@ -57,3 +56,10 @@ class IndexedVector(object):
     def asarray(self):
         """ Slightly expensive. Mainly for testing. """
         return np.array([self[k] for k in sorted(self.keys())])
+
+    def dot(self, index_mask, other):
+        """ Dot-product; only treat indices in `index_mask` as nonzero. """
+        return sum([
+            self[labda] * other[labda] for labda in other.keys()
+            if labda in index_mask
+        ])

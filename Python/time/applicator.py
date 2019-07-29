@@ -1,4 +1,4 @@
-from index_set import IndexSet, SingleLevelIndexSet
+from index_set import MultiscaleIndexSet, SingleLevelIndexSet
 from indexed_vector import IndexedVector
 from interval import Interval, IntervalSet
 
@@ -22,7 +22,7 @@ class Applicator(object):
 
         Arguments:
             basis_in: A Basis object.
-            singlescale_operator: operator from basis_in to basis_out.
+            singlescale_operator: LinearOperator from basis_in to basis_out.
             Lambda_in: multiscale indices to apply the multiscale operator on
                 (default: the full set of indices of basis_in).
             basis_out: A Basis object (default: basis_in).
@@ -175,14 +175,14 @@ class Applicator(object):
                                                  Lambda_l_out)
             Pi_bar_in = self._smallest_superset(l, self.basis_in, Pi_B_in,
                                                 Lambda_l_in)
-            d_bar = self.basis_in.apply_P(Pi_B_in, Pi_bar_in, d) + \
-                    self.basis_in.apply_Q(Lambda_l_in, Pi_bar_in, c)
+            d_bar = self.basis_in.P.matvec(Pi_B_in, Pi_bar_in, d) + \
+                    self.basis_in.Q.matvec(Lambda_l_in, Pi_bar_in, c)
             e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out,
                                              d_bar, c)
-            e = self.operator(l - 1, Pi_in, Pi_A_out, d) + \
-                self.basis_out.apply_PT(Pi_bar_out, Pi_B_out, e_bar)
-            f = self.basis_out.apply_QT(Pi_bar_out, Lambda_l_out,
-                                        e_bar) + f_bar
+            e = self.operator.matvec(Pi_in, Pi_A_out, d) + \
+                self.basis_out.P.rmatvec(Pi_bar_out, Pi_B_out, e_bar)
+            f = self.basis_out.Q.rmatvec(Pi_bar_out, Lambda_l_out,
+                                         e_bar) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()
@@ -202,13 +202,13 @@ class Applicator(object):
                                                 Pi_B={},
                                                 Lambda_l=Lambda_l_in)
 
-            d_bar = self.basis_in.apply_Q(Lambda_l_in, Pi_bar_in, c)
+            d_bar = self.basis_in.Q.matvec(Lambda_l_in, Pi_bar_in, c)
             e_bar, f_bar = self._apply_upp_recur(l + 1, Pi_bar_in, Pi_bar_out,
                                                  d_bar, c)
-            e = self.operator(l - 1, Pi_in, Pi_out, d) + \
-                self.basis_out.apply_PT(Pi_bar_out, Pi_B_out, e_bar)
-            f = self.basis_out.apply_QT(Pi_bar_out, Lambda_l_out,
-                                        e_bar) + f_bar
+            e = self.operator.matvec(Pi_in, Pi_out, d) + \
+                self.basis_out.P.rmatvec(Pi_bar_out, Pi_B_out, e_bar)
+            f = self.basis_out.Q.rmatvec(Pi_bar_out, Lambda_l_out,
+                                         e_bar) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()
@@ -230,14 +230,14 @@ class Applicator(object):
                                                    Lambda_l=Lambda_l_out)
 
             # NB: operator is applied at level `l` -- different from the rest.
-            e_bar = self.operator(
-                l, Pi_B_bar_in, Pi_B_bar_out,
-                self.basis_in.apply_P(Pi_B_in, Pi_B_bar_in, d))
-            d_bar = self.basis_in.apply_P(Pi_B_in, Pi_bar_in, d) + \
-                    self.basis_in.apply_Q(Lambda_l_in, Pi_bar_in, c)
-            f = self.basis_out.apply_QT(Pi_B_bar_out, Lambda_l_out,
-                                        e_bar) + self._apply_low_recur(
-                                            l + 1, Pi_bar_in, d_bar, c)
+            e_bar = self.operator.matvec(
+                Pi_B_bar_in, Pi_B_bar_out,
+                self.basis_in.P.matvec(Pi_B_in, Pi_B_bar_in, d))
+            d_bar = self.basis_in.P.matvec(Pi_B_in, Pi_bar_in, d) + \
+                    self.basis_in.Q.matvec(Lambda_l_in, Pi_bar_in, c)
+            f = self.basis_out.Q.rmatvec(Pi_B_bar_out, Lambda_l_out,
+                                         e_bar) + self._apply_low_recur(
+                                             l + 1, Pi_bar_in, d_bar, c)
             return f
         else:
             return IndexedVector.Zero()

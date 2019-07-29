@@ -1,8 +1,10 @@
 from basis import Basis
-from index_set import IndexSet, SingleLevelIndexSet
+from index_set import MultiscaleIndexSet, SingleLevelIndexSet
 from indexed_vector import IndexedVector
 from interval import Interval
+from linear_operator import LinearOperator
 
+from functools import lru_cache
 import numpy as np
 
 sq2 = np.sqrt(2)
@@ -28,8 +30,14 @@ def ms2ss(l, labda):
     return (l, 2**(l - labda[0]) * (2 * labda[1] + 1))
 
 
+@lru_cache(maxsize=4096)
 def ss2ms(labda):
-    """ Multiscale index of a singlescale index labda. """
+    """ Multiscale index of a singlescale index labda.
+    
+    This recursive function is slow, could even be linear in time. Also magic.
+    We could fix this by tracking the multiscale index of every singlescale
+    index.
+    """
     # Magic
     l, n = labda
     # Special case: we are one of the end points.
@@ -54,11 +62,15 @@ class ThreePointBasis(Basis):
     """ Implements the three-point basis.
     
     Has a couple of expensive steps but we could fix that to be O(1) time if
-    we build something that tracks neighbors of wavelet/scaling indices.
+    we build something that tracks neighbours of scaling indices.
     """
 
     def __init__(self, indices):
-        self.indices = indices
+        super().__init__(indices)
+
+        # TODO: This is a loop with complexity O(max_level * |indices|), oops!
+        # Alternative could be to assume that `indices` is in lexicographical
+        # ordering, so that we can build this list as we go.
         self.ss_indices = [
             SingleLevelIndexSet({
                 ms2ss(level, labda)
@@ -69,47 +81,133 @@ class ThreePointBasis(Basis):
 
     @classmethod
     def _uniform_multilevel_indices(cls, max_level):
-        return IndexSet({(0, 0), (0, 1)} | {(l, n)
-                                            for l in range(1, max_level + 1)
-                                            for n in range(2**(l - 1))})
+        return MultiscaleIndexSet({(0, 0), (0, 1)}
+                                  | {(l, n)
+                                     for l in range(1, max_level + 1)
+                                     for n in range(2**(l - 1))})
 
     @classmethod
     def _origin_refined_multilevel_indices(cls, max_level):
-        return IndexSet({(0, 0), (0, 1)} | {(l, 0)
-                                            for l in range(max_level + 1)})
+        return MultiscaleIndexSet({(0, 0), (0, 1)}
+                                  | {(l, 0)
+                                     for l in range(max_level + 1)})
 
-    def scaling_support(self, index):
-        """ Inefficient but accurate. """
-        l, n = index
+    @property
+    def P(self):
+        def row(labda):
+            l, n = labda
+            if n % 2 == 0: return {(l - 1, n // 2): 1.0 / sq2}
+            else: return {(l - 1, (n // 2) + i): 0.5 / sq2 for i in range(2)}
+
+        def col(labda):
+            l, n = labda
+            return {
+                (l + 1, 2 * n - 1): 0.5 / sq2,
+                (l + 1, 2 * n): 1.0 / sq2,
+                (l + 1, 2 * n + 1): 0.5 / sq2
+            }
+
+        return LinearOperator(row, col)
+
+    @property
+    def Q(self):
+        def row(labda):
+            l, n = labda
+            if (l, n) == (0, 0): return {(0, 0): 1.0}
+            if (l, n) == (0, 1): return {(0, 1): 1.0}
+
+            # If the singlescale index offset is odd, it must coincide with a
+            # multiscale index on this level.
+            if n % 2 == 1: return {(l, n // 2): 1.0}
+
+            # If we are the leftmost singlescale index, it can only interact
+            # with multiscale index (l, 0).
+            if n == 0: return {(l, n): -1.0}
+            # Same idea for the rightmost singlescale index.
+            if n == 2**l: return {(l, 2**(l - 1) - 1): -1.0}
+
+            # General case: we are between these two multiscale indices.
+            return {
+                (l, (n - 1) // 2):
+                -1 / 2 if ss2ms((l, n + 1)) in self.indices else -1 / 3,
+                (l, n // 2):
+                -1 / 2 if ss2ms((l, n - 1)) in self.indices else -1 / 3
+            }
+
+        def col(labda):
+            l, n = labda
+            if (l, n) == (0, 0): return {(0, 0): 1.0}
+            if (l, n) == (0, 1): return {(0, 1): 1.0}
+
+            if n == 0: left = -1
+            elif (l, n - 1) in self.indices: left = -1 / 2
+            else: left = -1 / 3
+
+            if n == 2**(l - 1) - 1: right = -1
+            elif (l, n + 1) in self.indices: right = -1 / 2
+            else: right = -1 / 3
+
+            return {
+                (l, 2 * n): left,
+                (l, 2 * n + 1): 1.0,
+                (l, 2 * n + 2): right
+            }
+
+        return LinearOperator(row, col)
+
+    @property
+    def singlescale_mass(self):
+        def row(labda):
+            l, n = labda
+
+            # EXPENSIVE :-(
+            left, right = self.scaling_indices_on_level(l).neighbours(labda)
+
+            res = {labda: 0.0}
+            if n > 0:
+                dist_left = labda[1] - left[1]
+                res[left] = dist_left / 6
+                res[labda] += dist_left / 3
+            if n < 2**l:
+                dist_right = right[1] - labda[1]
+                res[labda] += dist_right / 3
+                res[right] = dist_right / 6
+            return res
+
+        return LinearOperator(row)
+
+    def scaling_support(self, labda):
+        """ Expensive (logarithmic time). """
+        l, n = labda
 
         # BEGIN EXPENSIVE
-        indices = self.scaling_indices_on_level(l).asarray()
-        i = indices.index(index)
+        left, right = self.scaling_indices_on_level(l).neighbours(labda)
         # END EXPENSIVE
 
-        if n == 0:
-            return Interval(0, position_ss(indices[i + 1]))
-        elif n == 2**l:
-            return Interval(position_ss(indices[i - 1]), 1)
+        if n == 0: return Interval(0, position_ss(right))
+        elif n == 2**l: return Interval(position_ss(left), 1)
 
-        return Interval(position_ss(indices[i - 1]),
-                        position_ss(indices[i + 1]))
+        return Interval(position_ss(left), position_ss(right))
 
     def wavelet_support(self, labda):
-        """ Inefficient but accurate. """
+        """ Expensive (logarithmic time). """
         l, n = labda
         if l == 0: return Interval(0, 1)
 
-        # BEGIN EXPENSIVE
-        indices = self.scaling_indices_on_level(l).asarray()
-        i = indices.index(ms2ss(l, labda))
-        # END EXPENSIVE
+        # TODO: Calls to `neighbours` are currently expensive.
+        left, right = self.scaling_indices_on_level(l).neighbours(
+            ms2ss(l, labda))
+        if n == 0:
+            left_side = 0
+        else:
+            left_left, _ = self.scaling_indices_on_level(l).neighbours(left)
+            left_side = position_ss(left_left)
 
-        if n == 0: left_side = 0
-        else: left_side = position_ss(indices[i - 2])
-
-        if n == 2**(l - 1) - 1: right_side = 1
-        else: right_side = position_ss(indices[i + 2])
+        if n == 2**(l - 1) - 1:
+            right_side = 1
+        else:
+            _, right_right = self.scaling_indices_on_level(l).neighbours(right)
+            right_side = position_ss(right_right)
 
         return Interval(left_side, right_side)
 
@@ -119,17 +217,16 @@ class ThreePointBasis(Basis):
         else:
             return x * ((0 <= x) & (x < 1))
 
-    def eval_scaling(self, index, x):
+    def eval_scaling(self, labda, x):
         # Slow..
-        l, n = index
+        l, n = labda
 
         # BEGIN EXPENSIVE
-        indices = self.scaling_indices_on_level(l).asarray()
-        i = indices.index(index)
+        left, right = self.scaling_indices_on_level(l).neighbours(labda)
         # END EXPENSIVE
 
-        my_pos = position_ss(index)
-        support = self.scaling_support(index)
+        my_pos = position_ss(labda)
+        support = self.scaling_support(labda)
         left_pos, right_pos = support.a, support.b
 
         res = 0 * x
@@ -147,142 +244,27 @@ class ThreePointBasis(Basis):
         l, n = labda
 
         # BEGIN EXPENSIVE
-        indices = self.scaling_indices_on_level(l).asarray()
-        i = indices.index(ms2ss(l, labda))
+        left, right = self.scaling_indices_on_level(l).neighbours(
+            ms2ss(l, labda))
         # END EXPENSIVE
 
-        result = self.eval_scaling(indices[i], x)
+        result = self.eval_scaling(ms2ss(l, labda), x)
         if n == 0:
-            result -= self.eval_scaling(indices[i - 1], x)
+            result -= self.eval_scaling(left, x)
         elif (l, n - 1) in self.indices:
-            result -= 1 / 2 * self.eval_scaling(indices[i - 1], x)
+            result -= 1 / 2 * self.eval_scaling(left, x)
         else:
-            result -= 1 / 3 * self.eval_scaling(indices[i - 1], x)
+            result -= 1 / 3 * self.eval_scaling(left, x)
 
         if n == 2**(l - 1) - 1:
-            result -= self.eval_scaling(indices[i + 1], x)
+            result -= self.eval_scaling(right, x)
         elif (l, n + 1) in self.indices:
-            result -= 1 / 2 * self.eval_scaling(indices[i + 1], x)
+            result -= 1 / 2 * self.eval_scaling(right, x)
         else:
-            result -= 1 / 3 * self.eval_scaling(indices[i + 1], x)
+            result -= 1 / 3 * self.eval_scaling(right, x)
         return result
 
     def scaling_indices_on_level(self, l):
         if l >= len(self.ss_indices):
             return SingleLevelIndexSet({})
         return self.ss_indices[l]
-
-    def scaling_parents(self, index):
-        l, n = index
-        assert l > 0
-        if n % 2 == 0:
-            return [(l - 1, n // 2)]
-        else:
-            return [(l - 1, n // 2 + i) for i in range(2)]
-
-    def P_block(self, index):
-        l, n = index
-        assert l > 0
-        if n % 2 == 0:
-            return [1.0 / sq2]
-        else:
-            return [0.5 / sq2, 0.5 / sq2]
-
-    def scaling_siblings(self, index):
-        if index[0] == 0: return [(0, 0), (0, 1)]
-
-        l, n = index
-        # If the singlescale index offset is odd, it must coincide with a
-        # multiscale index on this level.
-        if n % 2:
-            return [(l, n // 2)]
-        # If we are the leftmost singlescale index, it can only interact with
-        # multiscale index (l, 0).
-        if n == 0:
-            return [(l, 0)]
-        # Same idea for the rightmost singlescale index.
-        if n == 2**l:
-            return [(l, 2**(l - 1) - 1)]
-        # General case: we are between these two multiscale indices.
-        return [(l, (n - 1) // 2), (l, n // 2)]
-
-    def Q_block(self, index):
-        if index == (0, 0):
-            return [1.0, 0.0]
-        elif index == (0, 1):
-            return [0.0, 1.0]
-
-        l, n = index
-        if n % 2:
-            return [1.0]
-        if n == 0 or n == 2**l:
-            return [-1.0]
-        # Note the swapping of n+1
-        return [
-            -1 / 2.0 if ss2ms((l, n + 1)) in self.indices else -1 / 3.0,
-            -1 / 2.0 if ss2ms((l, n - 1)) in self.indices else -1 / 3.0
-        ]
-
-    def scaling_children(self, index):
-        return [(index[0] + 1, 2 * index[1] + i) for i in range(-1, 2)]
-
-    def PT_block(self, index):
-        return [0.5 / sq2, 1.0 / sq2, 0.5 / sq2]
-
-    def wavelet_siblings(self, index):
-        if index[0] == 0: return [(0, 0), (0, 1)]
-        return [(index[0], 2 * index[1] + i) for i in range(3)]
-
-    def QT_block(self, index):
-        if index == (0, 0):
-            return [1.0, 0.0]
-        elif index == (0, 1):
-            return [0.0, 1.0]
-
-        l, n = index
-        if n == 0:  # We are the leftmost wavelet fn
-            left = -1.0
-        elif (l, n - 1) in self.indices:  # Our left nbr is an index too
-            left = -1 / 2.0
-        else:  # Our left nbr is no index.
-            left = -1 / 3.0
-
-        if n == 2**(l - 1) - 1:  # We are the rightmost wavelet fn
-            right = -1.0
-        elif (l, n + 1) in self.indices:
-            right = -1 / 2.0
-        else:
-            right = -1 / 3.0
-
-        return [left, 1.0, right]
-
-    def singlescale_mass(self, l, Pi, Pi_A, d, out=None):
-        # TODO: Slow but correct..
-        # EXPENSIVE :-(
-        indices = self.scaling_indices_on_level(l).asarray()
-
-        def mapping(labda):
-            _, n = labda
-            # EXPENSIVE :-(
-            i = indices.index(labda)
-
-            res = 0.0
-            if n > 0:
-                dist_left = indices[i][1] - indices[i - 1][1]
-                res += dist_left * (1 / 6 * d[indices[i - 1]] +
-                                    1 / 3 * d[indices[i]])
-            if n < 2**l:
-                dist_right = indices[i + 1][1] - indices[i][1]
-                res += dist_right * (1 / 3 * d[indices[i]] +
-                                     1 / 6 * d[indices[i + 1]])
-            return res
-
-        if not out:
-            res = IndexedVector({
-                labda: mapping(labda) if labda in Pi else 0.0
-                for labda in Pi_A
-            })
-            return res
-        else:
-            for labda in Pi_A:
-                out[labda] = mapping(labda) if labda in Pi else 0.0
