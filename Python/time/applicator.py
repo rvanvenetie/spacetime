@@ -92,8 +92,8 @@ class Applicator(object):
 
         Goal complexity: O(|Pi_B|).
         Current complexity: O(|Pi_B| |Lambda_l|).
-        TODO: make faster.
-        TODO: it could be faster/easier to compute Pi_A?
+        Current complexity: O(PiBin + LambdaL log[LabdaL]).
+        TODO: make faster. it could be faster/easier to compute Pi_A?
 
         Arguments:
             Pi_out: SingleLevelIndexSet of singlescale indices on level l-1.
@@ -102,28 +102,27 @@ class Applicator(object):
         Returns:
             Pi_B_out: SingleLevelIndexSet of singlescale indices on level l-1.
         """
+        ivs = IntervalSet(
+            [self.basis_in.wavelet_nbrhood(mu) for mu in Lambda_l_in])
         return SingleLevelIndexSet({
             index
-            for index in Pi_out if any(
-                self.basis_out.scaling_support(index).intersects(
-                    self.basis_in.wavelet_nbrhood(mu)) for mu in Lambda_l_in)
+            for index in Pi_out
+            if ivs.intersects(self.basis_out.scaling_support(index))
         })
 
     def _construct_Pi_B_in(self, Pi_in, Lambda_l_out, Pi_B_out):
         """ Similar to previous method, only with extra `Pi_B_out`.
 
         Goal complexity: O(|Pi_B_in|).
-        Current complexity: O(PiBin * (PiBout + Lambda_l)).
+        Current complexity: O(PiBin + (PiBout + LambdaL) log[PiBout + LabdaL]).
         """
+        ivs = IntervalSet(
+            [self.basis_out.wavelet_nbrhood(mu) for mu in Lambda_l_out] +
+            [self.basis_in.scaling_support(mu) for mu in Pi_B_out])
         return SingleLevelIndexSet({
             index
-            for index in Pi_in if any(
-                self.basis_in.scaling_support(index).intersects(
-                    self.basis_out.wavelet_nbrhood(mu))
-                for mu in Lambda_l_out) or any(
-                    self.basis_in.scaling_support(index).intersects(
-                        self.basis_out.scaling_support(mu)) for mu in Pi_B_out)
-            if Pi_B_out
+            for index in Pi_in
+            if ivs.intersects(self.basis_in.scaling_support(index))
         })
 
     def _smallest_superset(self, l, basis, Pi_B, Lambda_l):

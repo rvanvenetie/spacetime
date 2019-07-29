@@ -47,7 +47,6 @@ class SingleLevelIndexSet(IndexSet):
         Goal complexity: O(1).
         """
         i = bisect.bisect_left(self.asarray(), labda)
-        assert i == self.asarray().index(labda)
         return (self.sorted[i - 1] if 0 < i < len(self.sorted) else None,
                 self.sorted[i + 1] if i < len(self.sorted) - 1 else None)
 

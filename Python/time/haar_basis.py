@@ -78,7 +78,7 @@ class HaarBasis(Basis):
             assert 0 <= n < 2**(l - 1)
             return Interval(2**-(l - 1) * n, 2**-(l - 1) * (n + 1))
 
-    def scaling_support(self, index):
+    def scaling_support(self, labda):
         l, n = labda
         return Interval(2**-l * n, 2**-l * (n + 1))
 

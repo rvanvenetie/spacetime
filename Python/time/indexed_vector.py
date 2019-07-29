@@ -59,7 +59,5 @@ class IndexedVector(object):
 
     def dot(self, index_mask, other):
         """ Dot-product; only treat indices in `index_mask` as nonzero. """
-        return sum([
-            self[labda] * other[labda] for labda in other.keys()
-            if labda in index_mask
-        ])
+        return sum(self.vector[labda] * other[labda]
+                   for labda in other.keys() & index_mask)

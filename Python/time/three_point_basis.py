@@ -123,7 +123,7 @@ class ThreePointBasis(Basis):
 
             # If we are the leftmost singlescale index, it can only interact
             # with multiscale index (l, 0).
-            if n == 0: return {(l, n): -1.0}
+            if n == 0: return {(l, 0): -1.0}
             # Same idea for the rightmost singlescale index.
             if n == 2**l: return {(l, 2**(l - 1) - 1): -1.0}
 
