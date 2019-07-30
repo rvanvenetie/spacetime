@@ -29,10 +29,23 @@ class Interval(collections.namedtuple('Interval', 'a b')):
 
 
 class IntervalSet(object):
-    """ Represents a collection of intervals with fast merging of overlap. """
+    """ Represents a collection of intervals with fast merging of overlap.
+    
+    """
 
     def __init__(self, intervals):
-        """ This runs in O(#intervals) time. """
+        """ This runs in O(N log N) time.
+        
+        Current complexity: O(N log N) because of a sort step
+        Goal complexity: O(N)
+        TODO: if we assume to receive a list of intervals that is already sorted
+        in order of increasing left-hand side, then this sort step is
+        unnecessary. If we assume to get a number of these interval-lists, where
+        every list itself is already sorted, we can do a merge-sort-like thing
+        to sort the entire list in linear time. On the other hand: sorting in
+        Python is highly optimized and it may actually be faster to just use
+        the sort option.
+        """
         sorted_intervals = sorted(intervals, key=lambda interval: interval.a)
         stack = []
         if len(sorted_intervals):

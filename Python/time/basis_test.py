@@ -277,22 +277,30 @@ def test_singlescale_mass_quadrature():
 def print_3point_functions():
     x = np.linspace(0, 1, 1025)
     for basis in [
-            ThreePointBasis.uniform_basis(max_level=4),
-            ThreePointBasis.origin_refined_basis(max_level=4)
+            HaarBasis.uniform_basis(max_level=2),
+            HaarBasis.origin_refined_basis(max_level=2),
+            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=2),
+            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+                max_level=2),
+            ThreePointBasis.uniform_basis(max_level=2),
+            ThreePointBasis.origin_refined_basis(max_level=2)
     ]:
-        for l in range(1, basis.indices.maximum_level):
-            for labda in basis.scaling_indices_on_level(l):
+        for labda in basis.scaling_indices_on_level(2):
+            if basis.__class__ == ThreePointBasis:
                 plt.plot(
-                    [mu[1] / 2**l for mu in basis.scaling_indices_on_level(l)],
-                    [0] * len(basis.scaling_indices_on_level(l)), 'ko')
-                plt.plot(x, basis.eval_scaling(labda, x), label=labda)
-            plt.legend()
-            plt.show()
+                    [mu[1] / 2**2 for mu in basis.scaling_indices_on_level(2)],
+                    [0] * len(basis.scaling_indices_on_level(2)), 'ko')
+            plt.plot(x, basis.eval_scaling(labda, x), label=labda)
+        plt.title("Scaling functions for %s" % basis.__class__.__name__)
+        plt.legend()
+        plt.show()
 
         for labda in basis.indices:
-            plt.plot([position_ms(mu) for mu in basis.indices],
-                     [0] * len(basis.indices), 'ko')
+            if basis.__class__ == ThreePointBasis:
+                plt.plot([position_ms(mu) for mu in basis.indices],
+                         [0] * len(basis.indices), 'ko')
             plt.plot(x, basis.eval_wavelet(labda, x), label=labda)
+        plt.title("Wavelet functions for %s" % basis.__class__.__name__)
         plt.legend()
         plt.show()
 

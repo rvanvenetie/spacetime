@@ -17,6 +17,16 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
     with the first, odd with the second.
     """
 
+    def __init__(self, indices):
+        super().__init__(indices)
+        self.ss_indices = []
+        for l in range(0, self.indices.maximum_level + 1):
+            Lambda_l = self.indices.on_level(l)
+            self.ss_indices.append(
+                SingleLevelIndexSet({(l, 2 * n + i)
+                                     for (_, n) in Lambda_l
+                                     for i in range(2)}))
+
     @classmethod
     def _uniform_multilevel_indices(cls, max_level):
         return MultiscaleIndexSet({(0, 0), (0, 1)}
@@ -104,8 +114,9 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         return Interval(2**-l * (n // 2), 2**-l * (n // 2 + 1))
 
     def scaling_indices_on_level(self, l):
-        # TODO: this can be a much smaller set when the grid is non-uniform.
-        return SingleLevelIndexSet({(l, n) for n in range(2 * 2**l)})
+        if l >= len(self.ss_indices):
+            return SingleLevelIndexSet({})
+        return self.ss_indices[l]
 
     @property
     def singlescale_mass(self):

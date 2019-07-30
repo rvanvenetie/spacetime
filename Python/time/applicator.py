@@ -91,8 +91,7 @@ class Applicator(object):
         Necessary for computing Pi_B in apply/apply_upp/apply_low.
 
         Goal complexity: O(|Pi_B|).
-        Current complexity: O(|Pi_B| |Lambda_l|).
-        Current complexity: O(PiBin + LambdaL log[LabdaL]).
+        Current complexity: O(|PiBin| * |LambdaL| log[|LabdaL|]).
         TODO: make faster. it could be faster/easier to compute Pi_A?
 
         Arguments:
@@ -114,7 +113,7 @@ class Applicator(object):
         """ Similar to previous method, only with extra `Pi_B_out`.
 
         Goal complexity: O(|Pi_B_in|).
-        Current complexity: O(PiBin + (PiBout + LambdaL) log[PiBout + LabdaL]).
+        Current complexity: O(PiBin * (PiBout + LambdaL) log[PiBout + LabdaL]).
         """
         ivs = IntervalSet(
             [self.basis_out.wavelet_nbrhood(mu) for mu in Lambda_l_out] +

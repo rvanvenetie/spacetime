@@ -79,6 +79,8 @@ class ThreePointBasis(Basis):
             }) for level in range(0, self.indices.maximum_level + 1)
         ]
         assert len(self.ss_indices) == self.indices.maximum_level + 1
+
+        # Some memoizations.
         self._scaling_support = {}
         self._wavelet_support = {}
 
