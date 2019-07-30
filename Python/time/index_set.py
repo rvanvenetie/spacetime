@@ -32,7 +32,10 @@ class SingleLevelIndexSet(IndexSet):
             break
         for index in indices:
             assert index[0] == labda[0]
-        self.indices = indices
+        if isinstance(indices, SingleLevelIndexSet):
+            self.indices = indices.indices
+        else:
+            self.indices = indices
         self._neighbours = {}
 
         # TODO: if we assume that `indices` is given to us in lexicographical

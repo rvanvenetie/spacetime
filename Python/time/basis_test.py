@@ -101,10 +101,6 @@ def test_basis_PQ():
                 try:
                     assert np.allclose(inner, basis.eval_scaling(mu, x))
                 except AssertionError:
-                    plt.plot([
-                        mu[1] / 2**l
-                        for mu in basis.scaling_indices_on_level(l)
-                    ], [0] * len(basis.scaling_indices_on_level(l)), 'ko')
                     plt.plot(x, inner, label=r'$(\Phi_{l-1}^T P_l)_\mu$')
                     plt.plot(x, basis.eval_scaling(mu, x), label=r"$\phi_\mu$")
                     plt.legend()
@@ -277,23 +273,25 @@ def test_singlescale_mass_quadrature():
 def print_3point_functions():
     x = np.linspace(0, 1, 1025)
     for basis in [
-            HaarBasis.uniform_basis(max_level=2),
-            HaarBasis.origin_refined_basis(max_level=2),
-            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=2),
+            HaarBasis.uniform_basis(max_level=4),
+            HaarBasis.origin_refined_basis(max_level=4),
+            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=4),
             OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
-                max_level=2),
-            ThreePointBasis.uniform_basis(max_level=2),
-            ThreePointBasis.origin_refined_basis(max_level=2)
+                max_level=4),
+            ThreePointBasis.uniform_basis(max_level=4),
+            ThreePointBasis.origin_refined_basis(max_level=4)
     ]:
-        for labda in basis.scaling_indices_on_level(2):
-            if basis.__class__ == ThreePointBasis:
-                plt.plot(
-                    [mu[1] / 2**2 for mu in basis.scaling_indices_on_level(2)],
-                    [0] * len(basis.scaling_indices_on_level(2)), 'ko')
-            plt.plot(x, basis.eval_scaling(labda, x), label=labda)
-        plt.title("Scaling functions for %s" % basis.__class__.__name__)
-        plt.legend()
-        plt.show()
+        for l in range(basis.indices.maximum_level + 1):
+            for labda in basis.scaling_indices_on_level(l):
+                if basis.__class__ == ThreePointBasis:
+                    plt.plot([
+                        mu[1] / 2**l
+                        for mu in basis.scaling_indices_on_level(l)
+                    ], [0] * len(basis.scaling_indices_on_level(l)), 'ko')
+                plt.plot(x, basis.eval_scaling(labda, x), label=labda)
+            plt.title("Scaling functions for %s" % basis.__class__.__name__)
+            plt.legend()
+            plt.show()
 
         for labda in basis.indices:
             if basis.__class__ == ThreePointBasis:
