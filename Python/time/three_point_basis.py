@@ -30,7 +30,7 @@ def ms2ss(l, labda):
     return (l, 2**(l - labda[0]) * (2 * labda[1] + 1))
 
 
-@lru_cache(maxsize=4096)
+@lru_cache(maxsize=2**20)
 def ss2ms(labda):
     """ Multiscale index of a singlescale index labda.
     
@@ -79,6 +79,8 @@ class ThreePointBasis(Basis):
             }) for level in range(0, self.indices.maximum_level + 1)
         ]
         assert len(self.ss_indices) == self.indices.maximum_level + 1
+        self._scaling_support = {}
+        self._wavelet_support = {}
 
     @classmethod
     def _uniform_multilevel_indices(cls, max_level):
@@ -177,34 +179,41 @@ class ThreePointBasis(Basis):
         return LinearOperator(row)
 
     def scaling_support(self, labda):
-        l, n = labda
+        if labda not in self._scaling_support:
+            l, n = labda
 
-        left, right = self.scaling_indices_on_level(l).neighbours(labda)
+            left, right = self.scaling_indices_on_level(l).neighbours(labda)
 
-        if n == 0: return Interval(0, position_ss(right))
-        elif n == 2**l: return Interval(position_ss(left), 1)
+            if n == 0: return Interval(0, position_ss(right))
+            elif n == 2**l: return Interval(position_ss(left), 1)
 
-        return Interval(position_ss(left), position_ss(right))
+            self._scaling_support[labda] = Interval(position_ss(left),
+                                                    position_ss(right))
+        return self._scaling_support[labda]
 
     def wavelet_support(self, labda):
-        l, n = labda
-        if l == 0: return Interval(0, 1)
+        if labda not in self._wavelet_support:
+            l, n = labda
+            if l == 0: return Interval(0, 1)
 
-        left, right = self.scaling_indices_on_level(l).neighbours(
-            ms2ss(l, labda))
-        if n == 0:
-            left_side = 0
-        else:
-            left_left, _ = self.scaling_indices_on_level(l).neighbours(left)
-            left_side = position_ss(left_left)
+            left, right = self.scaling_indices_on_level(l).neighbours(
+                ms2ss(l, labda))
+            if n == 0:
+                left_side = 0
+            else:
+                left_left, _ = self.scaling_indices_on_level(l).neighbours(
+                    left)
+                left_side = position_ss(left_left)
 
-        if n == 2**(l - 1) - 1:
-            right_side = 1
-        else:
-            _, right_right = self.scaling_indices_on_level(l).neighbours(right)
-            right_side = position_ss(right_right)
+            if n == 2**(l - 1) - 1:
+                right_side = 1
+            else:
+                _, right_right = self.scaling_indices_on_level(l).neighbours(
+                    right)
+                right_side = position_ss(right_right)
 
-        return Interval(left_side, right_side)
+            self._wavelet_support[labda] = Interval(left_side, right_side)
+        return self._wavelet_support[labda]
 
     def eval_mother_scaling(self, right, x):
         if not right:

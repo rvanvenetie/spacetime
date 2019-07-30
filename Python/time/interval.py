@@ -1,18 +1,13 @@
-class Interval(object):
-    """ Represents an open or closed interval (a,b). """
+import collections.abc
 
-    def __init__(self, a, b=None):
-        if not b:
-            # Copy constructor.
-            assert isinstance(a, Interval)
-            self.a = a.a
-            self.b = a.b
-            self.mid = a.mid
-        else:
-            assert a < b
-            self.a = a
-            self.b = b
-            self.mid = (a + b) / 2
+
+class Interval(collections.namedtuple('Interval', 'a b')):
+    """ Represents an open or closed interval (a,b). """
+    __slots__ = ()
+
+    @property
+    def mid(self):
+        return (self.a + self.b) / 2
 
     def intersects(self, interval, closed=False):
         if not closed:
@@ -41,13 +36,13 @@ class IntervalSet(object):
         sorted_intervals = sorted(intervals, key=lambda interval: interval.a)
         stack = []
         if len(sorted_intervals):
-            stack.append(Interval(sorted_intervals[0]))
+            stack.append(Interval(*sorted_intervals[0]))
             for interval in sorted_intervals:
                 if interval.intersects(stack[-1], closed=True):
-                    stack[-1].b = max(stack[-1].b, interval.b)
+                    stack[-1] = Interval(stack[-1].a,
+                                         max(stack[-1].b, interval.b))
                 else:
-                    stack.append(Interval(interval))
-                    stack[-1].mid = (stack[-1].a + stack[-1].b) / 2
+                    stack.append(Interval(*interval))
             self.intervals = stack
         else:
             self.intervals = []

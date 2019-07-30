@@ -1,6 +1,8 @@
 import bisect
 import collections.abc
 
+from functools import lru_cache
+
 
 class IndexSet(collections.abc.Set):
     def __len__(self):
@@ -31,6 +33,7 @@ class SingleLevelIndexSet(IndexSet):
         for index in indices:
             assert index[0] == labda[0]
         self.indices = indices
+        self._neighbours = {}
 
         # TODO: if we assume that `indices` is given to us in lexicographical
         # ordering, we can save the list as `self.sorted` -- this also allows
@@ -47,13 +50,16 @@ class SingleLevelIndexSet(IndexSet):
     def neighbours(self, labda):
         """ Get the neighbours of this singlescale index.
         
-        Current complexity: once O(N log N) and later O(log N).
+        Current complexity: once O(N log N) per IndexSet, then
+                            once O(log N) per item, then O(1).
         Goal complexity: O(1).
-        TODO: this will become the bottleneck for N = 30K.
         """
-        i = bisect.bisect_left(self.asarray(), labda)
-        return (self.sorted[i - 1] if 0 < i < len(self.sorted) else None,
+        if not labda in self._neighbours:
+            i = bisect.bisect_left(self.asarray(), labda)
+            self._neighbours[labda] = (
+                self.sorted[i - 1] if 0 < i < len(self.sorted) else None,
                 self.sorted[i + 1] if i < len(self.sorted) - 1 else None)
+        return self._neighbours[labda]
 
     def __repr__(self):
         return r"SLIS(%s)" % self.indices
