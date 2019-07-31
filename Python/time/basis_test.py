@@ -16,7 +16,7 @@ np.set_printoptions(linewidth=10000, precision=3)
 def test_haar_singlescale_mass():
     """ Test that the singlescale Haar mass matrix is indeed diagonal. """
     basis = HaarBasis.uniform_basis(max_level=5)
-    mass = basis.singlescale_mass
+    mass = basis.singlescale_mass()
     for l in range(1, 5):
         indices = basis.scaling_indices_on_level(l)
         assert len(indices.indices) == 2**l
@@ -29,7 +29,7 @@ def test_haar_singlescale_mass():
 
 def test_orthonormal_singlescale_mass():
     basis = OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=4)
-    mass = basis.singlescale_mass
+    mass = basis.singlescale_mass()
     for l in range(1, 5):
         indices = basis.scaling_indices_on_level(l)
         assert len(indices.indices) == 2 * 2**l
@@ -240,33 +240,59 @@ def test_3point_singlescale_indices():
 def test_singlescale_mass_quadrature():
     """ Use quadrature to test the singlescale mass matrices. """
     ml = 4
-    for basis in [
-            HaarBasis.uniform_basis(max_level=ml),
-            HaarBasis.origin_refined_basis(max_level=ml),
-            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=ml),
-            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
-                max_level=ml),
-            ThreePointBasis.uniform_basis(max_level=ml),
-            ThreePointBasis.origin_refined_basis(max_level=ml)
+    hbu = HaarBasis.uniform_basis(max_level=ml)
+    hbo = HaarBasis.origin_refined_basis(max_level=ml)
+    oru = OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=ml)
+    oro = OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+        max_level=ml)
+    tpu = ThreePointBasis.uniform_basis(max_level=ml)
+    tpo = ThreePointBasis.origin_refined_basis(max_level=ml)
+    for basis_in, basis_out, operator, deriv in [
+        (hbu, hbu, hbu.singlescale_mass(hbu), (False, False)),
+        (hbo, hbo, hbo.singlescale_mass(hbo), (False, False)),
+        (hbu, hbo, hbu.singlescale_mass(hbo), (False, False)),
+        (oru, oru, oru.singlescale_mass(oru), (False, False)),
+        (oro, oro, oro.singlescale_mass(oro), (False, False)),
+        (oru, oro, oru.singlescale_mass(oro), (False, False)),
+        (oru, oru, oru.singlescale_damping(oru), (True, False)),
+        (oro, oro, oro.singlescale_damping(oro), (True, False)),
+        (oru, oro, oru.singlescale_damping(oro), (True, False)),
+        (tpu, tpu, tpu.singlescale_mass(tpu), (False, False)),
+        (tpo, tpo, tpo.singlescale_mass(tpo), (False, False)),
+            # 3-point mass currently only works for the same in- and out basis.
+            #(tpu, tpo, tpu.singlescale_mass(tpo), (False, False)),
+        (tpu, tpu, tpu.singlescale_damping(tpu), (True, False)),
+        (tpo, tpo, tpo.singlescale_damping(tpo), (True, False)),
+            #(tpu, tpo, tpu.singlescale_damping(tpo), (True, False)),
+            #(tpu, oru, tpu.singlescale_damping(oru), (True, False)),
+            #(tpo, oro, tpo.singlescale_damping(oro), (True, False)),
+            #(tpu, oro, tpu.singlescale_damping(oro), (True, False)),
     ]:
-        mass = basis.singlescale_mass
         for l in range(1, ml + 1):
-            Delta_l = basis.scaling_indices_on_level(l)
-            eye = np.eye(len(Delta_l))
-            for i, labda in enumerate(Delta_l.asarray()):
-                phi_supp = basis.scaling_support(labda)
-                unit_vec = IndexedVector(Delta_l, eye[i, :])
-                out = mass.matvec(Delta_l, Delta_l, unit_vec)
-                for mu in Delta_l.asarray():
-                    supp = phi_supp.intersection(basis.scaling_support(mu))
+            Delta_l_in = basis_in.scaling_indices_on_level(l)
+            Delta_l_out = basis_out.scaling_indices_on_level(l)
+            eye = np.eye(len(Delta_l_in))
+            for i, labda in enumerate(Delta_l_in.asarray()):
+                phi_supp = basis_in.scaling_support(labda)
+                unit_vec = IndexedVector(Delta_l_in, eye[i, :])
+                out = operator.matvec(Delta_l_in, Delta_l_out, unit_vec)
+                for mu in Delta_l_out.asarray():
+                    supp = phi_supp.intersection(basis_out.scaling_support(mu))
+                    true_val = 0.0
                     if supp:
-                        assert np.isclose(
-                            out[mu],
-                            quad(
-                                lambda x: basis.eval_scaling(labda, x) * basis.
-                                eval_scaling(mu, x), supp.a, supp.b)[0])
-                    else:
-                        assert np.isclose(out[mu], 0.0)
+                        true_val = quad(
+                            lambda x: basis_in.eval_scaling(
+                                labda, x, deriv=deriv[0]) * basis_out.
+                            eval_scaling(mu, x, deriv=deriv[1]), supp.a,
+                            supp.b)[0]
+                    try:
+                        assert np.isclose(out[mu], true_val)
+                    except AssertionError:
+                        print(basis_in.__class__.__name__,
+                              basis_out.__class__.__name__, operator,
+                              Delta_l_in, labda, operator.row(labda), mu,
+                              true_val, out[mu])
+                        raise
 
 
 def print_3point_functions():

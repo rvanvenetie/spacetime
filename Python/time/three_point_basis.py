@@ -1,4 +1,5 @@
 from basis import Basis
+from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
 from index_set import MultiscaleIndexSet, SingleLevelIndexSet
 from indexed_vector import IndexedVector
 from interval import Interval
@@ -160,25 +161,51 @@ class ThreePointBasis(Basis):
 
         return LinearOperator(row, col)
 
-    @property
-    def singlescale_mass(self):
+    def singlescale_mass(self, basis_out=None):
+        if basis_out:
+            # I have currently only done the case where basis_in == basis_out.
+            assert isinstance(basis_out, ThreePointBasis) and self is basis_out
+
         def row(labda):
             l, n = labda
 
             left, right = self.scaling_indices_on_level(l).neighbours(labda)
 
-            res = {labda: 0.0}
+            res = {labda: 0.0, left: 0.0, right: 0.0}
             if n > 0:
                 dist_left = labda[1] - left[1]
                 res[left] = dist_left / 6
-                res[labda] += dist_left / 3
+                res[labda] = res[labda] + dist_left / 3
             if n < 2**l:
                 dist_right = right[1] - labda[1]
-                res[labda] += dist_right / 3
+                res[labda] = res[labda] + dist_right / 3
                 res[right] = dist_right / 6
             return res
 
         return LinearOperator(row)
+
+    def singlescale_damping(self, basis_out):
+        if isinstance(basis_out, ThreePointBasis):
+            # I have only built the case where the in- and out basis are equal.
+            assert self is basis_out
+
+            def row(labda):
+                l, n = labda
+                left, right = self.scaling_indices_on_level(l).neighbours(
+                    labda)
+
+                res = {}
+                if n == 0: res[labda] = -2**(l - 1)
+                else: res[left] = -2**(l - 1)
+
+                if n == 2**l: res[labda] = 2**(l - 1)
+                else: res[right] = 2**(l - 1)
+                return res
+
+            return LinearOperator(row)
+        elif isinstance(basis_out, OrthonormalDiscontinuousLinearBasis):
+            # TODO: this is probably necessary for the spacetime case.
+            assert False
 
     def scaling_support(self, labda):
         if labda not in self._scaling_support:
@@ -217,13 +244,16 @@ class ThreePointBasis(Basis):
             self._wavelet_support[labda] = Interval(left_side, right_side)
         return self._wavelet_support[labda]
 
-    def eval_mother_scaling(self, right, x):
-        if not right:
-            return (1.0 - x) * ((0 <= x) & (x < 1))
+    def eval_mother_scaling(self, right, x, deriv):
+        mask = ((0 <= x) & (x < 1))
+        if not deriv:
+            if not right: return (1.0 - x) * mask
+            else: return x * mask
         else:
-            return x * ((0 <= x) & (x < 1))
+            if not right: return -1.0 * mask
+            else: return 1.0 * mask
 
-    def eval_scaling(self, labda, x):
+    def eval_scaling(self, labda, x, deriv=False):
         # Slow..
         l, n = labda
 
@@ -234,35 +264,37 @@ class ThreePointBasis(Basis):
 
         res = 0 * x
         if n > 0:
-            res += 2**(l / 2) * self.eval_mother_scaling(
-                True, (x - left_pos) / (my_pos - left_pos))
+            chain_rule_constant = 1.0 / (my_pos - left_pos) if deriv else 1.0
+            res += chain_rule_constant * 2**(l / 2) * self.eval_mother_scaling(
+                True, (x - left_pos) / (my_pos - left_pos), deriv)
         if n < 2**l:
-            res += 2**(l / 2) * self.eval_mother_scaling(
-                False, (x - my_pos) / (right_pos - my_pos))
+            chain_rule_constant = 1.0 / (right_pos - my_pos) if deriv else 1.0
+            res += chain_rule_constant * 2**(l / 2) * self.eval_mother_scaling(
+                False, (x - my_pos) / (right_pos - my_pos), deriv)
         return res
 
-    def eval_wavelet(self, labda, x):
-        if labda[0] == 0: return self.eval_scaling(labda, x)
+    def eval_wavelet(self, labda, x, deriv=False):
+        if labda[0] == 0: return self.eval_scaling(labda, x, deriv)
 
         l, n = labda
 
         left, right = self.scaling_indices_on_level(l).neighbours(
             ms2ss(l, labda))
 
-        result = self.eval_scaling(ms2ss(l, labda), x)
+        result = self.eval_scaling(ms2ss(l, labda), x, deriv)
         if n == 0:
-            result -= self.eval_scaling(left, x)
+            result -= self.eval_scaling(left, x, deriv)
         elif (l, n - 1) in self.indices:
-            result -= 1 / 2 * self.eval_scaling(left, x)
+            result -= 1 / 2 * self.eval_scaling(left, x, deriv)
         else:
-            result -= 1 / 3 * self.eval_scaling(left, x)
+            result -= 1 / 3 * self.eval_scaling(left, x, deriv)
 
         if n == 2**(l - 1) - 1:
-            result -= self.eval_scaling(right, x)
+            result -= self.eval_scaling(right, x, deriv)
         elif (l, n + 1) in self.indices:
-            result -= 1 / 2 * self.eval_scaling(right, x)
+            result -= 1 / 2 * self.eval_scaling(right, x, deriv)
         else:
-            result -= 1 / 3 * self.eval_scaling(right, x)
+            result -= 1 / 3 * self.eval_scaling(right, x, deriv)
         return result
 
     def scaling_indices_on_level(self, l):

@@ -45,9 +45,10 @@ class HaarBasis(Basis):
 
         return LinearOperator(row, col)
 
-    @property
-    def singlescale_mass(self):
+    def singlescale_mass(self, basis_out=None):
         """ The singlescale Haar mass matrix is simply 2**-l * Id. """
+        if basis_out:
+            assert isinstance(basis_out, HaarBasis)
 
         def row(labda):
             l, n = labda
@@ -58,14 +59,16 @@ class HaarBasis(Basis):
     def eval_mother_scaling(self, x):
         return (0 <= x) & (x < 1)
 
-    def eval_scaling(self, labda, x):
+    def eval_scaling(self, labda, x, deriv=False):
+        assert deriv == False
         l, n = labda
         return 1.0 * self.eval_mother_scaling(2**l * x - n)
 
     def eval_mother_wavelet(self, x):
         return 1.0 * ((0 <= x) & (x < 0.5)) - 1.0 * ((0.5 <= x) & (x < 1.0))
 
-    def eval_wavelet(self, labda, x):
+    def eval_wavelet(self, labda, x, deriv=False):
+        assert deriv == False
         l, n = labda
         if l == 0:
             return self.eval_mother_scaling(x)

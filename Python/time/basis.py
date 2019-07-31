@@ -62,10 +62,10 @@ class Basis(object):
         """ The neighbourhood S(psi_labda). Defaults to its support. """
         return self.wavelet_support(labda)
 
-    def eval_scaling(self, labda, x):
+    def eval_scaling(self, labda, x, deriv=False):
         """ Debug method. """
         pass
 
-    def eval_wavelet(self, labda, x):
+    def eval_wavelet(self, labda, x, deriv=False):
         """ Debug method. """
         pass

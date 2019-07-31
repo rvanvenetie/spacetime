@@ -4,10 +4,19 @@ from indexed_vector import IndexedVector
 class LinearOperator(object):
     """ Linear operator. """
 
-    def __init__(self, row_fn, col_fn=None):
-        """ Initialize. """
-        self.row = row_fn
-        self.col = col_fn
+    def __init__(self, row, col=None):
+        """ Initialize the LinearOperator.
+        
+        Arguments:
+            row: a function taking an index and returning an IndexedVector,
+                being the nonzero entries of this operator at this row. Needed
+                for matrix-vector products.
+            col (optional): a similar function as `row` but for the column of
+                the operator. Needed for z = A^T x.
+                
+        """
+        self.row = row
+        self.col = col
 
     def matvec(self, indices_in, indices_out, vec, out=None):
         """ Computes matrix-vector product z = A x.
