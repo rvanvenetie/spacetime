@@ -14,9 +14,11 @@ import pytest
 
 def plot_results(results):
     for basis_name in results:
-        plt.plot(results[basis_name]['N'],
-                 results[basis_name]['apply_time'],
-                 label=basis_name)
+        plt.loglog(results[basis_name]['N'],
+                   results[basis_name]['apply_time'],
+                   basex=2,
+                   basey=2,
+                   label=basis_name)
     #plt.loglog(results['ThreePointBasis']['N'], [
     #    results['ThreePointBasis']['apply_time'][-1] /
     #    results['ThreePointBasis']['N'][-1] * N
@@ -31,6 +33,10 @@ def plot_results(results):
     #],
     #           'k-.',
     #           label='quadratic')
+    plt.title("Complexity of applying mass matrices")
+    plt.xlabel("Number of degrees of freedom")
+    plt.ylabel("Seconds to apply 1 mass matrix")
+    plt.grid(which='both')
     plt.legend()
     plt.show()
     return results
@@ -40,7 +46,7 @@ def plot_results(results):
 def test_linear_complexity():
     results = {}
     try:
-        for level in range(1, 16):
+        for level in range(1, 17):
             for basis in [
                     HaarBasis.uniform_basis(max_level=level),
                     OrthonormalDiscontinuousLinearBasis.uniform_basis(

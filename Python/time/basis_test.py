@@ -170,7 +170,6 @@ def test_basis_PQ_matrix():
                 vec = IndexedVector(Pi_bar, bar_eye[i, :])
                 QT[i, :] = basis.Q.rmatvec(Pi_bar, Lambda_l, vec).asarray()
 
-            print(Q.T, QT)
             assert np.allclose(P.T, PT)
             assert np.allclose(Q.T, QT)
             assert np.allclose(PT @ P, (PT @ P).T)

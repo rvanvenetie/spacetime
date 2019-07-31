@@ -60,11 +60,11 @@ def test_multiscale_mass_matrix_quadrature():
     """ Test that the mass matrix is the same as found with quadrature. """
     ml = 4
     for basis in [
-            HaarBasis.uniform_basis(max_level=ml),
-            HaarBasis.origin_refined_basis(max_level=ml),
-            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=ml),
-            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
-                max_level=ml),
+            #HaarBasis.uniform_basis(max_level=ml),
+            #HaarBasis.origin_refined_basis(max_level=ml),
+            #OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=ml),
+            #OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+            #    max_level=ml),
             ThreePointBasis.uniform_basis(max_level=ml),
             ThreePointBasis.origin_refined_basis(max_level=ml)
     ]:
@@ -97,7 +97,8 @@ def test_multiscale_mass_matrix_quadrature():
                                         ])[0]
                         truemat[i, j] = true_val
             print(sorted(Lambda))
-            print(np.round(resmat - truemat, decimals=5))
+            print(np.round(truemat, decimals=3))
+            #print(np.round(resmat - truemat, decimals=5))
             assert np.allclose(resmat, truemat)
 
 
