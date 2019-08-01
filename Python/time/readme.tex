@@ -430,8 +430,8 @@ of the things we see (NB: there are numbers in the left-hand side of some lines 
 151  })\end{verbatim}
     as you can see, every call to this is quite expensive. This is because the
     size of $\Delta_\ell$ grows exponentially in $\ell$.\footnote{Actually, for
-    nonuniform grids, this is not true but \texttt{haar\_basis.py} and
-    \texttt{orthonormal\_basis.py} contain two TODO's in this direction.}
+    nonuniform grids, a much smaller set can be used, but \texttt{haar\_basis.py}
+    and \texttt{orthonormal\_basis.py} contain two TODO's in this direction.}
   \item This is overhead of allocating new \texttt{IndexedVector}s at every
     matvec. We could opt to do most matvecs in-place (by passing an
     \texttt{out}-argument).
@@ -452,6 +452,7 @@ Before we can do things in space-time, a small number of things have to be fixed
 or at least looked at, in the time-code. They are marked with TODO, so
 \texttt{grep -rI "TODO" .} should point you in the right directions.
 
+In any case, right now, 
 
 
 \end{document}

@@ -205,7 +205,7 @@ class ThreePointBasis(Basis):
             return LinearOperator(row)
         elif isinstance(basis_out, OrthonormalDiscontinuousLinearBasis):
             # TODO: this is probably necessary for the spacetime case.
-            assert False
+            return LinearOperator(row=lambda x: {})
 
     def scaling_support(self, labda):
         if labda not in self._scaling_support:

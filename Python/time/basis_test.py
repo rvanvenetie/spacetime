@@ -237,8 +237,8 @@ def test_3point_singlescale_indices():
     }
 
 
-def test_singlescale_mass_quadrature():
-    """ Use quadrature to test the singlescale mass matrices. """
+def test_singlescale_quadrature():
+    """ Use quadrature to test the singlescale matrices. """
     ml = 4
     hbu = HaarBasis.uniform_basis(max_level=ml)
     hbo = HaarBasis.origin_refined_basis(max_level=ml)

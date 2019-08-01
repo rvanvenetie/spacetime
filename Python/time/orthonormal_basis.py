@@ -65,6 +65,31 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
 
         return LinearOperator(row, col)
 
+    def singlescale_mass(self, basis_out=None):
+        """ The singlescale orthonormal mass matrix is simply 2**-l * Id. """
+        if basis_out:
+            assert isinstance(basis_out, OrthonormalDiscontinuousLinearBasis)
+
+        def row(labda):
+            l, n = labda
+            return {(l, n): 2**-l}
+
+        return LinearOperator(row, None)
+
+    def singlescale_damping(self, basis_out=None):
+        """ The singlescale damping matrix int_0^1 phi_i' phi_j dt. """
+        if basis_out:
+            assert isinstance(basis_out, OrthonormalDiscontinuousLinearBasis)
+
+        def row(labda):
+            l, n = labda
+            if n % 2 == 0:
+                return {(l, n + 1): 2 * sq3}
+            else:
+                return {}
+
+        return LinearOperator(row, None)
+
     def eval_mother_scaling(self, odd, x, deriv):
         if not deriv:
             if odd: return sq3 * (2 * x - 1) * ((0 <= x) & (x < 1))
@@ -113,30 +138,5 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         return Interval(2**-l * (n // 2), 2**-l * (n // 2 + 1))
 
     def scaling_indices_on_level(self, l):
-        # TODO: this can be a much smaller set when the grid is non-uniform.
+        # TODO: this can be a much smaller set on non-uniform grids.
         return SingleLevelIndexSet({(l, n) for n in range(2 * 2**l)})
-
-    def singlescale_mass(self, basis_out=None):
-        """ The singlescale orthonormal mass matrix is simply 2**-l * Id. """
-        if basis_out:
-            assert isinstance(basis_out, OrthonormalDiscontinuousLinearBasis)
-
-        def row(labda):
-            l, n = labda
-            return {(l, n): 2**-l}
-
-        return LinearOperator(row, None)
-
-    def singlescale_damping(self, basis_out=None):
-        """ The singlescale damping matrix int_0^1 phi_i' phi_j dt. """
-        if basis_out:
-            assert isinstance(basis_out, OrthonormalDiscontinuousLinearBasis)
-
-        def row(labda):
-            l, n = labda
-            if n % 2 == 0:
-                return {(l, n + 1): 2 * sq3}
-            else:
-                return {}
-
-        return LinearOperator(row, None)

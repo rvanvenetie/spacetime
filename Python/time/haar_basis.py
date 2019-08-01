@@ -89,5 +89,5 @@ class HaarBasis(Basis):
         return Interval(2**-l * n, 2**-l * (n + 1))
 
     def scaling_indices_on_level(self, l):
-        # TODO: this can be a much smaller set when the grid is non-uniform.
+        # TODO: this can be a much smaller set on non-uniform grids.
         return SingleLevelIndexSet({(l, n) for n in range(2**l)})
