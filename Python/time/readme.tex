@@ -1,6 +1,7 @@
 \documentclass[11pt,a4paper]{amsart}
 
 \usepackage{amssymb}
+\usepackage{bm}
 \usepackage{geometry}
 \usepackage{commath}
 \usepackage{dsfont}
@@ -439,6 +440,21 @@ of the things we see (NB: there are numbers in the left-hand side of some lines 
     lot of our (nonoptimized) code uses sorting. This is nice.
 \end{enumerate}
 
+\subsection{Some fun: solving an ODE}
+I used the three-point basis on a uniform grid to solve some ODEs, in order
+to test the (hopefully fast) application of the multiscale matrices inside an
+iterative linear solver. I didn't completely succed, however.
+
+My original goal was to solve $-u'' = f, u(0) = u(1) = 0$ using Galerkin on
+both the singlescale and multiscale basis. See \texttt{ode\_test.py}. In
+singlescale, it works perfectly and produces nice results (run the code). In
+multiscale however, I was unable to find the right subset of indices to impose
+a boundary condition on, in order to get results that were nice. I think I may
+have solved a different equation entirely, maybe Rob will have some more ideas
+(very likely, this idea was senseless). Still, I was able to solve the
+``zeroth-order'' ODE $u = f$ by using the multiscale mass matrix. This is nice
+enough.
+
 \subsection{Caveat on the 3-point basis}
 So I (more or less blindly) implemented the basis. But the multiscale mass matrix
 is not at all very sparse or something, which implies that these `wavelets' are
@@ -452,7 +468,18 @@ Before we can do things in space-time, a small number of things have to be fixed
 or at least looked at, in the time-code. They are marked with TODO, so
 \texttt{grep -rI "TODO" .} should point you in the right directions.
 
-In any case, right now, 
+In any case, right now, we are (more or less) able to evaluate a time-operator
+in linear time. If we now use the \texttt{space-fem.py} code to convert a
+multiscale operator to a singlescale operator, we could in principe use a more
+optimized library for the singlescale space operations (or, in the mean time,
+use our own). With both of those elements in place, it is not a far leap to
+implementing Theorem 4.1 from the document, although I do not quite understand
+how to compute $\bm \Sigma$ and $\bm \Theta$.
+
+I am unsure if the current framework is suitable for spacetime computations
+as-is, because I was mostly concerned with building a working time-framework.
+It is very well possible that to efficiently compute the fibers and other
+spacetime index set stuff, we need different data structures altogether.
 
 
 \end{document}

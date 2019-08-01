@@ -171,15 +171,15 @@ class ThreePointBasis(Basis):
 
             left, right = self.scaling_indices_on_level(l).neighbours(labda)
 
-            res = {labda: 0.0, left: 0.0, right: 0.0}
+            res = {labda: 0.0}
             if n > 0:
-                dist_left = labda[1] - left[1]
-                res[left] = dist_left / 6
-                res[labda] = res[labda] + dist_left / 3
+                dist_left = (labda[1] - left[1]) / (2**l)
+                res[left] = (dist_left / 6) * 2**l
+                res[labda] = res[labda] + (dist_left / 3) * 2**l
             if n < 2**l:
-                dist_right = right[1] - labda[1]
-                res[labda] = res[labda] + dist_right / 3
-                res[right] = dist_right / 6
+                dist_right = (right[1] - labda[1]) / (2**l)
+                res[labda] = res[labda] + (dist_right / 3) * 2**l
+                res[right] = (dist_right / 6) * 2**l
             return res
 
         return LinearOperator(row)
@@ -197,15 +197,38 @@ class ThreePointBasis(Basis):
                 res = {}
                 if n == 0: res[labda] = -2**(l - 1)
                 else: res[left] = -2**(l - 1)
-
                 if n == 2**l: res[labda] = 2**(l - 1)
                 else: res[right] = 2**(l - 1)
+                assert None not in res
                 return res
 
             return LinearOperator(row)
         elif isinstance(basis_out, OrthonormalDiscontinuousLinearBasis):
             # TODO: this is probably necessary for the spacetime case.
             return LinearOperator(row=lambda x: {})
+
+    def singlescale_stiffness(self, basis_out=None):
+        if basis_out:
+            # I have currently only done the case where basis_in == basis_out.
+            assert isinstance(basis_out, ThreePointBasis) and self is basis_out
+
+        def row(labda):
+            l, n = labda
+
+            left, right = self.scaling_indices_on_level(l).neighbours(labda)
+
+            res = {labda: 0.0}
+            if n > 0:
+                dist_left = position_ss(labda) - position_ss(left)
+                res[left] = -1 / dist_left * 2**l
+                res[labda] = res[labda] + 1 / dist_left * 2**l
+            if n < 2**l:
+                dist_right = position_ss(right) - position_ss(labda)
+                res[labda] = res[labda] + 1 / dist_right * 2**l
+                res[right] = -1 / dist_right * 2**l
+            return res
+
+        return LinearOperator(row)
 
     def scaling_support(self, labda):
         if labda not in self._scaling_support:

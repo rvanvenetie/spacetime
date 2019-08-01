@@ -267,6 +267,8 @@ def test_singlescale_quadrature():
             #(tpu, oru, tpu.singlescale_damping(oru), (True, False)),
             #(tpo, oro, tpo.singlescale_damping(oro), (True, False)),
             #(tpu, oro, tpu.singlescale_damping(oro), (True, False)),
+        (tpu, tpu, tpu.singlescale_stiffness(tpu), (True, True)),
+        (tpo, tpo, tpo.singlescale_stiffness(tpo), (True, True)),
     ]:
         for l in range(1, ml + 1):
             Delta_l_in = basis_in.scaling_indices_on_level(l)
@@ -290,8 +292,8 @@ def test_singlescale_quadrature():
                     except AssertionError:
                         print(basis_in.__class__.__name__,
                               basis_out.__class__.__name__, operator,
-                              Delta_l_in, labda, operator.row(labda), mu,
-                              true_val, out[mu])
+                              Delta_l_in, Delta_l_out, labda,
+                              operator.row(labda), mu, true_val, out[mu])
                         raise
 
 

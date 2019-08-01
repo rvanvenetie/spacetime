@@ -29,6 +29,9 @@ class IndexedVector(collections.abc.Mapping):
         """ Zero constructor. """
         return cls(index_set={})
 
+    def __setitem__(self, key, val):
+        self.vector[key] = val
+
     def __getitem__(self, key):
         if key in self.vector:
             return self.vector[key]
