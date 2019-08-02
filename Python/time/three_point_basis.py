@@ -67,7 +67,7 @@ class ThreePointBasis(Basis):
     we build something that tracks neighbours of scaling indices.
     """
 
-    def __init__(self, indices):
+    def __init__(self, indices, vanish_at_boundary=False):
         super().__init__(indices)
 
         # TODO: This is a loop with complexity O(max_level * |indices|), oops!
@@ -84,6 +84,13 @@ class ThreePointBasis(Basis):
         # Some memoizations.
         self._scaling_support = {}
         self._wavelet_support = {}
+
+        # Incorporating these ``essential boundary conditions'' is mainly for
+        # testing in `ode_test.py` and will not be necessary for our parabolic
+        # situation, because the boundary conditions are imposed "weakly" in
+        # the sense that it is baked into the variational form rather than the
+        # spaces we work with.
+        self.vanish_at_boundary = vanish_at_boundary
 
     @classmethod
     def _uniform_multilevel_indices(cls, max_level):
@@ -128,9 +135,14 @@ class ThreePointBasis(Basis):
 
             # If we are the leftmost singlescale index, it can only interact
             # with multiscale index (l, 0).
-            if n == 0: return {(l, 0): -1.0}
+            if n == 0:
+                return {(l, 0): 0.0 if self.vanish_at_boundary else -1.0}
             # Same idea for the rightmost singlescale index.
-            if n == 2**l: return {(l, 2**(l - 1) - 1): -1.0}
+            if n == 2**l:
+                return {
+                    (l, 2**(l - 1) - 1):
+                    0.0 if self.vanish_at_boundary else -1.0
+                }
 
             # General case: we are between these two multiscale indices.
             return {
@@ -145,13 +157,17 @@ class ThreePointBasis(Basis):
             if (l, n) == (0, 0): return {(0, 0): 1.0}
             if (l, n) == (0, 1): return {(0, 1): 1.0}
 
-            if n == 0: left = -1
+            if n == 0: left = 0.0 if self.vanish_at_boundary else -1.0
+
             elif (l, n - 1) in self.indices: left = -1 / 2
             else: left = -1 / 3
 
-            if n == 2**(l - 1) - 1: right = -1
-            elif (l, n + 1) in self.indices: right = -1 / 2
-            else: right = -1 / 3
+            if n == 2**(l - 1) - 1:
+                right = 0.0 if self.vanish_at_boundary else -1.0
+            elif (l, n + 1) in self.indices:
+                right = -1 / 2
+            else:
+                right = -1 / 3
 
             return {
                 (l, 2 * n): left,
@@ -306,14 +322,16 @@ class ThreePointBasis(Basis):
 
         result = self.eval_scaling(ms2ss(l, labda), x, deriv)
         if n == 0:
-            result -= self.eval_scaling(left, x, deriv)
+            if not self.vanish_at_boundary:
+                result -= self.eval_scaling(left, x, deriv)
         elif (l, n - 1) in self.indices:
             result -= 1 / 2 * self.eval_scaling(left, x, deriv)
         else:
             result -= 1 / 3 * self.eval_scaling(left, x, deriv)
 
         if n == 2**(l - 1) - 1:
-            result -= self.eval_scaling(right, x, deriv)
+            if not self.vanish_at_boundary:
+                result -= self.eval_scaling(right, x, deriv)
         elif (l, n + 1) in self.indices:
             result -= 1 / 2 * self.eval_scaling(right, x, deriv)
         else:

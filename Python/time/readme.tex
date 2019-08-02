@@ -29,10 +29,10 @@
 \author{Jan Westerdiep}
 \maketitle
 
-I've spent the past two weeks on a (not yet) linear time implementation of \S 3
+I've spent the past two weeks on a (practically but not theoretically) linear time implementation of \S 3
 from ``Bla Parabolic''. Currently it can only apply multiscale (mass) operator
 in the time direction; I felt it was better to have a good understanding of one
-aspect than to produce a half-baked implementation for the tensor-product case.
+aspect than to produce a half-baked implementation for the tensor-product spacetime case.
 
 \subsection*{A little bit on notation} I am somewhat hesitant to call these
 `mass matrices' \emph{matrices} because this implies that the rows and columns
@@ -443,17 +443,11 @@ of the things we see (NB: there are numbers in the left-hand side of some lines 
 \subsection{Some fun: solving an ODE}
 I used the three-point basis on a uniform grid to solve some ODEs, in order
 to test the (hopefully fast) application of the multiscale matrices inside an
-iterative linear solver. I didn't completely succed, however.
-
-My original goal was to solve $-u'' = f, u(0) = u(1) = 0$ using Galerkin on
-both the singlescale and multiscale basis. See \texttt{ode\_test.py}. In
-singlescale, it works perfectly and produces nice results (run the code). In
-multiscale however, I was unable to find the right subset of indices to impose
-a boundary condition on, in order to get results that were nice. I think I may
-have solved a different equation entirely, maybe Rob will have some more ideas
-(very likely, this idea was senseless). Still, I was able to solve the
-``zeroth-order'' ODE $u = f$ by using the multiscale mass matrix. This is nice
-enough.
+iterative linear solver. I solve $-u'' = f, u(0) = u(1) = 0$ using Galerkin on
+both the singlescale and multiscale basis. See \texttt{ode\_test.py}. It works
+perfectly and produces nice results (run \texttt{python3 ode\_test.py}). With a
+small adaptation, this can be used to solve $u' = f$ and the like as well. Nice
+little proof-of-concept :-)
 
 \subsection{Caveat on the 3-point basis}
 So I (more or less blindly) implemented the basis. But the multiscale mass matrix

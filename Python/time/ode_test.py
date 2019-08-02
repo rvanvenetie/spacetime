@@ -2,7 +2,7 @@ from applicator import Applicator
 
 from haar_basis import HaarBasis
 from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
-from three_point_basis import ThreePointBasis, position_ss, position_ms
+from three_point_basis import ThreePointBasis, position_ss, position_ms, ms2ss
 from index_set import MultiscaleIndexSet
 from indexed_vector import IndexedVector
 
@@ -46,6 +46,7 @@ def test_singlescale_ode_solve(plot=False):
     prev_L2_error = 1.0
     for ml in range(1, 6):
         basis = ThreePointBasis.uniform_basis(max_level=ml)
+        basis.vanish_at_boundary = True
         indices = basis.scaling_indices_on_level(ml)
         boundary_condition = {(ml, 0), (ml, 2**ml)}
 
@@ -100,8 +101,9 @@ def test_multiscale_ode_solve(plot=False):
     prev_L2_error = 1.0
     for ml in range(1, 7):
         basis = ThreePointBasis.uniform_basis(max_level=ml)
+        basis.vanish_at_boundary = True
         indices = basis.indices
-        boundary_condition = {}
+        boundary_condition = {(0, 0), (0, 1)}
         u = lambda t: np.sin(2 * np.pi * t)
         dtt_u = lambda t: -4 * np.pi**2 * np.sin(2 * np.pi * t)
 
@@ -110,19 +112,19 @@ def test_multiscale_ode_solve(plot=False):
         for labda in indices:
             supp = basis.wavelet_support(labda)
             rhs_dict[labda] = 0.0 if labda in boundary_condition else quad(
-                lambda t: u(t) * basis.eval_wavelet(labda, t),
+                lambda t: -dtt_u(t) * basis.eval_wavelet(labda, t),
                 supp.a,
                 supp.b,
                 points=[supp.a, supp.mid, supp.b, 1.0])[0]
         rhs = IndexedVector(rhs_dict)
 
         # Build operator.
-        operator = basis.singlescale_mass(basis)
+        operator = basis.singlescale_stiffness(basis)
         applicator = Applicator(basis, operator, indices)
         scipy_op = ScipyLinearOperator(indices, boundary_condition, applicator)
         sol = IndexedVector(
             indices,
-            linalg.gmres(scipy_op, rhs.asarray(), atol='legacy')[0])
+            linalg.cg(scipy_op, rhs.asarray(), atol='legacy')[0])
 
         u_delta = lambda t: sum(
             sol[labda] * basis.eval_wavelet(labda, t) for labda in indices)
@@ -132,7 +134,7 @@ def test_multiscale_ode_solve(plot=False):
         prev_L2_error = L2_error
         if plot:
             tt = np.linspace(0, 1, 1025)
-            plt.title("Multiscale mass matrix solve on level %s" % ml)
+            plt.title("Multiscale stiffness matrix solve on level %s" % ml)
             plt.plot(tt, u_delta(tt), label=r"$u_\delta$")
             plt.plot(tt, u(tt), label=r"$u$")
             plt.legend()
