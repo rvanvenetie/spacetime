@@ -20,7 +20,7 @@ class IndexSet(collections.abc.Set):
 
 class SingleLevelIndexSet(IndexSet):
     """ Immutable set of indices on one level, either singlescale or multiscale.
-    
+
     Would be nice if the elements in a singlescale index set would be sorted by
     lexicographical order. Probably hard to do in linear time.
     """
@@ -35,7 +35,7 @@ class SingleLevelIndexSet(IndexSet):
         if isinstance(indices, SingleLevelIndexSet):
             self.indices = indices.indices
         else:
-            self.indices = indices
+            self.indices = set(indices)
         self._neighbours = {}
 
         # TODO: if we assume that `indices` is given to us in lexicographical
@@ -52,7 +52,7 @@ class SingleLevelIndexSet(IndexSet):
 
     def neighbours(self, labda):
         """ Get the neighbours of this singlescale index.
-        
+
         Current complexity: once O(N log N) per IndexSet, then
                             once O(log N) per item, then O(1).
         Goal complexity: O(1).

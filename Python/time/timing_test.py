@@ -43,15 +43,16 @@ def plot_results(results):
 
 
 @pytest.mark.skip("timing test!")
+#@profile
 def test_linear_complexity():
     results = {}
     try:
-        for level in range(1, 17):
+        for level in range(1, 20):
             for basis in [
-                    HaarBasis.uniform_basis(max_level=level),
-                    OrthonormalDiscontinuousLinearBasis.uniform_basis(
-                        max_level=level - 1),
-                    ThreePointBasis.uniform_basis(max_level=level)
+                    HaarBasis.origin_refined_basis(max_level=level),
+#                    OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+#                        max_level=level - 1),
+#                    ThreePointBasis.uniform_basis(max_level=level)
             ]:
                 if not basis.__class__.__name__ in results:
                     results[basis.__class__.__name__] = {
@@ -59,7 +60,7 @@ def test_linear_complexity():
                         'apply_time': []
                     }
 
-                applicator = Applicator(basis, basis.singlescale_mass,
+                applicator = Applicator(basis, basis.singlescale_mass(),
                                         basis.indices)
                 N = len(basis.indices)
                 vec = IndexedVector(basis.indices, np.random.rand(N))
@@ -80,5 +81,6 @@ def test_linear_complexity():
 
 
 if __name__ == "__main__":
-    cProfile.run('results = test_linear_complexity()', sort='tottime')
-    plot_results(results)
+    results = test_linear_complexity()
+    #cProfile.run('results = test_linear_complexity()', sort='tottime')
+    #plot_results(results)

@@ -173,8 +173,17 @@ class ThreePointBasis(Basis):
 
     def scaling_indices_nonzero_in_nbrhood(self, l, x):
         super().scaling_indices_nonzero_in_nbrhood(l, x)
-        interval_index = floor(x * 2**l)
-        return SingleLevelIndexSet({(l, interval_index, interval_index + 1)})
+        # treat boundary seperately:
+        if x == 0: return SingleLevelIndexSet({(l, 0), (l, 1)})
+        elif x == 1: return SingleLevelIndexSet({(l, 2**l-1), (l, 2**l)})
+
+        # Find the closest node on left of x
+        node = floor(x * 2 **l)
+
+        if x * 2**l == node:
+            return SingleLevelIndexSet({(l, node-1), (l, node), (l, node + 1)})
+        else:
+            return SingleLevelIndexSet({(l, node), (l, node+1)})
 
     def scaling_indices_on_level(self, l):
         return SingleLevelIndexSet({(l, n) for n in range(2**l + 1)})
@@ -215,10 +224,10 @@ class ThreePointBasis(Basis):
         c = 2**l if deriv else 1.0
         return c * self.eval_mother_scaling(2**l * x - n, deriv)
 
-    def eval_wavelet(self, labda, x):
+    def eval_wavelet(self, labda, x, deriv=False):
         lin_comb_ss = self.Q.col(labda)
 
         result = 0
         for labda_ss, coeff_ss in lin_comb_ss.items():
-            result += coeff_ss * self.eval_scaling(labda_ss, x)
+            result += coeff_ss * self.eval_scaling(labda_ss, x, deriv)
         return result

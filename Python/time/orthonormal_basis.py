@@ -145,12 +145,12 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
 
         # treat boundary seperately:
         if x == 0: return SingleLevelIndexSet({(l, 0), (l, 1)})
-        elif x == 1: return SingleLevelIndexSet({(l, 2**(l+1)-2, 2**(l+1)-1)})
+        elif x == 1: return SingleLevelIndexSet({(l, 2**(l+1)-2), (l, 2**(l+1)-1)})
 
         # Find the closest node on left of x
         node = floor(x * 2 **l)
 
-        if x == node:
+        if x * 2 ** l == node:
             # Return two basis functions on left and right of x
             return SingleLevelIndexSet({(l, n) for n in range(2*node-2, 2*node+2)})
         else:

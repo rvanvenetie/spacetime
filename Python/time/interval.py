@@ -6,7 +6,6 @@ class Interval(object):
     __slots__ = ('a','b')
 
     def __init__(self, a, b):
-        print(type(a))
         assert isinstance(a, int) or isinstance(a, Fraction)
         assert isinstance(b, int) or isinstance(b, Fraction)
         self.a = Fraction(a)
@@ -62,7 +61,7 @@ class IntervalSet(object):
                     stack[-1] = Interval(stack[-1].a,
                                          max(stack[-1].b, interval.b))
                 else:
-                    stack.append(Interval(*interval))
+                    stack.append(Interval(interval.a, interval.b))
             self.intervals = stack
         else:
             self.intervals = []

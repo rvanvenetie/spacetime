@@ -1,22 +1,74 @@
 from haar_basis import HaarBasis
 from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
-from three_point_basis import ThreePointBasis, ms2ss, ss2ms, position_ms
+from three_point_basis import ThreePointBasis #, ms2ss, ss2ms, position_ms
 
 from index_set import MultiscaleIndexSet
 from indexed_vector import IndexedVector
+from linear_operator_test import check_linop_transpose
 
 import numpy as np
 from scipy.integrate import quad
+from fractions import Fraction
 import matplotlib.pyplot as plt
 import pytest
 
+
 np.set_printoptions(linewidth=10000, precision=3)
 
+def F(x,y): return Fraction(x,y)
 
-def test_haar_singlescale_mass():
+
+def test_haar_ss_nonzero_in_nbrhood():
+    """ Test that we always return the correct non-zero function. """
+    basis = HaarBasis([])
+
+    eps = F(1,1000)
+
+    # Check level 0
+    assert basis.scaling_indices_nonzero_in_nbrhood(0, 1-eps).indices == {(0,0)}
+    assert basis.scaling_indices_nonzero_in_nbrhood(0, 0).indices == {(0,0)}
+
+    # Check level 2
+    assert basis.scaling_indices_nonzero_in_nbrhood(2, 0).indices == {(2,0)}
+    assert basis.scaling_indices_nonzero_in_nbrhood(2, F(1,4)-eps).indices == {(2,0)}
+    assert basis.scaling_indices_nonzero_in_nbrhood(2, F(1,4)).indices == {(2,0), (2,1)}
+    assert basis.scaling_indices_nonzero_in_nbrhood(2, F(1,2)).indices == {(2,1), (2,2)}
+    assert basis.scaling_indices_nonzero_in_nbrhood(2, F(3,4)).indices == {(2,2), (2,3)}
+
+    # Check level 40
+    assert basis.scaling_indices_nonzero_in_nbrhood(40, 0).indices == {(40,0)}
+    assert basis.scaling_indices_nonzero_in_nbrhood(40, F(13,2**40)).indices == {(40,12), (40,13)}
+    assert basis.scaling_indices_nonzero_in_nbrhood(40, F(876,2**40)).indices == {(40,875), (40, 876)}
+
+    # Check 500 points for levels 0..123.
+    for l in range(123):
+        for pt in range(max(1, 2**l - 500), 2**l):
+            assert basis.scaling_indices_nonzero_in_nbrhood(l, pt * F(1, 2**l)).indices == {(l, pt-1),(l, pt)}
+
+def test_orthonormal_ss_nonzero_in_nbrhood():
+    """ Test that we always return the correct non-zero function. """
+    basis = OrthonormalDiscontinuousLinearBasis([])
+
+    for l in range(14):
+        for n in range(2**(l+1)):
+            labda = (l, n)
+            support = basis.scaling_support(labda)
+
+            print(labda, support)
+            assert labda in basis.scaling_indices_nonzero_in_nbrhood(l, support.a)
+            assert labda in basis.scaling_indices_nonzero_in_nbrhood(l, support.mid)
+            assert labda in basis.scaling_indices_nonzero_in_nbrhood(l, support.b)
+
+            assert len(basis.scaling_indices_nonzero_in_nbrhood(l, support.mid)) == 2
+
+            if n > 1 and n < 2**(l+1)-2:
+                assert len(basis.scaling_indices_nonzero_in_nbrhood(l, support.a)) == len(basis.scaling_indices_nonzero_in_nbrhood(l, support.b)) == 4
+
+
+def test_haar_scaling_mass():
     """ Test that the singlescale Haar mass matrix is indeed diagonal. """
     basis = HaarBasis.uniform_basis(max_level=5)
-    mass = basis.singlescale_mass()
+    mass = basis.scaling_mass()
     for l in range(1, 5):
         indices = basis.scaling_indices_on_level(l)
         assert len(indices.indices) == 2**l
@@ -27,9 +79,9 @@ def test_haar_singlescale_mass():
             assert np.allclose(d.asarray(), 2.0**l * res.asarray())
 
 
-def test_orthonormal_singlescale_mass():
+def test_orthonormal_scaling_mass():
     basis = OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=4)
-    mass = basis.singlescale_mass()
+    mass = basis.scaling_mass()
     for l in range(1, 5):
         indices = basis.scaling_indices_on_level(l)
         assert len(indices.indices) == 2 * 2**l
@@ -58,18 +110,17 @@ def test_basis_correct_support():
             Pi_bar = basis.scaling_indices_on_level(l)
             Lambda_l = basis.indices.on_level(l)
             for i, mu in enumerate(Pi_B.asarray()):
+                ss_support = basis.scaling_support(mu)
                 nz = np.nonzero(basis.eval_scaling(mu, x))[0]
-                assert (nz[0] + 1) / N >= basis.scaling_support(
-                    mu).a >= (nz[0] - 1) / N
-                assert (nz[-1] - 1) / N <= basis.scaling_support(
-                    mu).b <= (nz[-1] + 1) / N
+                assert (nz[0] + 1) / N >= ss_support.a >= (nz[0] - 1) / N
+                assert (nz[-1] - 1) / N <= ss_support.b <= (nz[-1] + 1) / N
 
             for i, mu in enumerate(Lambda_l.asarray()):
+                ms_support = basis.wavelet_support(mu)
                 nz = np.nonzero(basis.eval_wavelet(mu, x))[0]
-                assert (nz[0] + 1) / N >= basis.wavelet_support(
-                    mu).a >= (nz[0] - 1) / N
-                assert (nz[-1] - 1) / N <= basis.wavelet_support(
-                    mu).b <= (nz[-1] + 1) / N
+                assert nz.shape[0]
+                assert (nz[0] + 1) / N >= ms_support.a >= (nz[0] - 1) / N
+                assert (nz[-1] - 1) / N <= ms_support.b <=  (nz[-1] + 1) / N
 
 
 def test_basis_PQ():
@@ -93,11 +144,7 @@ def test_basis_PQ():
                 # Write phi_mu on lv l-1 as combination of scalings on lv l.
                 vec = IndexedVector(Pi_B, eye[i, :])
                 res = basis.P.matvec(Pi_B, Pi_bar, vec)
-                inner = np.sum([
-                    basis.eval_scaling(labda, x) * res[labda]
-                    for labda in Pi_bar
-                ],
-                               axis=0)
+                inner = np.sum([ basis.eval_scaling(labda, x) * res[labda] for labda in Pi_bar ], axis=0)
                 try:
                     assert np.allclose(inner, basis.eval_scaling(mu, x))
                 except AssertionError:
@@ -130,7 +177,6 @@ def test_basis_PQ():
                     plt.show()
                     raise
 
-
 def test_basis_PQ_matrix():
     """ Test that P.T = PT and Q.T = QT as matrices. """
     ml = 6
@@ -144,97 +190,14 @@ def test_basis_PQ_matrix():
             ThreePointBasis.origin_refined_basis(max_level=ml)
     ]:
         for l in range(1, ml + 1):
+            print('test PQ on level {} for {}'.format(l, basis.__class__.__name__))
             Pi_B = basis.scaling_indices_on_level(l - 1)
             Pi_bar = basis.scaling_indices_on_level(l)
             Lambda_l = basis.indices.on_level(l)
 
-            B_eye = np.eye(len(Pi_B))
-            bar_eye = np.eye(len(Pi_bar))
-            l_eye = np.eye(len(Lambda_l))
+            check_linop_transpose(basis.P, Pi_B, Pi_bar)
+            check_linop_transpose(basis.Q, Lambda_l, Pi_bar)
 
-            P = np.zeros([len(Pi_B), len(Pi_bar)])
-            PT = np.zeros([len(Pi_bar), len(Pi_B)])
-            Q = np.zeros([len(Lambda_l), len(Pi_bar)])
-            QT = np.zeros([len(Pi_bar), len(Lambda_l)])
-
-            for i, mu in enumerate(Pi_B.asarray()):
-                vec = IndexedVector(Pi_B, B_eye[i, :])
-                P[i, :] = basis.P.matvec(Pi_B, Pi_bar, vec).asarray()
-            for i, mu in enumerate(Pi_bar.asarray()):
-                vec = IndexedVector(Pi_bar, bar_eye[i, :])
-                PT[i, :] = basis.P.rmatvec(Pi_bar, Pi_B, vec).asarray()
-            for i, mu in enumerate(Lambda_l.asarray()):
-                vec = IndexedVector(Lambda_l, l_eye[i, :])
-                Q[i, :] = basis.Q.matvec(Lambda_l, Pi_bar, vec).asarray()
-            for i, mu in enumerate(Pi_bar.asarray()):
-                vec = IndexedVector(Pi_bar, bar_eye[i, :])
-                QT[i, :] = basis.Q.rmatvec(Pi_bar, Lambda_l, vec).asarray()
-
-            assert np.allclose(P.T, PT)
-            assert np.allclose(Q.T, QT)
-            assert np.allclose(PT @ P, (PT @ P).T)
-            assert np.allclose(QT @ Q, (QT @ Q).T)
-
-
-def test_3point_ss2ms():
-    assert ss2ms((0, 0)) == (0, 0)
-    assert ss2ms((0, 1)) == (0, 1)
-
-    assert ss2ms((1, 0)) == (0, 0)
-    assert ss2ms((1, 1)) == (1, 0)
-    assert ss2ms((1, 2)) == (0, 1)
-
-    assert ss2ms((2, 0)) == (0, 0)
-    assert ss2ms((2, 1)) == (2, 0)
-    assert ss2ms((2, 2)) == (1, 0)
-    assert ss2ms((2, 3)) == (2, 1)
-    assert ss2ms((2, 4)) == (0, 1)
-
-    assert ss2ms((3, 0)) == (0, 0)
-    assert ss2ms((3, 1)) == (3, 0)
-    assert ss2ms((3, 2)) == (2, 0)
-    assert ss2ms((3, 3)) == (3, 1)
-    assert ss2ms((3, 4)) == (1, 0)
-    assert ss2ms((3, 5)) == (3, 2)
-    assert ss2ms((3, 6)) == (2, 1)
-    assert ss2ms((3, 7)) == (3, 3)
-    assert ss2ms((3, 8)) == (0, 1)
-
-    assert ss2ms((4, 0)) == (0, 0)
-    assert ss2ms((4, 1)) == (4, 0)
-    assert ss2ms((4, 2)) == (3, 0)
-    assert ss2ms((4, 3)) == (4, 1)
-    assert ss2ms((4, 4)) == (2, 0)
-    assert ss2ms((4, 5)) == (4, 2)
-    assert ss2ms((4, 6)) == (3, 1)
-    assert ss2ms((4, 7)) == (4, 3)
-    assert ss2ms((4, 8)) == (1, 0)
-    assert ss2ms((4, 9)) == (4, 4)
-    assert ss2ms((4, 10)) == (3, 2)
-    assert ss2ms((4, 11)) == (4, 5)
-    assert ss2ms((4, 12)) == (2, 1)
-    assert ss2ms((4, 13)) == (4, 6)
-    assert ss2ms((4, 14)) == (3, 3)
-    assert ss2ms((4, 15)) == (4, 7)
-    assert ss2ms((4, 16)) == (0, 1)
-
-    for l in range(1, 10):
-        for n in range(0, 2**l + 1):
-            assert ms2ss(l, ss2ms((l, n))) == (l, n)
-
-
-def test_3point_singlescale_indices():
-    multiscale_indices = MultiscaleIndexSet({(0, 0), (0, 1), (1, 0), (2, 0),
-                                             (2, 1), (3, 0), (3, 3)})
-    basis = ThreePointBasis(multiscale_indices)
-    assert basis.scaling_indices_on_level(1).indices == {(1, 0), (1, 1),
-                                                         (1, 2)}
-    assert basis.scaling_indices_on_level(2).indices == {(2, 0), (2, 1),
-                                                         (2, 2), (2, 3),
-                                                         (2, 4)}
-    assert basis.scaling_indices_on_level(3).indices == {
-        (3, 0), (3, 1), (3, 2), (3, 4), (3, 6), (3, 7), (3, 8)
-    }
 
 
 def test_singlescale_quadrature():
@@ -248,27 +211,27 @@ def test_singlescale_quadrature():
     tpu = ThreePointBasis.uniform_basis(max_level=ml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=ml)
     for basis_in, basis_out, operator, deriv in [
-        (hbu, hbu, hbu.singlescale_mass(hbu), (False, False)),
-        (hbo, hbo, hbo.singlescale_mass(hbo), (False, False)),
-        (hbu, hbo, hbu.singlescale_mass(hbo), (False, False)),
-        (oru, oru, oru.singlescale_mass(oru), (False, False)),
-        (oro, oro, oro.singlescale_mass(oro), (False, False)),
-        (oru, oro, oru.singlescale_mass(oro), (False, False)),
-        (oru, oru, oru.singlescale_damping(oru), (True, False)),
-        (oro, oro, oro.singlescale_damping(oro), (True, False)),
-        (oru, oro, oru.singlescale_damping(oro), (True, False)),
-        (tpu, tpu, tpu.singlescale_mass(tpu), (False, False)),
-        (tpo, tpo, tpo.singlescale_mass(tpo), (False, False)),
+        (hbu, hbu, hbu.scaling_mass(), (False, False)),
+        (hbo, hbo, hbo.scaling_mass(), (False, False)),
+        (hbu, hbo, hbu.scaling_mass(), (False, False)),
+        (oru, oru, oru.scaling_mass(), (False, False)),
+        (oro, oro, oro.scaling_mass(), (False, False)),
+        (oru, oro, oru.scaling_mass(), (False, False)),
+        (oru, oru, oru.scaling_damping(), (True, False)),
+        (oro, oro, oro.scaling_damping(), (True, False)),
+        (oru, oro, oru.scaling_damping(), (True, False)),
+        (tpu, tpu, tpu.scaling_mass(), (False, False)),
+        (tpo, tpo, tpo.scaling_mass(), (False, False)),
             # 3-point mass currently only works for the same in- and out basis.
-            #(tpu, tpo, tpu.singlescale_mass(tpo), (False, False)),
-        (tpu, tpu, tpu.singlescale_damping(tpu), (True, False)),
-        (tpo, tpo, tpo.singlescale_damping(tpo), (True, False)),
+            #(tpu, tpo, tpu.scaling_mass(tpo), (False, False)),
+        (tpu, tpu, tpu.scaling_damping(), (True, False)),
+        (tpo, tpo, tpo.scaling_damping(), (True, False)),
             #(tpu, tpo, tpu.singlescale_damping(tpo), (True, False)),
             #(tpu, oru, tpu.singlescale_damping(oru), (True, False)),
             #(tpo, oro, tpo.singlescale_damping(oro), (True, False)),
             #(tpu, oro, tpu.singlescale_damping(oro), (True, False)),
-        (tpu, tpu, tpu.singlescale_stiffness(tpu), (True, True)),
-        (tpo, tpo, tpo.singlescale_stiffness(tpo), (True, True)),
+        (tpu, tpu, tpu.scaling_stiffness(), (True, True)),
+        (tpo, tpo, tpo.scaling_stiffness(), (True, True)),
     ]:
         for l in range(1, ml + 1):
             Delta_l_in = basis_in.scaling_indices_on_level(l)
@@ -310,24 +273,17 @@ def print_3point_functions():
     ]:
         for l in range(basis.indices.maximum_level + 1):
             for labda in basis.scaling_indices_on_level(l):
-                if basis.__class__ == ThreePointBasis:
-                    plt.plot([
-                        mu[1] / 2**l
-                        for mu in basis.scaling_indices_on_level(l)
-                    ], [0] * len(basis.scaling_indices_on_level(l)), 'ko')
                 plt.plot(x, basis.eval_scaling(labda, x), label=labda)
-            plt.title("Scaling functions for %s" % basis.__class__.__name__)
+            plt.title("Scaling functions on level {} for {}".format(l, basis.__class__.__name__))
             plt.legend()
             plt.show()
 
-        for labda in basis.indices:
-            if basis.__class__ == ThreePointBasis:
-                plt.plot([position_ms(mu) for mu in basis.indices],
-                         [0] * len(basis.indices), 'ko')
-            plt.plot(x, basis.eval_wavelet(labda, x), label=labda)
-        plt.title("Wavelet functions for %s" % basis.__class__.__name__)
-        plt.legend()
-        plt.show()
+        for l in range(basis.indices.maximum_level + 1):
+            for labda in basis.indices.on_level(l):
+                plt.plot(x, basis.eval_wavelet(labda, x), label=labda)
+            plt.title("Wavelet functions on level {} for {}".format(l, basis.__class__.__name__))
+            plt.legend()
+            plt.show()
 
 
 if __name__ == "__main__":

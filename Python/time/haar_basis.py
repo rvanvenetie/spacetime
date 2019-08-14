@@ -113,7 +113,7 @@ class HaarBasis(Basis):
         node = floor(x * 2 **l)
 
         # If this node coincides, we have to return the basis on left and right.
-        if x == node: return SingleLevelIndexSet({(l, node-1), (l, node)})
+        if x * 2 ** l == node: return SingleLevelIndexSet({(l, node-1), (l, node)})
         else: return SingleLevelIndexSet({(l, node)})
 
     def scaling_indices_on_level(self, l):

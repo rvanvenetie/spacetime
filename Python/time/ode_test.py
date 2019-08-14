@@ -2,7 +2,7 @@ from applicator import Applicator
 
 from haar_basis import HaarBasis
 from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
-from three_point_basis import ThreePointBasis, position_ss, position_ms, ms2ss
+from three_point_basis import ThreePointBasis
 from index_set import MultiscaleIndexSet
 from indexed_vector import IndexedVector
 
@@ -39,7 +39,7 @@ class ScipyLinearOperator(linalg.LinearOperator):
 
 def test_singlescale_ode_solve(plot=False):
     """ Solve a Poisson problem -u'' = f using singlescale stiffnes matrix.
-    
+
     This also works (upon making the correct changes) for the eqn u' = f
     (using damping matrix). I suppose it also works for u = f using mass matrix.
     """
@@ -61,11 +61,11 @@ def test_singlescale_ode_solve(plot=False):
                 lambda t: -dtt_u(t) * basis.eval_scaling(labda, t),
                 supp.a,
                 supp.b,
-                points=[supp.a, supp.mid, supp.b, 1.0])[0]
+                points=[float(supp.a), float(supp.mid), float(supp.b), 1.0])[0]
         rhs = IndexedVector(rhs)
 
         # Build the operator. NB: stiffness matrix is pos-def so we can use CG.
-        operator = basis.singlescale_stiffness(basis)
+        operator = basis.scaling_stiffness()
         scipy_op = ScipyLinearOperator(indices, boundary_condition, operator)
         sol = IndexedVector(
             indices,
@@ -115,11 +115,11 @@ def test_multiscale_ode_solve(plot=False):
                 lambda t: -dtt_u(t) * basis.eval_wavelet(labda, t),
                 supp.a,
                 supp.b,
-                points=[supp.a, supp.mid, supp.b, 1.0])[0]
+                points=[float(supp.a), float(supp.mid), float(supp.b), 1.0])[0]
         rhs = IndexedVector(rhs_dict)
 
         # Build operator.
-        operator = basis.singlescale_stiffness(basis)
+        operator = basis.scaling_stiffness()
         applicator = Applicator(basis, operator, indices)
         scipy_op = ScipyLinearOperator(indices, boundary_condition, applicator)
         sol = IndexedVector(
