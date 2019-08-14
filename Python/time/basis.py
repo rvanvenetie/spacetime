@@ -1,8 +1,12 @@
 from indexed_vector import IndexedVector
 from interval import Interval, IntervalSet
 import numpy as np
+from fractions import Fraction
 
 sq3 = np.sqrt(3)
+
+
+#TODO: Misschien moeten we de basis splitten in twee classes for schaling functies en waveletfuncties?
 
 
 class Basis(object):
@@ -30,14 +34,10 @@ class Basis(object):
         """ MultiscaleIndexSet of indices with refinement towards origin. """
         pass
 
-    def scaling_indices_on_level(self, l):
-        """ SingleLevelIndexSet of singlescale indices on level l; Delta_l. """
-        pass
-
     @property
     def P(self):
         """ The matrices {P_l}_l such that Phi_{l-1}^T = P_l Phi_l^T.
-        
+
         P is a LinearOperator object that implements `matvec()` and `rmatvec()`.
         """
         pass
@@ -45,6 +45,7 @@ class Basis(object):
     @property
     def Q(self):
         """ The matrices {Q_l}_l such that Psi_l^T = Q_l Phi_l^T.
+        TODO: Ik denk dat je bedoelt Psi_l = Q_l^T Phi_l.
 
         Q is a LinearOperator object that implements `matvec()` and `rmatvec()`.
         """
@@ -54,8 +55,24 @@ class Basis(object):
         """ The support of the scaling function phi_labda. """
         pass
 
+    def scaling_indices_on_level(self, l):
+        """ SingleLevelIndexSet of singlescale indices on level l; Delta_l. """
+        pass
+
+    def scaling_indices_nonzero_in_nbrhood(self, l, x):
+        """ Singlescale indices on level l that are nonzero in [x-eps,x+eps]. """
+        assert 0 <= x <= 1
+        assert isinstance(x, Fraction) or isinstance(x, int)
+
+    def scaling_mass(self):
+        """ Mass matrix applied to scaling functions. """
+
     def wavelet_support(self, labda):
         """ The support of the wavelet function psi_labda. """
+        pass
+
+    def wavelet_indices_on_level(self, l):
+        """ SingleLevelIndexSet of multiscale indices on level l; Lambda_l. """
         pass
 
     def wavelet_nbrhood(self, labda):
@@ -67,5 +84,7 @@ class Basis(object):
         pass
 
     def eval_wavelet(self, labda, x, deriv=False):
-        """ Debug method. """
+        """ Debug method.
+
+        TODO: shall we simply use Q_col and eval_scaling for this? """
         pass

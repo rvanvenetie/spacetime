@@ -1,4 +1,3 @@
-
 from basis import Basis
 from math import floor
 from index_set import MultiscaleIndexSet, SingleLevelIndexSet
@@ -7,6 +6,7 @@ from interval import Interval, IntervalSet
 from linear_operator import LinearOperator
 
 import numpy as np
+from fractions import Fraction
 
 
 class ThreePointBasis(Basis):
@@ -165,14 +165,14 @@ class ThreePointBasis(Basis):
     def scaling_support(self, labda):
         l, n = labda
         assert 0 <= n <= 2**l
-
+        h = Fraction(1, 2**l)
         # The boundary scaling functions require special treatment.
-        left = max(2**-l * (n-1), 0)
-        right = min(2**-l * (n+1), 1)
+        left = max(h * (n-1), 0)
+        right = min(h * (n+1), 1)
         return Interval(left, right)
 
     def scaling_indices_nonzero_in_nbrhood(self, l, x):
-        assert 0 <= x <= 1
+        super().scaling_indices_nonzero_in_nbrhood(l, x)
         interval_index = floor(x * 2**l)
         return SingleLevelIndexSet({(l, interval_index, interval_index + 1)})
 
@@ -186,10 +186,11 @@ class ThreePointBasis(Basis):
             return Interval(0, 1)
         else:
             assert 0 <= n < 2**(l - 1)
+            h = Fraction(1, 2**l)
 
             # Boundary wavelets require special treatment.
-            left = max(2**-l + 2**-(l-1) * (n-1), 0)
-            right = min(2**-l + 2**-(l-1) * (n+1), 1)
+            left = max(h + 2 * h * (n-1), 0)
+            right = min(h + 2 * h * (n+1), 1)
             return Interval(left, right)
 
     def wavelet_indices_on_level(self, l):

@@ -1,13 +1,22 @@
 from basis import Basis
+from math import floor
 from index_set import MultiscaleIndexSet, SingleLevelIndexSet
 from indexed_vector import IndexedVector
 from interval import Interval, IntervalSet
 from linear_operator import LinearOperator
 
+from fractions import Fraction
+
 import numpy as np
 
 
 class HaarBasis(Basis):
+    """ Piecewise constant basis, with haar wavelets.
+
+    Scaling functions are piecewise constants, indexed by the index of the left
+    node. The haar wavelets of level l are indexed by the index of the
+    left node on level l - 1.
+    """
     def __init__(self, indices):
         super().__init__(indices)
 
@@ -45,17 +54,6 @@ class HaarBasis(Basis):
 
         return LinearOperator(row, col)
 
-    def singlescale_mass(self, basis_out=None):
-        """ The singlescale Haar mass matrix is simply 2**-l * Id. """
-        if basis_out:
-            assert isinstance(basis_out, HaarBasis)
-
-        def row(labda):
-            l, n = labda
-            return {(l, n): 2**-l}
-
-        return LinearOperator(row)
-
     def eval_mother_scaling(self, x):
         return (0 <= x) & (x < 1)
 
@@ -82,12 +80,41 @@ class HaarBasis(Basis):
             return Interval(0, 1)
         else:
             assert 0 <= n < 2**(l - 1)
-            return Interval(2**-(l - 1) * n, 2**-(l - 1) * (n + 1))
+            h = Fraction(1, 2**(l-1))
+            return Interval(h * n, h * (n + 1))
+
+    def wavelet_indices_on_level(self, l):
+        if l == 0:
+            return SingleLevelIndexSet({(0,0)})
+        else:
+            return SingleLevelIndexSet({(l, n) for n in range(2**(l-1))})
+
+    def scaling_mass(self):
+        """ The singlescale Haar mass matrix is simply 2**-l * Id. """
+        def row(labda):
+            l, n = labda
+            return {(l, n): 2**-l}
+        return LinearOperator(row)
 
     def scaling_support(self, labda):
         l, n = labda
-        return Interval(2**-l * n, 2**-l * (n + 1))
+        assert 0 <= n < 2**l
+        h = Fraction(1, 2**l)
+        return Interval(h * n, h * (n + 1))
+
+    def scaling_indices_nonzero_in_nbrhood(self, l, x):
+        super().scaling_indices_nonzero_in_nbrhood(l, x)
+
+        # treat boundary seperately:
+        if x == 0: return SingleLevelIndexSet({(l, 0)})
+        elif x == 1: return SingleLevelIndexSet({(l, 2**l-1)})
+
+        # Find the closest node on left of x
+        node = floor(x * 2 **l)
+
+        # If this node coincides, we have to return the basis on left and right.
+        if x == node: return SingleLevelIndexSet({(l, node-1), (l, node)})
+        else: return SingleLevelIndexSet({(l, node)})
 
     def scaling_indices_on_level(self, l):
-        # TODO: this can be a much smaller set on non-uniform grids.
         return SingleLevelIndexSet({(l, n) for n in range(2**l)})

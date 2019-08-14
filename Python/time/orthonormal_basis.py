@@ -4,6 +4,8 @@ from index_set import MultiscaleIndexSet, SingleLevelIndexSet
 from indexed_vector import IndexedVector
 from interval import Interval, IntervalSet
 from linear_operator import LinearOperator
+from math import floor
+from fractions import Fraction
 
 import numpy as np
 
@@ -11,7 +13,7 @@ sq3 = np.sqrt(3)
 
 
 class OrthonormalDiscontinuousLinearBasis(Basis):
-    """ We have a multiwavelet basis.
+    """ Discontinuous piecewise linear basis, with orthonormal wavelets.
 
     It has two wavelets and scaling functions. Even index-offsets correspond
     with the first, odd with the second.
@@ -65,31 +67,6 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
 
         return LinearOperator(row, col)
 
-    def singlescale_mass(self, basis_out=None):
-        """ The singlescale orthonormal mass matrix is simply 2**-l * Id. """
-        if basis_out:
-            assert isinstance(basis_out, OrthonormalDiscontinuousLinearBasis)
-
-        def row(labda):
-            l, n = labda
-            return {(l, n): 2**-l}
-
-        return LinearOperator(row, None)
-
-    def singlescale_damping(self, basis_out=None):
-        """ The singlescale damping matrix int_0^1 phi_i' phi_j dt. """
-        if basis_out:
-            assert isinstance(basis_out, OrthonormalDiscontinuousLinearBasis)
-
-        def row(labda):
-            l, n = labda
-            if n % 2 == 0:
-                return {(l, n + 1): 2 * sq3}
-            else:
-                return {}
-
-        return LinearOperator(row, None)
-
     def eval_mother_scaling(self, odd, x, deriv):
         if not deriv:
             if odd: return sq3 * (2 * x - 1) * ((0 <= x) & (x < 1))
@@ -131,12 +108,54 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
             return Interval(0, 1)
         else:
             assert 0 <= n < 2 * 2**(l - 1)
-            return Interval(2**-(l - 1) * (n // 2), 2**-(l - 1) * (n // 2 + 1))
+            h = Fraction(1, 2**(l-1))
+            return Interval(h * (n // 2), h * (n // 2 + 1))
+
+    def wavelet_indices_on_level(self, l):
+        if l == 0:
+            return SingleLevelIndexSet({(0,0), (0,1)})
+        else:
+            return SingleLevelIndexSet({(l, n) for n in range(2**l)})
+
+    def scaling_mass(self):
+        """ The singlescale orthonormal mass matrix is simply 2**-l * Id. """
+        def row(labda):
+            l, n = labda
+            return {(l, n): 2**-l}
+        return LinearOperator(row, None)
+
+    def scaling_damping(self):
+        """ The singlescale damping matrix int_0^1 phi_i' phi_j dt. """
+        def row(labda):
+            l, n = labda
+            if n % 2 == 0:
+                return {(l, n + 1): 2 * sq3}
+            else:
+                return {}
+        return LinearOperator(row, None)
 
     def scaling_support(self, labda):
         l, n = labda
-        return Interval(2**-l * (n // 2), 2**-l * (n // 2 + 1))
+        assert 0 <= n < 2 * 2**l
+        h = Fraction(1, 2**l)
+        return Interval(h * (n // 2), h * (n // 2 + 1))
+
+    def scaling_indices_nonzero_in_nbrhood(self, l, x):
+        super().scaling_indices_nonzero_in_nbrhood(l, x)
+
+        # treat boundary seperately:
+        if x == 0: return SingleLevelIndexSet({(l, 0), (l, 1)})
+        elif x == 1: return SingleLevelIndexSet({(l, 2**(l+1)-2, 2**(l+1)-1)})
+
+        # Find the closest node on left of x
+        node = floor(x * 2 **l)
+
+        if x == node:
+            # Return two basis functions on left and right of x
+            return SingleLevelIndexSet({(l, n) for n in range(2*node-2, 2*node+2)})
+        else:
+            # Return the two basis functions active on this interval
+            return SingleLevelIndexSet({(l, n) for n in range(2*node, 2*node+2)})
 
     def scaling_indices_on_level(self, l):
-        # TODO: this can be a much smaller set on non-uniform grids.
         return SingleLevelIndexSet({(l, n) for n in range(2 * 2**l)})
