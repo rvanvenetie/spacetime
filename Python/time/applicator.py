@@ -5,7 +5,7 @@ from interval import Interval, IntervalSet
 
 class Applicator(object):
     """ Class that can apply multiscale operators with minimal overhead.
-    
+
     See also github.com/skestler/lawa-phd-skestler/LAWA-lite/
         lawa/methods/adaptive/operators/localoperators/localoperator1d.{h,tcpp}
     for some (tough to read) C++ code that implements the same operators in
@@ -85,7 +85,7 @@ class Applicator(object):
     #  Private methods from here on out.
     def _construct_Pi_B_out(self, Pi_out, Lambda_l_in):
         """ Singlescale indices labda st supp(phi_labda) intersects Lambda_l.
-        
+
         Finds the subset Pi_B of Pi such that the support of phi_labda
         intersects some S(mu) for mu in Lambda_l.
         Necessary for computing Pi_B in apply/apply_upp/apply_low.
@@ -124,10 +124,10 @@ class Applicator(object):
             if ivs.intersects(self.basis_in.scaling_support(index))
         })
 
-    def _smallest_superset(self, l, basis, Pi_B, Lambda_l):
-        """ Find Pi_bar, the smallest index set covering Pi_B and Lambda_l.
+    def _largest_subset(self, l, basis, Pi_B, Lambda_l):
+        """ Find Pi_bar, the largest index set contained contained in Pi_B and Lambda_l.
 
-        span Phi_{Pi_B} cup span Psi_{Lambda_l} subset span Phi_{Pi_bar}.
+        span Phi_{Pi_bar} subset Phi_{Pi_B} cup span Psi_{Lambda_l}.
 
         Goal complexity: O(|Pi_bar|).
         Current compl: O(|Pi_bar|*((Pi_B + Lambda_l) log[Pi_B + Lambda_L])).
@@ -144,15 +144,22 @@ class Applicator(object):
         """
         ivs = IntervalSet([basis.scaling_support(index) for index in Pi_B] +
                           [basis.wavelet_support(index) for index in Lambda_l])
-        return SingleLevelIndexSet({
-            index
-            for index in basis.scaling_indices_on_level(l)
-            if ivs.covers(basis.scaling_support(index))
-        })
+
+        result = set()
+        for iv in ivs:
+            # Find the leftmost and rightmost index `active` in this interval
+            left_index = min(basis.scaling_indices_nonzero_in_nbrhood(l, iv.a))[1]
+            right_index = max(basis.scaling_indices_nonzero_in_nbrhood(l, iv.b))[1]
+
+            # TODO: assume that the indices are ordered left to right.
+            assert left_index <= right_index
+            result.update({(l, index) for index in range(left_index, right_index+1) if iv.contains(basis.scaling_support((l, index)))})
+
+        return SingleLevelIndexSet(result)
 
     def _apply_recur(self, l, Pi_in, Pi_out, d, c):
         """ Apply the multiscale operator on level l.
-        
+
         Arguments:
             l: the current level
             Pi_in: a collection of singlescale indices on level l-1.
@@ -173,18 +180,12 @@ class Applicator(object):
             Pi_B_in = self._construct_Pi_B_in(Pi_in, Lambda_l_out, Pi_B_out)
             Pi_A_in = Pi_in - Pi_B_in
 
-            Pi_bar_out = self._smallest_superset(l, self.basis_out, Pi_B_out,
-                                                 Lambda_l_out)
-            Pi_bar_in = self._smallest_superset(l, self.basis_in, Pi_B_in,
-                                                Lambda_l_in)
-            d_bar = self.basis_in.P.matvec(Pi_B_in, Pi_bar_in, d) + \
-                    self.basis_in.Q.matvec(Lambda_l_in, Pi_bar_in, c)
-            e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out,
-                                             d_bar, c)
-            e = self.operator.matvec(Pi_in, Pi_A_out, d) + \
-                self.basis_out.P.rmatvec(Pi_bar_out, Pi_B_out, e_bar)
-            f = self.basis_out.Q.rmatvec(Pi_bar_out, Lambda_l_out,
-                                         e_bar) + f_bar
+            Pi_bar_out = self._largest_subset(l, self.basis_out, Pi_B_out, Lambda_l_out)
+            Pi_bar_in = self._largest_subset(l, self.basis_in, Pi_B_in, Lambda_l_in)
+            d_bar = self.basis_in.P.matvec(Pi_B_in, Pi_bar_in, d) + self.basis_in.Q.matvec(Lambda_l_in, Pi_bar_in, c)
+            e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out, d_bar, c)
+            e = self.operator.matvec(Pi_in, Pi_A_out, d) + self.basis_out.P.rmatvec(Pi_bar_out, Pi_B_out, e_bar)
+            f = self.basis_out.Q.rmatvec(Pi_bar_out, Lambda_l_out, e_bar) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()
@@ -197,9 +198,9 @@ class Applicator(object):
             Pi_B_out = self._construct_Pi_B_out(Pi_out, Lambda_l_in)
             Pi_A_out = Pi_out - Pi_B_out
 
-            Pi_bar_out = self._smallest_superset(l, self.basis_out, Pi_B_out,
+            Pi_bar_out = self._largest_subset(l, self.basis_out, Pi_B_out,
                                                  Lambda_l_out)
-            Pi_bar_in = self._smallest_superset(l,
+            Pi_bar_in = self._largest_subset(l,
                                                 self.basis_in,
                                                 Pi_B={},
                                                 Lambda_l=Lambda_l_in)
@@ -220,13 +221,13 @@ class Applicator(object):
         Lambda_l_out = self.Lambda_out.on_level(l)
         if len(Lambda_l_out) > 0 and len(Pi_in) + len(Lambda_l_in) > 0:
             Pi_B_in = self._construct_Pi_B_in(Pi_in, Lambda_l_out, Pi_B_out={})
-            Pi_bar_in = self._smallest_superset(l, self.basis_in, Pi_B_in,
+            Pi_bar_in = self._largest_subset(l, self.basis_in, Pi_B_in,
                                                 Lambda_l_in)
-            Pi_B_bar_in = self._smallest_superset(l,
+            Pi_B_bar_in = self._largest_subset(l,
                                                   self.basis_in,
                                                   Pi_B=Pi_B_in,
                                                   Lambda_l={})
-            Pi_B_bar_out = self._smallest_superset(l,
+            Pi_B_bar_out = self._largest_subset(l,
                                                    self.basis_out,
                                                    Pi_B={},
                                                    Lambda_l=Lambda_l_out)

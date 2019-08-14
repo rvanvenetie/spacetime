@@ -2,8 +2,9 @@ from applicator import Applicator
 
 from haar_basis import HaarBasis
 from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
-from three_point_basis import ThreePointBasis, ms2ss, ss2ms, position_ms
+from three_point_basis import ThreePointBasis
 from indexed_vector import IndexedVector
+from index_set import MultiscaleIndexSet, SingleLevelIndexSet
 
 import numpy as np
 from scipy.integrate import quad
@@ -14,6 +15,22 @@ np.random.seed(0)
 np.set_printoptions(linewidth=10000, precision=3)
 
 
+def test_haar_largest_subset():
+    basis = HaarBasis.uniform_basis(max_level=5)
+    applicator = Applicator(basis, basis.scaling_mass())
+
+    # Check the largest subset contained in mother scaling/wavelt
+    assert applicator._largest_subset(5, basis, Pi_B=[(0,0)], Lambda_l = []) == basis.scaling_indices_on_level(5)
+    assert applicator._largest_subset(5, basis, Pi_B=[], Lambda_l =[(0,0)]) == basis.scaling_indices_on_level(5)
+
+    # Check for a singlescale function on level 4
+    for index in range(2**4):
+        assert applicator._largest_subset(5, basis, Pi_B=[(4,index)], Lambda_l = []) == SingleLevelIndexSet([(5,index*2), (5,index*2+1)])
+
+    assert applicator._largest_subset(5, basis, Pi_B=[(4,0), (4,2), (4,3)], Lambda_l = []) == SingleLevelIndexSet([
+        (5,0), (5,1), (5,4), (5,5), (5,6), (5,7)])
+
+
 def test_haar_multiscale_mass():
     """ Test that the multiscale Haar mass matrix is indeed diagonal. """
     for basis in [
@@ -22,7 +39,7 @@ def test_haar_multiscale_mass():
     ]:
         for l in range(1, 6):
             Lambda = basis.indices.until_level(l)
-            applicator = Applicator(basis, basis.singlescale_mass(), Lambda)
+            applicator = Applicator(basis, basis.scaling_mass(), Lambda)
             for _ in range(10):
                 np_vec = np.random.rand(len(Lambda))
                 vec = IndexedVector(Lambda, np_vec)
@@ -36,12 +53,12 @@ def test_orthonormal_multiscale_mass():
     """ Test that the multiscale mass operator is the identity. """
     for basis in [
             OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=5),
-            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
-                max_level=5)
+#            OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
+#                max_level=5)
     ]:
         for l in range(1, 6):
             Lambda = basis.indices.until_level(l)
-            applicator = Applicator(basis, basis.singlescale_mass(), Lambda)
+            applicator = Applicator(basis, basis.scaling_mass(), Lambda)
             eye = np.eye(len(Lambda))
             res_matrix = np.zeros([len(Lambda), len(Lambda)])
             for i in range(len(Lambda)):
@@ -67,21 +84,21 @@ def test_multiscale_operator_quadrature():
     tpu = ThreePointBasis.uniform_basis(max_level=ml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=ml)
     for basis_in, basis_out, operator, deriv in [
-        (hbu, hbu, hbu.singlescale_mass(hbu), (False, False)),
-        (hbo, hbo, hbo.singlescale_mass(hbo), (False, False)),
-        (hbu, hbo, hbu.singlescale_mass(hbo), (False, False)),
-        (oru, oru, oru.singlescale_mass(oru), (False, False)),
-        (oro, oro, oro.singlescale_mass(oro), (False, False)),
-        (oru, oro, oru.singlescale_mass(oro), (False, False)),
-        (oru, oru, oru.singlescale_damping(oru), (True, False)),
-        (oro, oro, oro.singlescale_damping(oro), (True, False)),
-        (oru, oro, oru.singlescale_damping(oro), (True, False)),
-        (tpu, tpu, tpu.singlescale_mass(tpu), (False, False)),
-        (tpo, tpo, tpo.singlescale_mass(tpo), (False, False)),
+        (hbu, hbu, hbu.scaling_mass(), (False, False)),
+        (hbo, hbo, hbo.scaling_mass(), (False, False)),
+        (hbu, hbo, hbu.scaling_mass(), (False, False)),
+        (oru, oru, oru.scaling_mass(), (False, False)),
+        (oro, oro, oro.scaling_mass(), (False, False)),
+        (oru, oro, oru.scaling_mass(), (False, False)),
+        (oru, oru, oru.scaling_damping(), (True, False)),
+        (oro, oro, oro.scaling_damping(), (True, False)),
+        (oru, oro, oru.scaling_damping(), (True, False)),
+        (tpu, tpu, tpu.scaling_mass(), (False, False)),
+        (tpo, tpo, tpo.scaling_mass(), (False, False)),
             # 3-point mass currently only works for the same in- and out basis.
-            #(tpu, tpo, tpu.singlescale_mass(tpo), (False, False)),
-        (tpu, tpu, tpu.singlescale_damping(tpu), (True, False)),
-        (tpo, tpo, tpo.singlescale_damping(tpo), (True, False)),
+            #(tpu, tpo, tpu.scaling_mass(tpo), (False, False)),
+        (tpu, tpu, tpu.scaling_damping(), (True, False)),
+        (tpo, tpo, tpo.scaling_damping(), (True, False)),
             #(tpu, tpo, tpu.singlescale_damping(tpo), (True, False)),
     ]:
         for l in range(1, ml + 1):
@@ -108,11 +125,11 @@ def test_multiscale_operator_quadrature():
                                         supp_total.a,
                                         supp_total.b,
                                         points=[
-                                            supp_labda.a, supp_labda.mid,
-                                            supp_labda.b, supp_mu.a,
-                                            supp_mu.mid, supp_mu.b,
-                                            supp_total.a, supp_total.mid,
-                                            supp_total.b
+                                            float(supp_labda.a), float(supp_labda.mid),
+                                            float(supp_labda.b), float(supp_mu.a),
+                                            float(supp_mu.mid ), float(supp_mu.b),
+                                            float(supp_total.a), float(supp_total.mid),
+                                            float(supp_total.b)
                                         ])[0]
                         truemat[i, j] = true_val
             try:
@@ -138,7 +155,7 @@ def test_apply_upp_low_vs_full():
     ]:
         for l in range(1, 6):
             Lambda = basis.indices.until_level(l)
-            applicator = Applicator(basis, basis.singlescale_mass(), Lambda)
+            applicator = Applicator(basis, basis.scaling_mass(), Lambda)
             for _ in range(10):
                 c = IndexedVector(Lambda, np.random.rand(len(Lambda)))
                 res_full_op = applicator.apply(c)
