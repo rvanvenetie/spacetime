@@ -16,10 +16,10 @@ class Element:
         self.interval = Interval(h * node_index, h * (node_index + 1))
 
         # TODO: this should be moved to a different class
-        self.Lambda_in = []
-        self.Lambda_out = []
-        self.Pi_in = []
-        self.Pi_out = []
+        self.Lambda_in = False
+        self.Lambda_out = False
+        self.Pi_in = False
+        self.Pi_out = False
 
     def is_leaf(self):
         return not len(self.children)
