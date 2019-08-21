@@ -75,7 +75,7 @@ def test_orthonormal_multiscale_mass():
 
 def test_multiscale_operator_quadrature():
     """ Test that the multiscale matrix equals that found with quadrature. """
-    ml = 4
+    ml = 6
     hbu = HaarBasis.uniform_basis(max_level=ml)
     hbo = HaarBasis.origin_refined_basis(max_level=ml)
     oru = OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=ml)
@@ -101,6 +101,7 @@ def test_multiscale_operator_quadrature():
         (tpo, tpo, tpo.scaling_damping(), (True, False)),
             #(tpu, tpo, tpu.singlescale_damping(tpo), (True, False)),
     ]:
+        print('Calculating results for: basis_in={}\tbasis_out={}'.format(basis_in.__class__.__name__, basis_out.__class__.__name__))
         for l in range(1, ml + 1):
             Lambda_in = basis_in.indices.until_level(l)
             Lambda_out = basis_out.indices.until_level(l)

@@ -51,6 +51,10 @@ class Basis(object):
         """
         pass
 
+    def scaling_labda_valid(self, labda):
+        """ Returns whether the given labda is valid. """
+        pass
+
     def scaling_support(self, labda):
         """ The support of the scaling function phi_labda. """
         pass
@@ -66,6 +70,10 @@ class Basis(object):
 
     def scaling_mass(self):
         """ Mass matrix applied to scaling functions. """
+
+    def wavelet_labda_valid(self, labda):
+        """ Returns whether the given wavelet labda is valid. """
+        pass
 
     def wavelet_support(self, labda):
         """ The support of the wavelet function psi_labda. """

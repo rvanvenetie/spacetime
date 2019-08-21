@@ -14,11 +14,13 @@ import pytest
 
 def plot_results(results):
     for basis_name in results:
-        plt.loglog(results[basis_name]['N'],
-                   results[basis_name]['apply_time'],
-                   basex=2,
-                   basey=2,
-                   label=basis_name)
+        #plt.loglog(results[basis_name]['N'],
+        #           results[basis_name]['apply_time'],
+        #           basex=2,
+        #           basey=2,
+        #           label=basis_name)
+        plt.plot(results[basis_name]['N'],
+                [t/n for n,t in zip(results[basis_name]['N'], results[basis_name]['apply_time'])], label=basis_name)
     #plt.loglog(results['ThreePointBasis']['N'], [
     #    results['ThreePointBasis']['apply_time'][-1] /
     #    results['ThreePointBasis']['N'][-1] * N
@@ -35,7 +37,8 @@ def plot_results(results):
     #           label='quadratic')
     plt.title("Complexity of applying mass matrices")
     plt.xlabel("Number of degrees of freedom")
-    plt.ylabel("Seconds to apply 1 mass matrix")
+    #plt.ylabel("Seconds to apply 1 mass matrix")
+    plt.ylabel("Seconds per dof to apply 1 mass matrix")
     plt.grid(which='both')
     plt.legend()
     plt.show()
@@ -43,16 +46,15 @@ def plot_results(results):
 
 
 @pytest.mark.skip("timing test!")
-#@profile
 def test_linear_complexity():
     results = {}
     try:
-        for level in range(1, 20):
+        for level in range(1, 100):
             for basis in [
-                    HaarBasis.origin_refined_basis(max_level=level),
-#                    OrthonormalDiscontinuousLinearBasis.origin_refined_basis(
-#                        max_level=level - 1),
-#                    ThreePointBasis.uniform_basis(max_level=level)
+                    HaarBasis.uniform_basis(max_level=level),
+                    #OrthonormalDiscontinuousLinearBasis.uniform_basis(
+                    #    max_level=level - 1),
+                    #ThreePointBasis.origin_refined_basis(max_level=level)
             ]:
                 if not basis.__class__.__name__ in results:
                     results[basis.__class__.__name__] = {
@@ -60,7 +62,7 @@ def test_linear_complexity():
                         'apply_time': []
                     }
 
-                applicator = Applicator(basis, basis.singlescale_mass(),
+                applicator = Applicator(basis, basis.scaling_mass(),
                                         basis.indices)
                 N = len(basis.indices)
                 vec = IndexedVector(basis.indices, np.random.rand(N))
@@ -83,4 +85,4 @@ def test_linear_complexity():
 if __name__ == "__main__":
     results = test_linear_complexity()
     #cProfile.run('results = test_linear_complexity()', sort='tottime')
-    #plot_results(results)
+    plot_results(results)

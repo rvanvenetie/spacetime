@@ -34,6 +34,7 @@ class ThreePointBasis(Basis):
     @property
     def P(self):
         def row(labda):
+            assert self.scaling_labda_valid(labda)
             l, n = labda
             if n % 2 == 0:
                 return {(l - 1, n // 2): 1.0}
@@ -42,12 +43,13 @@ class ThreePointBasis(Basis):
                         (l - 1, (n // 2)+1): 0.5}
 
         def col(labda):
+            assert self.scaling_labda_valid(labda)
             l, n = labda
-            return {
-                (l + 1, 2 * n - 1): 0.5,
-                (l + 1, 2 * n): 1.0,
-                (l + 1, 2 * n + 1): 0.5
-            }
+            result = { (l + 1, 2 *n): 1.0}
+
+            if n > 0: result[(l+1, 2*n-1)] = 0.5
+            if n < 2**l: result[(l+1, 2*n+1)] = 0.5
+            return result
 
         return LinearOperator(row, col)
 
@@ -55,6 +57,7 @@ class ThreePointBasis(Basis):
     def Q(self):
         def row(labda):
             """ Retrieves a ss labda returns lin. comb. wavelet labdas. """
+            assert self.scaling_labda_valid(labda)
             l, n = labda
 
             if l == 0:
@@ -85,6 +88,7 @@ class ThreePointBasis(Basis):
 
         def col(labda):
             """ Retrieves a wavelet labda returns lin. comb. ss labdas. """
+            assert self.wavelet_labda_valid(labda)
             l, n = labda
 
             # TODO: this returns a different basis from the one used in followup.pdf
@@ -114,6 +118,10 @@ class ThreePointBasis(Basis):
             return result
 
         return LinearOperator(row, col)
+
+    def scaling_labda_valid(self, labda):
+        l, n = labda
+        return l >= 0 and 0 <= n <= 2**l
 
     def scaling_mass(self):
         def row(labda):
@@ -163,13 +171,20 @@ class ThreePointBasis(Basis):
         return LinearOperator(row)
 
     def scaling_support(self, labda):
+        assert self.scaling_labda_valid(labda)
         l, n = labda
-        assert 0 <= n <= 2**l
-        h = Fraction(1, 2**l)
         # The boundary scaling functions require special treatment.
-        left = max(h * (n-1), 0)
-        right = min(h * (n+1), 1)
+        left = max(Fraction(n-1, 2**l), 0)
+        right = min(Fraction(n+1, 2**l), 1)
         return Interval(left, right)
+
+    def scaling_support_new(self, labda, triang):
+        assert self.scaling_labda_valid(labda)
+        l, n = labda
+        result = []
+        if n > 0: result.append(triang.get_element((l, n-1)))
+        if n < 2**l: result.append(triang.get_element((l, n)))
+        return result
 
     def scaling_indices_nonzero_in_nbrhood(self, l, x):
         super().scaling_indices_nonzero_in_nbrhood(l, x)
@@ -188,6 +203,12 @@ class ThreePointBasis(Basis):
     def scaling_indices_on_level(self, l):
         return SingleLevelIndexSet({(l, n) for n in range(2**l + 1)})
 
+    def wavelet_labda_valid(self, labda):
+        l, n = labda
+        if l == 0: return self.scaling_labda_valid(labda)
+
+        return l > 0  and 0 <= n < 2**(l-1)
+
     def wavelet_support(self, labda):
         l, n = labda
         if l == 0:
@@ -195,12 +216,25 @@ class ThreePointBasis(Basis):
             return Interval(0, 1)
         else:
             assert 0 <= n < 2**(l - 1)
-            h = Fraction(1, 2**l)
 
             # Boundary wavelets require special treatment.
-            left = max(h + 2 * h * (n-1), 0)
-            right = min(h + 2 * h * (n+1), 1)
+            left = max(Fraction(1 + 2 * (n-1), 2**l), 0)
+            right = min(Fraction(1 + 2 * (n+1), 2**l), 1)
             return Interval(left, right)
+
+    def wavelet_support_new(self, labda, triang):
+        l, n = labda
+        if l == 0:
+            return self.scaling_support_new(labda, triang)
+
+        result = []
+        if n > 0:
+            result.append(triang.get_element((l, 2*n - 1)))
+        result.append(triang.get_element((l, 2*n)))
+        result.append(triang.get_element((l, 2*n+1)))
+        if n < 2**(l-1) - 1:
+            result.append(triang.get_element((l, 2*n + 2)))
+        return result
 
     def wavelet_indices_on_level(self, l):
         if l == 0:

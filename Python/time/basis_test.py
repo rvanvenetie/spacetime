@@ -177,6 +177,26 @@ def test_basis_PQ():
                     plt.show()
                     raise
 
+
+def test_basis_PQ_domain_range():
+    """ Test that the domains/ranges of operators P and Q are correct. """
+    ml = 6
+    for basis in [
+            HaarBasis.uniform_basis(max_level=ml),
+            OrthonormalDiscontinuousLinearBasis.uniform_basis(max_level=ml),
+            ThreePointBasis.uniform_basis(max_level=ml)]:
+        for l in range(1, ml + 1):
+            print('test PQ domain/range on level {} for {}'.format(l, basis.__class__.__name__))
+            Delta_l = basis.scaling_indices_on_level(l)
+            Lambda_l = basis.wavelet_indices_on_level(l)
+
+            assert basis.P.range(Delta_l) == basis.scaling_indices_on_level(l+1)
+            assert basis.P.domain(Delta_l) == basis.scaling_indices_on_level(l-1)
+
+            assert basis.Q.range(Lambda_l) == Delta_l
+            assert basis.Q.domain(Delta_l) == Lambda_l
+
+
 def test_basis_PQ_matrix():
     """ Test that P.T = PT and Q.T = QT as matrices. """
     ml = 6

@@ -1,6 +1,7 @@
 from index_set import MultiscaleIndexSet, SingleLevelIndexSet
 from indexed_vector import IndexedVector
 from interval import Interval, IntervalSet
+from triangulation import Triangulation
 
 
 class Applicator(object):
@@ -44,11 +45,27 @@ class Applicator(object):
         Returns:
             self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
+        triang = Triangulation()
+        for labda in self.Lambda_in:
+            for elem in self.basis_in.wavelet_support_new(labda, triang):
+                elem.Lambda_in.append(labda)
+
+                # Ensure that the children exist for more accurate timing results.
+                triang.bisect(elem)
+
+        for labda in self.Lambda_out:
+            for elem in self.basis_out.wavelet_support_new(labda, triang):
+                elem.Lambda_out.append(labda)
+
+                # Ensure that the children exist for more accurate timing results.
+                triang.bisect(elem)
+
         e, f = self._apply_recur(l=1,
                                  Pi_in=self.Lambda_in.on_level(0),
                                  Pi_out=self.Lambda_out.on_level(0),
                                  d=vec.on_level(0),
-                                 c=vec)
+                                 c=vec,
+                                 triang = triang)
         return e + f
 
     def apply_upp(self, vec):
@@ -83,7 +100,7 @@ class Applicator(object):
         return f
 
     #  Private methods from here on out.
-    def _construct_Pi_B_out(self, Pi_out, Lambda_l_in):
+    def _construct_Pi_B_out_old(self, Pi_out, Lambda_l_in):
         """ Singlescale indices labda st supp(phi_labda) intersects Lambda_l.
 
         Finds the subset Pi_B of Pi such that the support of phi_labda
@@ -109,7 +126,7 @@ class Applicator(object):
             if ivs.intersects(self.basis_out.scaling_support(index))
         })
 
-    def _construct_Pi_B_in(self, Pi_in, Lambda_l_out, Pi_B_out):
+    def _construct_Pi_B_in_old(self, Pi_in, Lambda_l_out, Pi_B_out):
         """ Similar to previous method, only with extra `Pi_B_out`.
 
         Goal complexity: O(|Pi_B_in|).
@@ -123,6 +140,59 @@ class Applicator(object):
             for index in Pi_in
             if ivs.intersects(self.basis_in.scaling_support(index))
         })
+
+    #@profile
+    def _construct_Pi_B_out(self, Pi_out, triang):
+        result = set()
+        for labda in Pi_out:
+            # Generate support of Phi_out_labda on level l - 1
+            support_labda = self.basis_out.scaling_support_new(labda, triang)
+
+            # Check if any of the children support a wavelet on level l
+            if any((child.Lambda_in for child in triang.children(support_labda))):
+                result.add(labda)
+
+                # Record that this Phi_labda is inside Pi_out
+                for elem in support_labda:
+                    elem.Pi_out.append(labda)
+
+        return SingleLevelIndexSet(result)
+
+    def _construct_Pi_B_in(self, Pi_in, Pi_B_out, triang):
+        """ Similar to previous method, only with extra `Pi_B_out`.
+
+        Goal complexity: O(|Pi_B_in|).
+        Current complexity: O(PiBin * (PiBout + LambdaL) log[PiBout + LabdaL]).
+        """
+        result = set()
+
+        for labda in Pi_in:
+            # Generate support of Phi_in_labda on level l - 1
+            support_labda = self.basis_in.scaling_support_new(labda, triang)
+
+            # Check if intersects with Phi_out_Pi_B on level l - 1, or
+            # with Lambda_l_out on level l
+            if any((elem.Pi_out for elem in support_labda)) or \
+               any((child.Lambda_out for child in triang.children(support_labda))):
+                result.add(labda)
+
+                for elem in support_labda:
+                    elem.Pi_in.append(labda)
+
+        return SingleLevelIndexSet(result)
+
+
+
+
+        ivs = IntervalSet(
+            [self.basis_out.wavelet_nbrhood(mu) for mu in Lambda_l_out] +
+            [self.basis_in.scaling_support(mu) for mu in Pi_B_out])
+        return SingleLevelIndexSet({
+            index
+            for index in Pi_in
+            if ivs.intersects(self.basis_in.scaling_support(index))
+        })
+
 
     def _largest_subset(self, l, basis, Pi_B, Lambda_l):
         """ Find Pi_bar, the largest index set contained contained in Pi_B and Lambda_l.
@@ -157,7 +227,8 @@ class Applicator(object):
 
         return SingleLevelIndexSet(result)
 
-    def _apply_recur(self, l, Pi_in, Pi_out, d, c):
+    #@profile
+    def _apply_recur(self, l, Pi_in, Pi_out, d, c, triang):
         """ Apply the multiscale operator on level l.
 
         Arguments:
@@ -166,6 +237,7 @@ class Applicator(object):
             Pi_out: a collection of singlescale indices on level l-1.
             d: a vector in ell_2(Pi_in).
             c: a vector in ell_2(Lambda_{l up}_in).
+            triang: triangulation object containing the supports
 
         Output:
             e: a vector in ell_2(Pi_bar_out)
@@ -175,15 +247,30 @@ class Applicator(object):
         Lambda_l_out = self.Lambda_out.on_level(l)
         if len(Pi_out) + len(Lambda_l_out) > 0 and len(Pi_in) + len(
                 Lambda_l_in) > 0:
-            Pi_B_out = self._construct_Pi_B_out(Pi_out, Lambda_l_in)
+            Pi_B_out_old = self._construct_Pi_B_out_old(Pi_out, Lambda_l_in)
+            Pi_B_out = self._construct_Pi_B_out(Pi_out, triang)
+            assert Pi_B_out == Pi_B_out_old
             Pi_A_out = Pi_out - Pi_B_out
-            Pi_B_in = self._construct_Pi_B_in(Pi_in, Lambda_l_out, Pi_B_out)
+
+            Pi_B_in_old = self._construct_Pi_B_in_old(Pi_in, Lambda_l_out, Pi_B_out)
+            Pi_B_in = self._construct_Pi_B_in(Pi_in, Pi_B_out, triang)
+            assert Pi_B_in == Pi_B_in_old
             Pi_A_in = Pi_in - Pi_B_in
 
-            Pi_bar_out = self._largest_subset(l, self.basis_out, Pi_B_out, Lambda_l_out)
-            Pi_bar_in = self._largest_subset(l, self.basis_in, Pi_B_in, Lambda_l_in)
+            Pi_bar_out_old = self._largest_subset(l, self.basis_out, Pi_B_out, Lambda_l_out)
+            Pi_bar_out = SingleLevelIndexSet(self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out))
+
+            # The new method simply uses the only indices that are necessary
+            assert Pi_bar_out.indices.issubset(Pi_bar_out_old.indices)
+
+            Pi_bar_in_old = self._largest_subset(l, self.basis_in, Pi_B_in, Lambda_l_in)
+            Pi_bar_in = SingleLevelIndexSet(self.basis_in.P.range(Pi_B_in) | self.basis_in.Q.range(Lambda_l_in))
+
+            # The new method simply uses the only indices that are necessary
+            assert Pi_bar_in.indices.issubset(Pi_bar_in_old.indices)
+
             d_bar = self.basis_in.P.matvec(Pi_B_in, Pi_bar_in, d) + self.basis_in.Q.matvec(Lambda_l_in, Pi_bar_in, c)
-            e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out, d_bar, c)
+            e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out, d_bar, c, triang)
             e = self.operator.matvec(Pi_in, Pi_A_out, d) + self.basis_out.P.rmatvec(Pi_bar_out, Pi_B_out, e_bar)
             f = self.basis_out.Q.rmatvec(Pi_bar_out, Lambda_l_out, e_bar) + f_bar
             return e, f

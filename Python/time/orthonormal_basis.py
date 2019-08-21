@@ -40,11 +40,13 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         block = np.array([[1, 0, 1, 0], [-sq3 / 2, 1 / 2, sq3 / 2, 1 / 2]])
 
         def row(labda):
+            assert self.scaling_labda_valid(labda)
             l, n = labda
             return {(l - 1, 2 * (n // 4) + i): block[i, n % 4]
                     for i in range(2)}
 
         def col(labda):
+            assert self.scaling_labda_valid(labda)
             l, n = labda
             return {(l + 1, 4 * (n // 2) + i): block[n % 2, i]
                     for i in range(4)}
@@ -56,11 +58,13 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         block = np.array([[-1 / 2, -sq3 / 2, 1 / 2, -sq3 / 2], [0, -1, 0, 1]])
 
         def row(labda):
+            assert self.scaling_labda_valid(labda)
             l, n = labda
             return {(l, 2 * (n // 4) + i): 2.0**((l - 1) / 2) * block[i, n % 4]
                     for i in range(2)}
 
         def col(labda):
+            assert self.wavelet_labda_valid(labda)
             l, n = labda
             return {(l, 4 * (n // 2) + i): 2.0**((l - 1) / 2) * block[n % 2, i]
                     for i in range(4)}
@@ -101,21 +105,35 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
                 (l - 1) / 2) * self.eval_mother_wavelet(
                     n % 2, 2**(l - 1) * x - (n // 2), deriv)
 
+    def wavelet_labda_valid(self, labda):
+        l, n = labda
+        if l == 0: return self.scaling_labda_valid(labda)
+        return l > 0 and  0 <= n < 2 * 2**(l-1)
+
     def wavelet_support(self, labda):
+        assert self.wavelet_labda_valid(labda)
+        l, n = labda
+        if l == 0: return Interval(0, 1)
+        h = Fraction(1, 2**(l-1))
+        return Interval(h * (n // 2), h * (n // 2 + 1))
+
+    def wavelet_support_new(self, labda, triang):
+        assert self.wavelet_labda_valid(labda)
         l, n = labda
         if l == 0:
-            assert n in [0, 1]
-            return Interval(0, 1)
+            return self.scaling_support_new(labda, triang)
         else:
-            assert 0 <= n < 2 * 2**(l - 1)
-            h = Fraction(1, 2**(l-1))
-            return Interval(h * (n // 2), h * (n // 2 + 1))
+            return [triang.get_element((l, 2 * (n//2))), triang.get_element((l, 2 * (n // 2) + 1))]
 
     def wavelet_indices_on_level(self, l):
         if l == 0:
             return SingleLevelIndexSet({(0,0), (0,1)})
         else:
             return SingleLevelIndexSet({(l, n) for n in range(2**l)})
+
+    def scaling_labda_valid(self, labda):
+        l, n = labda
+        return l >= 0 and 0 <= n < 2 * 2 **l
 
     def scaling_mass(self):
         """ The singlescale orthonormal mass matrix is simply 2**-l * Id. """
@@ -139,6 +157,11 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         assert 0 <= n < 2 * 2**l
         h = Fraction(1, 2**l)
         return Interval(h * (n // 2), h * (n // 2 + 1))
+
+    def scaling_support_new(self, labda, triang):
+        l, n = labda
+        assert 0 <= n < 2 * 2**l
+        return [triang.get_element((l, n//2))]
 
     def scaling_indices_nonzero_in_nbrhood(self, l, x):
         super().scaling_indices_nonzero_in_nbrhood(l, x)

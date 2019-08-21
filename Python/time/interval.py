@@ -8,8 +8,8 @@ class Interval(object):
     def __init__(self, a, b):
         assert isinstance(a, int) or isinstance(a, Fraction)
         assert isinstance(b, int) or isinstance(b, Fraction)
-        self.a = Fraction(a)
-        self.b = Fraction(b)
+        self.a = a
+        self.b = b
 
     @property
     def mid(self):
@@ -32,6 +32,9 @@ class Interval(object):
 
     def __repr__(self):
         return r"Interval(%s,%s)" % (self.a, self.b)
+
+    def __eq__(self, other):
+        return self.a == other.a and self.b == other.b
 
 
 class IntervalSet(object):
