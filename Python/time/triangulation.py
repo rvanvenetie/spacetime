@@ -54,11 +54,14 @@ class Triangulation:
         Retrieves the element object associated with interval:
             [2^-l * node_index, 2^-l * (node_index + 1)].
 
+        If key is an iterable, it will return all the corresponding elements.
         If ensure_existence is set, this will create all the parents
         necessary for this interval to exist.
 
         TODO: This function should be removed eventually!
         """
+        if isinstance(key, list):
+            return (self.get_element(k, ensure_existence) for k in key)
         if key in self.elements: return self.elements[key]
         if not ensure_existence: assert False
 

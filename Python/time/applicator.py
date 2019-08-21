@@ -2,6 +2,7 @@ from index_set import MultiscaleIndexSet, SingleLevelIndexSet
 from indexed_vector import IndexedVector
 from interval import Interval, IntervalSet
 from triangulation import Triangulation
+from basis import support_to_interval
 
 
 class Applicator(object):
@@ -40,14 +41,14 @@ class Applicator(object):
         """ Helper function to generate a triangulation with the correct fields set. """
         triang = Triangulation()
         for labda in self.Lambda_in:
-            for elem in self.basis_in.wavelet_support_new(labda, triang):
+            for elem in triang.get_element(self.basis_in.wavelet_support(labda)):
                 elem.Lambda_in = True
 
                 # Ensure that the children exist for more accurate timing results.
                 triang.bisect(elem)
 
         for labda in self.Lambda_out:
-            for elem in self.basis_out.wavelet_support_new(labda, triang):
+            for elem in triang.get_element(self.basis_out.wavelet_support(labda)):
                 elem.Lambda_out = True
 
                 # Ensure that the children exist for more accurate timing results.
@@ -166,7 +167,7 @@ class Applicator(object):
         result = set()
         for labda in Pi_out:
             # Generate support of Phi_out_labda on level l - 1
-            support_labda = self.basis_out.scaling_support_new(labda, triang)
+            support_labda = triang.get_element(self.basis_out.scaling_support(labda))
 
             # Check if any of the children support a wavelet on level l
             if any((child.Lambda_in for child in triang.children(support_labda))):
@@ -182,12 +183,12 @@ class Applicator(object):
 
         # Set all the Pi_B_out boys.
         for labda in Pi_B_out:
-            for elem in self.basis_out.scaling_support_new(labda, triang):
+            for elem in triang.get_element(self.basis_out.scaling_support(labda)):
                 elem.Pi_out = True
 
         for labda in Pi_in:
             # Generate support of Phi_in_labda on level l - 1.
-            support_labda = self.basis_in.scaling_support_new(labda, triang)
+            support_labda = triang.get_element(self.basis_in.scaling_support(labda))
 
             # Check if intersects with Phi_out_Pi_B on level l - 1, or
             # with Lambda_l_out on level l.
@@ -197,7 +198,7 @@ class Applicator(object):
 
         # Unset all the Pi_B_out boys
         for labda in Pi_B_out:
-            for elem in self.basis_out.scaling_support_new(labda, triang):
+            for elem in triang.get_element(self.basis_out.scaling_support(labda)):
                 elem.Pi_out = False
         #TODO: The above might not be neccessary.
 
@@ -221,8 +222,8 @@ class Applicator(object):
         Returns:
             Pi_bar: singlescale indices on level l.
         """
-        ivs = IntervalSet([basis.scaling_support(index) for index in Pi_B] +
-                          [basis.wavelet_support(index) for index in Lambda_l])
+        ivs = IntervalSet([support_to_interval(basis.scaling_support(index)) for index in Pi_B] +
+                          [support_to_interval(basis.wavelet_support(index)) for index in Lambda_l])
 
         result = set()
         for iv in ivs:
@@ -232,7 +233,7 @@ class Applicator(object):
 
             # TODO: assume that the indices are ordered left to right.
             assert left_index <= right_index
-            result.update({(l, index) for index in range(left_index, right_index+1) if iv.contains(basis.scaling_support((l, index)))})
+            result.update({(l, index) for index in range(left_index, right_index+1) if iv.contains(support_to_interval(basis.scaling_support((l, index))))})
 
         return SingleLevelIndexSet(result)
 

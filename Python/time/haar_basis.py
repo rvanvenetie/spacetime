@@ -5,8 +5,6 @@ from indexed_vector import IndexedVector
 from interval import Interval, IntervalSet
 from linear_operator import LinearOperator
 
-from fractions import Fraction
-
 import numpy as np
 
 
@@ -85,18 +83,8 @@ class HaarBasis(Basis):
     def wavelet_support(self, labda):
         assert self.wavelet_labda_valid(labda)
         l, n = labda
-        if l == 0: return Interval(0, 1)
-
-        h = Fraction(1, 2**(l-1))
-        return Interval(h * n, h * (n + 1))
-
-    def wavelet_support_new(self, labda, triang):
-        assert self.wavelet_labda_valid(labda)
-        l, n = labda
-        if l == 0:
-            return self.scaling_support_new(labda, triang)
-
-        return [triang.get_element((l, 2*n)), triang.get_element((l,2 * n + 1))]
+        if l == 0: return self.scaling_support(labda)
+        return [(l, 2*n), (l,2 * n + 1)]
 
     def wavelet_indices_on_level(self, l):
         if l == 0:
@@ -117,12 +105,7 @@ class HaarBasis(Basis):
 
     def scaling_support(self, labda):
         assert self.scaling_labda_valid(labda)
-        l, n = labda
-        h = Fraction(1, 2**l)
-        return Interval(h * n, h * (n + 1))
-
-    def scaling_support_new(self, labda, triang):
-        return [triang.get_element(labda)]
+        return [labda]
 
     def scaling_indices_nonzero_in_nbrhood(self, l, x):
         super().scaling_indices_nonzero_in_nbrhood(l, x)

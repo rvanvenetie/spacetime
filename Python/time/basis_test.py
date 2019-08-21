@@ -1,3 +1,4 @@
+from basis import support_to_interval
 from haar_basis import HaarBasis
 from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
 from three_point_basis import ThreePointBasis #, ms2ss, ss2ms, position_ms
@@ -5,6 +6,7 @@ from three_point_basis import ThreePointBasis #, ms2ss, ss2ms, position_ms
 from index_set import MultiscaleIndexSet
 from indexed_vector import IndexedVector
 from linear_operator_test import check_linop_transpose
+from interval import Interval
 
 import numpy as np
 from scipy.integrate import quad
@@ -16,7 +18,6 @@ import pytest
 np.set_printoptions(linewidth=10000, precision=3)
 
 def F(x,y): return Fraction(x,y)
-
 
 def test_haar_ss_nonzero_in_nbrhood():
     """ Test that we always return the correct non-zero function. """
@@ -53,8 +54,8 @@ def test_orthonormal_ss_nonzero_in_nbrhood():
         for n in range(2**(l+1)):
             labda = (l, n)
             support = basis.scaling_support(labda)
+            support = support_to_interval(support)
 
-            print(labda, support)
             assert labda in basis.scaling_indices_nonzero_in_nbrhood(l, support.a)
             assert labda in basis.scaling_indices_nonzero_in_nbrhood(l, support.mid)
             assert labda in basis.scaling_indices_nonzero_in_nbrhood(l, support.b)
@@ -110,13 +111,13 @@ def test_basis_correct_support():
             Pi_bar = basis.scaling_indices_on_level(l)
             Lambda_l = basis.indices.on_level(l)
             for i, mu in enumerate(Pi_B.asarray()):
-                ss_support = basis.scaling_support(mu)
+                ss_support = support_to_interval(basis.scaling_support(mu))
                 nz = np.nonzero(basis.eval_scaling(mu, x))[0]
                 assert (nz[0] + 1) / N >= ss_support.a >= (nz[0] - 1) / N
                 assert (nz[-1] - 1) / N <= ss_support.b <= (nz[-1] + 1) / N
 
             for i, mu in enumerate(Lambda_l.asarray()):
-                ms_support = basis.wavelet_support(mu)
+                ms_support = support_to_interval(basis.wavelet_support(mu))
                 nz = np.nonzero(basis.eval_wavelet(mu, x))[0]
                 assert nz.shape[0]
                 assert (nz[0] + 1) / N >= ms_support.a >= (nz[0] - 1) / N
@@ -258,11 +259,11 @@ def test_singlescale_quadrature():
             Delta_l_out = basis_out.scaling_indices_on_level(l)
             eye = np.eye(len(Delta_l_in))
             for i, labda in enumerate(Delta_l_in.asarray()):
-                phi_supp = basis_in.scaling_support(labda)
+                phi_supp = support_to_interval(basis_in.scaling_support(labda))
                 unit_vec = IndexedVector(Delta_l_in, eye[i, :])
                 out = operator.matvec(Delta_l_in, Delta_l_out, unit_vec)
                 for mu in Delta_l_out.asarray():
-                    supp = phi_supp.intersection(basis_out.scaling_support(mu))
+                    supp = phi_supp.intersection(support_to_interval(basis_out.scaling_support(mu)))
                     true_val = 0.0
                     if supp:
                         true_val = quad(

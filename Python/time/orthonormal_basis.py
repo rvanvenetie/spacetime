@@ -113,17 +113,8 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
     def wavelet_support(self, labda):
         assert self.wavelet_labda_valid(labda)
         l, n = labda
-        if l == 0: return Interval(0, 1)
-        h = Fraction(1, 2**(l-1))
-        return Interval(h * (n // 2), h * (n // 2 + 1))
-
-    def wavelet_support_new(self, labda, triang):
-        assert self.wavelet_labda_valid(labda)
-        l, n = labda
-        if l == 0:
-            return self.scaling_support_new(labda, triang)
-        else:
-            return [triang.get_element((l, 2 * (n//2))), triang.get_element((l, 2 * (n // 2) + 1))]
+        if l == 0: return self.scaling_support(labda)
+        else: return [(l, 2 * (n//2)), (l, 2 * (n // 2) + 1)]
 
     def wavelet_indices_on_level(self, l):
         if l == 0:
@@ -153,15 +144,9 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         return LinearOperator(row, None)
 
     def scaling_support(self, labda):
+        assert self.scaling_labda_valid(labda)
         l, n = labda
-        assert 0 <= n < 2 * 2**l
-        h = Fraction(1, 2**l)
-        return Interval(h * (n // 2), h * (n // 2 + 1))
-
-    def scaling_support_new(self, labda, triang):
-        l, n = labda
-        assert 0 <= n < 2 * 2**l
-        return [triang.get_element((l, n//2))]
+        return [(l, n//2)]
 
     def scaling_indices_nonzero_in_nbrhood(self, l, x):
         super().scaling_indices_nonzero_in_nbrhood(l, x)

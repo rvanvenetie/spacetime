@@ -173,17 +173,9 @@ class ThreePointBasis(Basis):
     def scaling_support(self, labda):
         assert self.scaling_labda_valid(labda)
         l, n = labda
-        # The boundary scaling functions require special treatment.
-        left = max(Fraction(n-1, 2**l), 0)
-        right = min(Fraction(n+1, 2**l), 1)
-        return Interval(left, right)
-
-    def scaling_support_new(self, labda, triang):
-        assert self.scaling_labda_valid(labda)
-        l, n = labda
         result = []
-        if n > 0: result.append(triang.get_element((l, n-1)))
-        if n < 2**l: result.append(triang.get_element((l, n)))
+        if n > 0: result.append((l, n-1))
+        if n < 2**l: result.append((l, n))
         return result
 
     def scaling_indices_nonzero_in_nbrhood(self, l, x):
@@ -206,34 +198,18 @@ class ThreePointBasis(Basis):
     def wavelet_labda_valid(self, labda):
         l, n = labda
         if l == 0: return self.scaling_labda_valid(labda)
-
         return l > 0  and 0 <= n < 2**(l-1)
 
     def wavelet_support(self, labda):
+        assert self.wavelet_labda_valid(labda)
         l, n = labda
-        if l == 0:
-            assert 0 <= n <=  1
-            return Interval(0, 1)
-        else:
-            assert 0 <= n < 2**(l - 1)
-
-            # Boundary wavelets require special treatment.
-            left = max(Fraction(1 + 2 * (n-1), 2**l), 0)
-            right = min(Fraction(1 + 2 * (n+1), 2**l), 1)
-            return Interval(left, right)
-
-    def wavelet_support_new(self, labda, triang):
-        l, n = labda
-        if l == 0:
-            return self.scaling_support_new(labda, triang)
+        if l == 0: return self.scaling_support(labda)
 
         result = []
-        if n > 0:
-            result.append(triang.get_element((l, 2*n - 1)))
-        result.append(triang.get_element((l, 2*n)))
-        result.append(triang.get_element((l, 2*n+1)))
-        if n < 2**(l-1) - 1:
-            result.append(triang.get_element((l, 2*n + 2)))
+        if n > 0: result.append((l, 2*n - 1))
+        result.append((l, 2*n))
+        result.append((l, 2*n+1))
+        if n < 2**(l-1) - 1: result.append((l, 2*n + 2))
         return result
 
     def wavelet_indices_on_level(self, l):

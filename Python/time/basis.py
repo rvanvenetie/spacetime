@@ -5,9 +5,17 @@ from fractions import Fraction
 
 sq3 = np.sqrt(3)
 
+def support_to_interval(lst):
+    """ Convert a list of tuples (l, n) to an actual interval.
+
+    TODO: Legacy, remove this. """
+    lst.sort()
+    l, n_a = lst[0]
+    _, n_b = lst[-1]
+    return Interval(Fraction(n_a, 2**l), Fraction(n_b + 1, 2**l))
+
 
 #TODO: Misschien moeten we de basis splitten in twee classes for schaling functies en waveletfuncties?
-
 
 class Basis(object):
     def __init__(self, indices):
@@ -56,7 +64,11 @@ class Basis(object):
         pass
 
     def scaling_support(self, labda):
-        """ The support of the scaling function phi_labda. """
+        """ The support of the scaling function phi_labda.
+
+        The support is given as a list of tuples (l, n), corresponding
+        to a (sub)interval [2^-l * n, 2^-l * (n+1)].
+        """
         pass
 
     def scaling_indices_on_level(self, l):

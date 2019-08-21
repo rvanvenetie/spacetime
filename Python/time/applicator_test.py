@@ -5,6 +5,7 @@ from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
 from three_point_basis import ThreePointBasis
 from indexed_vector import IndexedVector
 from index_set import MultiscaleIndexSet, SingleLevelIndexSet
+from basis import support_to_interval
 
 import numpy as np
 from scipy.integrate import quad
@@ -111,12 +112,12 @@ def test_multiscale_operator_quadrature():
             resmat = np.zeros([len(Lambda_in), len(Lambda_out)])
             truemat = np.zeros([len(Lambda_in), len(Lambda_out)])
             for i, labda in enumerate(sorted(Lambda_in)):
-                supp_labda = basis_in.wavelet_support(labda)
+                supp_labda = support_to_interval(basis_in.wavelet_support(labda))
                 vec = IndexedVector(Lambda_in, eye[i, :])
                 res = applicator.apply(vec)
                 resmat[i, :] = res.asarray()
                 for j, mu in enumerate(sorted(Lambda_out)):
-                    supp_mu = basis_out.wavelet_support(mu)
+                    supp_mu = support_to_interval(basis_out.wavelet_support(mu))
                     supp_total = supp_labda.intersection(supp_mu)
                     true_val = 0.0
                     if supp_total:
@@ -157,6 +158,7 @@ def test_apply_upp_low_vs_full():
         for l in range(1, 6):
             Lambda = basis.indices.until_level(l)
             applicator = Applicator(basis, basis.scaling_mass(), Lambda)
+            print(l, basis.__class__.__name__, Lambda)
             for _ in range(10):
                 c = IndexedVector(Lambda, np.random.rand(len(Lambda)))
                 res_full_op = applicator.apply(c)
