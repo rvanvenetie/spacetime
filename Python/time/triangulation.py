@@ -61,7 +61,7 @@ class Triangulation:
         TODO: This function should be removed eventually!
         """
         if isinstance(key, list):
-            return (self.get_element(k, ensure_existence) for k in key)
+            return [self.get_element(k, ensure_existence) for k in key]
         if key in self.elements: return self.elements[key]
         if not ensure_existence: assert False
 
@@ -81,7 +81,7 @@ class Triangulation:
         doesn't have children yet.
         """
         if isinstance(elem, Iterable):
-            return (child for e in elem for child in self.children(e, ensure_existence))
+            return [child for e in elem for child in self.children(e, ensure_existence)]
 
         if elem.children: return elem.children
         if not ensure_existence: assert False
