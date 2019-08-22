@@ -141,7 +141,7 @@ def test_basis_PQ():
             Pi_B = basis.scaling_indices_on_level(l - 1)
             Pi_bar = basis.scaling_indices_on_level(l)
             eye = np.eye(len(Pi_B))
-            for i, mu in enumerate(Pi_B.asarray()):
+            for i, mu in enumerate(Pi_B):
                 # Write phi_mu on lv l-1 as combination of scalings on lv l.
                 vec = IndexedVector(Pi_B, eye[i, :])
                 res = basis.P.matvec(Pi_B, Pi_bar, vec)
@@ -156,7 +156,8 @@ def test_basis_PQ():
                     raise
 
             Lambda_l = basis.indices.on_level(l)
-            for i, mu in enumerate(Lambda_l.asarray()):
+            eye = np.eye(len(Lambda_l))
+            for i, mu in enumerate(Lambda_l):
                 # Write psi_mu on lv l as combination of scalings on lv l.
                 vec = IndexedVector(Lambda_l, eye[i, :])
                 res = basis.Q.matvec(Lambda_l, Pi_bar, vec)
@@ -258,11 +259,11 @@ def test_singlescale_quadrature():
             Delta_l_in = basis_in.scaling_indices_on_level(l)
             Delta_l_out = basis_out.scaling_indices_on_level(l)
             eye = np.eye(len(Delta_l_in))
-            for i, labda in enumerate(Delta_l_in.asarray()):
+            for i, labda in enumerate(Delta_l_in):
                 phi_supp = support_to_interval(basis_in.scaling_support(labda))
                 unit_vec = IndexedVector(Delta_l_in, eye[i, :])
                 out = operator.matvec(Delta_l_in, Delta_l_out, unit_vec)
-                for mu in Delta_l_out.asarray():
+                for mu in Delta_l_out:
                     supp = phi_supp.intersection(support_to_interval(basis_out.scaling_support(mu)))
                     true_val = 0.0
                     if supp:

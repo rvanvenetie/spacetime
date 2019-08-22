@@ -2,36 +2,41 @@ from interval import Interval
 from fractions import Fraction
 from collections import Iterable
 
-class Element:
-    """ Represents an interval part of a locally refined triangulation.
-
-    Represents the interval [2^(-l)*node_index, 2^(-l)*(node_index+1)].
-    """
-    def __init__(self, level, node_index, parent):
-        self.level = level
-        self.node_index = node_index
-        self.parent = parent
-        self.children = []
-        h = Fraction(1, 2**level)
-        self.interval = Interval(h * node_index, h * (node_index + 1))
-
-        # TODO: this should be moved to a different class
-        self.Lambda_in = False
-        self.Lambda_out = False
-        self.Pi_in = False
-        self.Pi_out = False
-
-    def is_leaf(self):
-        return not len(self.children)
-
-    @property
-    def key(self):
-        return (self.level, self.node_index)
-
 class Triangulation:
     """ Represents a locally refined triangulation of the interval [0,1]. """
 
-    def __init__(self):
+    class Element:
+        """ Represents an interval part of a locally refined triangulation.
+
+        Represents the interval [2^(-l)*node_index, 2^(-l)*(node_index+1)].
+        """
+        def __init__(self, level, node_index, parent):
+            self.level = level
+            self.node_index = node_index
+            self.parent = parent
+            self.children = []
+
+        @property
+        def interval(self):
+            h = Fraction(1, 2**self.level)
+            return Interval(h * self.node_index, h * (self.node_index + 1))
+
+        def is_leaf(self):
+            return not len(self.children)
+
+        @property
+        def key(self):
+            return (self.level, self.node_index)
+
+    def __init__(self, element_class=Element):
+        """
+        Initializes the triangulation object.
+
+        In case you would like to use another element class, you can pass
+        it as an argument.
+        """
+        self.element_class = element_class
+
         # Store all elements inside a hashmap
         self.elements = {}
 
@@ -39,7 +44,7 @@ class Triangulation:
         self.per_level = [[] for _ in range(1024)]
 
         # Create the initial element of [0,1]
-        self.mother_element = Element(0, 0, None)
+        self.mother_element = self.element_class(0, 0, None)
         self._add_element(self.mother_element)
 
     def _add_element(self, elem):
@@ -72,21 +77,15 @@ class Triangulation:
         self.bisect(parent)
         return self.elements[key]
 
-    def children(self, elem, ensure_existence=True):
+    def children(self, elem):
         """ Returns the children associated to `elem`.
 
         If elem is an iterable, it will return a iterable to all of its children.
-
-        If ensure_existence is set, this will bisect the given element if it
-        doesn't have children yet.
         """
         if isinstance(elem, Iterable):
-            return [child for e in elem for child in self.children(e, ensure_existence)]
-
-        if elem.children: return elem.children
-        if not ensure_existence: assert False
-        self.bisect(elem)
+            return [child for e in elem for child in self.children(e)]
         return elem.children
+
 
     def bisect(self, elem):
         """ Bisects `elem`.
@@ -94,8 +93,8 @@ class Triangulation:
         If this element was already bisected, then this function has no effect.
         """
         if not elem.is_leaf(): return
-        child_left = Element(elem.level + 1, elem.node_index * 2, elem)
-        child_right = Element(elem.level + 1, elem.node_index * 2 + 1, elem)
+        child_left = self.element_class(elem.level + 1, elem.node_index * 2, elem)
+        child_right = self.element_class(elem.level + 1, elem.node_index * 2 + 1, elem)
         self._add_element(child_left)
         self._add_element(child_right)
         elem.children = [child_left, child_right]

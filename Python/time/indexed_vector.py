@@ -1,28 +1,29 @@
 from index_set import IndexSet
 import numpy as np
 import collections.abc
+from collections import Iterable
 
 
 class IndexedVector(collections.abc.Mapping):
     """ A vector defined on an index set.
-    
+
     If it is a Tuple[IndexSet, scipy.sparse.*], then methods like `on_level()`
     could be implemented efficiently, I think.
     """
 
     def __init__(self, index_set, values=None):
         """ Initialize the vector.
-        
+
         This is done with either a dictionary of index:value pairs (faster),
         or an IndexSet together with a list-like of values (slower).
         """
         if isinstance(index_set, dict):
             self.vector = index_set
-        elif isinstance(index_set, IndexSet):
-            self.vector = {
-                key: value
-                for (key, value) in zip(sorted(index_set), values)
-            }
+        elif isinstance(index_set, Iterable) and values is not None:
+            assert len(index_set) == len(values)
+            self.vector = {key : value for key, value in zip(index_set, values)}
+        else:
+            raise TypeError('IndexedVector encoutered unknown type: {}'.format(type(index_set)))
 
     @classmethod
     def Zero(cls):
@@ -63,9 +64,12 @@ class IndexedVector(collections.abc.Mapping):
                 vec[key] = other.vector[key]
         return IndexedVector(vec)
 
-    def asarray(self):
+    def asarray(self, keys_ordering=None):
         """ Slightly expensive. Mainly for testing. """
-        return np.array([self[k] for k in sorted(self.keys())])
+        if keys_ordering:
+            return np.array([self[k] for k in keys_ordering])
+        else:
+            return np.array([self[k] for k in self.keys()])
 
     def dot(self, index_mask, other):
         """ Dot-product; only treat indices in `index_mask` as nonzero. """

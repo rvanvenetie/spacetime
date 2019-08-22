@@ -37,22 +37,29 @@ class Applicator(object):
         self.Lambda_in = Lambda_in if Lambda_in else basis_in.indices
         self.Lambda_out = Lambda_out if Lambda_out else Lambda_in
 
+
     def _triang(self):
         """ Helper function to generate a triangulation with the correct fields set. """
-        triang = Triangulation()
+
+        class ElementExtended(Triangulation.Element):
+            """ Extend the element class to hold some extra variables. """
+            def __init__(self, level, node_index, parent):
+                super().__init__(level, node_index, parent)
+
+                # Add some extra variables.
+                self.Lambda_in = False
+                self.Lambda_out = False
+                self.Pi_in = False
+                self.Pi_out = False
+
+        triang = Triangulation(ElementExtended)
         for labda in self.Lambda_in:
             for elem in triang.get_element(self.basis_in.wavelet_support(labda)):
                 elem.Lambda_in = True
 
-                # Ensure that the children exist for more accurate timing results.
-                triang.bisect(elem)
-
         for labda in self.Lambda_out:
             for elem in triang.get_element(self.basis_out.wavelet_support(labda)):
                 elem.Lambda_out = True
-
-                # Ensure that the children exist for more accurate timing results.
-                triang.bisect(elem)
         return triang
 
     def apply(self, vec):
@@ -106,48 +113,6 @@ class Applicator(object):
         return f
 
     #  Private methods from here on out.
-    def _construct_Pi_B_out_old(self, Pi_out, Lambda_l_in):
-        """ Singlescale indices labda st supp(phi_labda) intersects Lambda_l.
-
-        Finds the subset Pi_B of Pi such that the support of phi_labda
-        intersects some S(mu) for mu in Lambda_l.
-        Necessary for computing Pi_B in apply/apply_upp/apply_low.
-
-        Goal complexity: O(|Pi_B|).
-        Current complexity: O(|PiBin| * |LambdaL| log[|LabdaL|]).
-        TODO: make faster. it could be faster/easier to compute Pi_A?
-
-        Arguments:
-            Pi_out: SingleLevelIndexSet of singlescale indices on level l-1.
-            Lambda_l_in: SingleLevelIndexSet of multiscale indices on level l.
-
-        Returns:
-            Pi_B_out: SingleLevelIndexSet of singlescale indices on level l-1.
-        """
-        ivs = IntervalSet(
-            [self.basis_in.wavelet_nbrhood(mu) for mu in Lambda_l_in])
-        return SingleLevelIndexSet({
-            index
-            for index in Pi_out
-            if ivs.intersects(self.basis_out.scaling_support(index))
-        })
-
-    def _construct_Pi_B_in_old(self, Pi_in, Lambda_l_out, Pi_B_out):
-        """ Similar to previous method, only with extra `Pi_B_out`.
-
-        Goal complexity: O(|Pi_B_in|).
-        Current complexity: O(PiBin * (PiBout + LambdaL) log[PiBout + LabdaL]).
-        """
-        ivs = IntervalSet(
-            [self.basis_out.wavelet_nbrhood(mu) for mu in Lambda_l_out] +
-            [self.basis_in.scaling_support(mu) for mu in Pi_B_out])
-        return SingleLevelIndexSet({
-            index
-            for index in Pi_in
-            if ivs.intersects(self.basis_in.scaling_support(index))
-        })
-
-    #@profile
     def _construct_Pi_B_out(self, Pi_out, triang):
         """ Singlescale indices labda st supp(phi_labda) intersects Lambda_l.
 
@@ -204,40 +169,6 @@ class Applicator(object):
 
         return SingleLevelIndexSet(result)
 
-    def _largest_subset(self, l, basis, Pi_B, Lambda_l):
-        """ Find Pi_bar, the largest index set contained contained in Pi_B and Lambda_l.
-
-        span Phi_{Pi_bar} subset Phi_{Pi_B} cup span Psi_{Lambda_l}.
-
-        Goal complexity: O(|Pi_bar|).
-        Current compl: O(|Pi_bar|*((Pi_B + Lambda_l) log[Pi_B + Lambda_L])).
-        TODO: make this quicker.
-
-        Arguments:
-            l: the current level.
-            basis: the basis to work on.
-            Pi_B: singlescale indices on level l-1.
-            Lambda_l: multiscale indices on level l.
-
-        Returns:
-            Pi_bar: singlescale indices on level l.
-        """
-        ivs = IntervalSet([support_to_interval(basis.scaling_support(index)) for index in Pi_B] +
-                          [support_to_interval(basis.wavelet_support(index)) for index in Lambda_l])
-
-        result = set()
-        for iv in ivs:
-            # Find the leftmost and rightmost index `active` in this interval
-            left_index = min(basis.scaling_indices_nonzero_in_nbrhood(l, iv.a))[1]
-            right_index = max(basis.scaling_indices_nonzero_in_nbrhood(l, iv.b))[1]
-
-            # TODO: assume that the indices are ordered left to right.
-            assert left_index <= right_index
-            result.update({(l, index) for index in range(left_index, right_index+1) if iv.contains(support_to_interval(basis.scaling_support((l, index))))})
-
-        return SingleLevelIndexSet(result)
-
-    #@profile
     def _apply_recur(self, l, Pi_in, Pi_out, d, c, triang):
         """ Apply the multiscale operator on level l.
 
@@ -247,7 +178,7 @@ class Applicator(object):
             Pi_out: a collection of singlescale indices on level l-1.
             d: a vector in ell_2(Pi_in).
             c: a vector in ell_2(Lambda_{l up}_in).
-            triang: triangulation object containing the supports
+            triang: triangulation object containing the supports.
 
         Output:
             e: a vector in ell_2(Pi_bar_out)

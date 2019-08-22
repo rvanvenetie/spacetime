@@ -16,7 +16,6 @@ def support_to_interval(lst):
 
 
 #TODO: Misschien moeten we de basis splitten in twee classes for schaling functies en waveletfuncties?
-
 class Basis(object):
     def __init__(self, indices):
         """ Default constructor. """

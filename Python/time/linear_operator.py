@@ -41,10 +41,10 @@ class LinearOperator(object):
         assert self.col
         if out:
             for labda in indices_out:
-                out[labda] = vec.dot(indices_in.indices, self.col(labda))
+                out[labda] = vec.dot(indices_in, self.col(labda))
         else:
             return IndexedVector({
-                labda: vec.dot(indices_in.indices, self.col(labda))
+                labda: vec.dot(indices_in, self.col(labda))
                 for labda in indices_out
             })
 

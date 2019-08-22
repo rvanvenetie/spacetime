@@ -1,6 +1,7 @@
 from applicator import Applicator
 
 from haar_basis import HaarBasis
+from basis import support_to_interval
 from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
 from three_point_basis import ThreePointBasis
 from index_set import MultiscaleIndexSet
@@ -34,7 +35,7 @@ class ScipyLinearOperator(linalg.LinearOperator):
                                             indexed_vector)
         for labda in self.boundary_condition:
             output[labda] = 0.0
-        return output.asarray()
+        return output.asarray(self.indices)
 
 
 def test_singlescale_ode_solve(plot=False):
@@ -56,7 +57,7 @@ def test_singlescale_ode_solve(plot=False):
         # Build RHS, simply through quadrature.
         rhs = {}
         for labda in indices:
-            supp = basis.scaling_support(labda)
+            supp = support_to_interval(basis.scaling_support(labda))
             rhs[labda] = 0.0 if labda in boundary_condition else quad(
                 lambda t: -dtt_u(t) * basis.eval_scaling(labda, t),
                 supp.a,
@@ -110,7 +111,7 @@ def test_multiscale_ode_solve(plot=False):
         # Build RHS.
         rhs_dict = {}
         for labda in indices:
-            supp = basis.wavelet_support(labda)
+            supp = support_to_interval(basis.wavelet_support(labda))
             rhs_dict[labda] = 0.0 if labda in boundary_condition else quad(
                 lambda t: -dtt_u(t) * basis.eval_wavelet(labda, t),
                 supp.a,

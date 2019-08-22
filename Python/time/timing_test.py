@@ -51,10 +51,10 @@ def test_linear_complexity():
     try:
         for level in range(1, 100):
             for basis in [
-                    HaarBasis.uniform_basis(max_level=level),
+                    #HaarBasis.uniform_basis(max_level=level),
                     #OrthonormalDiscontinuousLinearBasis.uniform_basis(
                     #    max_level=level - 1),
-                    #ThreePointBasis.origin_refined_basis(max_level=level)
+                    ThreePointBasis.origin_refined_basis(max_level=level)
             ]:
                 if not basis.__class__.__name__ in results:
                     results[basis.__class__.__name__] = {
