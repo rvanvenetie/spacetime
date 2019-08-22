@@ -50,10 +50,9 @@ class IndexedVector(collections.abc.Mapping):
     def __repr__(self):
         return r"IndexedVector(%s)" % self.vector
 
-    def on_level(self, l):
+    def restrict(self, indices):
         return IndexedVector(
-            {key: self.vector[key]
-             for key in self.vector if key[0] == l})
+            {key: self.vector[key] for key in indices if key in self.vector})
 
     def __add__(self, other):
         vec = self.vector

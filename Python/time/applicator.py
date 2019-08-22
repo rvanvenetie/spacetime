@@ -35,7 +35,7 @@ class Applicator(object):
         self.basis_out = basis_out if basis_out else basis_in
         self.operator = singlescale_operator
         self.Lambda_in = Lambda_in if Lambda_in else basis_in.indices
-        self.Lambda_out = Lambda_out if Lambda_out else Lambda_in
+        self.Lambda_out = Lambda_out if Lambda_out else self.Lambda_in
 
 
     def _triang(self):
@@ -74,7 +74,7 @@ class Applicator(object):
         e, f = self._apply_recur(l=1,
                                  Pi_in=self.Lambda_in.on_level(0),
                                  Pi_out=self.Lambda_out.on_level(0),
-                                 d=vec.on_level(0),
+                                 d=vec.restrict(self.Lambda_in.on_level(0)),
                                  c=vec,
                                  triang = self._triang())
         return e + f
@@ -91,7 +91,7 @@ class Applicator(object):
         e, f = self._apply_upp_recur(l=1,
                                      Pi_in=self.Lambda_in.on_level(0),
                                      Pi_out=self.Lambda_out.on_level(0),
-                                     d=vec.on_level(0),
+                                     d=vec.restrict(self.Lambda_in.on_level(0)),
                                      c=vec,
                                      triang=self._triang())
         return e + f
@@ -107,13 +107,13 @@ class Applicator(object):
         """
         f = self._apply_low_recur(l=1,
                                   Pi_in=self.Lambda_in.on_level(0),
-                                  d=vec.on_level(0),
+                                  d=vec.restrict(self.Lambda_in.on_level(0)),
                                   c=vec,
                                   triang=self._triang())
         return f
 
     #  Private methods from here on out.
-    def _construct_Pi_B_out(self, Pi_out, triang):
+    def _construct_Pi_out(self, Pi_out, triang):
         """ Singlescale indices labda st supp(phi_labda) intersects Lambda_l.
 
         Finds the subset Pi_B of Pi such that the support of phi_labda
@@ -129,22 +129,26 @@ class Applicator(object):
         Returns:
             Pi_B_out: SingleLevelIndexSet of singlescale indices on level l-1.
         """
-        result = set()
+        Pi_B_out = []
+        Pi_A_out = []
+
         for labda in Pi_out:
             # Generate support of Phi_out_labda on level l - 1
             support_labda = triang.get_element(self.basis_out.scaling_support(labda))
 
             # Check if any of the children support a wavelet on level l
             if any((child.Lambda_in for child in triang.children(support_labda))):
-                result.add(labda)
-
+                Pi_B_out.append(labda)
                 # TODO: possible set support_labda.Pi_out = True here.
+            else:
+                Pi_A_out.append(labda)
 
-        return SingleLevelIndexSet(result)
+        return Pi_B_out, Pi_A_out
 
-    def _construct_Pi_B_in(self, Pi_in, Pi_B_out, triang):
+    def _construct_Pi_in(self, Pi_in, Pi_B_out, triang):
         """ Similar to previous method, only with extra `Pi_B_out`. """
-        result = set()
+        Pi_B_in = []
+        Pi_A_in = []
 
         # Set all the Pi_B_out boys.
         for labda in Pi_B_out:
@@ -159,7 +163,9 @@ class Applicator(object):
             # with Lambda_l_out on level l.
             if any((elem.Pi_out for elem in support_labda)) or \
                any((child.Lambda_out for child in triang.children(support_labda))):
-                result.add(labda)
+                Pi_B_in.append(labda)
+            else:
+                Pi_A_in.append(labda)
 
         # Unset all the Pi_B_out boys
         for labda in Pi_B_out:
@@ -167,7 +173,7 @@ class Applicator(object):
                 elem.Pi_out = False
         #TODO: The above might not be neccessary.
 
-        return SingleLevelIndexSet(result)
+        return Pi_B_in, Pi_A_in
 
     def _apply_recur(self, l, Pi_in, Pi_out, d, c, triang):
         """ Apply the multiscale operator on level l.
@@ -188,11 +194,8 @@ class Applicator(object):
         Lambda_l_out = self.Lambda_out.on_level(l)
         if len(Pi_out) + len(Lambda_l_out) > 0 and len(Pi_in) + len(
                 Lambda_l_in) > 0:
-            Pi_B_out = self._construct_Pi_B_out(Pi_out, triang)
-            Pi_A_out = Pi_out - Pi_B_out
-
-            Pi_B_in = self._construct_Pi_B_in(Pi_in, Pi_B_out, triang)
-            Pi_A_in = Pi_in - Pi_B_in
+            Pi_B_out, Pi_A_out = self._construct_Pi_out(Pi_out, triang)
+            Pi_B_in, Pi_A_in = self._construct_Pi_in(Pi_in, Pi_B_out, triang)
 
             Pi_bar_out = SingleLevelIndexSet(self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out))
             Pi_bar_in = SingleLevelIndexSet(self.basis_in.P.range(Pi_B_in) | self.basis_in.Q.range(Lambda_l_in))
@@ -209,8 +212,7 @@ class Applicator(object):
         Lambda_l_out = self.Lambda_out.on_level(l)
         if len(Pi_out) + len(Lambda_l_out) > 0 and len(Pi_in) + len(
                 Lambda_l_in) > 0:
-            Pi_B_out = self._construct_Pi_B_out(Pi_out, triang)
-            Pi_A_out = Pi_out - Pi_B_out
+            Pi_B_out, Pi_A_out = self._construct_Pi_out(Pi_out, triang)
 
             Pi_bar_out = SingleLevelIndexSet(self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out))
             Pi_bar_in = SingleLevelIndexSet(self.basis_in.Q.range(Lambda_l_in))
@@ -230,7 +232,7 @@ class Applicator(object):
         Lambda_l_in = self.Lambda_in.on_level(l)
         Lambda_l_out = self.Lambda_out.on_level(l)
         if len(Lambda_l_out) > 0 and len(Pi_in) + len(Lambda_l_in) > 0:
-            Pi_B_in = self._construct_Pi_B_in(Pi_in, Pi_B_out={}, triang=triang)
+            Pi_B_in, _ = self._construct_Pi_in(Pi_in, Pi_B_out={}, triang=triang)
             Pi_bar_in = SingleLevelIndexSet(self.basis_in.P.range(Pi_B_in) | self.basis_in.Q.range(Lambda_l_in))
             Pi_B_bar_in = SingleLevelIndexSet(self.basis_in.P.range(Pi_B_in))
             Pi_B_bar_out = SingleLevelIndexSet(self.basis_out.Q.range(Lambda_l_out))
