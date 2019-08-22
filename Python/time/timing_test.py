@@ -1,5 +1,7 @@
 from applicator import Applicator
 
+import basis_tree
+import applicator_tree
 from haar_basis import HaarBasis
 from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
 from three_point_basis import ThreePointBasis
@@ -44,6 +46,35 @@ def plot_results(results):
     plt.show()
     return results
 
+@pytest.mark.skip("timing test!")
+def test_linear_complexity_tree():
+    results = {}
+    try:
+        for level in range(1, 100):
+            for basis, Lambda, Delta in [
+                    basis_tree.ThreePointBasis.uniform_basis(max_level=level)
+            ]:
+                if not basis.__class__.__name__ in results:
+                    results[basis.__class__.__name__] = {
+                        'N': [],
+                        'apply_time': []
+                    }
+
+                applicator = applicator_tree.Applicator(basis, basis.scaling_mass(),
+                                        Lambda)
+                N = len(Lambda)
+                vec = IndexedVector(Lambda, np.random.rand(N))
+                start = time.time()
+                res = applicator.apply(vec)
+                apply_time = time.time() - start
+
+                results[basis.__class__.__name__]['N'].append(N)
+                results[basis.__class__.__name__]['apply_time'].append(
+                    apply_time)
+
+                print(results)
+    except KeyboardInterrupt:
+        return results
 
 @pytest.mark.skip("timing test!")
 def test_linear_complexity():
@@ -54,7 +85,7 @@ def test_linear_complexity():
                     #HaarBasis.uniform_basis(max_level=level),
                     #OrthonormalDiscontinuousLinearBasis.uniform_basis(
                     #    max_level=level - 1),
-                    ThreePointBasis.origin_refined_basis(max_level=level)
+                    ThreePointBasis.uniform_basis(max_level=level)
             ]:
                 if not basis.__class__.__name__ in results:
                     results[basis.__class__.__name__] = {
@@ -83,6 +114,7 @@ def test_linear_complexity():
 
 
 if __name__ == "__main__":
-    results = test_linear_complexity()
+    results = test_linear_complexity_tree()
+    #results = test_linear_complexity()
     #cProfile.run('results = test_linear_complexity()', sort='tottime')
     plot_results(results)

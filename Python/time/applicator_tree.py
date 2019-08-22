@@ -185,6 +185,10 @@ class Applicator(object):
             Pi_bar_out = self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out)
             Pi_bar_in = self.basis_in.P.range(Pi_B_in) | self.basis_in.Q.range(Lambda_l_in)
 
+            # TODO: This efficiency requirement should be removed somehow.
+            Pi_B_in = set(Pi_B_in)
+            Lambda_l_in = set(Lambda_l_in)
+
             d_bar = self.basis_in.P.matvec(Pi_B_in, Pi_bar_in, d) + self.basis_in.Q.matvec(Lambda_l_in, Pi_bar_in, c)
             e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out, d_bar, c)
 

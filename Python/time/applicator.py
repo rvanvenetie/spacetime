@@ -200,6 +200,7 @@ class Applicator(object):
             Pi_bar_out = SingleLevelIndexSet(self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out))
             Pi_bar_in = SingleLevelIndexSet(self.basis_in.P.range(Pi_B_in) | self.basis_in.Q.range(Lambda_l_in))
 
+            Pi_B_in = set(Pi_B_in)
             d_bar = self.basis_in.P.matvec(Pi_B_in, Pi_bar_in, d) + self.basis_in.Q.matvec(Lambda_l_in, Pi_bar_in, c)
             e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out, d_bar, c, triang)
 
@@ -240,6 +241,7 @@ class Applicator(object):
             Pi_B_bar_out = SingleLevelIndexSet(self.basis_out.Q.range(Lambda_l_out))
 
             # NB: operator is applied at level `l` -- different from the rest.
+            Pi_B_in = set(Pi_B_in)
             e_bar = self.operator.matvec(
                 Pi_B_bar_in, Pi_B_bar_out,
                 self.basis_in.P.matvec(Pi_B_in, Pi_B_bar_in, d))
