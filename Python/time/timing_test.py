@@ -21,7 +21,7 @@ def plot_results(results):
         #           basex=2,
         #           basey=2,
         #           label=basis_name)
-        plt.plot(results[basis_name]['N'],
+        plt.plot(range(len(results[basis_name]['N'])),
                 [t/n for n,t in zip(results[basis_name]['N'], results[basis_name]['apply_time'])], label=basis_name)
     #plt.loglog(results['ThreePointBasis']['N'], [
     #    results['ThreePointBasis']['apply_time'][-1] /
@@ -50,7 +50,7 @@ def plot_results(results):
 def test_linear_complexity_tree():
     results = {}
     try:
-        for level in range(1, 100):
+        for level in range(18, 21):
             for basis, Lambda, Delta in [
                     basis_tree.ThreePointBasis.uniform_basis(max_level=level)
             ]:
@@ -73,6 +73,7 @@ def test_linear_complexity_tree():
                     apply_time)
 
                 print(results)
+        return results
     except KeyboardInterrupt:
         return results
 

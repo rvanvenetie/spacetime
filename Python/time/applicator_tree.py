@@ -182,16 +182,15 @@ class Applicator(object):
             Pi_B_out, Pi_A_out = self._construct_Pi_out(Pi_out)
             Pi_B_in, Pi_A_in = self._construct_Pi_in(Pi_in, Pi_B_out)
 
-            d_bar = self.basis_in.P.matvec(d, Pi_B_in) + self.basis_in.Q.matvec(c, Lambda_l_in)
+            d_bar = self.basis_in.P.matvec(d, Pi_B_in, None) + self.basis_in.Q.matvec(c, Lambda_l_in, None)
 
             Pi_bar_in = d_bar.keys()
             Pi_bar_out = self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out)
 
             e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out, d_bar, c)
 
-            assert len(Pi_in) >= len(Pi_A_out)
-            e = self.operator.matvec(d, Pi_in, Pi_A_out) + self.basis_out.P.rmatvec(e_bar, Pi_bar_out, Pi_B_out)
-            f = self.basis_out.Q.rmatvec(e_bar, Pi_bar_out, Lambda_l_out) + f_bar
+            e = self.operator.matvec(d, None, Pi_A_out) + self.basis_out.P.rmatvec(e_bar, None, Pi_B_out)
+            f = self.basis_out.Q.rmatvec(e_bar, None, Lambda_l_out) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()

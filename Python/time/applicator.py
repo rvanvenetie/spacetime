@@ -197,16 +197,16 @@ class Applicator(object):
             Pi_B_out, Pi_A_out = self._construct_Pi_out(Pi_out, triang)
             Pi_B_in, Pi_A_in = self._construct_Pi_in(Pi_in, Pi_B_out, triang)
 
-            Pi_bar_out = SingleLevelIndexSet(self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out))
-            Pi_bar_in = SingleLevelIndexSet(self.basis_in.P.range(Pi_B_in) | self.basis_in.Q.range(Lambda_l_in))
+            # Pi_bar_in is simply the range of the following operation
+            d_bar = self.basis_in.P.matvec(d, Pi_B_in, None) + self.basis_in.Q.matvec(c, Lambda_l_in, None)
 
-            Pi_B_in = set(Pi_B_in)
-            d_bar = self.basis_in.P.matvec(d, Pi_B_in, Pi_bar_in) + self.basis_in.Q.matvec(c, Lambda_l_in, Pi_bar_in)
+            Pi_bar_in = d_bar.keys()
+            Pi_bar_out = SingleLevelIndexSet(self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out))
+
             e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out, d_bar, c, triang)
 
-            assert len(Pi_in) >= len(Pi_A_out)
-            e = self.operator.matvec(d, Pi_in, Pi_A_out) + self.basis_out.P.rmatvec(e_bar, Pi_bar_out, Pi_B_out)
-            f = self.basis_out.Q.rmatvec(e_bar, Pi_bar_out, Lambda_l_out) + f_bar
+            e = self.operator.matvec(d, None, Pi_A_out) + self.basis_out.P.rmatvec(e_bar, None, Pi_B_out)
+            f = self.basis_out.Q.rmatvec(e_bar, None, Lambda_l_out) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()
@@ -218,15 +218,16 @@ class Applicator(object):
                 Lambda_l_in) > 0:
             Pi_B_out, Pi_A_out = self._construct_Pi_out(Pi_out, triang)
 
-            Pi_bar_out = SingleLevelIndexSet(self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out))
-            Pi_bar_in = SingleLevelIndexSet(self.basis_in.Q.range(Lambda_l_in))
+            d_bar = self.basis_in.Q.matvec(c, Lambda_l_in, None)
 
-            d_bar = self.basis_in.Q.matvec(c, Lambda_l_in, Pi_bar_in)
+            Pi_bar_in = d_bar.keys()
+            Pi_bar_out = SingleLevelIndexSet(self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out))
+
             e_bar, f_bar = self._apply_upp_recur(l + 1, Pi_bar_in, Pi_bar_out,
                                                  d_bar, c, triang)
-            e = self.operator.matvec(d, Pi_in, Pi_out) + \
-                self.basis_out.P.rmatvec(e_bar, Pi_bar_out, Pi_B_out)
-            f = self.basis_out.Q.rmatvec(e_bar, Pi_bar_out, Lambda_l_out) + f_bar
+            e = self.operator.matvec(d, None, Pi_out) + \
+                self.basis_out.P.rmatvec(e_bar, None, Pi_B_out)
+            f = self.basis_out.Q.rmatvec(e_bar, None, Lambda_l_out) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()
@@ -236,16 +237,15 @@ class Applicator(object):
         Lambda_l_out = self.Lambda_out.on_level(l)
         if len(Lambda_l_out) > 0 and len(Pi_in) + len(Lambda_l_in) > 0:
             Pi_B_in, _ = self._construct_Pi_in(Pi_in, Pi_B_out={}, triang=triang)
-            Pi_bar_in = SingleLevelIndexSet(self.basis_in.P.range(Pi_B_in) | self.basis_in.Q.range(Lambda_l_in))
             Pi_B_bar_in = SingleLevelIndexSet(self.basis_in.P.range(Pi_B_in))
             Pi_B_bar_out = SingleLevelIndexSet(self.basis_out.Q.range(Lambda_l_out))
 
             # NB: operator is applied at level `l` -- different from the rest.
             Pi_B_in = set(Pi_B_in)
-            e_bar = self.operator.matvec(self.basis_in.P.matvec(d, Pi_B_in, Pi_B_bar_in),Pi_B_bar_in, Pi_B_bar_out)
-            d_bar = self.basis_in.P.matvec(d, Pi_B_in, Pi_bar_in) + \
-                    self.basis_in.Q.matvec(c, Lambda_l_in, Pi_bar_in)
-            f = self.basis_out.Q.rmatvec(e_bar, Pi_B_bar_out, Lambda_l_out) + self._apply_low_recur(
+            e_bar = self.operator.matvec(self.basis_in.P.matvec(d, Pi_B_in, None), Pi_B_bar_in, Pi_B_bar_out)
+            d_bar = self.basis_in.P.matvec(d, Pi_B_in, None) + self.basis_in.Q.matvec(c, Lambda_l_in, None)
+            Pi_bar_in = d_bar.keys()
+            f = self.basis_out.Q.rmatvec(e_bar, None, Lambda_l_out) + self._apply_low_recur(
                                              l + 1, Pi_bar_in, d_bar, c, triang)
             return f
         else:

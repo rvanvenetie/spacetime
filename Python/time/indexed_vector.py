@@ -55,6 +55,7 @@ class IndexedVector(collections.abc.Mapping):
             {key: self.vector[key] for key in indices if key in self.vector})
 
     def __add__(self, other):
+        if len(other.vector) > len(self.vector): return other + self
         vec = self.vector
         for key in other.vector:
             if key in vec:
@@ -70,9 +71,20 @@ class IndexedVector(collections.abc.Mapping):
         else:
             return np.array([self[k] for k in self.keys()])
 
-    def dot(self, index_mask, other):
+    def dot(self, other, index_mask=None):
         """ Dot-product; only treat indices in `index_mask` as nonzero. """
-        if not isinstance(index_mask, collections.abc.Set):
+
+        # TODO: This function is a mess right now.
+        if index_mask is None:
+            if isinstance(other, list):
+                return sum(self.vector[labda] * coeff for labda, coeff in other)
+            else:
+                return sum(self.vector[labda] * other[labda] for labda in other.keys())
+
+        elif not isinstance(index_mask, collections.abc.Set):
             raise TypeError('For vec.dot to be efficient, the index_mask must be a set type. We got {}.'.format(type(index_mask)))
-        return sum(self.vector[labda] * other[labda] for labda in other.keys()
-                   if labda in index_mask)
+
+        if isinstance(other, list):
+            return sum(self.vector[labda] * coeff for labda, coeff in other if labda in index_mask)
+        else:
+            return sum(self.vector[labda] * other[labda] for labda in other.keys() if labda in index_mask)

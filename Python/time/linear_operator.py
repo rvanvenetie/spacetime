@@ -20,36 +20,39 @@ class LinearOperator(object):
         self.row = row
         self.col = col if col else row
 
+    @staticmethod
+    def _matvec(row_op, col_op, vec, indices_in, indices_out):
+        """ Simple wrapper for matvec and rmatvec. """
+        result = defaultdict(float)
+        if indices_out is None:
+            if indices_in is None: indices_in = vec.keys()
+
+            for labda_in in indices_in:
+                coeff_in = vec[labda_in]
+                for labda_out, coeff_out in col_op(labda_in):
+                    result[labda_out] += coeff_out * coeff_in
+        else:
+            for labda in indices_out:
+                result[labda] = vec.dot(row_op(labda), indices_in)
+        return IndexedVector(result)
+
     def matvec(self, vec, indices_in=None, indices_out=None):
         """ Computes matrix-vector product z = A x.
+
+        By default, calculates z = Ax by taking linear combination of
+        columns. If indices_out is specified, it will calculate the result
+        using rowwise inner products instead.
 
         Arguments
             vec: IndexedVector -- input vector
             indices_in: IndexSet -- optional; rows of `vec` to treat as nonzero.
             indices_out: IndexSet -- optional; rows of `out` to set.
         """
-        result = defaultdict(float)
-        if indices_in is None: indices_in = vec.keys()
-
-        if indices_out is None:
-            # Simply calculate the Ax for all indices_in.
-            for labda_in in indices_in:
-                coeff_in = vec[labda_in]
-                for labda_out, coeff_out in self.col(labda_in):
-                    result[labda_out] += coeff_out * coeff_in
-        else:
-            for labda in indices_out:
-                result[labda] = vec.dot(indices_in, dict(self.row(labda)))
-
-        return IndexedVector(result)
+        return self._matvec(self.row, self.col, vec, indices_in, indices_out)
 
     def rmatvec(self, vec, indices_in=None, indices_out=None):
         """ Computes z = A^T x. """
-        assert self.col
-        result = {}
-        for labda in indices_out:
-            result[labda] = vec.dot(indices_in, dict(self.col(labda)))
-        return IndexedVector(result)
+        return self._matvec(self.col, self.row, vec, indices_in, indices_out)
 
     def range(self, indices_in):
         """ Returns the range (indices_out) of the operator. """

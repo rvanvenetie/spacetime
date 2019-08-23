@@ -308,7 +308,7 @@ class ThreePointScaling(BaseScaling):
         return child
 
     def refine_right(self):
-        assert self.nbr_right
+        if self.child_right: return self.child_right
         return self.nbr_right.refine_left()
 
     def prolongate(self):

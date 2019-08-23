@@ -132,7 +132,7 @@ def test_multiscale_operator_quadrature():
 def test_apply_upp_low_vs_full():
     """ Test that apply_upp() + apply_low() == apply(). """
     uml = 5
-    oml = 15
+    oml = 20
     for basis in [
             HaarBasis.uniform_basis(max_level=uml),
             HaarBasis.origin_refined_basis(max_level=oml),
