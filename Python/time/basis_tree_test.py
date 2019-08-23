@@ -58,14 +58,14 @@ def test_ortho_uniform_refinement():
             psi_l, psi_n = psi.labda
             assert psi_l == l
             if psi_n % 2 == 1:
-                assert psi.eval( 2*h * (psi_n // 2) + 1e-8) == approx(sq3 * 2**(l/2))
-                assert psi.eval( h + 2*h * (psi_n // 2)) == approx(-sq3 * 2**(l/2))
-                assert psi.eval( 2*h + 2*h * (psi_n // 2) - 1e-8) == approx(sq3 * 2**(l/2))
+                assert psi.eval( 2*h * (psi_n // 2) + 1e-8) == approx(sq3 * 2**((l-1)/2))
+                assert psi.eval( h + 2*h * (psi_n // 2)) == approx(-sq3 * 2**((l-1)/2))
+                assert psi.eval( 2*h + 2*h * (psi_n // 2) - 1e-8) == approx(sq3 * 2**((l-1)/2))
             else:
-                assert psi.eval( 2*h * (psi_n // 2) + 1e-8) == approx(2**(l/2))
-                assert psi.eval( h + 2*h * (psi_n // 2) - 1e-8) == approx(-2*2**(l/2))
-                assert psi.eval( h + 2*h * (psi_n // 2) + 1e-8) == approx(2*2**(l/2))
-                assert psi.eval( 2*h + 2*h * (psi_n // 2) - 1e-8) == approx(-2**(l/2))
+                assert psi.eval( 2*h * (psi_n // 2) + 1e-8) == approx(2**((l-1)/2))
+                assert psi.eval( h + 2*h * (psi_n // 2) - 1e-8) == approx(-2*2**((l-1)/2))
+                assert psi.eval( h + 2*h * (psi_n // 2) + 1e-8) == approx(2*2**( (l-1)/2))
+                assert psi.eval( 2*h + 2*h * (psi_n // 2) - 1e-8) == approx(-2**((l-1)/2))
 
 def test_ortho_local_refinement():
     ml = 8
