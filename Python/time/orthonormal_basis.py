@@ -42,14 +42,12 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         def row(labda):
             assert self.scaling_labda_valid(labda)
             l, n = labda
-            return {(l - 1, 2 * (n // 4) + i): block[i, n % 4]
-                    for i in range(2)}
+            return [((l - 1, 2 * (n // 4) + i), block[i, n % 4]) for i in range(2)]
 
         def col(labda):
             assert self.scaling_labda_valid(labda)
             l, n = labda
-            return {(l + 1, 4 * (n // 2) + i): block[n % 2, i]
-                    for i in range(4)}
+            return [((l + 1, 4 * (n // 2) + i), block[n % 2, i]) for i in range(4)]
 
         return LinearOperator(row, col)
 
@@ -60,14 +58,12 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         def row(labda):
             assert self.scaling_labda_valid(labda)
             l, n = labda
-            return {(l, 2 * (n // 4) + i): 2.0**((l - 1) / 2) * block[i, n % 4]
-                    for i in range(2)}
+            return [((l, 2 * (n // 4) + i), 2.0**((l - 1) / 2) * block[i, n % 4]) for i in range(2)]
 
         def col(labda):
             assert self.wavelet_labda_valid(labda)
             l, n = labda
-            return {(l, 4 * (n // 2) + i): 2.0**((l - 1) / 2) * block[n % 2, i]
-                    for i in range(4)}
+            return [((l, 4 * (n // 2) + i), 2.0**((l - 1) / 2) * block[n % 2, i]) for i in range(4)]
 
         return LinearOperator(row, col)
 
@@ -130,7 +126,7 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         """ The singlescale orthonormal mass matrix is simply 2**-l * Id. """
         def row(labda):
             l, n = labda
-            return {(l, n): 2**-l}
+            return [((l, n), 2**-l)]
         return LinearOperator(row, None)
 
     def scaling_damping(self):
@@ -138,9 +134,9 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         def row(labda):
             l, n = labda
             if n % 2 == 0:
-                return {(l, n + 1): 2 * sq3}
+                return [((l, n + 1), 2 * sq3)]
             else:
-                return {}
+                return []
         return LinearOperator(row, None)
 
     def scaling_support(self, labda):

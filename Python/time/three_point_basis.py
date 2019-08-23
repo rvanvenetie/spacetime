@@ -37,18 +37,18 @@ class ThreePointBasis(Basis):
             assert self.scaling_labda_valid(labda)
             l, n = labda
             if n % 2 == 0:
-                return {(l - 1, n // 2): 1.0}
+                return [((l - 1, n // 2), 1.0)]
             else:
-                return {(l - 1, (n // 2)): 0.5,
-                        (l - 1, (n // 2)+1): 0.5}
+                return [((l - 1, (n // 2)), 0.5),
+                        ((l - 1, (n // 2)+1), 0.5)]
 
         def col(labda):
             assert self.scaling_labda_valid(labda)
             l, n = labda
-            result = { (l + 1, 2 *n): 1.0}
+            result = [((l + 1, 2 *n), 1.0)]
 
-            if n > 0: result[(l+1, 2*n-1)] = 0.5
-            if n < 2**l: result[(l+1, 2*n+1)] = 0.5
+            if n > 0: result.append(((l+1, 2*n-1), 0.5))
+            if n < 2**l: result.append(((l+1, 2*n+1),0.5))
             return result
 
         return LinearOperator(row, col)
@@ -62,7 +62,7 @@ class ThreePointBasis(Basis):
 
             if l == 0:
                 assert 0 <= n <=  1
-                return {labda : 1.0}
+                return [(labda, 1)]
 
             assert 0 <= n <= 2**l
             scaling = 2**(l/2)
@@ -70,21 +70,20 @@ class ThreePointBasis(Basis):
             # If the singlescale index offset is odd, it must coincide with a
             # multiscale index on this level.
             if n % 2 == 1:
-                return {(l, n // 2): 1 * scaling}
+                return [((l, n // 2), 1 * scaling)]
 
             # If we are the leftmost singlescale index, it can only interact
             # with multiscale index (l, 0).
             if n == 0:
-                return {(l, 0): -1 * scaling }
+                return [((l, 0), -1 * scaling )]
             # Same idea for the rightmost singlescale index.
             if n == 2**l:
-                return {(l, 2**(l-1)-1): -1 * scaling }
+                return [((l, 2**(l-1)-1), -1 * scaling )]
 
             # General case: we are between these two multiscale indices.
-            return {
-                (l, (n - 1) // 2): -1/2 * scaling,
-                (l, n // 2): -1/2 * scaling
-            }
+            return [
+                ((l, (n - 1) // 2), -1/2 * scaling),
+                ((l, n // 2), -1/2 * scaling)]
 
         def col(labda):
             """ Retrieves a wavelet labda returns lin. comb. ss labdas. """
@@ -94,26 +93,27 @@ class ThreePointBasis(Basis):
             # TODO: this returns a different basis from the one used in followup.pdf
             if l == 0:
                 assert 0 <= n <=  1
-                return {labda : 1.0}
+                return [(labda, 1.0)]
 
             # retrieve the node on level l associated to labda
-            result = {}
+            result = []
             assert 0 <= n < 2**(l - 1)
             node = 1 + n * 2
 
             # the wavelets are `scaled` linear combination of normal hat functions.
             scaling = 2**(l/2)
-            result[(l, node)] = 1 * scaling
+
+            result.append(((l, node), 1*scaling))
 
             if node > 1:
-                result[(l, node-1)] = -1/2 * scaling
+                result.append(((l, node-1), -1/2 * scaling))
             else:
-                result[(l, node-1)] = -1 * scaling
+                result.append(((l, node-1), -1 * scaling))
 
             if node < 2**l - 1:
-                result[(l, node+1)] = -1/2 * scaling
+                result.append(((l, node+1), -1/2 * scaling))
             else:
-                result[(l, node+1)] = -1 * scaling
+                result.append(((l, node+1), -1 * scaling))
 
             return result
 
@@ -125,33 +125,34 @@ class ThreePointBasis(Basis):
 
     def scaling_mass(self):
         def row(labda):
+            result = []
             l, n = labda
-
-            res = {labda: 0.0}
+            self_ip = 0
             if n > 0:
-                res[(l,n-1)] = 1/6 * 2**-l
-                res[(l,n)] = res[(l,n)] + 1/3 * 2**-l
+                result.append(((l, n-1), 1/6 * 2**-l))
+                self_ip += 1/3 * 2**-l
             if n < 2**l:
-                res[(l,n)] = res[(l,n)] + 1/3 * 2**-l
-                res[(l,n+1)] = 1/6 * 2**-l
-            return res
+                self_ip += 1/3 * 2**-l
+                result.append(((l, n+1), 1/6 * 2**-l))
+            result.append((labda, self_ip))
+            return result
+
         return LinearOperator(row)
 
     def scaling_damping(self):
         def row(labda):
             l, n = labda
-            res = {}
+            result = []
             if n == 0:
-                res[(l,n)] = -1/2
+                result.append(((l,n), -1/2))
             else:
-                res[(l,n-1)] = -1/2
+                result.append(((l,n-1), -1/2))
 
             if n == 2**l:
-                res[(l,n)] = 1/2
+                result.append(((l,n), 1/2))
             else:
-                res[(l,n+1)] = 1/2
-            assert None not in res
-            return res
+                result.append(((l,n+1), 1/2))
+            return result
 
         return LinearOperator(row)
 
@@ -159,14 +160,16 @@ class ThreePointBasis(Basis):
         def row(labda):
             l, n = labda
 
-            res = {labda: 0.0}
+            result = []
+            self_ip = 0
             if n > 0:
-                res[(l,n-1)] = -2**l
-                res[(l,n)] = res[(l,n)] + 2**l
+                result.append(((l, n-1), -2**l))
+                self_ip += 2**l
             if n < 2**l:
-                res[(l,n)] = res[(l,n)] + 2**l
-                res[(l,n+1)] = -2**l
-            return res
+                self_ip += 2**l
+                result.append(((l, n+1), -2**l))
+            result.append((labda, self_ip))
+            return result
 
         return LinearOperator(row)
 
@@ -238,6 +241,6 @@ class ThreePointBasis(Basis):
         lin_comb_ss = self.Q.col(labda)
 
         result = 0
-        for labda_ss, coeff_ss in lin_comb_ss.items():
+        for labda_ss, coeff_ss in lin_comb_ss:
             result += coeff_ss * self.eval_scaling(labda_ss, x, deriv)
         return result

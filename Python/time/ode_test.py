@@ -31,8 +31,7 @@ class ScipyLinearOperator(linalg.LinearOperator):
         if isinstance(self.applicator, Applicator):
             output = self.applicator.apply(indexed_vector)
         else:
-            output = self.applicator.matvec(self.indices, self.indices,
-                                            indexed_vector)
+            output = self.applicator.matvec(indexed_vector, self.indices, self.indices)
         for labda in self.boundary_condition:
             output[labda] = 0.0
         return output.asarray(self.indices)

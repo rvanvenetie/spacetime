@@ -182,18 +182,16 @@ class Applicator(object):
             Pi_B_out, Pi_A_out = self._construct_Pi_out(Pi_out)
             Pi_B_in, Pi_A_in = self._construct_Pi_in(Pi_in, Pi_B_out)
 
+            d_bar = self.basis_in.P.matvec(d, Pi_B_in) + self.basis_in.Q.matvec(c, Lambda_l_in)
+
+            Pi_bar_in = d_bar.keys()
             Pi_bar_out = self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out)
-            Pi_bar_in = self.basis_in.P.range(Pi_B_in) | self.basis_in.Q.range(Lambda_l_in)
 
-            # TODO: This efficiency requirement should be removed somehow.
-            Pi_B_in = set(Pi_B_in)
-            Lambda_l_in = set(Lambda_l_in)
-
-            d_bar = self.basis_in.P.matvec(Pi_B_in, Pi_bar_in, d) + self.basis_in.Q.matvec(Lambda_l_in, Pi_bar_in, c)
             e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out, d_bar, c)
 
-            e = self.operator.matvec(Pi_in, Pi_A_out, d) + self.basis_out.P.rmatvec(Pi_bar_out, Pi_B_out, e_bar)
-            f = self.basis_out.Q.rmatvec(Pi_bar_out, Lambda_l_out, e_bar) + f_bar
+            assert len(Pi_in) >= len(Pi_A_out)
+            e = self.operator.matvec(d, Pi_in, Pi_A_out) + self.basis_out.P.rmatvec(e_bar, Pi_bar_out, Pi_B_out)
+            f = self.basis_out.Q.rmatvec(e_bar, Pi_bar_out, Lambda_l_out) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()
@@ -209,13 +207,12 @@ class Applicator(object):
             Pi_bar_out = SingleLevelIndexSet(self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out))
             Pi_bar_in = SingleLevelIndexSet(self.basis_in.Q.range(Lambda_l_in))
 
-            d_bar = self.basis_in.Q.matvec(Lambda_l_in, Pi_bar_in, c)
+            d_bar = self.basis_in.Q.matvec(c, Lambda_l_in, Pi_bar_in)
             e_bar, f_bar = self._apply_upp_recur(l + 1, Pi_bar_in, Pi_bar_out,
                                                  d_bar, c)
-            e = self.operator.matvec(Pi_in, Pi_out, d) + \
-                self.basis_out.P.rmatvec(Pi_bar_out, Pi_B_out, e_bar)
-            f = self.basis_out.Q.rmatvec(Pi_bar_out, Lambda_l_out,
-                                         e_bar) + f_bar
+            e = self.operator.matvec(d, Pi_in, Pi_out) + \
+                self.basis_out.P.rmatvec(e_bar, Pi_bar_out, Pi_B_out)
+            f = self.basis_out.Q.rmatvec(e_bar, Pi_bar_out, Lambda_l_out) + f_bar
             return e, f
         else:
             return IndexedVector.Zero(), IndexedVector.Zero()
@@ -230,13 +227,10 @@ class Applicator(object):
             Pi_B_bar_out = SingleLevelIndexSet(self.basis_out.Q.range(Lambda_l_out))
 
             # NB: operator is applied at level `l` -- different from the rest.
-            e_bar = self.operator.matvec(
-                Pi_B_bar_in, Pi_B_bar_out,
-                self.basis_in.P.matvec(Pi_B_in, Pi_B_bar_in, d))
-            d_bar = self.basis_in.P.matvec(Pi_B_in, Pi_bar_in, d) + \
-                    self.basis_in.Q.matvec(Lambda_l_in, Pi_bar_in, c)
-            f = self.basis_out.Q.rmatvec(Pi_B_bar_out, Lambda_l_out,
-                                         e_bar) + self._apply_low_recur(
+            e_bar = self.operator.matvec(self.basis_in.P.matvec(d, Pi_B_in, Pi_B_bar_in), Pi_B_bar_in, Pi_B_bar_out)
+            d_bar = self.basis_in.P.matvec(d, Pi_B_in, Pi_bar_in) + \
+                    self.basis_in.Q.matvec(c, Lambda_l_in, Pi_bar_in)
+            f = self.basis_out.Q.rmatvec(e_bar, Pi_B_bar_out, Lambda_l_out) + self._apply_low_recur(
                                              l + 1, Pi_bar_in, d_bar, c)
             return f
         else:

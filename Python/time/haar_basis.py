@@ -33,12 +33,12 @@ class HaarBasis(Basis):
         def row(labda):
             assert self.scaling_labda_valid(labda)
             l, n = labda
-            return {(l - 1, n // 2): 1}
+            return [((l - 1, n // 2), 1)]
 
         def col(labda):
             assert self.scaling_labda_valid(labda)
             l, n = labda
-            return {(l + 1, 2 * n): 1, (l + 1, 2 * n + 1): 1}
+            return [((l + 1, 2 * n), 1), ((l + 1, 2 * n + 1), 1)]
 
         return LinearOperator(row, col)
 
@@ -47,12 +47,12 @@ class HaarBasis(Basis):
         def row(labda):
             assert self.scaling_labda_valid(labda)
             l, n = labda
-            return {(l, n // 2): (-1)**n}
+            return [((l, n // 2), (-1)**n)]
 
         def col(labda):
             assert self.wavelet_labda_valid(labda)
             l, n = labda
-            return {(l, 2 * n): 1, (l, 2 * n + 1): -1}
+            return [((l, 2 * n), 1), ((l, 2 * n + 1), -1)]
 
         return LinearOperator(row, col)
 
@@ -100,7 +100,7 @@ class HaarBasis(Basis):
         """ The singlescale Haar mass matrix is simply 2**-l * Id. """
         def row(labda):
             l, n = labda
-            return {(l, n): 2**-l}
+            return [((l, n), 2**-l)]
         return LinearOperator(row)
 
     def scaling_support(self, labda):

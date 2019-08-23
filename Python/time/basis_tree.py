@@ -208,27 +208,27 @@ class BaseBasis:
     @property
     def P(self):
         def row(phi):
-            return {phi : coeff for phi, coeff in phi.restrict()}
+            return phi.restrict()
 
         def col(phi):
-            return {phi : coeff for phi, coeff in phi.prolongate()}
+            return phi.prolongate()
 
         return LinearOperator(row, col)
 
     @property
     def Q(self):
         def row(phi):
-            return {psi : coeff for psi, coeff in phi.multi_scale}
+            return phi.multi_scale
 
         def col(psi):
-            return {phi : coeff for phi, coeff in psi.single_scale}
+            return psi.single_scale
 
         return LinearOperator(row, col)
 
     @staticmethod
     def scaling_mass():
         def row(phi):
-            return {phi : coeff for phi, coeff in phi.mass()}
+            return phi.mass()
         return LinearOperator(row)
 
 class HaarBasis(BaseBasis):
@@ -253,6 +253,7 @@ class ThreePointScaling(BaseScaling):
         self.child_left = None
         self.child_mid  = None
         self.child_right= None
+
     def refine_mid(self):
         if self.child_mid: return self.child_mid
         l, n = self.labda
@@ -328,9 +329,11 @@ class ThreePointScaling(BaseScaling):
         l, n = self.labda
         self_ip = 0
         if n > 0:
+            assert self.nbr_left
             result.append((self.nbr_left, 1/6 * 2**-l))
             self_ip += 1/3 * 2**-l
         if n < 2**l:
+            assert self.nbr_right
             result.append((self.nbr_right, 1/6 * 2**-l))
             self_ip += 1/3 * 2**-l
 

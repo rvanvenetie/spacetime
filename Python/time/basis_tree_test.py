@@ -96,7 +96,7 @@ def test_basis_PQ():
             for i, phi in enumerate(Delta.per_level[l-1]):
                 # Write phi_mu on lv l-1 as combination of scalings on lv l.
                 vec = IndexedVector(Delta.per_level[l-1], eye[i, :])
-                res = basis.P.matvec(set(Delta.per_level[l-1]), basis.P.range(Delta.per_level[l-1]), vec)
+                res = basis.P.matvec(vec, set(Delta.per_level[l-1]), basis.P.range(Delta.per_level[l-1]))
                 inner = np.sum([phi.eval(x) * res[phi] for phi in res], axis=0)
                 try:
                     assert np.allclose(inner, phi.eval(x))
@@ -134,7 +134,7 @@ def test_haar_scaling_mass():
 
         for _ in range(100):
             d = IndexedVector(indices, np.random.rand(2**l))
-            res = mass.matvec(set(indices), indices, d)
+            res = mass.matvec(d, set(indices), indices)
             assert np.allclose(d.asarray(), 2.0**l * res.asarray())
 
 def print_3point_functions():
