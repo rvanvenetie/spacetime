@@ -85,6 +85,6 @@ class IndexedVector(collections.abc.Mapping):
             raise TypeError('For vec.dot to be efficient, the index_mask must be a set type. We got {}.'.format(type(index_mask)))
 
         if isinstance(other, list):
-            return sum(self.vector[labda] * coeff for labda, coeff in other if labda in index_mask)
+            return sum(self[labda] * coeff for labda, coeff in other if labda in index_mask)
         else:
-            return sum(self.vector[labda] * other[labda] for labda in other.keys() if labda in index_mask)
+            return sum(self[labda] * other[labda] for labda in other.keys() if labda in index_mask)

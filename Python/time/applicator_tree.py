@@ -1,6 +1,6 @@
 from indexed_vector import IndexedVector
 from interval import Interval, IntervalSet
-from basis_tree import Element, HaarScaling
+from basis_tree import Element
 
 
 

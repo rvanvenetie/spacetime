@@ -1,6 +1,6 @@
 from applicator_tree import Applicator
 from basis_tree import support_to_interval
-from basis_tree import HaarBasis, ThreePointBasis
+from basis_tree import HaarBasis, ThreePointBasis, OrthoBasis
 from indexed_vector import IndexedVector
 
 import numpy as np
@@ -26,18 +26,47 @@ def test_haar_multiscale_mass():
                     [(1.0 if phi.labda[0] == 0 else 2**(phi.labda[0] - 1)) * res[phi]
                      for phi in Lambda_l], np_vec)
 
+def test_orthonormal_multiscale_mass():
+    """ Test that the multiscale mass operator is the identity. """
+    for basis, Lambda, Delta in [
+            OrthoBasis.uniform_basis(max_level=5),
+            OrthoBasis.origin_refined_basis(max_level=15)
+    ]:
+        for l in range(1, 6):
+            Lambda_l = Lambda.until_level(l)
+            applicator = Applicator(basis, basis.scaling_mass(), Lambda_l)
+            eye = np.eye(len(Lambda_l))
+            res_matrix = np.zeros([len(Lambda_l), len(Lambda_l)])
+            for i, psi in enumerate(Lambda_l):
+                vec = IndexedVector({psi : 1.0})
+                res = applicator.apply(vec)
+                print(psi, res)
+                res_matrix[:, i] = res.asarray(Lambda_l)
+            assert np.allclose(eye, res_matrix)
+
+            for _ in range(10):
+                vec = np.random.rand(len(Lambda_l))
+                res = applicator.apply(IndexedVector(Lambda_l, vec))
+                assert np.allclose(vec, res.asarray(Lambda_l))
+
+
 def test_multiscale_operator_quadrature():
     """ Test that the multiscale matrix equals that found with quadrature. """
     uml = 5
     oml = 15
     hbu = HaarBasis.uniform_basis(max_level=uml)
     hbo = HaarBasis.origin_refined_basis(max_level=oml)
+    oru = OrthoBasis.uniform_basis(max_level=uml)
+    oro = OrthoBasis.origin_refined_basis(max_level=oml)
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
     for basis_in, basis_out, operator, deriv in [
         (hbu, hbu, HaarBasis.scaling_mass(), (False, False)),
         (hbo, hbo, HaarBasis.scaling_mass(), (False, False)),
         (hbu, hbo, HaarBasis.scaling_mass(), (False, False)),
+        (oru, oru, HaarBasis.scaling_mass(), (False, False)),
+        (oro, oro, HaarBasis.scaling_mass(), (False, False)),
+        (oru, oro, HaarBasis.scaling_mass(), (False, False)),
         (tpu, tpu, ThreePointBasis.scaling_mass(), (False, False)),
         (tpo, tpo, ThreePointBasis.scaling_mass(), (False, False)),
     ]:

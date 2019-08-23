@@ -2,6 +2,9 @@ from linear_operator import LinearOperator
 from interval import Interval
 from fractions import Fraction
 
+import numpy as np
+sq3 = np.sqrt(3)
+
 def support_to_interval(lst):
     """ Convert a list of tuples (l, n) to an actual interval.
 
@@ -96,39 +99,6 @@ class BaseScaling:
     def __repr__(self):
         return "{}({}, {})".format(self.__class__.__name__, *self.labda)
 
-class HaarScaling(BaseScaling):
-    def __init__(self, labda, parents, support):
-        super().__init__(labda, parents, support)
-        self.children = []
-
-    def refine(self):
-        if self.children: return
-        self.support[0].bisect()
-        l, n = self.labda
-        self.children.append(HaarScaling((l+1, 2*n), self, [self.support[0].children[0]]))
-        self.children.append(HaarScaling((l+1, 2*n+1), self, [self.support[0].children[1]]))
-
-    def prolongate(self):
-        self.refine()
-        return [(self.children[0], 1), (self.children[1], 1)]
-
-    def restrict(self):
-        return [(self.parents, 1)]
-
-    def mass(self):
-        """ The singlescale Haar mass matrix is simply 2**-l * Id. """
-        l, n = self.labda
-        return [(self, 2**-l)]
-
-    @staticmethod
-    def eval_mother(x):
-        return (0 <= x) & (x < 1)
-
-    def eval(self, x, deriv=False):
-        assert deriv == False
-        l, n = self.labda
-        return 1.0 * self.eval_mother(2**l * x - n)
-
 class BaseWavelet:
     def __init__(self, labda, parents, single_scale):
         self.labda = labda
@@ -149,21 +119,6 @@ class BaseWavelet:
 
     def __repr__(self):
         return "{}({}, {})".format(self.__class__.__name__, *self.labda)
-
-class HaarWavelet(BaseWavelet):
-    def __init__(self, labda, parents, single_scale):
-        super().__init__(labda, parents, single_scale)
-
-    def refine(self):
-        if self.children: return
-        phi_left, phi_right = [phi for phi, _ in self.single_scale]
-        phi_left.refine()
-        phi_right.refine()
-
-        l, n = self.labda
-        child_left = HaarWavelet((l+1, 2*n), self, [(phi_left.children[0], 1), (phi_left.children[1], -1)])
-        child_right = HaarWavelet((l+1, 2*n+1), self, [(phi_right.children[0], 1), (phi_right.children[1], -1)])
-        self.children = [child_left, child_right]
 
 class BaseBasis:
     @classmethod
@@ -192,14 +147,13 @@ class BaseBasis:
         basis = cls()
 
         n_wavelets = len(basis.mother_wavelets)
-        assert n_wavelets == 1
-
         Lambda = [] + basis.mother_wavelets
         Lambda_l = Lambda
         for _ in range(max_level - 1):
-            parent = Lambda[-1]
-            parent.refine()
-            Lambda.append(parent.children[0])
+            parents = list(Lambda[-n_wavelets:])
+            for parent in parents:
+                parent.refine()
+                Lambda.append(parent.children[0])
 
         Delta = basis.mother_scalings + list({phi for psi in Lambda for phi, _ in psi.single_scale})
         Lambda = basis.mother_scalings + Lambda
@@ -231,9 +185,59 @@ class BaseBasis:
             return phi.mass()
         return LinearOperator(row)
 
+
+class DiscConstScaling(BaseScaling):
+    def __init__(self, labda, parents, support):
+        super().__init__(labda, parents, support)
+        self.children = []
+
+    def refine(self):
+        if self.children: return self.children
+        self.support[0].bisect()
+        l, n = self.labda
+        self.children.append(DiscConstScaling((l+1, 2*n), self, [self.support[0].children[0]]))
+        self.children.append(DiscConstScaling((l+1, 2*n+1), self, [self.support[0].children[1]]))
+        return self.children
+
+    def prolongate(self):
+        self.refine()
+        return [(self.children[0], 1), (self.children[1], 1)]
+
+    def restrict(self):
+        return [(self.parents, 1)]
+
+    def mass(self):
+        """ The singlescale Haar mass matrix is simply 2**-l * Id. """
+        l, n = self.labda
+        return [(self, 2**-l)]
+
+    @staticmethod
+    def eval_mother(x):
+        return (0 <= x) & (x < 1)
+
+    def eval(self, x, deriv=False):
+        assert deriv == False
+        l, n = self.labda
+        return 1.0 * self.eval_mother(2**l * x - n)
+
+class HaarWavelet(BaseWavelet):
+    def __init__(self, labda, parents, single_scale):
+        super().__init__(labda, parents, single_scale)
+
+    def refine(self):
+        if self.children: return
+        phi_left, phi_right = [phi for phi, _ in self.single_scale]
+        phi_left.refine()
+        phi_right.refine()
+
+        l, n = self.labda
+        child_left = HaarWavelet((l+1, 2*n), self, [(phi_left.children[0], 1), (phi_left.children[1], -1)])
+        child_right = HaarWavelet((l+1, 2*n+1), self, [(phi_right.children[0], 1), (phi_right.children[1], -1)])
+        self.children = [child_left, child_right]
+
 class HaarBasis(BaseBasis):
     # Create static mother scaling function.
-    mother_scaling = HaarScaling((0, 0), None, [Element.mother_element])
+    mother_scaling = DiscConstScaling((0, 0), None, [Element.mother_element])
     mother_scalings = [mother_scaling]
     mother_scaling.refine()
 
@@ -244,7 +248,113 @@ class HaarBasis(BaseBasis):
     def __init__(self):
         pass
 
-class ThreePointScaling(BaseScaling):
+class DiscLinearScaling(BaseScaling):
+    """ Discontinuous scaling functions.
+
+    There are two types, the (l, n) with even n correspond to pw constants,
+    whereas the (l, n) with odd n correspond to linears.
+    """
+    def __init__(self, labda, parents, support):
+        super().__init__(labda, parents, support)
+        self.children = []
+        self.nbr = None  # Store a reference to the `neighbour` on this element.
+        self.pw_constant = labda[1] % 2 == 0 # Store type of this function.
+
+    def refine(self):
+        if self.children: return self.children
+        if not self.pw_constant: return self.nbr.refine()
+        self.support[0].bisect()
+        l, n = self.labda
+        parents = [self, self.nbr]
+        child_left_cons = DiscLinearScaling((l+1, 2*n), parents, [self.support[0].children[0]])
+        child_left_lin = DiscLinearScaling((l+1, 2*n+1), parents, [self.support[0].children[0]])
+        child_right_cons = DiscLinearScaling((l+1, 2*n+2), parents, [self.support[0].children[1]])
+        child_right_lin = DiscLinearScaling((l+1, 2*n+3), parents, [self.support[0].children[1]])
+
+        self.children = [child_left_cons, child_left_lin, child_right_cons, child_right_lin]
+        self.nbr.children = self.children
+
+        # Update neighbouring relations.
+        child_left_cons.nbr = child_left_lin
+        child_left_lin.nbr = child_left_cons
+        child_right_cons.nbr = child_right_lin
+        child_right_lin.nbr = child_right_cons
+        return self.children
+
+    def prolongate(self):
+        self.refine()
+        if self.pw_constant:
+            return [(self.children[0], 1), (self.children[2], 1)]
+        else:
+            return list(zip(self.children, (-sq3/2, 1/2, sq3 /2, 1/2)))
+
+    def restrict(self):
+        l, n = self.labda
+        if n % 4 == 0:
+            return [(self.parents[0], 1), (self.parents[1], -sq3/2)]
+        elif n % 4 == 1:
+            return [(self.parents[1], 1/2)]
+        elif n % 4 == 2:
+            return [(self.parents[0], 1), (self.parents[1], sq3/2)]
+        else:
+            return [(self.parents[1], 1/2)]
+
+    def mass(self):
+        """ The singlescale Haar mass matrix is simply 2**-l * Id. """
+        l, n = self.labda
+        return [(self, 2**-l)]
+
+    @staticmethod
+    def eval_mother(constant, x, deriv):
+        if not deriv:
+            if constant: return (0 <= x) & (x < 1)
+            else: return sq3 * (2 * x - 1) * ((0 <= x) & (x < 1))
+        else:
+            if constant: return 0 * ((0 <= x) & (x < 1))
+            else: return sq3 * 2 * ((0 <= x) & (x < 1))
+
+    def eval(self, x, deriv=False):
+        l, n = self.labda
+        chain_rule_constant = 2**l if deriv else 1.0
+        return chain_rule_constant * self.eval_mother(self.pw_constant, 2**l * x - (n // 2), deriv)
+
+class OrthoWavelet(BaseWavelet):
+    def __init__(self, labda, parents, single_scale):
+        super().__init__(labda, parents, single_scale)
+
+    def refine(self):
+        if self.children: return self.children
+        l, n = self.labda
+        s = 2**(l/2) # scaling
+        for i in range(2):
+            if n % 2 == 0:
+                phi = self.single_scale[2*i][0]
+                phi.refine()
+                self.children.append(OrthoWavelet((l+1, 2*(n+i)), self, zip(phi.children, (-s/2, -sq3 * s/2, s/2, -sq3 *s/2))))
+            else:
+                phi = self.single_scale[i][0]
+                phi.refine()
+                self.children.append(OrthoWavelet((l+1, 2*(n+i)-1), self, [(phi.children[1], -s), (phi.children[3], s)]))
+
+class OrthoBasis(BaseBasis):
+    # Create static mother scaling function.
+    mother_scalings = [DiscLinearScaling((0,0), None, [Element.mother_element]), DiscLinearScaling((0, 1), None, [Element.mother_element])]
+    mother_scalings[0].nbr = mother_scalings[1]
+    mother_scalings[1].nbr = mother_scalings[0]
+    mother_scalings[0].refine()
+    mother_scalings[1].refine()
+    assert(len(mother_scalings[0].children) == 4)
+    assert(len(mother_scalings[1].children) == 4)
+
+    # Create static mother wavelet function.
+    mother_wavelet = HaarWavelet((1, 0), None, [(mother_scalings[0].children[0], 1), (mother_scalings[0].children[1], -1)])
+    mother_wavelets = [OrthoWavelet((1, 0), None, zip(mother_scalings[0].children, (-1/2, -sq3 * 1/2, 1/2, -sq3 * 1/2))),
+                        OrthoWavelet((1, 1), None, [(mother_scalings[1].children[1], -1), (mother_scalings[0].children[3], 1)])]
+
+    def __init__(self):
+        pass
+
+class ContLinearScaling(BaseScaling):
     def __init__(self, labda, parents, support):
         super().__init__(labda, parents, support)
         self.nbr_left = None
@@ -265,7 +375,7 @@ class ThreePointScaling(BaseScaling):
         if n < 2**l: child_support.append(self.support[-1].children[0])
 
         # Create element.
-        child = ThreePointScaling((l+1, 2*n), [self], child_support)
+        child = ContLinearScaling((l+1, 2*n), [self], child_support)
         self.child_mid = child
 
         # Update nbrs.
@@ -292,7 +402,7 @@ class ThreePointScaling(BaseScaling):
         phi_right = self
 
         # Create child element.
-        child = ThreePointScaling((l+1, n*2-1), [phi_left, phi_right], phi_right.support[0].children)
+        child = ContLinearScaling((l+1, n*2-1), [phi_left, phi_right], phi_right.support[0].children)
         phi_left.child_right = child
         phi_right.child_left = child
 
@@ -384,7 +494,7 @@ class ThreePointWavelet(BaseWavelet):
 
 class ThreePointBasis(BaseBasis):
     # Create static mother scaling functions.
-    mother_scalings = [ThreePointScaling((0, 0), None, [Element.mother_element]),ThreePointScaling((0, 1), None, [Element.mother_element])]
+    mother_scalings = [ContLinearScaling((0, 0), None, [Element.mother_element]),ContLinearScaling((0, 1), None, [Element.mother_element])]
     mother_scalings[0].nbr_right = mother_scalings[1]
     mother_scalings[1].nbr_left = mother_scalings[0]
 

@@ -1,5 +1,5 @@
 from pytest import approx
-from basis_tree import HaarBasis, BaseScaling, BaseWavelet, ThreePointBasis
+from basis_tree import HaarBasis, BaseScaling, BaseWavelet, ThreePointBasis, OrthoBasis, sq3
 from fractions import Fraction
 from interval import Interval
 from indexed_vector import IndexedVector
@@ -47,6 +47,33 @@ def test_haar_local_refinement():
         assert Lambda.per_level[l][0].labda == (l, 0)
         #assert Delta.per_level[l][0].labda == (l, 0) and Delta.per_level[l][1].labda == (l, 1)
 
+def test_ortho_uniform_refinement():
+    ml = 5
+    basis, Lambda, Delta = OrthoBasis.uniform_basis(ml)
+    for l in range(1, ml+1):
+        assert len(Lambda.per_level[l]) == 2**l
+        assert len(Delta.per_level[l]) == 2**(l+1)
+        h = Fraction(1, 2**l)
+        for psi in Lambda.per_level[l]:
+            psi_l, psi_n = psi.labda
+            assert psi_l == l
+            if psi_n % 2 == 1:
+                assert psi.eval( 2*h * (psi_n // 2) + 1e-8) == approx(sq3 * 2**(l/2))
+                assert psi.eval( h + 2*h * (psi_n // 2)) == approx(-sq3 * 2**(l/2))
+                assert psi.eval( 2*h + 2*h * (psi_n // 2) - 1e-8) == approx(sq3 * 2**(l/2))
+            else:
+                assert psi.eval( 2*h * (psi_n // 2) + 1e-8) == approx(2**(l/2))
+                assert psi.eval( h + 2*h * (psi_n // 2) - 1e-8) == approx(-2*2**(l/2))
+                assert psi.eval( h + 2*h * (psi_n // 2) + 1e-8) == approx(2*2**(l/2))
+                assert psi.eval( 2*h + 2*h * (psi_n // 2) - 1e-8) == approx(-2**(l/2))
+
+def test_ortho_local_refinement():
+    ml = 8
+    basis, Lambda, Delta = OrthoBasis.origin_refined_basis(ml)
+    for l in range(1, ml+1):
+        assert len(Lambda.per_level[l]) == 2
+        assert len(Delta.per_level[l]) == 4
+        assert Lambda.per_level[l][0].labda == (l, 0)
 
 def test_3pt_uniform_refinement():
     ml = 5
@@ -56,7 +83,6 @@ def test_3pt_uniform_refinement():
         assert len(Delta.per_level[l]) == 2**l + 1
         h = Fraction(1, 2**l)
         for psi in Lambda.per_level[l]:
-            print(psi, psi.single_scale)
             psi_l, psi_n = psi.labda
             assert psi_l == l
             assert psi.eval(h * (2*psi_n + 1)) == 2 **(l/2)
@@ -81,6 +107,8 @@ def test_basis_PQ():
     for basis, Lambda, Delta in [
             HaarBasis.uniform_basis(uml),
             HaarBasis.origin_refined_basis(oml),
+            OrthoBasis.uniform_basis(uml),
+            OrthoBasis.origin_refined_basis(uml),
             ThreePointBasis.uniform_basis(uml),
             ThreePointBasis.origin_refined_basis(uml)]:
         ml = Lambda.maximum_level
@@ -95,13 +123,12 @@ def test_basis_PQ():
             eye = np.eye(len(Delta.per_level[l-1]))
             for i, phi in enumerate(Delta.per_level[l-1]):
                 # Write phi_mu on lv l-1 as combination of scalings on lv l.
-                vec = IndexedVector(Delta.per_level[l-1], eye[i, :])
-                res = basis.P.matvec(vec, set(Delta.per_level[l-1]), basis.P.range(Delta.per_level[l-1]))
+                vec = IndexedVector({phi : 1.0})
+                res = basis.P.matvec(vec)
                 inner = np.sum([phi.eval(x) * res[phi] for phi in res], axis=0)
                 try:
                     assert np.allclose(inner, phi.eval(x))
                 except AssertionError:
-                    print(l, phi)
                     plt.plot(x, inner, label=r'$(\Phi_{l-1}^T P_l)_\mu$')
                     plt.plot(x, phi.eval(x), label=r"$\phi_\mu$")
                     plt.legend()
@@ -116,6 +143,8 @@ def test_basis_PQ_matrix():
     for basis, Lambda, Delta in [
             HaarBasis.uniform_basis(uml),
             HaarBasis.origin_refined_basis(oml),
+            OrthoBasis.uniform_basis(uml),
+            OrthoBasis.origin_refined_basis(uml),
             ThreePointBasis.uniform_basis(uml),
             ThreePointBasis.origin_refined_basis(oml)]:
         ml = Lambda.maximum_level
