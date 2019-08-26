@@ -4,7 +4,7 @@ import numpy as np
 from pytest import approx
 from scipy.integrate import quad
 
-from applicator_tree import Applicator
+import applicator_tree
 from basis_tree import (HaarBasis, OrthoBasis, ThreePointBasis,
                         support_to_interval)
 from indexed_vector import IndexedVector
@@ -12,29 +12,26 @@ from indexed_vector import IndexedVector
 np.random.seed(0)
 np.set_printoptions(linewidth=10000, precision=3)
 
+Applicator_class = applicator_tree.Applicator
+
 
 def test_haar_multiscale_mass():
     """ Test that the multiscale Haar mass matrix is indeed diagonal. """
     for basis, Lambda, Delta in [
             HaarBasis.uniform_basis(max_level=5),
-            #HaarBasis.origin_refined_basis(max_level=5)
+            HaarBasis.origin_refined_basis(max_level=10)
     ]:
         for l in range(1, 6):
             Lambda_l = Lambda.until_level(l)
-            applicator = Applicator(basis, basis.scaling_mass(), Lambda_l)
+            applicator = Applicator_class(basis, basis.scaling_mass(),
+                                          Lambda_l)
             for _ in range(10):
                 np_vec = np.random.rand(len(Lambda_l))
                 vec = IndexedVector(Lambda_l, np_vec)
                 res = applicator.apply(vec)
-<<<<<<< HEAD
                 assert np.allclose([(1.0 if phi.labda[0] == 0 else 2**
                                      (phi.labda[0] - 1)) * res[phi]
                                     for phi in Lambda_l], np_vec)
-=======
-                assert np.allclose(
-                    [(1.0 if phi.labda[0] == 0 else 2**(phi.labda[0] - 1)) *
-                     res[phi] for phi in Lambda_l], np_vec)
->>>>>>> 1b1d4b599bd244fa9e23ac0e8b71a3d9fb964196
 
 
 def test_orthonormal_multiscale_mass():
@@ -45,20 +42,14 @@ def test_orthonormal_multiscale_mass():
     ]:
         for l in range(1, 6):
             Lambda_l = Lambda.until_level(l)
-            applicator = Applicator(basis, basis.scaling_mass(), Lambda_l)
-            eye = np.eye(len(Lambda_l))
-            res_matrix = np.zeros([len(Lambda_l), len(Lambda_l)])
-            for i, psi in enumerate(Lambda_l):
-                vec = IndexedVector({psi: 1.0})
-                res = applicator.apply(vec)
-                print(psi, res)
-                res_matrix[:, i] = res.asarray(Lambda_l)
-            assert np.allclose(eye, res_matrix)
-
+            applicator = Applicator_class(basis, basis.scaling_mass(),
+                                          Lambda_l)
             for _ in range(10):
-                vec = np.random.rand(len(Lambda_l))
-                res = applicator.apply(IndexedVector(Lambda_l, vec))
-                assert np.allclose(vec, res.asarray(Lambda_l))
+                np_vec = np.random.rand(len(Lambda_l))
+                vec = IndexedVector(Lambda_l, np_vec)
+                res = applicator.apply(vec)
+                for psi, val in vec.items():
+                    assert val == approx(res[psi])
 
 
 def test_multiscale_operator_quadrature():
@@ -86,8 +77,8 @@ def test_multiscale_operator_quadrature():
         basis_out, Lambda_out, Delta_out = basis_out
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
-        applicator = Applicator(basis_in, operator, Lambda_in, basis_out,
-                                Lambda_out)
+        applicator = Applicator_class(basis_in, operator, Lambda_in, basis_out,
+                                      Lambda_out)
         eye = np.eye(len(Lambda_in))
         resmat = np.zeros([len(Lambda_in), len(Lambda_out)])
         truemat = np.zeros([len(Lambda_in), len(Lambda_out)])
@@ -126,6 +117,7 @@ def test_multiscale_operator_quadrature():
             print(np.round(truemat, decimals=3))
             raise
 
+
 def test_multiscale_operator_quadrature_lin_comb():
     """ Test that the multiscale matrix equals that found with quadrature. """
     uml = 4
@@ -151,8 +143,8 @@ def test_multiscale_operator_quadrature_lin_comb():
         basis_out, Lambda_out, _ = basis_out
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
-        applicator = Applicator(basis_in, operator, Lambda_in, basis_out,
-                                Lambda_out)
+        applicator = Applicator_class(basis_in, operator, Lambda_in, basis_out,
+                                      Lambda_out)
         for _ in range(3):
             vec_in = IndexedVector(Lambda_in, np.random.rand(len(Lambda_in)))
             vec_out = applicator.apply(vec_in)
@@ -183,6 +175,7 @@ def test_multiscale_operator_quadrature_lin_comb():
 
                 assert true_val == approx(vec_out[psi_out])
 
+
 def test_apply_upp_low_vs_full():
     """ Test that apply_upp() + apply_low() == apply(). """
     uml = 5
@@ -196,10 +189,10 @@ def test_apply_upp_low_vs_full():
             ThreePointBasis.origin_refined_basis(max_level=oml)
     ]:
         basis, Lambda, Delta = basis
-        applicator = Applicator(basis, basis.scaling_mass(), Lambda)
+        applicator = Applicator_class(basis, basis.scaling_mass(), Lambda)
         for _ in range(10):
             c = IndexedVector(Lambda, np.random.rand(len(Lambda)))
             res_full_op = applicator.apply(c)
             res_upp_low = applicator.apply_upp(c) + applicator.apply_low(c)
-            assert np.allclose(res_full_op.asarray(Lambda),
-                               res_upp_low.asarray(Lambda))
+            assert np.allclose(
+                res_full_op.asarray(Lambda), res_upp_low.asarray(Lambda))
