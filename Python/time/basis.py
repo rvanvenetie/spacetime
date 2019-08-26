@@ -43,7 +43,7 @@ class Basis(object):
 
     @property
     def P(self):
-        """ The matrices {P_l}_l such that Phi_{l-1}^T = P_l Phi_l^T.
+        """ The matrices {P_l}_l such that Phi_{l-1}^T = Phi_l^T P_l.
 
         P is a LinearOperator object that implements `matvec()` and `rmatvec()`.
         """
@@ -51,7 +51,7 @@ class Basis(object):
 
     @property
     def Q(self):
-        """ The matrices {Q_l}_l such that Psi_l^T = Q_l Phi_l^T.
+        """ The matrices {Q_l}_l such that Psi_l^T = Phi_l^T Q_l.
         TODO: Ik denk dat je bedoelt Psi_l = Q_l^T Phi_l.
 
         Q is a LinearOperator object that implements `matvec()` and `rmatvec()`.

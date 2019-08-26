@@ -26,9 +26,15 @@ def test_haar_multiscale_mass():
                 np_vec = np.random.rand(len(Lambda_l))
                 vec = IndexedVector(Lambda_l, np_vec)
                 res = applicator.apply(vec)
+<<<<<<< HEAD
                 assert np.allclose([(1.0 if phi.labda[0] == 0 else 2**
                                      (phi.labda[0] - 1)) * res[phi]
                                     for phi in Lambda_l], np_vec)
+=======
+                assert np.allclose(
+                    [(1.0 if phi.labda[0] == 0 else 2**(phi.labda[0] - 1)) *
+                     res[phi] for phi in Lambda_l], np_vec)
+>>>>>>> 1b1d4b599bd244fa9e23ac0e8b71a3d9fb964196
 
 
 def test_orthonormal_multiscale_mass():
@@ -95,14 +101,19 @@ def test_multiscale_operator_quadrature():
                 supp_total = supp_psi.intersection(supp_mu)
                 true_val = 0.0
                 if supp_total:
-                    true_val = quad(lambda x: psi.eval(x, deriv=deriv[0]) * mu.eval(x, deriv=deriv[1]),
+                    true_val = quad(lambda x: psi.eval(x, deriv=deriv[0]) * mu.
+                                    eval(x, deriv=deriv[1]),
                                     supp_total.a,
                                     supp_total.b,
                                     points=[
-                                        float(supp_psi.a), float(supp_psi.mid),
-                                        float(supp_psi.b), float(supp_mu.a),
-                                        float(supp_mu.mid ), float(supp_mu.b),
-                                        float(supp_total.a), float(supp_total.mid),
+                                        float(supp_psi.a),
+                                        float(supp_psi.mid),
+                                        float(supp_psi.b),
+                                        float(supp_mu.a),
+                                        float(supp_mu.mid),
+                                        float(supp_mu.b),
+                                        float(supp_total.a),
+                                        float(supp_total.mid),
                                         float(supp_total.b)
                                     ])[0]
                     truemat[i, j] = true_val
@@ -114,7 +125,6 @@ def test_multiscale_operator_quadrature():
             print(np.round(resmat, decimals=3))
             print(np.round(truemat, decimals=3))
             raise
-
 
 def test_multiscale_operator_quadrature_lin_comb():
     """ Test that the multiscale matrix equals that found with quadrature. """
@@ -172,3 +182,24 @@ def test_multiscale_operator_quadrature_lin_comb():
                                 supp_psi_out.b, points=points)[0]
 
                 assert true_val == approx(vec_out[psi_out])
+
+def test_apply_upp_low_vs_full():
+    """ Test that apply_upp() + apply_low() == apply(). """
+    uml = 5
+    oml = 15
+    for basis in [
+            HaarBasis.uniform_basis(max_level=uml),
+            HaarBasis.origin_refined_basis(max_level=oml),
+            OrthoBasis.uniform_basis(max_level=uml),
+            OrthoBasis.origin_refined_basis(max_level=oml),
+            ThreePointBasis.uniform_basis(max_level=uml),
+            ThreePointBasis.origin_refined_basis(max_level=oml)
+    ]:
+        basis, Lambda, Delta = basis
+        applicator = Applicator(basis, basis.scaling_mass(), Lambda)
+        for _ in range(10):
+            c = IndexedVector(Lambda, np.random.rand(len(Lambda)))
+            res_full_op = applicator.apply(c)
+            res_upp_low = applicator.apply_upp(c) + applicator.apply_low(c)
+            assert np.allclose(res_full_op.asarray(Lambda),
+                               res_upp_low.asarray(Lambda))
