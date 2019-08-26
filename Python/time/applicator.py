@@ -40,6 +40,7 @@ class Applicator(object):
         # TODO: This is ugly, and should be removed (?).
         class ElementExtended(Triangulation.Element):
             """ Extend the element class to hold some extra variables. """
+
             def __init__(self, level, node_index, parent):
                 super().__init__(level, node_index, parent)
 
@@ -51,13 +52,15 @@ class Applicator(object):
 
         triang = Triangulation(ElementExtended)
         for labda in self.Lambda_in:
-            for elem in triang.get_element(self.basis_in.wavelet_support(labda)):
+            for elem in triang.get_element(
+                    self.basis_in.wavelet_support(labda)):
                 elem.Lambda_in = True
 
         for labda in self.Lambda_out:
-            for elem in triang.get_element(self.basis_out.wavelet_support(labda)):
+            for elem in triang.get_element(
+                    self.basis_out.wavelet_support(labda)):
                 elem.Lambda_out = True
-        self.triang =  triang
+        self.triang = triang
 
     def apply(self, vec):
         """ Apply the multiscale operator.
@@ -87,7 +90,8 @@ class Applicator(object):
         e, f = self._apply_upp_recur(l=1,
                                      Pi_in=self.Lambda_in.on_level(0),
                                      Pi_out=self.Lambda_out.on_level(0),
-                                     d=vec.restrict(self.Lambda_in.on_level(0)),
+                                     d=vec.restrict(
+                                         self.Lambda_in.on_level(0)),
                                      c=vec)
         return e + f
 
@@ -128,10 +132,12 @@ class Applicator(object):
 
         for labda in Pi_out:
             # Generate support of Phi_out_labda on level l - 1
-            support_labda = self.triang.get_element(self.basis_out.scaling_support(labda))
+            support_labda = self.triang.get_element(
+                self.basis_out.scaling_support(labda))
 
             # Check if any of the children support a wavelet on level l
-            if any((child.Lambda_in for child in self.triang.children(support_labda))):
+            if any((child.Lambda_in
+                    for child in self.triang.children(support_labda))):
                 Pi_B_out.append(labda)
                 # TODO: possible set support_labda.Pi_out = True here.
             else:
@@ -146,12 +152,14 @@ class Applicator(object):
 
         # Set all the Pi_B_out boys.
         for labda in Pi_B_out:
-            for elem in self.triang.get_element(self.basis_out.scaling_support(labda)):
+            for elem in self.triang.get_element(
+                    self.basis_out.scaling_support(labda)):
                 elem.Pi_out = True
 
         for labda in Pi_in:
             # Generate support of Phi_in_labda on level l - 1.
-            support_labda = self.triang.get_element(self.basis_in.scaling_support(labda))
+            support_labda = self.triang.get_element(
+                self.basis_in.scaling_support(labda))
 
             # Check if intersects with Phi_out_Pi_B on level l - 1, or
             # with Lambda_l_out on level l.
@@ -163,7 +171,8 @@ class Applicator(object):
 
         # Unset all the Pi_B_out boys
         for labda in Pi_B_out:
-            for elem in self.triang.get_element(self.basis_out.scaling_support(labda)):
+            for elem in self.triang.get_element(
+                    self.basis_out.scaling_support(labda)):
                 elem.Pi_out = False
 
         #TODO: The above might not be neccessary.
@@ -191,14 +200,21 @@ class Applicator(object):
             Pi_B_in, Pi_A_in = self._construct_Pi_in(Pi_in, Pi_B_out)
 
             # Pi_bar_in is simply the range of the following operation
-            d_bar = self.basis_in.P.matvec(d, Pi_B_in, None) + self.basis_in.Q.matvec(c, Lambda_l_in, None)
+            d_bar = self.basis_in.P.matvec(d, Pi_B_in,
+                                           None) + self.basis_in.Q.matvec(
+                                               c, Lambda_l_in, None)
 
             Pi_bar_in = d_bar.keys()
-            Pi_bar_out = SingleLevelIndexSet(self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out))
+            Pi_bar_out = SingleLevelIndexSet(
+                self.basis_out.P.range(Pi_B_out)
+                | self.basis_out.Q.range(Lambda_l_out))
 
-            e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out, d_bar, c)
+            e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out,
+                                             d_bar, c)
 
-            e = self.operator.matvec(d, None, Pi_A_out) + self.basis_out.P.rmatvec(e_bar, None, Pi_B_out)
+            e = self.operator.matvec(d, None,
+                                     Pi_A_out) + self.basis_out.P.rmatvec(
+                                         e_bar, None, Pi_B_out)
             f = self.basis_out.Q.rmatvec(e_bar, None, Lambda_l_out) + f_bar
             return e, f
         else:
@@ -214,7 +230,9 @@ class Applicator(object):
             d_bar = self.basis_in.Q.matvec(c, Lambda_l_in, None)
 
             Pi_bar_in = d_bar.keys()
-            Pi_bar_out = SingleLevelIndexSet(self.basis_out.P.range(Pi_B_out) | self.basis_out.Q.range(Lambda_l_out))
+            Pi_bar_out = SingleLevelIndexSet(
+                self.basis_out.P.range(Pi_B_out)
+                | self.basis_out.Q.range(Lambda_l_out))
 
             e_bar, f_bar = self._apply_upp_recur(l + 1, Pi_bar_in, Pi_bar_out,
                                                  d_bar, c)
@@ -231,14 +249,20 @@ class Applicator(object):
         if len(Lambda_l_out) > 0 and len(Pi_in) + len(Lambda_l_in) > 0:
             Pi_B_in, _ = self._construct_Pi_in(Pi_in, Pi_B_out={})
             Pi_B_bar_in = SingleLevelIndexSet(self.basis_in.P.range(Pi_B_in))
-            Pi_B_bar_out = SingleLevelIndexSet(self.basis_out.Q.range(Lambda_l_out))
+            Pi_B_bar_out = SingleLevelIndexSet(
+                self.basis_out.Q.range(Lambda_l_out))
 
             # NB: operator is applied at level `l` -- different from the rest.
             Pi_B_in = set(Pi_B_in)
-            e_bar = self.operator.matvec(self.basis_in.P.matvec(d, Pi_B_in, None), Pi_B_bar_in, Pi_B_bar_out)
-            d_bar = self.basis_in.P.matvec(d, Pi_B_in, None) + self.basis_in.Q.matvec(c, Lambda_l_in, None)
+            e_bar = self.operator.matvec(
+                self.basis_in.P.matvec(d, Pi_B_in, None), Pi_B_bar_in,
+                Pi_B_bar_out)
+            d_bar = self.basis_in.P.matvec(d, Pi_B_in,
+                                           None) + self.basis_in.Q.matvec(
+                                               c, Lambda_l_in, None)
             Pi_bar_in = d_bar.keys()
-            f = self.basis_out.Q.rmatvec(e_bar, None, Lambda_l_out) + self._apply_low_recur(
+            f = self.basis_out.Q.rmatvec(e_bar, None,
+                                         Lambda_l_out) + self._apply_low_recur(
                                              l + 1, Pi_bar_in, d_bar, c)
             return f
         else:

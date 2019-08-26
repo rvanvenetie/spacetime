@@ -21,9 +21,10 @@ class IndexedVector(collections.abc.Mapping):
             self.vector = index_set
         elif isinstance(index_set, Iterable) and values is not None:
             assert len(index_set) == len(values)
-            self.vector = {key : value for key, value in zip(index_set, values)}
+            self.vector = {key: value for key, value in zip(index_set, values)}
         else:
-            raise TypeError('IndexedVector encoutered unknown type: {}'.format(type(index_set)))
+            raise TypeError('IndexedVector encoutered unknown type: {}'.format(
+                type(index_set)))
 
     @classmethod
     def Zero(cls):
@@ -52,7 +53,8 @@ class IndexedVector(collections.abc.Mapping):
 
     def restrict(self, indices):
         return IndexedVector(
-            {key: self.vector[key] for key in indices if key in self.vector})
+            {key: self.vector[key]
+             for key in indices if key in self.vector})
 
     def __add__(self, other):
         if len(other.vector) > len(self.vector): return other + self
@@ -77,14 +79,20 @@ class IndexedVector(collections.abc.Mapping):
         # TODO: This function is a mess right now.
         if index_mask is None:
             if isinstance(other, list):
-                return sum(self.vector[labda] * coeff for labda, coeff in other)
+                return sum(self.vector[labda] * coeff
+                           for labda, coeff in other)
             else:
-                return sum(self.vector[labda] * other[labda] for labda in other.keys())
+                return sum(self.vector[labda] * other[labda]
+                           for labda in other.keys())
 
         elif not isinstance(index_mask, collections.abc.Set):
-            raise TypeError('For vec.dot to be efficient, the index_mask must be a set type. We got {}.'.format(type(index_mask)))
+            raise TypeError(
+                'For vec.dot to be efficient, the index_mask must be a set type. We got {}.'
+                .format(type(index_mask)))
 
         if isinstance(other, list):
-            return sum(self[labda] * coeff for labda, coeff in other if labda in index_mask)
+            return sum(self[labda] * coeff for labda, coeff in other
+                       if labda in index_mask)
         else:
-            return sum(self[labda] * other[labda] for labda in other.keys() if labda in index_mask)
+            return sum(self[labda] * other[labda] for labda in other.keys()
+                       if labda in index_mask)
