@@ -1,6 +1,6 @@
+from basis_tree import Element
 from indexed_vector import IndexedVector
 from interval import Interval, IntervalSet
-from basis_tree import Element
 
 
 class Applicator(object):
@@ -35,9 +35,15 @@ class Applicator(object):
         self.Lambda_in = Lambda_in if Lambda_in else basis_in.indices
         self.Lambda_out = Lambda_out if Lambda_out else self.Lambda_in
 
-    def _initialize_elements(self):
-        """ Helper function to set correct fields inside the elements. """
+    def _initialize(self, vec):
+        """ Helper function to initialize fields in datastructures. """
 
+        # First, store the vector inside the wavelet.
+        # TODO: This should be removed.
+        for psi, value in vec.items():
+            psi.coeff[0] = value
+
+        # Second, reset data inside the `elements`.
         def reset(elem):
             """ Reset the variables! :-) """
             elem.Lambda_in = False
@@ -47,8 +53,10 @@ class Applicator(object):
             for child in elem.children:
                 reset(child)
 
+        # Recursively resets all elements.
         reset(Element.mother_element)
 
+        # Last, update the fields inside the elements.
         for psi in self.Lambda_in:
             for elem in list(psi.support):
                 elem.Lambda_in = True
@@ -66,25 +74,16 @@ class Applicator(object):
         Returns:
             self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
-        self._initialize_elements()
-
-        # Copy data from input vector into the basis.
-        for psi, value in vec.items():
-            psi.coeff[0] = value
+        self._initialize(vec)
 
         # Apply the recursive method.
-        self._apply_recur(l=1,
-                          Pi_in=self.Lambda_in.on_level(0),
-                          Pi_out=self.Lambda_out.on_level(0))
+        self._apply_recur(
+            l=1,
+            Pi_in=self.Lambda_in.on_level(0),
+            Pi_out=self.Lambda_out.on_level(0))
 
         # Copy data back from basis into a vector.
-        result = IndexedVector({psi: psi.coeff[1] for psi in self.Lambda_out})
-
-        # Reset the basis.
-        for psi in self.Lambda_in:
-            psi.reset_coeff()
-
-        return result
+        return IndexedVector({psi: psi.coeff[1] for psi in self.Lambda_out})
 
     def apply_upp(self, vec):
         """ Apply the upper part of the multiscale operator.
@@ -95,19 +94,14 @@ class Applicator(object):
         Returns:
             Upper part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
-        self._initialize_elements()
-        for psi, value in vec.items():
-            psi.coeff[0] = value
+        self._initialize(vec)
 
-        self._apply_upp_recur(l=1,
-                              Pi_in=self.Lambda_in.on_level(0),
-                              Pi_out=self.Lambda_out.on_level(0))
-        result = IndexedVector({psi: psi.coeff[1] for psi in self.Lambda_out})
+        self._apply_upp_recur(
+            l=1,
+            Pi_in=self.Lambda_in.on_level(0),
+            Pi_out=self.Lambda_out.on_level(0))
 
-        for psi in self.Lambda_in:
-            psi.reset_coeff()
-
-        return result
+        return IndexedVector({psi: psi.coeff[1] for psi in self.Lambda_out})
 
     def apply_low(self, vec):
         """ Apply the lower part of the multiscale operator.
@@ -118,17 +112,10 @@ class Applicator(object):
         Returns:
             Lower part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
-        self._initialize_elements()
-        for psi, value in vec.items():
-            psi.coeff[0] = value
+        self._initialize(vec)
 
         self._apply_low_recur(l=1, Pi_in=self.Lambda_in.on_level(0))
-        result = IndexedVector({psi: psi.coeff[1] for psi in self.Lambda_out})
-
-        for psi in self.Lambda_in:
-            psi.reset_coeff()
-
-        return result
+        return IndexedVector({psi: psi.coeff[1] for psi in self.Lambda_out})
 
     #  Private methods from here on out.
     def _construct_Pi_out(self, Pi_out):
@@ -216,10 +203,8 @@ class Applicator(object):
 
             self.operator.matvec_inplace(None, Pi_A_out, read=0, write=1)
             self.basis_out.P.rmatvec_inplace(None, Pi_B_out, read=1, write=1)
-            self.basis_out.Q.rmatvec_inplace(None,
-                                             Lambda_l_out,
-                                             read=1,
-                                             write=1)
+            self.basis_out.Q.rmatvec_inplace(
+                None, Lambda_l_out, read=1, write=1)
             for phi in Pi_bar_in:
                 phi.reset_coeff()
             for phi in Pi_bar_out:
@@ -239,10 +224,8 @@ class Applicator(object):
             self._apply_upp_recur(l + 1, Pi_bar_in, Pi_bar_out)
             self.operator.matvec_inplace(Pi_in, Pi_out, read=0, write=1)
             self.basis_out.P.rmatvec_inplace(None, Pi_B_out, read=1, write=1)
-            self.basis_out.Q.rmatvec_inplace(None,
-                                             Lambda_l_out,
-                                             read=1,
-                                             write=1)
+            self.basis_out.Q.rmatvec_inplace(
+                None, Lambda_l_out, read=1, write=1)
             for phi in Pi_bar_in:
                 phi.reset_coeff()
             for phi in Pi_bar_out:
@@ -260,16 +243,12 @@ class Applicator(object):
 
             self.basis_in.P.matvec_inplace(Pi_B_in, None, read=0, write=0)
             # NB: operator is applied at level `l` -- different from the rest.
-            self.operator.matvec_inplace(Pi_B_bar_in,
-                                         Pi_B_bar_out,
-                                         read=0,
-                                         write=1)
+            self.operator.matvec_inplace(
+                Pi_B_bar_in, Pi_B_bar_out, read=0, write=1)
             self.basis_in.Q.matvec_inplace(Lambda_l_in, None, read=0, write=0)
 
-            self.basis_out.Q.rmatvec_inplace(None,
-                                             Lambda_l_out,
-                                             read=1,
-                                             write=1)
+            self.basis_out.Q.rmatvec_inplace(
+                None, Lambda_l_out, read=1, write=1)
             self._apply_low_recur(l + 1, Pi_bar_in)
 
             for phi in Pi_bar_in:
