@@ -47,11 +47,11 @@ class MultiscaleIndices:
     def until_level(self, level):
         """ Expensive (but linear in size) method. Mainly for testing. """
         return MultiscaleIndices(
-            {index for index in self.indices if index.labda[0] <= level})
+            {index
+             for index in self.indices if index.labda[0] <= level})
 
 
 class Element:
-
     def __init__(self, level, node_index, parent):
         self.level = level
         self.node_index = node_index
@@ -86,7 +86,6 @@ Element.mother_element = Element(0, 0, None)
 
 
 class BaseScaling:
-
     def __init__(self, labda, parents, support):
         self.labda = labda
         self.parents = parents
@@ -116,7 +115,6 @@ class BaseScaling:
 
 
 class BaseWavelet:
-
     def __init__(self, labda, parents, single_scale):
         self.labda = labda
         self.parents = parents
@@ -146,7 +144,6 @@ class BaseWavelet:
 
 
 class BaseBasis:
-
     @classmethod
     def uniform_basis(cls, max_level):
         assert max_level >= 1
@@ -164,7 +161,8 @@ class BaseBasis:
             Lambda.extend(Lambda_l)
 
         Delta = basis.mother_scalings + list(
-            {phi for psi in Lambda for phi, _ in psi.single_scale})
+            {phi
+             for psi in Lambda for phi, _ in psi.single_scale})
         Lambda = basis.mother_scalings + Lambda
         return basis, MultiscaleIndices(Lambda), MultiscaleIndices(Delta)
 
@@ -183,13 +181,13 @@ class BaseBasis:
                 Lambda.append(parent.children[0])
 
         Delta = basis.mother_scalings + list(
-            {phi for psi in Lambda for phi, _ in psi.single_scale})
+            {phi
+             for psi in Lambda for phi, _ in psi.single_scale})
         Lambda = basis.mother_scalings + Lambda
         return basis, MultiscaleIndices(Lambda), MultiscaleIndices(Delta)
 
     @property
     def P(self):
-
         def row(phi):
             return phi.restrict()
 
@@ -200,7 +198,6 @@ class BaseBasis:
 
     @property
     def Q(self):
-
         def row(phi):
             return phi.multi_scale
 
@@ -211,7 +208,6 @@ class BaseBasis:
 
     @staticmethod
     def scaling_mass():
-
         def row(phi):
             return phi.mass()
 
@@ -219,7 +215,6 @@ class BaseBasis:
 
 
 class DiscConstScaling(BaseScaling):
-
     def __init__(self, labda, parents, support):
         super().__init__(labda, parents, support)
         self.children = []
@@ -259,7 +254,6 @@ class DiscConstScaling(BaseScaling):
 
 
 class HaarWavelet(BaseWavelet):
-
     def __init__(self, labda, parents, single_scale):
         super().__init__(labda, parents, single_scale)
 
@@ -375,7 +369,6 @@ class DiscLinearScaling(BaseScaling):
 
 
 class OrthoWavelet(BaseWavelet):
-
     def __init__(self, labda, parents, single_scale):
         super().__init__(labda, parents, single_scale)
 
@@ -396,8 +389,9 @@ class OrthoWavelet(BaseWavelet):
                 phi = self.single_scale[i][0]
                 phi.refine()
                 self.children.append(
-                    OrthoWavelet((l + 1, 2 * (n + i) - 1), self,
-                                 [(phi.children[1], -s), (phi.children[3], s)]))
+                    OrthoWavelet((l + 1, 2 * (n + i) - 1),
+                                 self, [(phi.children[1], -s),
+                                        (phi.children[3], s)]))
 
 
 class OrthoBasis(BaseBasis):
@@ -430,7 +424,6 @@ class OrthoBasis(BaseBasis):
 
 
 class ContLinearScaling(BaseScaling):
-
     def __init__(self, labda, parents, support):
         super().__init__(labda, parents, support)
         self.nbr_left = None
@@ -546,7 +539,6 @@ class ContLinearScaling(BaseScaling):
 
 
 class ThreePointWavelet(BaseWavelet):
-
     def __init__(self, labda, parents, single_scale):
         super().__init__(labda, parents, single_scale)
 
