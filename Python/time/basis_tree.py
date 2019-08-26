@@ -50,6 +50,20 @@ class MultiscaleIndices:
             {index
              for index in self.indices if index.labda[0] <= level})
 
+    def single_scale_indices(self):
+        """ Expensive. Returns a list of all single scale functions.
+        
+        Assumes that this set represents wavelets.
+        """
+        Delta = []
+        for psi in self.indices:
+            if isinstance(psi, BaseWavelet):
+                Delta.extend([phi for phi, _ in psi.single_scale])
+            else:
+                assert isinstance(psi, BaseScaling)
+                Delta.append(psi)
+        return MultiscaleIndices(list(set(Delta)))
+
 
 class Element:
     def __init__(self, level, node_index, parent):
@@ -149,7 +163,7 @@ class BaseBasis:
         assert max_level >= 1
         basis = cls()
 
-        # Start refining all wavelets
+        # Start refining all wavelets. Copy the mother_wavelets list.
         Lambda = [] + basis.mother_wavelets
         Lambda_l = Lambda
         for _ in range(max_level - 1):
@@ -160,11 +174,8 @@ class BaseBasis:
             Lambda_l = Lambda_new
             Lambda.extend(Lambda_l)
 
-        Delta = basis.mother_scalings + list(
-            {phi
-             for psi in Lambda for phi, _ in psi.single_scale})
         Lambda = basis.mother_scalings + Lambda
-        return basis, MultiscaleIndices(Lambda), MultiscaleIndices(Delta)
+        return basis, MultiscaleIndices(Lambda)
 
     @classmethod
     def origin_refined_basis(cls, max_level):
@@ -172,19 +183,45 @@ class BaseBasis:
         basis = cls()
 
         n_wavelets = len(basis.mother_wavelets)
+        Lambda = basis.mother_scalings + basis.mother_wavelets
+        for _ in range(max_level - 1):
+            parents = list(Lambda[-n_wavelets:])
+            for parent in parents:
+                parent.refine()
+                #TODO: This assumes the left child is always 0
+                Lambda.append(parent.children[0])
+
+        return basis, MultiscaleIndices(Lambda)
+
+    @classmethod
+    def end_point_refined_basis(cls, max_level):
+        assert max_level >= 1
+        basis = cls()
+
+        n_wavelets = len(basis.mother_wavelets)
+
+        # Make a copy of the mother_wavelets list.
         Lambda = [] + basis.mother_wavelets
-        Lambda_l = Lambda
+
+        # First add all the wavelets near the origin
+        # TODO: assumets the left child is 0
         for _ in range(max_level - 1):
             parents = list(Lambda[-n_wavelets:])
             for parent in parents:
                 parent.refine()
                 Lambda.append(parent.children[0])
 
-        Delta = basis.mother_scalings + list(
-            {phi
-             for psi in Lambda for phi, _ in psi.single_scale})
+        # Now add all the wavelets near the endpoint.
+        # TODO: dirty hacks involved here
+        Lambda = Lambda[n_wavelets:] + basis.mother_wavelets
+        for _ in range(max_level - 1):
+            parents = list(Lambda[-n_wavelets:])
+            for parent in parents:
+                parent.refine()
+                Lambda.append(parent.children[-1])
+
         Lambda = basis.mother_scalings + Lambda
-        return basis, MultiscaleIndices(Lambda), MultiscaleIndices(Delta)
+        return basis, MultiscaleIndices(Lambda)
 
     @property
     def P(self):
@@ -539,6 +576,12 @@ class ContLinearScaling(BaseScaling):
 
 
 class ThreePointWavelet(BaseWavelet):
+    """ Continuous piecewise linear basis, with three point wavelets.
+
+    Scaling functions are simply the hat functions. A hat function on given
+    level is indexed by the corresponding node index. A wavelet on level l >= 1
+    is indexed by 0..2^l-1, corresponding to the odd nodes on level l."""
+
     def __init__(self, labda, parents, single_scale):
         super().__init__(labda, parents, single_scale)
 

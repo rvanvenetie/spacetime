@@ -1,18 +1,18 @@
-from applicator import Applicator
-
-import basis_tree
-import applicator_tree
-import applicator_tree_inplace
-from haar_basis import HaarBasis
-from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
-from three_point_basis import ThreePointBasis
-from indexed_vector import IndexedVector
+import cProfile
+import time
 
 import matplotlib.pyplot as plt
-import time
 import numpy as np
-import cProfile
 import pytest
+
+import applicator_tree
+import applicator_tree_inplace
+import basis_tree
+from applicator import Applicator
+from haar_basis import HaarBasis
+from indexed_vector import IndexedVector
+from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
+from three_point_basis import ThreePointBasis
 
 
 def plot_results(results):
@@ -22,8 +22,12 @@ def plot_results(results):
         #           basex=2,
         #           basey=2,
         #           label=basis_name)
-        plt.plot(range(len(results[basis_name]['N'])),
-                [t/n for n,t in zip(results[basis_name]['N'], results[basis_name]['apply_time'])], label=basis_name)
+        plt.plot(
+            range(len(results[basis_name]['N'])), [
+                t / n for n, t in zip(results[basis_name]['N'],
+                                      results[basis_name]['apply_time'])
+            ],
+            label=basis_name)
     #plt.loglog(results['ThreePointBasis']['N'], [
     #    results['ThreePointBasis']['apply_time'][-1] /
     #    results['ThreePointBasis']['N'][-1] * N
@@ -51,13 +55,15 @@ def plot_results(results):
 def test_mother_fucker():
     results = {}
     try:
-        for bla in ['ThreePoint_tree_inplace', 'ThreePoint_tree', 'ThreePoint']:
-            results[bla] = { 'N': [],
-                            'apply_time': []
-                            }
+        for bla in [
+                'ThreePoint_tree_inplace', 'ThreePoint_tree', 'ThreePoint'
+        ]:
+            results[bla] = {'N': [], 'apply_time': []}
         for level in range(1, 25):
-            basis_obj_tree, Lambda_tree, _ = basis_tree.ThreePointBasis.uniform_basis(max_level=level)
-            applicator = applicator_tree.Applicator(basis_obj_tree, basis_obj_tree.scaling_mass(), Lambda_tree)
+            basis_obj_tree, Lambda_tree = basis_tree.ThreePointBasis.uniform_basis(
+                max_level=level)
+            applicator = applicator_tree.Applicator(
+                basis_obj_tree, basis_obj_tree.scaling_mass(), Lambda_tree)
             N = len(Lambda_tree)
             vec = IndexedVector(Lambda_tree, np.random.rand(N))
             start = time.time()
@@ -66,8 +72,11 @@ def test_mother_fucker():
             results['ThreePoint_tree']['N'].append(N)
             results['ThreePoint_tree']['apply_time'].append(apply_time)
 
-            basis_obj_tree_inplace, Lambda_tree_inplace, _ = basis_tree.ThreePointBasis.uniform_basis(max_level=level)
-            applicator = applicator_tree_inplace.Applicator(basis_obj_tree_inplace, basis_obj_tree_inplace.scaling_mass(), Lambda_tree_inplace)
+            basis_obj_tree_inplace, Lambda_tree_inplace = basis_tree.ThreePointBasis.uniform_basis(
+                max_level=level)
+            applicator = applicator_tree_inplace.Applicator(
+                basis_obj_tree_inplace, basis_obj_tree_inplace.scaling_mass(),
+                Lambda_tree_inplace)
             N = len(Lambda_tree_inplace)
             vec = IndexedVector(Lambda_tree_inplace, np.random.rand(N))
             start = time.time()
@@ -97,7 +106,7 @@ def test_linear_complexity_tree():
     results = {}
     try:
         for level in range(17, 20):
-            for basis, Lambda, Delta in [
+            for basis, Lambda in [
                     basis_tree.ThreePointBasis.uniform_basis(max_level=level)
             ]:
                 if not basis.__class__.__name__ in results:
@@ -106,8 +115,8 @@ def test_linear_complexity_tree():
                         'apply_time': []
                     }
 
-                applicator = applicator_tree_inplace.Applicator(basis, basis.scaling_mass(),
-                                        Lambda)
+                applicator = applicator_tree_inplace.Applicator(
+                    basis, basis.scaling_mass(), Lambda)
                 N = len(Lambda)
                 vec = IndexedVector(Lambda, np.random.rand(N))
                 start = time.time()
@@ -122,6 +131,7 @@ def test_linear_complexity_tree():
         return results
     except KeyboardInterrupt:
         return results
+
 
 @pytest.mark.skip("timing test!")
 def test_linear_complexity():

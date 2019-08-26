@@ -226,6 +226,7 @@ class Applicator(object):
             self.basis_out.P.rmatvec_inplace(None, Pi_B_out, read=1, write=1)
             self.basis_out.Q.rmatvec_inplace(
                 None, Lambda_l_out, read=1, write=1)
+
             for phi in Pi_bar_in:
                 phi.reset_coeff()
             for phi in Pi_bar_out:

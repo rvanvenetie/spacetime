@@ -17,7 +17,7 @@ Applicator_class = applicator_tree.Applicator
 
 def test_haar_multiscale_mass():
     """ Test that the multiscale Haar mass matrix is indeed diagonal. """
-    for basis, Lambda, Delta in [
+    for basis, Lambda in [
             HaarBasis.uniform_basis(max_level=5),
             HaarBasis.origin_refined_basis(max_level=10)
     ]:
@@ -36,7 +36,7 @@ def test_haar_multiscale_mass():
 
 def test_orthonormal_multiscale_mass():
     """ Test that the multiscale mass operator is the identity. """
-    for basis, Lambda, Delta in [
+    for basis, Lambda in [
             OrthoBasis.uniform_basis(max_level=5),
             OrthoBasis.origin_refined_basis(max_level=15)
     ]:
@@ -73,8 +73,8 @@ def test_multiscale_operator_quadrature():
         (tpo, tpo, ThreePointBasis.scaling_mass(), (False, False)),
         (tpu, tpo, ThreePointBasis.scaling_mass(), (False, False)),
     ]:
-        basis_in, Lambda_in, Delta_in = basis_in
-        basis_out, Lambda_out, Delta_out = basis_out
+        basis_in, Lambda_in = basis_in
+        basis_out, Lambda_out = basis_out
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
         applicator = Applicator_class(basis_in, operator, Lambda_in, basis_out,
@@ -124,23 +124,30 @@ def test_multiscale_operator_quadrature_lin_comb():
     oml = 5
     hbu = HaarBasis.uniform_basis(max_level=uml)
     hbo = HaarBasis.origin_refined_basis(max_level=oml)
+    hbe = HaarBasis.end_point_refined_basis(max_level=oml)
     oru = OrthoBasis.uniform_basis(max_level=uml)
     oro = OrthoBasis.origin_refined_basis(max_level=oml)
+    ore = OrthoBasis.end_point_refined_basis(max_level=oml)
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
+    tpe = ThreePointBasis.end_point_refined_basis(max_level=oml)
     for basis_in, basis_out, operator, deriv in [
         (hbu, hbu, HaarBasis.scaling_mass(), (False, False)),
         (hbo, hbo, HaarBasis.scaling_mass(), (False, False)),
         (hbu, hbo, HaarBasis.scaling_mass(), (False, False)),
+        (hbu, hbe, HaarBasis.scaling_mass(), (False, False)),
         (oru, oru, OrthoBasis.scaling_mass(), (False, False)),
         (oro, oro, OrthoBasis.scaling_mass(), (False, False)),
         (oru, oro, OrthoBasis.scaling_mass(), (False, False)),
+        (oru, ore, OrthoBasis.scaling_mass(), (False, False)),
         (tpu, tpu, ThreePointBasis.scaling_mass(), (False, False)),
         (tpo, tpo, ThreePointBasis.scaling_mass(), (False, False)),
         (tpu, tpo, ThreePointBasis.scaling_mass(), (False, False)),
+        (tpu, tpe, ThreePointBasis.scaling_mass(), (False, False)),
+        (tpo, tpe, ThreePointBasis.scaling_mass(), (False, False)),
     ]:
-        basis_in, Lambda_in, _ = basis_in
-        basis_out, Lambda_out, _ = basis_out
+        basis_in, Lambda_in = basis_in
+        basis_out, Lambda_out = basis_out
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
         applicator = Applicator_class(basis_in, operator, Lambda_in, basis_out,
@@ -188,7 +195,7 @@ def test_apply_upp_low_vs_full():
             ThreePointBasis.uniform_basis(max_level=uml),
             ThreePointBasis.origin_refined_basis(max_level=oml)
     ]:
-        basis, Lambda, Delta = basis
+        basis, Lambda = basis
         applicator = Applicator_class(basis, basis.scaling_mass(), Lambda)
         for _ in range(10):
             c = IndexedVector(Lambda, np.random.rand(len(Lambda)))
