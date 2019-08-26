@@ -222,7 +222,7 @@ class Applicator(object):
 
             self.basis_in.Q.matvec_inplace(Lambda_l_in, None, read=0, write=0)
             self._apply_upp_recur(l + 1, Pi_bar_in, Pi_bar_out)
-            self.operator.matvec_inplace(Pi_in, Pi_out, read=0, write=1)
+            self.operator.matvec_inplace(None, Pi_out, read=0, write=1)
             self.basis_out.P.rmatvec_inplace(None, Pi_B_out, read=1, write=1)
             self.basis_out.Q.rmatvec_inplace(
                 None, Lambda_l_out, read=1, write=1)
@@ -244,8 +244,7 @@ class Applicator(object):
 
             self.basis_in.P.matvec_inplace(Pi_B_in, None, read=0, write=0)
             # NB: operator is applied at level `l` -- different from the rest.
-            self.operator.matvec_inplace(
-                Pi_B_bar_in, Pi_B_bar_out, read=0, write=1)
+            self.operator.matvec_inplace(None, Pi_B_bar_out, read=0, write=1)
             self.basis_in.Q.matvec_inplace(Lambda_l_in, None, read=0, write=0)
 
             self.basis_out.Q.rmatvec_inplace(

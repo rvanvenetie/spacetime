@@ -1,5 +1,6 @@
-from indexed_vector import IndexedVector
 from collections import defaultdict
+
+from indexed_vector import IndexedVector
 
 
 class LinearOperator(object):
@@ -46,16 +47,11 @@ class LinearOperator(object):
                 coeff_in = labda_in.coeff[read]
                 for labda_out, coeff_out in col_op(labda_in):
                     labda_out.coeff[write] += coeff_out * coeff_in
-        elif indices_in is None:
+        else:
+            assert indices_in is None
             for labda_out in indices_out:
                 for labda_in, coeff_in in row_op(labda_out):
                     labda_out.coeff[write] += labda_in.coeff[read] * coeff_in
-        else:
-            for labda_out in indices_out:
-                for labda_in, coeff_in in row_op(labda_out):
-                    if labda_in in indices_in:
-                        labda_out.coeff[
-                            write] += labda_in.coeff[read] * coeff_in
 
     def matvec(self, vec, indices_in=None, indices_out=None):
         """ Computes matrix-vector product z = A x.

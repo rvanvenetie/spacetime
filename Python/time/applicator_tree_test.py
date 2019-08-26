@@ -185,21 +185,39 @@ def test_multiscale_operator_quadrature_lin_comb():
 
 def test_apply_upp_low_vs_full():
     """ Test that apply_upp() + apply_low() == apply(). """
-    uml = 5
+    uml = 6
     oml = 15
-    for basis in [
-            HaarBasis.uniform_basis(max_level=uml),
-            HaarBasis.origin_refined_basis(max_level=oml),
-            OrthoBasis.uniform_basis(max_level=uml),
-            OrthoBasis.origin_refined_basis(max_level=oml),
-            ThreePointBasis.uniform_basis(max_level=uml),
-            ThreePointBasis.origin_refined_basis(max_level=oml)
+    hbu = HaarBasis.uniform_basis(max_level=uml)
+    hbo = HaarBasis.origin_refined_basis(max_level=oml)
+    hbe = HaarBasis.end_point_refined_basis(max_level=oml)
+    oru = OrthoBasis.uniform_basis(max_level=uml)
+    oro = OrthoBasis.origin_refined_basis(max_level=oml)
+    ore = OrthoBasis.end_point_refined_basis(max_level=oml)
+    tpu = ThreePointBasis.uniform_basis(max_level=uml)
+    tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
+    tpe = ThreePointBasis.end_point_refined_basis(max_level=oml)
+    for basis_in, basis_out, operator in [
+        (hbu, hbu, HaarBasis.scaling_mass()),
+        (hbo, hbo, HaarBasis.scaling_mass()),
+        (hbu, hbo, HaarBasis.scaling_mass()),
+        (hbu, hbe, HaarBasis.scaling_mass()),
+        (oru, oru, OrthoBasis.scaling_mass()),
+        (oro, oro, OrthoBasis.scaling_mass()),
+        (oru, oro, OrthoBasis.scaling_mass()),
+        (oru, ore, OrthoBasis.scaling_mass()),
+        (tpu, tpu, ThreePointBasis.scaling_mass()),
+        (tpo, tpo, ThreePointBasis.scaling_mass()),
+        (tpu, tpo, ThreePointBasis.scaling_mass()),
+        (tpu, tpe, ThreePointBasis.scaling_mass()),
+        (tpo, tpe, ThreePointBasis.scaling_mass()),
     ]:
-        basis, Lambda = basis
-        applicator = Applicator_class(basis, basis.scaling_mass(), Lambda)
+        basis_in, Lambda_in = basis_in
+        basis_out, Lambda_out = basis_out
+        applicator = Applicator_class(basis_in, operator, Lambda_in, basis_out,
+                                      Lambda_out)
         for _ in range(10):
-            c = IndexedVector(Lambda, np.random.rand(len(Lambda)))
+            c = IndexedVector(Lambda_in, np.random.rand(len(Lambda_in)))
             res_full_op = applicator.apply(c)
             res_upp_low = applicator.apply_upp(c) + applicator.apply_low(c)
             assert np.allclose(
-                res_full_op.asarray(Lambda), res_upp_low.asarray(Lambda))
+                res_full_op.asarray(Lambda_in), res_upp_low.asarray(Lambda_in))

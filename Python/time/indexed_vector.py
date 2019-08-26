@@ -1,7 +1,9 @@
-from index_set import IndexSet
-import numpy as np
 import collections.abc
 from collections import Iterable
+
+import numpy as np
+
+from index_set import IndexSet
 
 
 class IndexedVector(collections.abc.Mapping):
@@ -79,11 +81,10 @@ class IndexedVector(collections.abc.Mapping):
         # TODO: This function is a mess right now.
         if index_mask is None:
             if isinstance(other, list):
-                return sum(self.vector[labda] * coeff
-                           for labda, coeff in other)
+                return sum(self[labda] * coeff for labda, coeff in other)
             else:
-                return sum(self.vector[labda] * other[labda]
-                           for labda in other.keys())
+                return sum(
+                    self[labda] * other[labda] for labda in other.keys())
 
         elif not isinstance(index_mask, collections.abc.Set):
             raise TypeError(
