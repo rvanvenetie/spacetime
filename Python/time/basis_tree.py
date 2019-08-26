@@ -83,6 +83,12 @@ class BaseScaling:
         self.parents = parents
         self.support = support # Support is a list.
         self.multi_scale = [] # Tranpose of the wavelet to multiscale.
+        # TODO: This should be removed, or neatly integrated.
+        self.coeff = [0 for _ in range(3)]
+
+    def reset_coeff(self):
+        # TODO: This should be removed, or neatly integrated.
+        self.coeff = [0 for _ in range(3)]
 
     def prolongate(self):
         """ Returns a list of pairs with the corresponding coefficients. """
@@ -110,6 +116,13 @@ class BaseWavelet:
             self.support.extend(phi.support)
             # Register this wavelet in the corresponding phi.
             phi.multi_scale.append((self, coeff))
+
+        # TODO: This should be removed, or neatly integrated.
+        self.coeff = [0 for _ in range(3)]
+
+    def reset_coeff(self):
+        # TODO: This should be removed, or neatly integrated.
+        self.coeff = [0 for _ in range(3)]
 
     def eval(self, x, deriv=False):
         result = 0
