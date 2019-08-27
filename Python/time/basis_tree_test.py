@@ -125,7 +125,7 @@ def test_3pt_local_refinement():
         assert len(Delta.per_level[l]) == 3
         assert Lambda.per_level[l][0].labda == (l, 0)
 
-    basis, Lambda = ThreePointBasis.end_point_refined_basis(ml)
+    basis, Lambda = ThreePointBasis.end_points_refined_basis(ml)
     Delta = Lambda.single_scale_indices()
     for l in range(2, ml + 1):
         assert len(Lambda.per_level[l]) == 2
@@ -143,13 +143,13 @@ def test_basis_PQ():
     for basis, Lambda in [
             HaarBasis.uniform_basis(uml),
             HaarBasis.origin_refined_basis(oml),
-            HaarBasis.end_point_refined_basis(oml),
+            HaarBasis.end_points_refined_basis(oml),
             OrthoBasis.uniform_basis(uml),
             OrthoBasis.origin_refined_basis(oml),
-            OrthoBasis.end_point_refined_basis(oml),
+            OrthoBasis.end_points_refined_basis(oml),
             ThreePointBasis.uniform_basis(uml),
             ThreePointBasis.origin_refined_basis(oml),
-            ThreePointBasis.end_point_refined_basis(oml),
+            ThreePointBasis.end_points_refined_basis(oml),
     ]:
         Delta = Lambda.single_scale_indices()
         ml = Lambda.maximum_level
@@ -198,13 +198,13 @@ def test_basis_PQ_matrix():
     for basis, Lambda in [
             HaarBasis.uniform_basis(uml),
             HaarBasis.origin_refined_basis(oml),
-            HaarBasis.end_point_refined_basis(oml),
+            HaarBasis.end_points_refined_basis(oml),
             OrthoBasis.uniform_basis(uml),
             OrthoBasis.origin_refined_basis(oml),
-            OrthoBasis.end_point_refined_basis(oml),
+            OrthoBasis.end_points_refined_basis(oml),
             ThreePointBasis.uniform_basis(uml),
             ThreePointBasis.origin_refined_basis(oml),
-            ThreePointBasis.end_point_refined_basis(oml),
+            ThreePointBasis.end_points_refined_basis(oml),
     ]:
         Delta = Lambda.single_scale_indices()
         ml = Lambda.maximum_level

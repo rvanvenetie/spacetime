@@ -124,13 +124,13 @@ def test_multiscale_operator_quadrature_lin_comb():
     oml = 5
     hbu = HaarBasis.uniform_basis(max_level=uml)
     hbo = HaarBasis.origin_refined_basis(max_level=oml)
-    hbe = HaarBasis.end_point_refined_basis(max_level=oml)
+    hbe = HaarBasis.end_points_refined_basis(max_level=oml)
     oru = OrthoBasis.uniform_basis(max_level=uml)
     oro = OrthoBasis.origin_refined_basis(max_level=oml)
-    ore = OrthoBasis.end_point_refined_basis(max_level=oml)
+    ore = OrthoBasis.end_points_refined_basis(max_level=oml)
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
-    tpe = ThreePointBasis.end_point_refined_basis(max_level=oml)
+    tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
     for basis_in, basis_out, operator, deriv in [
         (hbu, hbu, HaarBasis.scaling_mass(), (False, False)),
         (hbo, hbo, HaarBasis.scaling_mass(), (False, False)),
@@ -189,13 +189,13 @@ def test_apply_upp_low_vs_full():
     oml = 15
     hbu = HaarBasis.uniform_basis(max_level=uml)
     hbo = HaarBasis.origin_refined_basis(max_level=oml)
-    hbe = HaarBasis.end_point_refined_basis(max_level=oml)
+    hbe = HaarBasis.end_points_refined_basis(max_level=oml)
     oru = OrthoBasis.uniform_basis(max_level=uml)
     oro = OrthoBasis.origin_refined_basis(max_level=oml)
-    ore = OrthoBasis.end_point_refined_basis(max_level=oml)
+    ore = OrthoBasis.end_points_refined_basis(max_level=oml)
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
-    tpe = ThreePointBasis.end_point_refined_basis(max_level=oml)
+    tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
     for basis_in, basis_out, operator in [
         (hbu, hbu, HaarBasis.scaling_mass()),
         (hbo, hbo, HaarBasis.scaling_mass()),
