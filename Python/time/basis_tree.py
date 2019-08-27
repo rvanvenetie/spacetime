@@ -106,7 +106,7 @@ class BaseFunction:
         self.labda = labda
 
         # TODO: This should be removed, or neatly integrated.
-        self.coeff = [0] * 3
+        self.reset_coeff()
 
     def reset_coeff(self):
         """ Resets the coefficients stored in this function object. """
@@ -124,7 +124,7 @@ class BaseScaling(BaseFunction):
         super().__init__(labda)
         self.parents = parents
         self.support = support  # Support is a list.
-        self.multi_scale = []  # Tranpose of the wavelet to multiscale.
+        self.multi_scale = []  # Transpose of the wavelet to multiscale.
 
     def prolongate(self):
         """ Returns a list of pairs with the corresponding coefficients. """
