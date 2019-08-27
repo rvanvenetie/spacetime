@@ -99,18 +99,32 @@ class Element:
 Element.mother_element = Element(0, 0, None)
 
 
-class BaseScaling:
-    def __init__(self, labda, parents, support):
+class BaseFunction:
+    """ This is a base class for an object represention a basis function.  """
+
+    def __init__(self, labda):
         self.labda = labda
+
+        # TODO: This should be removed, or neatly integrated.
+        self.coeff = [0] * 3
+
+    def reset_coeff(self):
+        """ Resets the coefficients stored in this function object. """
+        self.coeff = [0] * 3
+
+    def eval(self, x, deriv=False):
+        pass
+
+    def __repr__(self):
+        return "{}({}, {})".format(self.__class__.__name__, *self.labda)
+
+
+class BaseScaling(BaseFunction):
+    def __init__(self, labda, parents, support):
+        super().__init__(labda)
         self.parents = parents
         self.support = support  # Support is a list.
         self.multi_scale = []  # Tranpose of the wavelet to multiscale.
-        # TODO: This should be removed, or neatly integrated.
-        self.coeff = [0 for _ in range(3)]
-
-    def reset_coeff(self):
-        # TODO: This should be removed, or neatly integrated.
-        self.coeff = [0 for _ in range(3)]
 
     def prolongate(self):
         """ Returns a list of pairs with the corresponding coefficients. """
@@ -124,13 +138,10 @@ class BaseScaling:
         """ Mass inproduct for this scaling element. """
         pass
 
-    def __repr__(self):
-        return "{}({}, {})".format(self.__class__.__name__, *self.labda)
 
-
-class BaseWavelet:
+class BaseWavelet(BaseFunction):
     def __init__(self, labda, parents, single_scale):
-        self.labda = labda
+        super().__init__(labda)
         self.parents = parents
         self.single_scale = list(single_scale)
         self.children = []
@@ -140,21 +151,11 @@ class BaseWavelet:
             # Register this wavelet in the corresponding phi.
             phi.multi_scale.append((self, coeff))
 
-        # TODO: This should be removed, or neatly integrated.
-        self.coeff = [0 for _ in range(3)]
-
-    def reset_coeff(self):
-        # TODO: This should be removed, or neatly integrated.
-        self.coeff = [0 for _ in range(3)]
-
     def eval(self, x, deriv=False):
         result = 0
         for phi, coeff_ss in self.single_scale:
             result += coeff_ss * phi.eval(x, deriv)
         return result
-
-    def __repr__(self):
-        return "{}({}, {})".format(self.__class__.__name__, *self.labda)
 
 
 class BaseBasis:
