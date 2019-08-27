@@ -70,7 +70,6 @@ class Element:
 
     The element (l, n) represents an interval on level l given by: [2^(-l)*n, 2^(-l)*(n+1)].
     """
-
     def __init__(self, level, node_index, parent):
         self.level = level
         self.node_index = node_index
@@ -347,7 +346,7 @@ class DiscLinearScaling(BaseScaling):
     The field `self.nbr` can be used to retrieve the `other` scaling function
     on the same element. 
     If set, the field `self.children` contains references to the 4 children,
-    in order of labda, i.e. cons left, lin left, cons right, cons right.
+    in order of labda, i.e. cons left, lin left, cons right, lin right.
 
     The field Element.phi_disc_lin object is also ordered by labda: cons, lin.
     """
