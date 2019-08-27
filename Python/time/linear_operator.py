@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from indexed_vector import IndexedVector
+from sparse_vector import SparseVector
 
 
 class LinearOperator(object):
@@ -10,7 +10,7 @@ class LinearOperator(object):
         """ Initialize the LinearOperator.
 
         Arguments:
-            row: a function taking an index and returning an IndexedVector,
+            row: a function taking an index and returning a list of tuples,
                 being the nonzero entries of this operator at this row. Needed
                 for matrix-vector products.
             col (optional): a similar function as `row` but for the column of
@@ -33,9 +33,10 @@ class LinearOperator(object):
                 for labda_out, coeff_out in col_op(labda_in):
                     result[labda_out] += coeff_out * coeff_in
         else:
-            for labda in indices_out:
-                result[labda] = vec.dot(row_op(labda), indices_in)
-        return IndexedVector(result)
+            for labda_out in indices_out:
+                for labda_in, coeff_in in row_op(labda_out):
+                    result[labda_out] += coeff_in * vec[labda_in]
+        return SparseVector(result)
 
     @staticmethod
     def _matvec_inplace(row_op, col_op, indices_in, indices_out, read, write):
@@ -61,7 +62,7 @@ class LinearOperator(object):
         using rowwise inner products instead.
 
         Arguments
-            vec: IndexedVector -- input vector
+            vec: dict -- input vector
             indices_in: IndexSet -- optional; rows of `vec` to treat as nonzero.
             indices_out: IndexSet -- optional; rows of `out` to set.
         """

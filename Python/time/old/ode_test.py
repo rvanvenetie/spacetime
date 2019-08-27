@@ -1,19 +1,20 @@
-from applicator import Applicator
+import cProfile
+import time
 
-from haar_basis import HaarBasis
-from basis import support_to_interval
-from orthonormal_basis import OrthonormalDiscontinuousLinearBasis
-from three_point_basis import ThreePointBasis
-from index_set import MultiscaleIndexSet
-from indexed_vector import IndexedVector
-
+import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 from scipy.integrate import quad
 from scipy.sparse import linalg
-import matplotlib.pyplot as plt
-import time
-import numpy as np
-import cProfile
-import pytest
+
+from sparse_vector import SparseVector
+
+from .applicator import Applicator
+from .basis import support_to_interval
+from .haar_basis import HaarBasis
+from .index_set import MultiscaleIndexSet
+from .orthonormal_basis import OrthonormalDiscontinuousLinearBasis
+from .three_point_basis import ThreePointBasis
 
 
 class ScipyLinearOperator(linalg.LinearOperator):
@@ -27,11 +28,12 @@ class ScipyLinearOperator(linalg.LinearOperator):
         self.dtype = np.dtype('float')
 
     def _matvec(self, array):
-        indexed_vector = IndexedVector(self.indices, array)
+        sparse_vector = SparseVector(self.indices, array)
         if isinstance(self.applicator, Applicator):
-            output = self.applicator.apply(indexed_vector)
+            output = self.applicator.apply(sparse_vector)
         else:
-            output = self.applicator.matvec(indexed_vector, self.indices, self.indices)
+            output = self.applicator.matvec(sparse_vector, self.indices,
+                                            self.indices)
         for labda in self.boundary_condition:
             output[labda] = 0.0
         return output.asarray(self.indices)
@@ -61,22 +63,23 @@ def test_singlescale_ode_solve(plot=False):
                 lambda t: -dtt_u(t) * basis.eval_scaling(labda, t),
                 supp.a,
                 supp.b,
-                points=[float(supp.a), float(supp.mid), float(supp.b), 1.0])[0]
-        rhs = IndexedVector(rhs)
+                points=[float(supp.a),
+                        float(supp.mid),
+                        float(supp.b), 1.0])[0]
+        rhs = SparseVector(rhs)
 
         # Build the operator. NB: stiffness matrix is pos-def so we can use CG.
         operator = basis.scaling_stiffness()
         scipy_op = ScipyLinearOperator(indices, boundary_condition, operator)
-        sol = IndexedVector(
+        sol = SparseVector(
             indices,
             linalg.cg(scipy_op, rhs.asarray(), atol='legacy')[0])
 
         # Build our solution.
-        u_delta = lambda t: sum(
-            sol[labda] * basis.eval_scaling(labda, t) for labda in indices)
+        u_delta = lambda t: sum(sol[labda] * basis.eval_scaling(labda, t) for labda in indices)
         L2_error = quad(lambda t: (u(t) - u_delta(t))**2, 0, 1)[0]
-        print("level %s: singlescale stiffness solve L2-error %s" %
-              (ml, L2_error))
+        print("level %s: singlescale stiffness solve L2-error %s" % (ml,
+                                                                     L2_error))
         assert L2_error < prev_L2_error
         prev_L2_error = L2_error
         if plot:
@@ -115,19 +118,20 @@ def test_multiscale_ode_solve(plot=False):
                 lambda t: -dtt_u(t) * basis.eval_wavelet(labda, t),
                 supp.a,
                 supp.b,
-                points=[float(supp.a), float(supp.mid), float(supp.b), 1.0])[0]
-        rhs = IndexedVector(rhs_dict)
+                points=[float(supp.a),
+                        float(supp.mid),
+                        float(supp.b), 1.0])[0]
+        rhs = SparseVector(rhs_dict)
 
         # Build operator.
         operator = basis.scaling_stiffness()
         applicator = Applicator(basis, operator, indices)
         scipy_op = ScipyLinearOperator(indices, boundary_condition, applicator)
-        sol = IndexedVector(
+        sol = SparseVector(
             indices,
             linalg.cg(scipy_op, rhs.asarray(), atol='legacy')[0])
 
-        u_delta = lambda t: sum(
-            sol[labda] * basis.eval_wavelet(labda, t) for labda in indices)
+        u_delta = lambda t: sum(sol[labda] * basis.eval_wavelet(labda, t) for labda in indices)
         L2_error = quad(lambda t: (u(t) - u_delta(t))**2, 0, 1)[0]
         print("level %s: singlescale mass solve L2-error %s" % (ml, L2_error))
         assert L2_error < prev_L2_error

@@ -1,6 +1,8 @@
-from interval import Interval
-from fractions import Fraction
 from collections import Iterable
+from fractions import Fraction
+
+from .interval import Interval
+
 
 class Triangulation:
     """ Represents a locally refined triangulation of the interval [0,1]. """
@@ -10,6 +12,7 @@ class Triangulation:
 
         Represents the interval [2^(-l)*node_index, 2^(-l)*(node_index+1)].
         """
+
         def __init__(self, level, node_index, parent):
             self.level = level
             self.node_index = node_index
@@ -73,7 +76,7 @@ class Triangulation:
         l, n = key
         assert l >= 0 and 0 <= n < 2**l
 
-        parent = self.get_element((l-1, n // 2), True)
+        parent = self.get_element((l - 1, n // 2), True)
         self.bisect(parent)
         return self.elements[key]
 
@@ -86,15 +89,16 @@ class Triangulation:
             return [child for e in elem for child in self.children(e)]
         return elem.children
 
-
     def bisect(self, elem):
         """ Bisects `elem`.
 
         If this element was already bisected, then this function has no effect.
         """
         if not elem.is_leaf(): return
-        child_left = self.element_class(elem.level + 1, elem.node_index * 2, elem)
-        child_right = self.element_class(elem.level + 1, elem.node_index * 2 + 1, elem)
+        child_left = self.element_class(elem.level + 1, elem.node_index * 2,
+                                        elem)
+        child_right = self.element_class(elem.level + 1,
+                                         elem.node_index * 2 + 1, elem)
         self._add_element(child_left)
         self._add_element(child_right)
         elem.children = [child_left, child_right]
