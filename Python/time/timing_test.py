@@ -54,7 +54,7 @@ def plot_results(results):
 
 
 @pytest.mark.skip("timing test!")
-def test_mother_fucker():
+def test_comparison_implementations():
     results = {}
     try:
         for bla in [
@@ -174,7 +174,7 @@ def test_linear_complexity():
 
 
 if __name__ == "__main__":
-    results = test_mother_fucker()
+    results = test_comparison_implementations()
     #results = test_linear_complexity_tree()
     #results = test_linear_complexity()
     #cProfile.run('results = test_linear_complexity()', sort='tottime')
