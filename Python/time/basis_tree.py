@@ -66,14 +66,26 @@ class MultiscaleIndices:
 
 
 class Element:
+    """ Represents an element (interval) as result of dyadic refinement.
+
+    The element (l, n) represents an interval on level l given by: [2^(-l)*n, 2^(-l)*(n+1)].
+    """
+
     def __init__(self, level, node_index, parent):
         self.level = level
         self.node_index = node_index
         self.parent = parent
         self.children = []
 
+        # Create variables to register non-zero scaling functions.
+        # The ordering of functions inside these lists is important.
+        # TODO: Is this the right place?
+        self.phi_disc_const = None
+        self.phi_disc_lin = [None, None]
+        self.phi_cont_lin = [None, None]
+
         # Add some extra variables necessary for applicator.
-        # This should definitely be somewhere else..
+        # TODO: Is this the right place?
         self.Lambda_in = False
         self.Lambda_out = False
         self.Pi_in = False
@@ -132,10 +144,6 @@ class BaseScaling(BaseFunction):
 
     def restrict(self):
         """ The adjoint of transposing. """
-        pass
-
-    def mass(self):
-        """ Mass inproduct for this scaling element. """
         pass
 
 
@@ -244,18 +252,22 @@ class BaseBasis:
 
         return LinearOperator(row, col)
 
-    @staticmethod
-    def scaling_mass():
-        def row(phi):
-            return phi.mass()
-
-        return LinearOperator(row)
-
 
 class DiscConstScaling(BaseScaling):
+    """ Discontinous piecewise constant scaling function.
+
+    The function (l, n) corresponds to the indicator function on element (l,n).
+    That is, it has support [2^(-l)*n, 2^(-l)*(n+1)].
+    """
+
     def __init__(self, labda, parents, support):
+        assert len(support) == 1
         super().__init__(labda, parents, support)
         self.children = []
+
+        # Register this scaling function in the Element class.
+        assert support[0].phi_disc_const is None
+        support[0].phi_disc_const = self
 
     def refine(self):
         if self.children: return self.children
@@ -275,11 +287,6 @@ class DiscConstScaling(BaseScaling):
 
     def restrict(self):
         return [(self.parents, 1)]
-
-    def mass(self):
-        """ The singlescale Haar mass matrix is simply 2**-l * Id. """
-        l, n = self.labda
-        return [(self, 2**-l)]
 
     @staticmethod
     def eval_mother(x):
@@ -328,17 +335,37 @@ class HaarBasis(BaseBasis):
 
 
 class DiscLinearScaling(BaseScaling):
-    """ Discontinuous scaling functions.
+    """ Discontinous piecewise linear scaling function.
 
-    There are two types, the (l, n) with even n correspond to pw constants,
-    whereas the (l, n) with odd n correspond to linears.
+    There are two `types` of scaling functions. Given index (l, n):
+    1. For even n, the function represents a piecewise constant on 
+       the element (l, n//2).
+    2. For odd n, it represents a linear function (from -sqrt(3)
+       to sqrt(3)) on the element (l, n // 2).
+    
+    The field `self.pw_constant` can be used to differentiate between the types.
+    The field `self.nbr` can be used to retrieve the `other` scaling function
+    on the same element. 
+    If set, the field `self.children` contains references to the 4 children,
+    in order of labda, i.e. cons left, lin left, cons right, cons right.
+
+    The field Element.phi_disc_lin object is also ordered by labda: cons, lin.
     """
 
     def __init__(self, labda, parents, support):
+        assert len(support) == 1
         super().__init__(labda, parents, support)
         self.children = []
         self.nbr = None  # Store a reference to the `neighbour` on this element.
         self.pw_constant = labda[1] % 2 == 0  # Store type of this function.
+
+        # Register this scaling function in the corresponding elements.
+        if self.pw_constant:
+            assert support[0].phi_disc_lin[0] is None
+            support[0].phi_disc_lin[0] = self
+        else:
+            assert support[0].phi_disc_lin[1] is None
+            support[0].phi_disc_lin[1] = self
 
     def refine(self):
         if self.children: return self.children
@@ -384,11 +411,6 @@ class DiscLinearScaling(BaseScaling):
             return [(self.parents[0], 1), (self.parents[1], sq3 / 2)]
         else:
             return [(self.parents[1], 1 / 2)]
-
-    def mass(self):
-        """ The singlescale Haar mass matrix is simply 2**-l * Id. """
-        l, n = self.labda
-        return [(self, 2**-l)]
 
     @staticmethod
     def eval_mother(constant, x, deriv):
@@ -462,14 +484,34 @@ class OrthoBasis(BaseBasis):
 
 
 class ContLinearScaling(BaseScaling):
+    """ Continuoues piecewise linear scaling function: `hat functions`.
+
+    The function (l, n) corresponds to the hat function of node 2**-l * n.
+
+    The fields `self.nbr_x` correspond to the neighbour on the left/right.
+    The fields `self.child_x` correspond to the children on the left/mid/right.
+
+    The field Element.phi_disc_lin object is ordered by labda, i.e. left, right.
+    """
+
     def __init__(self, labda, parents, support):
         super().__init__(labda, parents, support)
+
+        # TODO: We could read all these properties from the Element directly.
         self.nbr_left = None
         self.nbr_right = None
 
         self.child_left = None
         self.child_mid = None
         self.child_right = None
+
+        l, n = labda
+        if n > 0:
+            assert support[0].phi_cont_lin[1] is None
+            support[0].phi_cont_lin[1] = self
+        if n < 2**l:
+            assert support[-1].phi_cont_lin[0] is None
+            support[-1].phi_cont_lin[0] = self
 
     def refine_mid(self):
         if self.child_mid: return self.child_mid
@@ -542,22 +584,6 @@ class ContLinearScaling(BaseScaling):
             return [(self.parents[0], 1)]
         else:
             return [(parent, 0.5) for parent in self.parents]
-
-    def mass(self):
-        result = []
-        l, n = self.labda
-        self_ip = 0
-        if n > 0:
-            assert self.nbr_left
-            result.append((self.nbr_left, 1 / 6 * 2**-l))
-            self_ip += 1 / 3 * 2**-l
-        if n < 2**l:
-            assert self.nbr_right
-            result.append((self.nbr_right, 1 / 6 * 2**-l))
-            self_ip += 1 / 3 * 2**-l
-
-        result.append((self, self_ip))
-        return result
 
     @staticmethod
     def eval_mother(x, deriv=False):
