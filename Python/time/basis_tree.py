@@ -202,7 +202,7 @@ class BaseBasis:
         return basis, MultiscaleIndices(Lambda)
 
     @classmethod
-    def end_point_refined_basis(cls, max_level):
+    def end_points_refined_basis(cls, max_level):
         assert max_level >= 1
         basis = cls()
 
