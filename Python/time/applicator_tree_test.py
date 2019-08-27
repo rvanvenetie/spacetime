@@ -126,7 +126,7 @@ def test_multiscale_operator_quadrature_lin_comb():
     ore = OrthoBasis.end_points_refined_basis(max_level=oml)
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
-    tpe = ThreePointBasis.end_point_refined_basis(max_level=oml)
+    tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
     deriv = (False, False)
     for basis_in, basis_out in [(hbu, hbu), (hbo, hbo), (hbu, hbo), (hbu, hbe),
                                 (oru, oru), (oro, oro), (oru, oro), (oru, ore),
@@ -183,7 +183,7 @@ def test_apply_upp_low_vs_full():
     ore = OrthoBasis.end_points_refined_basis(max_level=oml)
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
-    tpe = ThreePointBasis.end_point_refined_basis(max_level=oml)
+    tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
     deriv = (False, False)
     for basis_in, basis_out in [(hbu, hbu), (hbo, hbo), (hbu, hbo), (hbu, hbe),
                                 (oru, oru), (oro, oro), (oru, oro), (oru, ore),
