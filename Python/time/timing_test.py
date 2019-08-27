@@ -8,6 +8,7 @@ import pytest
 import applicator_tree
 import applicator_tree_inplace
 import basis_tree
+import operator_tree
 from applicator import Applicator
 from haar_basis import HaarBasis
 from indexed_vector import IndexedVector
@@ -52,7 +53,8 @@ def plot_results(results):
     return results
 
 
-def test_mother_fucker():
+@pytest.mark.skip("timing test!")
+def test_comparison_implementations():
     results = {}
     try:
         for bla in [
@@ -63,7 +65,8 @@ def test_mother_fucker():
             basis_obj_tree, Lambda_tree = basis_tree.ThreePointBasis.uniform_basis(
                 max_level=level)
             applicator = applicator_tree.Applicator(
-                basis_obj_tree, basis_obj_tree.scaling_mass(), Lambda_tree)
+                basis_obj_tree, operator_tree.mass(basis_obj_tree),
+                Lambda_tree)
             N = len(Lambda_tree)
             vec = IndexedVector(Lambda_tree, np.random.rand(N))
             start = time.time()
@@ -75,7 +78,7 @@ def test_mother_fucker():
             basis_obj_tree_inplace, Lambda_tree_inplace = basis_tree.ThreePointBasis.uniform_basis(
                 max_level=level)
             applicator = applicator_tree_inplace.Applicator(
-                basis_obj_tree_inplace, basis_obj_tree_inplace.scaling_mass(),
+                basis_obj_tree_inplace, operator_tree.mass(basis_obj_tree),
                 Lambda_tree_inplace)
             N = len(Lambda_tree_inplace)
             vec = IndexedVector(Lambda_tree_inplace, np.random.rand(N))
@@ -171,7 +174,7 @@ def test_linear_complexity():
 
 
 if __name__ == "__main__":
-    results = test_mother_fucker()
+    results = test_comparison_implementations()
     #results = test_linear_complexity_tree()
     #results = test_linear_complexity()
     #cProfile.run('results = test_linear_complexity()', sort='tottime')

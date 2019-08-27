@@ -5,6 +5,7 @@ from pytest import approx
 from scipy.integrate import quad
 
 import applicator_tree
+import operator_tree
 from basis_tree import (HaarBasis, OrthoBasis, ThreePointBasis,
                         support_to_interval)
 from indexed_vector import IndexedVector
@@ -23,7 +24,7 @@ def test_haar_multiscale_mass():
     ]:
         for l in range(1, 6):
             Lambda_l = Lambda.until_level(l)
-            applicator = Applicator_class(basis, basis.scaling_mass(),
+            applicator = Applicator_class(basis, operator_tree.mass(basis),
                                           Lambda_l)
             for _ in range(10):
                 np_vec = np.random.rand(len(Lambda_l))
@@ -42,7 +43,7 @@ def test_orthonormal_multiscale_mass():
     ]:
         for l in range(1, 6):
             Lambda_l = Lambda.until_level(l)
-            applicator = Applicator_class(basis, basis.scaling_mass(),
+            applicator = Applicator_class(basis, operator_tree.mass(basis),
                                           Lambda_l)
             for _ in range(10):
                 np_vec = np.random.rand(len(Lambda_l))
@@ -52,7 +53,7 @@ def test_orthonormal_multiscale_mass():
                     assert val == approx(res[psi])
 
 
-def test_multiscale_operator_quadrature():
+def test_multiscale_mass_quadrature():
     """ Test that the multiscale matrix equals that found with quadrature. """
     uml = 5
     oml = 15
@@ -62,19 +63,14 @@ def test_multiscale_operator_quadrature():
     oro = OrthoBasis.origin_refined_basis(max_level=oml)
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
-    for basis_in, basis_out, operator, deriv in [
-        (hbu, hbu, HaarBasis.scaling_mass(), (False, False)),
-        (hbo, hbo, HaarBasis.scaling_mass(), (False, False)),
-        (hbu, hbo, HaarBasis.scaling_mass(), (False, False)),
-        (oru, oru, OrthoBasis.scaling_mass(), (False, False)),
-        (oro, oro, OrthoBasis.scaling_mass(), (False, False)),
-        (oru, oro, OrthoBasis.scaling_mass(), (False, False)),
-        (tpu, tpu, ThreePointBasis.scaling_mass(), (False, False)),
-        (tpo, tpo, ThreePointBasis.scaling_mass(), (False, False)),
-        (tpu, tpo, ThreePointBasis.scaling_mass(), (False, False)),
-    ]:
+    deriv = (False, False)
+    for basis_in, basis_out in [(hbu, hbu), (hbo, hbo), (hbu, hbo), (oru, oru),
+                                (oro, oro), (oru, oro), (tpu, tpu), (tpo, tpo),
+                                (tpu, tpo), (hbu, tpu), (tpo, hbu), (hbo,
+                                                                     tpu)]:
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
+        operator = operator_tree.mass(basis_in, basis_out)
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
         applicator = Applicator_class(basis_in, operator, Lambda_in, basis_out,
@@ -131,23 +127,15 @@ def test_multiscale_operator_quadrature_lin_comb():
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
     tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
-    for basis_in, basis_out, operator, deriv in [
-        (hbu, hbu, HaarBasis.scaling_mass(), (False, False)),
-        (hbo, hbo, HaarBasis.scaling_mass(), (False, False)),
-        (hbu, hbo, HaarBasis.scaling_mass(), (False, False)),
-        (hbu, hbe, HaarBasis.scaling_mass(), (False, False)),
-        (oru, oru, OrthoBasis.scaling_mass(), (False, False)),
-        (oro, oro, OrthoBasis.scaling_mass(), (False, False)),
-        (oru, oro, OrthoBasis.scaling_mass(), (False, False)),
-        (oru, ore, OrthoBasis.scaling_mass(), (False, False)),
-        (tpu, tpu, ThreePointBasis.scaling_mass(), (False, False)),
-        (tpo, tpo, ThreePointBasis.scaling_mass(), (False, False)),
-        (tpu, tpo, ThreePointBasis.scaling_mass(), (False, False)),
-        (tpu, tpe, ThreePointBasis.scaling_mass(), (False, False)),
-        (tpo, tpe, ThreePointBasis.scaling_mass(), (False, False)),
-    ]:
+    deriv = (False, False)
+    for basis_in, basis_out in [(hbu, hbu), (hbo, hbo), (hbu, hbo), (hbu, hbe),
+                                (oru, oru), (oro, oro), (oru, oro), (oru, ore),
+                                (tpu, tpu), (tpo, tpo), (tpu, tpo), (tpu, tpe),
+                                (tpo, tpe), (hbu, tpe), (tpu, hbe), (hbu, tpu),
+                                (hbu, tpe), (tpo, hbe)]:
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
+        operator = operator_tree.mass(basis_in, basis_out)
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
         applicator = Applicator_class(basis_in, operator, Lambda_in, basis_out,
@@ -196,23 +184,15 @@ def test_apply_upp_low_vs_full():
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
     tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
-    for basis_in, basis_out, operator in [
-        (hbu, hbu, HaarBasis.scaling_mass()),
-        (hbo, hbo, HaarBasis.scaling_mass()),
-        (hbu, hbo, HaarBasis.scaling_mass()),
-        (hbu, hbe, HaarBasis.scaling_mass()),
-        (oru, oru, OrthoBasis.scaling_mass()),
-        (oro, oro, OrthoBasis.scaling_mass()),
-        (oru, oro, OrthoBasis.scaling_mass()),
-        (oru, ore, OrthoBasis.scaling_mass()),
-        (tpu, tpu, ThreePointBasis.scaling_mass()),
-        (tpo, tpo, ThreePointBasis.scaling_mass()),
-        (tpu, tpo, ThreePointBasis.scaling_mass()),
-        (tpu, tpe, ThreePointBasis.scaling_mass()),
-        (tpo, tpe, ThreePointBasis.scaling_mass()),
-    ]:
+    deriv = (False, False)
+    for basis_in, basis_out in [(hbu, hbu), (hbo, hbo), (hbu, hbo), (hbu, hbe),
+                                (oru, oru), (oro, oro), (oru, oro), (oru, ore),
+                                (tpu, tpu), (tpo, tpo), (tpu, tpo), (tpu, tpe),
+                                (tpo, tpe), (hbu, tpe), (tpu, hbe), (hbu, tpu),
+                                (hbu, tpe), (tpo, hbe)]:
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
+        operator = operator_tree.mass(basis_in, basis_out)
         applicator = Applicator_class(basis_in, operator, Lambda_in, basis_out,
                                       Lambda_out)
         for _ in range(10):

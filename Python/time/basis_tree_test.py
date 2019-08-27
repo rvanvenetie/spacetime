@@ -217,21 +217,6 @@ def test_basis_PQ_matrix():
                                   set(Delta.per_level[l]))
 
 
-def test_haar_scaling_mass():
-    """ Test that the singlescale Haar mass matrix is indeed diagonal. """
-    basis, Lambda = HaarBasis.uniform_basis(max_level=5)
-    Delta = Lambda.single_scale_indices()
-    mass = basis.scaling_mass()
-    for l in range(1, 5):
-        indices = Delta.on_level(l)
-        assert len(indices) == 2**l
-
-        for _ in range(100):
-            d = IndexedVector(indices, np.random.rand(2**l))
-            res = mass.matvec(d, set(indices), indices)
-            assert np.allclose(d.asarray(), 2.0**l * res.asarray())
-
-
 def print_3point_functions():
     x = np.linspace(0, 1, 1025)
     for basis, Lambda in [
