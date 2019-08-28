@@ -1,4 +1,4 @@
-from basis import Element
+import basis
 from sparse_vector import SparseVector
 
 
@@ -46,7 +46,7 @@ class Applicator(object):
             for child in elem.children:
                 reset(child)
 
-        reset(Element.mother_element)
+        reset(basis.mother_element)
 
         for psi in self.Lambda_in:
             for elem in list(psi.support):

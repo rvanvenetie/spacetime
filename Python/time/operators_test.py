@@ -4,9 +4,11 @@ import numpy as np
 from pytest import approx
 
 import operators
-from basis import HaarBasis, OrthoBasis, ThreePointBasis
+from haar_basis import HaarBasis
 from linear_operator_test import check_linop_transpose
+from orthonormal_basis import OrthonormalBasis
 from sparse_vector import SparseVector
+from three_point_basis import ThreePointBasis
 
 
 def test_haar_scaling_mass():
@@ -27,7 +29,7 @@ def test_haar_scaling_mass():
 
 def test_ortho_scaling_mass():
     """ Test that the ortho scaling mass matrix is indeed diagonal. """
-    basis, Lambda = OrthoBasis.uniform_basis(max_level=5)
+    basis, Lambda = OrthonormalBasis.uniform_basis(max_level=5)
     Delta = Lambda.single_scale_indices()
     mass = operators.mass(basis)
     for l in range(1, 5):
