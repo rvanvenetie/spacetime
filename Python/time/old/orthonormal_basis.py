@@ -1,13 +1,14 @@
-from basis import Basis
-
-from index_set import MultiscaleIndexSet, SingleLevelIndexSet
-from indexed_vector import IndexedVector
-from interval import Interval, IntervalSet
-from linear_operator import LinearOperator
-from math import floor
 from fractions import Fraction
+from math import floor
 
 import numpy as np
+
+from linear_operator import LinearOperator
+from sparse_vector import SparseVector
+
+from .basis import Basis
+from .index_set import MultiscaleIndexSet, SingleLevelIndexSet
+from .interval import Interval, IntervalSet
 
 sq3 = np.sqrt(3)
 
@@ -42,12 +43,14 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         def row(labda):
             assert self.scaling_labda_valid(labda)
             l, n = labda
-            return [((l - 1, 2 * (n // 4) + i), block[i, n % 4]) for i in range(2)]
+            return [((l - 1, 2 * (n // 4) + i), block[i, n % 4])
+                    for i in range(2)]
 
         def col(labda):
             assert self.scaling_labda_valid(labda)
             l, n = labda
-            return [((l + 1, 4 * (n // 2) + i), block[n % 2, i]) for i in range(4)]
+            return [((l + 1, 4 * (n // 2) + i), block[n % 2, i])
+                    for i in range(4)]
 
         return LinearOperator(row, col)
 
@@ -58,12 +61,14 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
         def row(labda):
             assert self.scaling_labda_valid(labda)
             l, n = labda
-            return [((l, 2 * (n // 4) + i), 2.0**((l - 1) / 2) * block[i, n % 4]) for i in range(2)]
+            return [((l, 2 * (n // 4) + i),
+                     2.0**((l - 1) / 2) * block[i, n % 4]) for i in range(2)]
 
         def col(labda):
             assert self.wavelet_labda_valid(labda)
             l, n = labda
-            return [((l, 4 * (n // 2) + i), 2.0**((l - 1) / 2) * block[n % 2, i]) for i in range(4)]
+            return [((l, 4 * (n // 2) + i),
+                     2.0**((l - 1) / 2) * block[n % 2, i]) for i in range(4)]
 
         return LinearOperator(row, col)
 
@@ -104,62 +109,72 @@ class OrthonormalDiscontinuousLinearBasis(Basis):
     def wavelet_labda_valid(self, labda):
         l, n = labda
         if l == 0: return self.scaling_labda_valid(labda)
-        return l > 0 and  0 <= n < 2 * 2**(l-1)
+        return l > 0 and 0 <= n < 2 * 2**(l - 1)
 
     def wavelet_support(self, labda):
         assert self.wavelet_labda_valid(labda)
         l, n = labda
         if l == 0: return self.scaling_support(labda)
-        else: return [(l, 2 * (n//2)), (l, 2 * (n // 2) + 1)]
+        else: return [(l, 2 * (n // 2)), (l, 2 * (n // 2) + 1)]
 
     def wavelet_indices_on_level(self, l):
         if l == 0:
-            return SingleLevelIndexSet({(0,0), (0,1)})
+            return SingleLevelIndexSet({(0, 0), (0, 1)})
         else:
             return SingleLevelIndexSet({(l, n) for n in range(2**l)})
 
     def scaling_labda_valid(self, labda):
         l, n = labda
-        return l >= 0 and 0 <= n < 2 * 2 **l
+        return l >= 0 and 0 <= n < 2 * 2**l
 
     def scaling_mass(self):
         """ The singlescale orthonormal mass matrix is simply 2**-l * Id. """
+
         def row(labda):
             l, n = labda
             return [((l, n), 2**-l)]
+
         return LinearOperator(row, None)
 
     def scaling_damping(self):
         """ The singlescale damping matrix int_0^1 phi_i' phi_j dt. """
+
         def row(labda):
             l, n = labda
             if n % 2 == 0:
                 return [((l, n + 1), 2 * sq3)]
             else:
                 return []
+
         return LinearOperator(row, None)
 
     def scaling_support(self, labda):
         assert self.scaling_labda_valid(labda)
         l, n = labda
-        return [(l, n//2)]
+        return [(l, n // 2)]
 
     def scaling_indices_nonzero_in_nbrhood(self, l, x):
         super().scaling_indices_nonzero_in_nbrhood(l, x)
 
         # treat boundary seperately:
         if x == 0: return SingleLevelIndexSet({(l, 0), (l, 1)})
-        elif x == 1: return SingleLevelIndexSet({(l, 2**(l+1)-2), (l, 2**(l+1)-1)})
+        elif x == 1:
+            return SingleLevelIndexSet({(l, 2**(l + 1) - 2), (l,
+                                                              2**(l + 1) - 1)})
 
         # Find the closest node on left of x
-        node = floor(x * 2 **l)
+        node = floor(x * 2**l)
 
-        if x * 2 ** l == node:
+        if x * 2**l == node:
             # Return two basis functions on left and right of x
-            return SingleLevelIndexSet({(l, n) for n in range(2*node-2, 2*node+2)})
+            return SingleLevelIndexSet(
+                {(l, n)
+                 for n in range(2 * node - 2, 2 * node + 2)})
         else:
             # Return the two basis functions active on this interval
-            return SingleLevelIndexSet({(l, n) for n in range(2*node, 2*node+2)})
+            return SingleLevelIndexSet(
+                {(l, n)
+                 for n in range(2 * node, 2 * node + 2)})
 
     def scaling_indices_on_level(self, l):
         return SingleLevelIndexSet({(l, n) for n in range(2 * 2**l)})

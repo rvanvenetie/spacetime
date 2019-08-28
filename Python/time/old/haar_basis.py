@@ -1,8 +1,8 @@
-from basis import Basis
+from .basis import Basis
 from math import floor
-from index_set import MultiscaleIndexSet, SingleLevelIndexSet
-from indexed_vector import IndexedVector
-from interval import Interval, IntervalSet
+from .index_set import MultiscaleIndexSet, SingleLevelIndexSet
+from sparse_vector import SparseVector
+from .interval import Interval, IntervalSet
 from linear_operator import LinearOperator
 
 import numpy as np

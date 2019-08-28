@@ -1,4 +1,4 @@
-from basis_tree import (ContLinearScaling, DiscConstScaling, HaarBasis,
+from basis import (ContLinearScaling, DiscConstScaling, HaarBasis,
                         OrthoBasis, ThreePointBasis)
 from linear_operator import LinearOperator
 

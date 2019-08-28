@@ -1,6 +1,5 @@
-from basis_tree import Element
-from indexed_vector import IndexedVector
-from interval import Interval, IntervalSet
+from basis import Element
+from sparse_vector import SparseVector
 
 
 class Applicator(object):
@@ -69,7 +68,7 @@ class Applicator(object):
         """ Apply the multiscale operator.
 
         Arguments:
-            vec: an IndexedVector with indices on self.Lambda_in.
+            vec: an SparseVector with indices on self.Lambda_in.
 
         Returns:
             self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
@@ -83,13 +82,13 @@ class Applicator(object):
             Pi_out=self.Lambda_out.on_level(0))
 
         # Copy data back from basis into a vector.
-        return IndexedVector({psi: psi.coeff[1] for psi in self.Lambda_out})
+        return SparseVector({psi: psi.coeff[1] for psi in self.Lambda_out})
 
     def apply_upp(self, vec):
         """ Apply the upper part of the multiscale operator.
 
         Arguments:
-            vec: an IndexedVector with indices on self.Lambda_in.
+            vec: an SparseVector with indices on self.Lambda_in.
 
         Returns:
             Upper part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
@@ -101,13 +100,13 @@ class Applicator(object):
             Pi_in=self.Lambda_in.on_level(0),
             Pi_out=self.Lambda_out.on_level(0))
 
-        return IndexedVector({psi: psi.coeff[1] for psi in self.Lambda_out})
+        return SparseVector({psi: psi.coeff[1] for psi in self.Lambda_out})
 
     def apply_low(self, vec):
         """ Apply the lower part of the multiscale operator.
 
         Arguments:
-            vec: an IndexedVector with indices on self.Lambda_in.
+            vec: an SparseVector with indices on self.Lambda_in.
 
         Returns:
             Lower part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
@@ -115,7 +114,7 @@ class Applicator(object):
         self._initialize(vec)
 
         self._apply_low_recur(l=1, Pi_in=self.Lambda_in.on_level(0))
-        return IndexedVector({psi: psi.coeff[1] for psi in self.Lambda_out})
+        return SparseVector({psi: psi.coeff[1] for psi in self.Lambda_out})
 
     #  Private methods from here on out.
     def _construct_Pi_out(self, Pi_out):

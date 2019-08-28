@@ -3,14 +3,11 @@ from collections import Iterable
 
 import numpy as np
 
-from index_set import IndexSet
 
+class SparseVector(collections.abc.Mapping):
+    """ A sparse vector defined on some index set.
 
-class IndexedVector(collections.abc.Mapping):
-    """ A vector defined on an index set.
-
-    If it is a Tuple[IndexSet, scipy.sparse.*], then methods like `on_level()`
-    could be implemented efficiently, I think.
+    The representation is a dict mapping from an index to the coefficient.
     """
 
     def __init__(self, index_set, values=None):
@@ -25,7 +22,7 @@ class IndexedVector(collections.abc.Mapping):
             assert len(index_set) == len(values)
             self.vector = {key: value for key, value in zip(index_set, values)}
         else:
-            raise TypeError('IndexedVector encoutered unknown type: {}'.format(
+            raise TypeError('SparseVector encoutered unknown type: {}'.format(
                 type(index_set)))
 
     @classmethod
@@ -51,10 +48,10 @@ class IndexedVector(collections.abc.Mapping):
         return len(self.vector)
 
     def __repr__(self):
-        return r"IndexedVector(%s)" % self.vector
+        return r"SparseVector(%s)" % self.vector
 
     def restrict(self, indices):
-        return IndexedVector(
+        return SparseVector(
             {key: self.vector[key]
              for key in indices if key in self.vector})
 
@@ -66,7 +63,7 @@ class IndexedVector(collections.abc.Mapping):
                 vec[key] += other.vector[key]
             else:
                 vec[key] = other.vector[key]
-        return IndexedVector(vec)
+        return SparseVector(vec)
 
     def asarray(self, keys_ordering=None):
         """ Slightly expensive. Mainly for testing. """
@@ -74,26 +71,3 @@ class IndexedVector(collections.abc.Mapping):
             return np.array([self[k] for k in keys_ordering])
         else:
             return np.array([self[k] for k in self.keys()])
-
-    def dot(self, other, index_mask=None):
-        """ Dot-product; only treat indices in `index_mask` as nonzero. """
-
-        # TODO: This function is a mess right now.
-        if index_mask is None:
-            if isinstance(other, list):
-                return sum(self[labda] * coeff for labda, coeff in other)
-            else:
-                return sum(
-                    self[labda] * other[labda] for labda in other.keys())
-
-        elif not isinstance(index_mask, collections.abc.Set):
-            raise TypeError(
-                'For vec.dot to be efficient, the index_mask must be a set type. We got {}.'
-                .format(type(index_mask)))
-
-        if isinstance(other, list):
-            return sum(self[labda] * coeff for labda, coeff in other
-                       if labda in index_mask)
-        else:
-            return sum(self[labda] * other[labda] for labda in other.keys()
-                       if labda in index_mask)

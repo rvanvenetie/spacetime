@@ -3,47 +3,49 @@ from collections import defaultdict
 import numpy as np
 from pytest import approx
 
-import operator_tree
-from basis_tree import HaarBasis, OrthoBasis, ThreePointBasis
-from indexed_vector import IndexedVector
+import operators
+from basis import HaarBasis, OrthoBasis, ThreePointBasis
 from linear_operator_test import check_linop_transpose
+from sparse_vector import SparseVector
 
 
 def test_haar_scaling_mass():
     """ Test that the singlescale Haar mass matrix is indeed diagonal. """
     basis, Lambda = HaarBasis.uniform_basis(max_level=5)
     Delta = Lambda.single_scale_indices()
-    mass = operator_tree.mass(basis)
+    mass = operators.mass(basis)
     for l in range(1, 5):
         indices = Delta.on_level(l)
         assert len(indices) == 2**l
 
         for _ in range(100):
-            d = IndexedVector(indices, np.random.rand(2**l))
+            d = SparseVector(indices, np.random.rand(2**l))
             res = mass.matvec(d, set(indices), indices)
-            assert np.allclose(d.asarray(), 2.0**l * res.asarray())
+            assert np.allclose(
+                d.asarray(indices), 2.0**l * res.asarray(indices))
 
 
 def test_ortho_scaling_mass():
     """ Test that the ortho scaling mass matrix is indeed diagonal. """
     basis, Lambda = OrthoBasis.uniform_basis(max_level=5)
     Delta = Lambda.single_scale_indices()
-    mass = operator_tree.mass(basis)
+    mass = operators.mass(basis)
     for l in range(1, 5):
         indices = Delta.on_level(l)
         assert len(indices) == 2**(l + 1)
 
         for _ in range(100):
-            d = IndexedVector(indices, np.random.rand(2**(l + 1)))
+            d = SparseVector(indices, np.random.rand(2**(l + 1)))
             res = mass.matvec(d, set(indices), indices)
-            assert np.allclose(d.asarray(), 2.0**l * res.asarray())
+            assert np.allclose(
+                d.asarray(indices), 2.0**l * res.asarray(indices))
 
 
 def test_three_point_scaling_mass():
     """ Test the three point_scaling mass. """
     basis, Lambda = ThreePointBasis.uniform_basis(max_level=5)
     Delta = Lambda.single_scale_indices()
-    mass = operator_tree.mass(basis)
+    mass = operators.mass(basis)
     for l in range(1, 5):
         indices = Delta.on_level(l)
         assert len(indices) == 2**l + 1
@@ -67,8 +69,8 @@ def test_haar_three_scaling_mass():
     basis_three, Lambda_three = ThreePointBasis.uniform_basis(uml)
     Delta_three = Lambda_three.single_scale_indices()
 
-    mass_haar_three = operator_tree.mass(basis_haar, basis_three)
-    mass_three_haar = operator_tree.mass(basis_three, basis_haar)
+    mass_haar_three = operators.mass(basis_haar, basis_three)
+    mass_three_haar = operators.mass(basis_three, basis_haar)
 
     for l in range(1, uml):
         indices_haar = Delta_haar.per_level[l]
@@ -78,7 +80,7 @@ def test_haar_three_scaling_mass():
         check_linop_transpose(mass_three_haar, set(indices_three),
                               set(indices_haar))
         for _ in range(10):
-            d = IndexedVector(indices_haar, np.random.rand(2**l))
+            d = SparseVector(indices_haar, np.random.rand(2**l))
             res = mass_haar_three.matvec(d, set(indices_haar),
                                          set(indices_three))
             res_test = defaultdict(float)

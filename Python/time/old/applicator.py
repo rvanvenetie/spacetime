@@ -1,6 +1,9 @@
-from indexed_vector import IndexedVector
-from interval import Interval, IntervalSet
-from basis_tree import Element
+from sparse_vector import SparseVector
+
+from .basis import support_to_interval
+from .index_set import MultiscaleIndexSet, SingleLevelIndexSet
+from .interval import Interval, IntervalSet
+from .triangulation import Triangulation
 
 
 class Applicator(object):
@@ -35,77 +38,79 @@ class Applicator(object):
         self.Lambda_in = Lambda_in if Lambda_in else basis_in.indices
         self.Lambda_out = Lambda_out if Lambda_out else self.Lambda_in
 
-    def _initialize_elements(self):
-        """ Helper function to set correct fields inside the elements. """
+        # TODO: This is ugly, and should be removed (?).
+        class ElementExtended(Triangulation.Element):
+            """ Extend the element class to hold some extra variables. """
 
-        def reset(elem):
-            """ Reset the variables! :-) """
-            elem.Lambda_in = False
-            elem.Lambda_out = False
-            elem.Pi_in = False
-            elem.Pi_out = False
-            for child in elem.children:
-                reset(child)
+            def __init__(self, level, node_index, parent):
+                super().__init__(level, node_index, parent)
 
-        reset(Element.mother_element)
+                # Add some extra variables.
+                self.Lambda_in = False
+                self.Lambda_out = False
+                self.Pi_in = False
+                self.Pi_out = False
 
-        for psi in self.Lambda_in:
-            for elem in list(psi.support):
+        triang = Triangulation(ElementExtended)
+        for labda in self.Lambda_in:
+            for elem in triang.get_element(
+                    self.basis_in.wavelet_support(labda)):
                 elem.Lambda_in = True
 
-        for psi in self.Lambda_out:
-            for elem in list(psi.support):
+        for labda in self.Lambda_out:
+            for elem in triang.get_element(
+                    self.basis_out.wavelet_support(labda)):
                 elem.Lambda_out = True
+        self.triang = triang
 
     def apply(self, vec):
         """ Apply the multiscale operator.
 
         Arguments:
-            vec: an IndexedVector with indices on self.Lambda_in.
+            vec: an SparseVector with indices on self.Lambda_in.
 
         Returns:
             self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
-        self._initialize_elements()
-        e, f = self._apply_recur(l=1,
-                                 Pi_in=self.Lambda_in.on_level(0),
-                                 Pi_out=self.Lambda_out.on_level(0),
-                                 d=vec.restrict(self.Lambda_in.on_level(0)),
-                                 c=vec)
+        e, f = self._apply_recur(
+            l=1,
+            Pi_in=self.Lambda_in.on_level(0),
+            Pi_out=self.Lambda_out.on_level(0),
+            d=vec.restrict(self.Lambda_in.on_level(0)),
+            c=vec)
         return e + f
 
     def apply_upp(self, vec):
         """ Apply the upper part of the multiscale operator.
 
         Arguments:
-            vec: an IndexedVector with indices on self.Lambda_in.
+            vec: an SparseVector with indices on self.Lambda_in.
 
         Returns:
             Upper part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
-        self._initialize_elements()
-        e, f = self._apply_upp_recur(l=1,
-                                     Pi_in=self.Lambda_in.on_level(0),
-                                     Pi_out=self.Lambda_out.on_level(0),
-                                     d=vec.restrict(
-                                         self.Lambda_in.on_level(0)),
-                                     c=vec)
+        e, f = self._apply_upp_recur(
+            l=1,
+            Pi_in=self.Lambda_in.on_level(0),
+            Pi_out=self.Lambda_out.on_level(0),
+            d=vec.restrict(self.Lambda_in.on_level(0)),
+            c=vec)
         return e + f
 
     def apply_low(self, vec):
         """ Apply the lower part of the multiscale operator.
 
         Arguments:
-            vec: an IndexedVector with indices on self.Lambda_in.
+            vec: an SparseVector with indices on self.Lambda_in.
 
         Returns:
             Lower part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
-        self._initialize_elements()
-        f = self._apply_low_recur(l=1,
-                                  Pi_in=self.Lambda_in.on_level(0),
-                                  d=vec.restrict(self.Lambda_in.on_level(0)),
-                                  c=vec)
+        f = self._apply_low_recur(
+            l=1,
+            Pi_in=self.Lambda_in.on_level(0),
+            d=vec.restrict(self.Lambda_in.on_level(0)),
+            c=vec)
         return f
 
     #  Private methods from here on out.
@@ -118,19 +123,28 @@ class Applicator(object):
 
         Arguments:
             Pi_out: SingleLevelIndexSet of singlescale indices on level l-1.
+            triang: Triangulation that has been initialized with Lambda_l_in,
+                i.e.`Lambda_in` indicator has been correctly set for
+                the elements inisde support of the corresponding wavelets.
 
         Returns:
             Pi_B_out: SingleLevelIndexSet of singlescale indices on level l-1.
         """
         Pi_B_out = []
         Pi_A_out = []
-        for phi in Pi_out:
-            # Check the support of phi on level l for wavelets psi.
-            if any((child.Lambda_in for elem in phi.support
-                    for child in elem.children)):
-                Pi_B_out.append(phi)
+
+        for labda in Pi_out:
+            # Generate support of Phi_out_labda on level l - 1
+            support_labda = self.triang.get_element(
+                self.basis_out.scaling_support(labda))
+
+            # Check if any of the children support a wavelet on level l
+            if any((child.Lambda_in
+                    for child in self.triang.children(support_labda))):
+                Pi_B_out.append(labda)
+                # TODO: possible set support_labda.Pi_out = True here.
             else:
-                Pi_A_out.append(phi)
+                Pi_A_out.append(labda)
 
         return Pi_B_out, Pi_A_out
 
@@ -140,23 +154,28 @@ class Applicator(object):
         Pi_A_in = []
 
         # Set all the Pi_B_out boys.
-        for phi in Pi_B_out:
-            for elem in phi.support:
+        for labda in Pi_B_out:
+            for elem in self.triang.get_element(
+                    self.basis_out.scaling_support(labda)):
                 elem.Pi_out = True
 
-        for phi in Pi_in:
+        for labda in Pi_in:
+            # Generate support of Phi_in_labda on level l - 1.
+            support_labda = self.triang.get_element(
+                self.basis_in.scaling_support(labda))
+
             # Check if intersects with Phi_out_Pi_B on level l - 1, or
             # with Lambda_l_out on level l.
-            if any((elem.Pi_out for elem in phi.support)) or \
-                 any((child.Lambda_out for elem in phi.support for child in elem.children)):
-                Pi_B_in.append(phi)
+            if any((elem.Pi_out for elem in support_labda)) or \
+               any((child.Lambda_out for child in self.triang.children(support_labda))):
+                Pi_B_in.append(labda)
             else:
-                Pi_A_in.append(phi)
+                Pi_A_in.append(labda)
 
         # Unset all the Pi_B_out boys
-        # Set all the Pi_B_out boys.
-        for phi in Pi_B_out:
-            for elem in phi.support:
+        for labda in Pi_B_out:
+            for elem in self.triang.get_element(
+                    self.basis_out.scaling_support(labda)):
                 elem.Pi_out = False
 
         #TODO: The above might not be neccessary.
@@ -183,13 +202,15 @@ class Applicator(object):
             Pi_B_out, Pi_A_out = self._construct_Pi_out(Pi_out)
             Pi_B_in, Pi_A_in = self._construct_Pi_in(Pi_in, Pi_B_out)
 
+            # Pi_bar_in is simply the range of the following operation
             d_bar = self.basis_in.P.matvec(d, Pi_B_in,
                                            None) + self.basis_in.Q.matvec(
                                                c, Lambda_l_in, None)
 
             Pi_bar_in = d_bar.keys()
-            Pi_bar_out = self.basis_out.P.range(
-                Pi_B_out) | self.basis_out.Q.range(Lambda_l_out)
+            Pi_bar_out = SingleLevelIndexSet(
+                self.basis_out.P.range(Pi_B_out)
+                | self.basis_out.Q.range(Lambda_l_out))
 
             e_bar, f_bar = self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out,
                                              d_bar, c)
@@ -200,7 +221,7 @@ class Applicator(object):
             f = self.basis_out.Q.rmatvec(e_bar, None, Lambda_l_out) + f_bar
             return e, f
         else:
-            return IndexedVector.Zero(), IndexedVector.Zero()
+            return SparseVector.Zero(), SparseVector.Zero()
 
     def _apply_upp_recur(self, l, Pi_in, Pi_out, d, c):
         Lambda_l_in = self.Lambda_in.on_level(l)
@@ -208,11 +229,14 @@ class Applicator(object):
         if len(Pi_out) + len(Lambda_l_out) > 0 and len(Pi_in) + len(
                 Lambda_l_in) > 0:
             Pi_B_out, Pi_A_out = self._construct_Pi_out(Pi_out)
-            Pi_bar_out = self.basis_out.P.range(
-                Pi_B_out) | self.basis_out.Q.range(Lambda_l_out)
-            Pi_bar_in = self.basis_in.Q.range(Lambda_l_in)
 
             d_bar = self.basis_in.Q.matvec(c, Lambda_l_in, None)
+
+            Pi_bar_in = d_bar.keys()
+            Pi_bar_out = SingleLevelIndexSet(
+                self.basis_out.P.range(Pi_B_out)
+                | self.basis_out.Q.range(Lambda_l_out))
+
             e_bar, f_bar = self._apply_upp_recur(l + 1, Pi_bar_in, Pi_bar_out,
                                                  d_bar, c)
             e = self.operator.matvec(d, None, Pi_out) + \
@@ -220,27 +244,29 @@ class Applicator(object):
             f = self.basis_out.Q.rmatvec(e_bar, None, Lambda_l_out) + f_bar
             return e, f
         else:
-            return IndexedVector.Zero(), IndexedVector.Zero()
+            return SparseVector.Zero(), SparseVector.Zero()
 
     def _apply_low_recur(self, l, Pi_in, d, c):
         Lambda_l_in = self.Lambda_in.on_level(l)
         Lambda_l_out = self.Lambda_out.on_level(l)
         if len(Lambda_l_out) > 0 and len(Pi_in) + len(Lambda_l_in) > 0:
             Pi_B_in, _ = self._construct_Pi_in(Pi_in, Pi_B_out={})
-            Pi_B_bar_in = self.basis_in.P.range(Pi_B_in)
-            Pi_B_bar_out = self.basis_out.Q.range(Lambda_l_out)
-            Pi_bar_in = self.basis_in.P.range(Pi_B_in) | self.basis_in.Q.range(
-                Lambda_l_in)
+            Pi_B_bar_in = SingleLevelIndexSet(self.basis_in.P.range(Pi_B_in))
+            Pi_B_bar_out = SingleLevelIndexSet(
+                self.basis_out.Q.range(Lambda_l_out))
 
             # NB: operator is applied at level `l` -- different from the rest.
+            Pi_B_in = set(Pi_B_in)
             e_bar = self.operator.matvec(
                 self.basis_in.P.matvec(d, Pi_B_in, None), Pi_B_bar_in,
                 Pi_B_bar_out)
-            d_bar = self.basis_in.P.matvec(d, Pi_B_in, None) + \
-                    self.basis_in.Q.matvec(c, Lambda_l_in, None)
+            d_bar = self.basis_in.P.matvec(d, Pi_B_in,
+                                           None) + self.basis_in.Q.matvec(
+                                               c, Lambda_l_in, None)
+            Pi_bar_in = d_bar.keys()
             f = self.basis_out.Q.rmatvec(e_bar, None,
                                          Lambda_l_out) + self._apply_low_recur(
                                              l + 1, Pi_bar_in, d_bar, c)
             return f
         else:
-            return IndexedVector.Zero()
+            return SparseVector.Zero()
