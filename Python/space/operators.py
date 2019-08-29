@@ -15,15 +15,15 @@ class Operators:
         Applies the hierarchical-to-single-scale transformation to a vector `v`.
 
         Arguments:
-            v: a `np.array` of length len(self.verts).
+            v: a `np.array` of length len(self.vertices).
 
         Returns:
-            w: a `np.array` of length len(self.verts).
+            w: a `np.array` of length len(self.vertices).
         """
 
         w = np.copy(v)
         for (vi, Ti) in self.triang.history:
-            godfather_vertices = self.triang.tris[Ti].edge(0)
+            godfather_vertices = self.triang.elements[Ti].edge(0)
             for gf in godfather_vertices:
                 w[vi] = w[vi] + 0.5 * w[gf]
         return w
@@ -33,14 +33,14 @@ class Operators:
         Applies the transposed hierarchical-to-single-scale transformation to `v`.
 
         Arguments:
-            v: a `np.array` of length len(self.triang.verts).
+            v: a `np.array` of length len(self.triang.vertices).
 
         Returns:
-            w: a `np.array` of length len(self.triang.verts).
+            w: a `np.array` of length len(self.triang.vertices).
         """
         w = np.copy(v)
         for (vi, Ti) in reversed(self.triang.history):
-            godfather_vertices = self.triang.tris[Ti].edge(0)
+            godfather_vertices = self.triang.elements[Ti].edge(0)
             for gf in godfather_vertices:
                 w[gf] = w[gf] + 0.5 * w[vi]
         return w
@@ -49,27 +49,27 @@ class Operators:
         """ Applies the single-scale mass matrix. """
         element_mass = 1.0 / 12.0 * np.array([[2, 1, 1], [1, 2, 1], [1, 1, 2]])
         w = np.zeros(v.shape)
-        for tri in self.triang.tris:
-            if not tri.is_leaf():
+        for elem in self.triang.elements:
+            if not elem.is_leaf():
                 continue
 
-            Vids = tri.vertex_ids
+            Vids = elem.vertex_ids
             for (i, j) in itertools.product(range(3), range(3)):
-                w[Vids[j]] += element_mass[i, j] * tri.area * v[Vids[i]]
+                w[Vids[j]] += element_mass[i, j] * elem.area * v[Vids[i]]
         return w
 
     def apply_SS_stiffness(self, v):
         """ Applies the single-scale stiffness matrix. """
         w = np.zeros(v.shape)
-        for tri in self.triang.tris:
-            if not tri.is_leaf():
+        for elem in self.triang.elements:
+            if not elem.is_leaf():
                 continue
-            Vids = tri.vertex_ids
-            V = [self.triang.verts[idx] for idx in Vids]
+            Vids = elem.vertex_ids
+            V = [self.triang.vertices[idx] for idx in Vids]
             D = np.array([[V[2].x - V[1].x, V[0].x - V[2].x, V[1].x - V[0].x],
                           [V[2].y - V[1].y, V[0].y - V[2].y, V[1].y - V[0].y]],
                          dtype=float)
-            element_stiff = (D.T @ D) / (4 * tri.area)
+            element_stiff = (D.T @ D) / (4 * elem.area)
             for (i, j) in itertools.product(range(3), range(3)):
                 w[Vids[j]] += element_stiff[i, j] * v[Vids[i]]
         return w
@@ -90,19 +90,19 @@ class Operators:
         """ Sets all boundary vertices to zero. """
         w = np.zeros(v.shape)
         for i in range(v.shape[0]):
-            w[i] = v[i] if not self.triang.verts[i].on_domain_boundary else 0.0
+            w[i] = v[i] if not self.triang.vertices[i].on_domain_boundary else 0.0
         return w
 
     def as_linear_operator(self, method):
         """ Recasts the application of a method as a scipy LinearOperator. """
         return LinearOperator(
             dtype=float,
-            shape=(len(self.triang.verts), len(self.triang.verts)),
+            shape=(len(self.triang.vertices), len(self.triang.vertices)),
             matvec=lambda x: method(x))
 
     def as_boundary_restricted_linear_operator(self, method):
         """ Recasts the application of a method as a scipy LinearOperator. """
         return LinearOperator(
             dtype=float,
-            shape=(len(self.triang.verts), len(self.triang.verts)),
+            shape=(len(self.triang.vertices), len(self.triang.vertices)),
             matvec=lambda x: self.apply_boundary_restriction(method(x)))

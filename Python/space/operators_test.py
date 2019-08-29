@@ -8,12 +8,12 @@ from triangulation import Triangulation
 
 def test_transformation():
     triangulation = Triangulation.unit_square()
-    triangulation.refine(triangulation.tris[0])
-    triangulation.refine(triangulation.tris[4])
-    triangulation.refine(triangulation.tris[7])
+    triangulation.refine(triangulation.elements[0])
+    triangulation.refine(triangulation.elements[4])
+    triangulation.refine(triangulation.elements[7])
 
-    assert len(triangulation.verts) == 8
-    assert len([tri for tri in triangulation.tris if tri.is_leaf()]) == 8
+    assert len(triangulation.vertices) == 8
+    assert len([elem for elem in triangulation.elements if elem.is_leaf()]) == 8
     assert len(triangulation.history) == 4
 
     operators = Operators(triangulation)
@@ -56,16 +56,16 @@ def test_galerkin(plot=False):
     and verify that our solution comes fairly close to this solution in a
     couply of points.
     """
-    verts = [[-1, -1], [1, 1], [1, -1], [-1, 1]]
-    tris = [[0, 2, 3], [1, 3, 2]]
-    triangulation = Triangulation(verts, tris)
-    ones = np.ones(len(triangulation.verts), dtype=float)
+    vertices = [[-1, -1], [1, 1], [1, -1], [-1, 1]]
+    elements = [[0, 2, 3], [1, 3, 2]]
+    triangulation = Triangulation(vertices, elements)
+    ones = np.ones(len(triangulation.vertices), dtype=float)
     operators = Operators(triangulation)
     rhs = operators.apply_T_transpose(operators.apply_SS_mass(ones))
 
     for _ in range(9):
         triangulation.refine_uniform()
-        ones = np.ones(len(triangulation.verts), dtype=float)
+        ones = np.ones(len(triangulation.vertices), dtype=float)
         new_rhs = operators.apply_T_transpose(operators.apply_SS_mass(ones))
         # Test that the first V elements of the right-hand side coincide -- we
         # have a hierarchic basis after all.
@@ -85,5 +85,5 @@ def test_galerkin(plot=False):
     if plot:
         fig = plt.figure()
         ax = fig.gca(projection='3d')
-        ax.plot_trisurf(triangulation.as_matplotlib_triangulation(), Z=sol_SS)
+        ax.plot_elementsurf(triangulation.as_matplotlib_triangulation(), Z=sol_SS)
         plt.show()
