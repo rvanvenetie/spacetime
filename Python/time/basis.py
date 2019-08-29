@@ -3,56 +3,6 @@ from fractions import Fraction
 from linear_operator import LinearOperator
 
 
-class MultiscaleIndices:
-    """ Immutable set of multiscale indices.  """
-
-    def __init__(self, indices):
-        self.indices = indices
-        self.maximum_level = max([fn.labda[0] for fn in indices])
-        self.per_level = [[] for _ in range(self.maximum_level + 1)]
-        for fn in indices:
-            self.per_level[fn.labda[0]].append(fn)
-
-    def __repr__(self):
-        return r"MSIS(%s)" % self.indices
-
-    def __len__(self):
-        return len(self.indices)
-
-    def __iter__(self):
-        return self.indices.__iter__()
-
-    def __next__(self):
-        return self.indices.__next__()
-
-    def __contains__(self, index):
-        return self.indices.__contains__(index)
-
-    def on_level(self, level):
-        if level > self.maximum_level: return []
-        return self.per_level[level]
-
-    def until_level(self, level):
-        """ Expensive (but linear in size) method. Mainly for testing. """
-        return MultiscaleIndices(
-            {index
-             for index in self.indices if index.labda[0] <= level})
-
-    def single_scale_indices(self):
-        """ Expensive. Returns a list of all single scale functions.
-        
-        Assumes that this set represents wavelets.
-        """
-        Delta = []
-        for psi in self.indices:
-            if isinstance(psi, Wavelet):
-                Delta.extend([phi for phi, _ in psi.single_scale])
-            else:
-                assert isinstance(psi, Scaling)
-                Delta.append(psi)
-        return MultiscaleIndices(list(set(Delta)))
-
-
 class Element:
     """ Represents an element (interval) as result of dyadic refinement.
 
@@ -150,6 +100,56 @@ class Wavelet(Function):
         return result
 
 
+class MultiscaleFunctions:
+    """ Immutable set of multiscale functions.  """
+
+    def __init__(self, functions):
+        self.functions = functions
+        self.maximum_level = max([fn.labda[0] for fn in functions])
+        self.per_level = [[] for _ in range(self.maximum_level + 1)]
+        for fn in functions:
+            self.per_level[fn.labda[0]].append(fn)
+
+    def __repr__(self):
+        return r"MSIS(%s)" % self.functions
+
+    def __len__(self):
+        return len(self.functions)
+
+    def __iter__(self):
+        return self.functions.__iter__()
+
+    def __next__(self):
+        return self.functions.__next__()
+
+    def __contains__(self, index):
+        return self.functions.__contains__(index)
+
+    def on_level(self, level):
+        if level > self.maximum_level: return []
+        return self.per_level[level]
+
+    def until_level(self, level):
+        """ Expensive (but linear in size) method. Mainly for testing. """
+        return MultiscaleFunctions(
+            {index
+             for index in self.functions if index.labda[0] <= level})
+
+    def single_scale_functions(self):
+        """ Expensive. Returns a list of all single scale functions.
+        
+        Assumes that this set represents wavelets.
+        """
+        Delta = []
+        for psi in self.functions:
+            if isinstance(psi, Wavelet):
+                Delta.extend([phi for phi, _ in psi.single_scale])
+            else:
+                assert isinstance(psi, Scaling)
+                Delta.append(psi)
+        return MultiscaleFunctions(set(Delta))
+
+
 class Basis:
     @classmethod
     def uniform_basis(cls, max_level):
@@ -168,7 +168,7 @@ class Basis:
             Lambda.extend(Lambda_l)
 
         Lambda = basis.mother_scalings + Lambda
-        return basis, MultiscaleIndices(Lambda)
+        return basis, MultiscaleFunctions(Lambda)
 
     @classmethod
     def origin_refined_basis(cls, max_level):
@@ -184,7 +184,7 @@ class Basis:
                 #TODO: This assumes the left child is always 0
                 Lambda.append(parent.children[0])
 
-        return basis, MultiscaleIndices(Lambda)
+        return basis, MultiscaleFunctions(Lambda)
 
     @classmethod
     def end_points_refined_basis(cls, max_level):
@@ -214,7 +214,7 @@ class Basis:
                 Lambda.append(parent.children[-1])
 
         Lambda = basis.mother_scalings + Lambda
-        return basis, MultiscaleIndices(Lambda)
+        return basis, MultiscaleFunctions(Lambda)
 
     @property
     def P(self):
