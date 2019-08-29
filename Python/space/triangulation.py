@@ -1,14 +1,15 @@
 import itertools
-import numpy as np
+import time
+
 import matplotlib.pyplot as plt
 import matplotlib.tri as mpltri
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from numpy.linalg import norm
-import time
 from scipy.sparse.linalg import LinearOperator, cg
 
 
-class Vertex(object):
+class Vertex:
     """ A vertex in a locally refined triangulation. """
 
     def __init__(self, x, y, on_domain_boundary):
@@ -20,7 +21,7 @@ class Vertex(object):
         return np.array([self.x, self.y], dtype=float)
 
 
-class Triangle(object):
+class Triangle:
     """ A triangle as part of a locally refined triangulation. """
 
     def __init__(self, idx, vertex_ids, parent=None):
@@ -57,7 +58,7 @@ class Triangle(object):
         return not len(self.children)
 
 
-class Triangulation(object):
+class Triangulation:
     def __init__(self, verts, tris):
         """ Instantiates the triangulation given the (vertices, triangles).
 
@@ -92,6 +93,13 @@ class Triangulation(object):
                     for v in tri.edge(i):
                         self.verts[v].on_domain_boundary = True
 
+    @staticmethod
+    def unit_square():
+        """ Returns a (coarse) triangulation of the unit square. """
+        verts = [[0, 0], [1, 1], [1, 0], [0, 1]]
+        tris = [[0, 2, 3], [1, 3, 2]]
+        return Triangulation(verts, tris)
+
     def _bisect(self, tri, new_vertex_id=False):
         """ Bisects a given triangle using Newest Vertex Bisection.
 
@@ -113,10 +121,10 @@ class Triangulation(object):
             self.history.append((new_vertex_id, tri.idx))
         child1_id = len(self.tris)
         child2_id = len(self.tris) + 1
-        child1 = Triangle(child1_id, [new_vertex_id, vert_ids[0], vert_ids[1]],
-                          parent=tri)
-        child2 = Triangle(child2_id, [new_vertex_id, vert_ids[2], vert_ids[0]],
-                          parent=tri)
+        child1 = Triangle(
+            child1_id, [new_vertex_id, vert_ids[0], vert_ids[1]], parent=tri)
+        child2 = Triangle(
+            child2_id, [new_vertex_id, vert_ids[2], vert_ids[0]], parent=tri)
 
         self.tris.extend([child1, child2])
         # NB: the neighbours along the newly created edges are not set.
@@ -174,107 +182,12 @@ class Triangulation(object):
         for leaf in leaves:
             self.refine(leaf)
 
-    def apply_T(self, v):
-        """
-        Applies the hierarchical-to-single-scale transformation to a vector `v`.
-
-        Arguments:
-            v: a `np.array` of length len(self.verts).
-
-        Returns:
-            w: a `np.array` of length len(self.verts).
-        """
-        w = np.copy(v)
-        for (vi, Ti) in self.history:
-            godfather_vertices = self.tris[Ti].edge(0)
-            for gf in godfather_vertices:
-                w[vi] = w[vi] + 0.5 * w[gf]
-        return w
-
-    def apply_T_transpose(self, v):
-        """
-        Applies the transposed hierarchical-to-single-scale transformation to `v`.
-
-        Arguments:
-            v: a `np.array` of length len(self.verts).
-
-        Returns:
-            w: a `np.array` of length len(self.verts).
-        """
-        w = np.copy(v)
-        for (vi, Ti) in reversed(self.history):
-            godfather_vertices = self.tris[Ti].edge(0)
-            for gf in godfather_vertices:
-                w[gf] = w[gf] + 0.5 * w[vi]
-        return w
-
     def _compute_area(self, tri):
         """ Computes the area of the triangle spanned by `vertex_ids`. """
         v1 = self.verts[tri.vertex_ids[0]].as_array()
         v2 = self.verts[tri.vertex_ids[1]].as_array()
         v3 = self.verts[tri.vertex_ids[2]].as_array()
         return 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1))
-
-    def apply_SS_mass(self, v):
-        """ Applies the single-scale mass matrix. """
-        element_mass = 1.0 / 12.0 * np.array([[2, 1, 1], [1, 2, 1], [1, 1, 2]])
-        w = np.zeros(v.shape)
-        for tri in self.tris:
-            if not tri.is_leaf():
-                continue
-
-            Vids = tri.vertex_ids
-            for (i, j) in itertools.product(range(3), range(3)):
-                w[Vids[j]] += element_mass[i, j] * tri.area * v[Vids[i]]
-        return w
-
-    def apply_SS_stiffness(self, v):
-        """ Applies the single-scale stiffness matrix. """
-        w = np.zeros(v.shape)
-        for tri in self.tris:
-            if not tri.is_leaf():
-                continue
-            Vids = tri.vertex_ids
-            V = [self.verts[idx] for idx in Vids]
-            D = np.array([[V[2].x - V[1].x, V[0].x - V[2].x, V[1].x - V[0].x],
-                          [V[2].y - V[1].y, V[0].y - V[2].y, V[1].y - V[0].y]],
-                         dtype=float)
-            element_stiff = (D.T @ D) / (4 * tri.area)
-            for (i, j) in itertools.product(range(3), range(3)):
-                w[Vids[j]] += element_stiff[i, j] * v[Vids[i]]
-        return w
-
-    def apply_HB_mass(self, v):
-        """ Applies the hierarchical mass matrix. """
-        w = self.apply_T(v)
-        x = self.apply_SS_mass(w)
-        return self.apply_T_transpose(x)
-
-    def apply_HB_stiffness(self, v):
-        """ Applies the hierarchical stiffness matrix. """
-        w = self.apply_T(v)
-        x = self.apply_SS_stiffness(w)
-        return self.apply_T_transpose(x)
-
-    def apply_boundary_restriction(self, v):
-        """ Sets all boundary vertices to zero. """
-        w = np.zeros(v.shape)
-        for i in range(v.shape[0]):
-            w[i] = v[i] if not self.verts[i].on_domain_boundary else 0.0
-        return w
-
-    def as_linear_operator(self, method):
-        """ Recasts the application of a method as a scipy LinearOperator. """
-        return LinearOperator(dtype=float,
-                              shape=(len(self.verts), len(self.verts)),
-                              matvec=lambda x: method(x))
-
-    def as_boundary_restricted_linear_operator(self, method):
-        """ Recasts the application of a method as a scipy LinearOperator. """
-        return LinearOperator(
-            dtype=float,
-            shape=(len(self.verts), len(self.verts)),
-            matvec=lambda x: self.apply_boundary_restriction(method(x)))
 
     def as_matplotlib_triangulation(self):
         """ The current triangulation as matplotlib-compatible object. """
@@ -285,108 +198,8 @@ class Triangulation(object):
             [t.vertex_ids for t in self.tris if t.is_leaf()])
 
 
-def test_transformation():
-    verts = [[0, 0], [1, 1], [1, 0], [0, 1]]
-    tris = [[0, 2, 3], [1, 3, 2]]
-    triangulation = Triangulation(verts, tris)
-    triangulation.refine(triangulation.tris[0])
-    triangulation.refine(triangulation.tris[4])
-    triangulation.refine(triangulation.tris[7])
-
-    assert len(triangulation.verts) == 8
-    assert len([tri for tri in triangulation.tris if tri.is_leaf()]) == 8
-    assert len(triangulation.history) == 4
-
-    v = np.array([0, 0, 0, 1, 0, 0, 0, 0], dtype=float)
-    w = np.array([0, 0, 0, 1, 0.5, 0.5, 0.5, 0.75], dtype=float)
-    w2 = triangulation.apply_T(v)
-    assert norm(w - w2) < 1e-10
-
-    v = np.array([0, 0, 0, 0, 0, 0, 0, 1], dtype=float)
-    w = np.array([0, 0, 0.25, 0.75, 0.5, 0, 0, 1], dtype=float)
-    w2 = triangulation.apply_T_transpose(v)
-    assert norm(w - w2) < 1e-10
-
-    for _ in range(10):
-        v = np.random.rand(8)
-        z = np.random.rand(8)
-        # Test that <applyT(v), z> = <v, applyT_transpose(z)>.
-        assert norm(
-            np.inner(v, triangulation.apply_T_transpose(z)) -
-            np.inner(triangulation.apply_T(v), z)) < 1e-10
-
-        # Test that T is a linear operator.
-        alpha = np.random.rand()
-        assert norm(
-            triangulation.apply_T(v + alpha * z) -
-            (triangulation.apply_T(v) +
-             alpha * triangulation.apply_T(z))) < 1e-10
-
-
-def test_on_domain_bdr():
-    verts = [[0, 0], [1, 1], [1, 0], [0, 1]]
-    tris = [[0, 2, 3], [1, 3, 2]]
-    triangulation = Triangulation(verts, tris)
-    assert all([v.on_domain_boundary for v in triangulation.verts])
-    triangulation.refine(triangulation.tris[0])
-    for _ in range(100):
-        triangulation.refine(triangulation.tris[np.random.randint(
-            len(triangulation.verts))])
-    for vert in triangulation.verts:
-        assert vert.on_domain_boundary == (vert.x == 0 or vert.x == 1
-                                           or vert.y == 0 or vert.y == 1)
-
-
-def test_galerkin(plot=False):
-    """ Tests -Laplace u = 1 on [-1,1]^2 with zero boundary conditions.
-    
-    From http://people.inf.ethz.ch/arbenz/FEM17/pdfs/0-19-852868-X.pdf,
-    we find the analytical solution. We use Mathematica to compute a few
-    values with adequate precision, through
-     | K_max := 10001
-     | u[x_, y_] := (1 - x^2)/2 - 16/Pi^3 *
-     |     Sum[Sin[k Pi (1 + x)/2]/(k^3 Sinh[k Pi]) * (Sinh[k Pi (1 + y)/2] +
-     |         Sinh[k Pi (1 - y)/2]), {k, 1, K_max, 2}]
-    and verify that our solution comes fairly close to this solution in a
-    couply of points.
-    """
-    verts = [[-1, -1], [1, 1], [1, -1], [-1, 1]]
-    tris = [[0, 2, 3], [1, 3, 2]]
-    triangulation = Triangulation(verts, tris)
-    ones = np.ones(len(triangulation.verts), dtype=float)
-    rhs = triangulation.apply_T_transpose(triangulation.apply_SS_mass(ones))
-
-    for _ in range(9):
-        triangulation.refine_uniform()
-        ones = np.ones(len(triangulation.verts), dtype=float)
-        new_rhs = triangulation.apply_T_transpose(
-            triangulation.apply_SS_mass(ones))
-        # Test that the first V elements of the right-hand side coincide -- we
-        # have a hierarchic basis after all.
-        assert norm(rhs - rhs[:rhs.shape[0]]) < 1e-10
-        rhs = new_rhs
-
-    rhs = triangulation.apply_boundary_restriction(rhs)
-    stiff = triangulation.as_boundary_restricted_linear_operator(
-        triangulation.apply_HB_stiffness)
-    sol_HB, _ = cg(stiff, rhs, atol=0, tol=1e-8)
-    sol_SS = triangulation.apply_T(sol_HB)
-
-    assert np.abs(sol_SS[4] - 0.2946854131260553) < 1e-3  # solution in (0, 0).
-    for i in [9, 10, 11, 12]:
-        assert np.abs(sol_SS[i] - 0.181145) < 1e-3  # solution in (0.5, 0.5).
-
-    if plot:
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
-        ax.plot_trisurf(triangulation.as_matplotlib_triangulation(), Z=sol_SS)
-        plt.show()
-
-
 def plot_hatfn():
-    verts = [[0, 0], [1, 1], [1, 0], [0, 1]]
-    tris = [[0, 2, 3], [1, 3, 2]]
-    triangulation = Triangulation(verts, tris)
+    triangulation = Triangulation.unit_square()
     triangulation.refine(triangulation.tris[0])
     triangulation.refine(triangulation.tris[4])
     triangulation.refine(triangulation.tris[7])
@@ -401,8 +214,8 @@ def plot_hatfn():
         ax1.set_title("Nodale basis")
         ax2 = fig.add_subplot(1, 2, 2, projection='3d')
         ax2.set_title("Hierarchische basis")
-        ax1.plot_trisurf(triangulation.as_matplotlib_triangulation(),
-                         Z=I[:, i])
+        ax1.plot_trisurf(
+            triangulation.as_matplotlib_triangulation(), Z=I[:, i])
         w = triangulation.apply_T(I[:, i])
         ax2.plot_trisurf(triangulation.as_matplotlib_triangulation(), Z=w)
         plt.show()
