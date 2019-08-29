@@ -1,12 +1,8 @@
 import itertools
-import time
 
 import matplotlib.pyplot as plt
 import matplotlib.tri as mpltri
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
-from numpy.linalg import norm
-from scipy.sparse.linalg import LinearOperator, cg
 
 
 class Vertex:

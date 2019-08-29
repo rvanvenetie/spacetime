@@ -56,7 +56,9 @@ def test_galerkin(plot=False):
     and verify that our solution comes fairly close to this solution in a
     couply of points.
     """
-    triangulation = Triangulation.unit_square()
+    verts = [[-1, -1], [1, 1], [1, -1], [-1, 1]]
+    tris = [[0, 2, 3], [1, 3, 2]]
+    triangulation = Triangulation(verts, tris)
     ones = np.ones(len(triangulation.verts), dtype=float)
     operators = Operators(triangulation)
     rhs = operators.apply_T_transpose(operators.apply_SS_mass(ones))
