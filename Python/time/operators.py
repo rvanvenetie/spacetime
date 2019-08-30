@@ -1,6 +1,7 @@
-from basis import (ContLinearScaling, DiscConstScaling, HaarBasis,
-                        OrthoBasis, ThreePointBasis)
+from haar_basis import DiscConstScaling, HaarBasis
 from linear_operator import LinearOperator
+from orthonormal_basis import DiscLinearScaling, OrthonormalBasis
+from three_point_basis import ContLinearScaling, ThreePointBasis
 
 
 def _mass_haar_in_haar_out(phi_in):
@@ -66,8 +67,8 @@ def mass(basis_in, basis_out=None):
 
     if isinstance(basis_in, HaarBasis) and isinstance(basis_out, HaarBasis):
         return LinearOperator(_mass_haar_in_haar_out)
-    elif isinstance(basis_in, OrthoBasis) and isinstance(
-            basis_out, OrthoBasis):
+    elif isinstance(basis_in, OrthonormalBasis) and isinstance(
+            basis_out, OrthonormalBasis):
         return LinearOperator(_mass_ortho_in_ortho_out)
     elif isinstance(basis_in, ThreePointBasis) and isinstance(
             basis_out, ThreePointBasis):

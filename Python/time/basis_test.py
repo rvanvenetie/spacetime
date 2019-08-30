@@ -4,9 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pytest import approx
 
-from basis import (BaseScaling, BaseWavelet, HaarBasis, OrthoBasis,
-                        ThreePointBasis, sq3)
+from basis import Scaling, Wavelet
+from haar_basis import HaarBasis
 from linear_operator_test import check_linop_transpose
+from orthonormal_basis import OrthonormalBasis
+from three_point_basis import ThreePointBasis
 
 
 def test_haar_mother_functions():
@@ -57,8 +59,9 @@ def test_haar_local_refinement():
 
 
 def test_ortho_uniform_refinement():
+    sq3 = np.sqrt(3)
     ml = 5
-    basis, Lambda = OrthoBasis.uniform_basis(ml)
+    basis, Lambda = OrthonormalBasis.uniform_basis(ml)
     Delta = Lambda.single_scale_indices()
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2**l
@@ -87,7 +90,7 @@ def test_ortho_uniform_refinement():
 
 def test_ortho_local_refinement():
     ml = 8
-    basis, Lambda = OrthoBasis.origin_refined_basis(ml)
+    basis, Lambda = OrthonormalBasis.origin_refined_basis(ml)
     Delta = Lambda.single_scale_indices()
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2
@@ -141,9 +144,9 @@ def test_basis_PQ():
             HaarBasis.uniform_basis(uml),
             HaarBasis.origin_refined_basis(oml),
             HaarBasis.end_points_refined_basis(oml),
-            OrthoBasis.uniform_basis(uml),
-            OrthoBasis.origin_refined_basis(oml),
-            OrthoBasis.end_points_refined_basis(oml),
+            OrthonormalBasis.uniform_basis(uml),
+            OrthonormalBasis.origin_refined_basis(oml),
+            OrthonormalBasis.end_points_refined_basis(oml),
             ThreePointBasis.uniform_basis(uml),
             ThreePointBasis.origin_refined_basis(oml),
             ThreePointBasis.end_points_refined_basis(oml),
@@ -154,21 +157,21 @@ def test_basis_PQ():
             basis.__class__.__name__, ml))
         for l in range(1, ml):
             assert all([
-                isinstance(phi, BaseScaling)
+                isinstance(phi, Scaling)
                 for phi in basis.P.range(Delta.per_level[l - 1])
             ])
             assert all([
-                isinstance(phi, BaseScaling)
+                isinstance(phi, Scaling)
                 for phi in basis.P.domain(Delta.per_level[l])
             ])
             assert set(basis.P.domain(Delta.per_level[l])).issubset(
                 set(Delta.per_level[l - 1]))
             assert all([
-                isinstance(psi, BaseWavelet)
+                isinstance(psi, Wavelet)
                 for psi in basis.Q.domain(Delta.per_level[l])
             ])
             assert all([
-                isinstance(psi, BaseScaling)
+                isinstance(psi, Scaling)
                 for psi in basis.Q.range(Lambda.per_level[l])
             ])
 
@@ -196,9 +199,9 @@ def test_basis_PQ_matrix():
             HaarBasis.uniform_basis(uml),
             HaarBasis.origin_refined_basis(oml),
             HaarBasis.end_points_refined_basis(oml),
-            OrthoBasis.uniform_basis(uml),
-            OrthoBasis.origin_refined_basis(oml),
-            OrthoBasis.end_points_refined_basis(oml),
+            OrthonormalBasis.uniform_basis(uml),
+            OrthonormalBasis.origin_refined_basis(oml),
+            OrthonormalBasis.end_points_refined_basis(oml),
             ThreePointBasis.uniform_basis(uml),
             ThreePointBasis.origin_refined_basis(oml),
             ThreePointBasis.end_points_refined_basis(oml),
