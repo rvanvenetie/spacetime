@@ -1,34 +1,55 @@
-class Applicator:
-    """ Class that implements a tensor product operator. """
+    class Applicator:
+        """ Class that implements a tensor product operator. """
 
-    def __init__(self,
+        def __init__(self,
                  basis_in,
-                 vee_in,
+                 Lambda_in,
                  operator_time,
                  operator_space,
                  basis_out=None,
-                 vee_out=None):
+                 Lambda_out=None):
         """ Initialize the applicator.
 
         Arguments:
             basis_in: A tensor-basis input.
-            vee_in: A double tree index set input corresponding to the input.
+            Lambda_in: A double tree index set input corresponding to the input.
             operator_time: The operator that has to be applied to the time part.
             operator_space: The operator that has to be applied on the space part.
             basis_out: A tensor-basis output.
-            vee_out: The double tree index set corresponding to the output.
+            Lambda_out: The double tree index set corresponding to the output.
         """
 
         self.basis_in = basis_in
-        self.vee_in = vee_in
+        self.Lambda_in = Lambda_in
         self.operator_time = operator_time
         self.operator_space = operator_space
 
         if basis_out is None:
             basis_out = basis_in
-            vee_out = vee_in
+            Lambda_out = Lambda_in
         self.basis_out = basis_out
-        self.vee_out = basis_out
+        self.Lambda_out = basis_out
+
+    def sigma(self):
+        """ Returns the double tree Sigma for Lambda_in and Lambda_out. """
+        result = {}
+        for psi_in_labda in self.Lambda_in.project(1):
+
+            # Get support of psi_in_labda on level + 1
+            elems = [
+                child for elem in psi_in_labda.support
+                for child in elem.children
+            ]
+
+            # Collect all fiber(2, mu) for psi_out_mu that
+            # intersect with support of psi_in_labda
+            space_out = set([
+                self.Lambda_out.fiber(2, mu) for elem in elems
+                for mu in elem.psi_out
+            ])
+
+            result{psi_in_labda} = space_out
+        return result
 
     def apply(self, vec):
         """ Apply the tensor product operator to the given vector. """
@@ -36,13 +57,13 @@ class Applicator:
         sigma = self.sigma()
         theta = self.theta()
 
-        # Calculate R_sigma(Id x A_2)I_vee
+        # Calculate R_sigma(Id x A_2)I_Lambda
         proj_time_sigma = sigma.project(1)
 
         v = {}
-        for labda in proj_time_sigma:
-            labda_fiber_in = self.vee_in.fiber(2, labda)
-            labda_fiber_out = self.sigma.fiber(2, labda)
+        for psi_in_labda in proj_time_sigma:
+            labda_fiber_in = self.Lambda_in.fiber(2, psi_in_labda)
+            labda_fiber_out = self.sigma.fiber(2, psi_in_labda)
             v += self.operator_space.apply(vec, labda_fiber_in,
                                            labda_fiber_out)
 
