@@ -16,6 +16,9 @@ class Node(object):
     def support(self):
         pass
 
+    def __hash__(self):
+        return hash(self.labda)
+
 
 def pair(i, item_i, item_not_i):
     """ Helper function to create a pair.
@@ -41,6 +44,9 @@ class DoubleNode(object):
         # Create a marked field useful for bfs/dfs.
         self.marked = False
 
+    def is_leaf(self):
+        return len(self.children[0]) == 0 and len(self.children[1]) == 0
+
     def find_ghost_child(self, i, nodes):
         """ Checks if the `to-be-created` child already exists.
 
@@ -50,6 +56,7 @@ class DoubleNode(object):
         Returns:
             The DoubleNode if such a child exists, if not it simply None."""
         for parent_not_i in self.parents[not i]:
+            assert len(parent_not_i.children[i]) > 0
             for children_i in parent_not_i.children[i]:
                 for children_not_i in children_i.children[not i]:
                     if children_not_i.nodes == nodes:
@@ -63,6 +70,12 @@ class DoubleNode(object):
                 if sibling_i.nodes == nodes:
                     return sibling_i
         return None
+
+    def remove_me(self):
+        assert self.is_leaf()
+        for i in [0, 1]:
+            for parent in self.parents[i]:
+                parent.children[i].remove(self)
 
     def refine(self, i):
         """ Refines the node in the `i`-th coordinate.
@@ -81,6 +94,7 @@ class DoubleNode(object):
                 ghost_child.parents[i].append(self)
                 self.children[i].append(ghost_child)
             else:
+
                 # Collect all parents (brothers) necessary to refine the child.
                 if len(child_i.parents) == 1:
                     parents = [self]
@@ -110,35 +124,23 @@ class DoubleTree(object):
     def __init__(self, root):
         self.root = root
 
+        self.fibers = [{}, {}]
+        for i in [0, 1]:
+            for node in bfs(self.root, i):
+                self.fibers[not i][node.nodes[i]] = [
+                    n.nodes[not i] for n in bfs(node, not i)
+                ]
+
     def project(self, i):
         """ Return the tree of single nodes in axis i. """
         return self.double_root.nodes[i]
 
     def fiber(self, i, mu):
-        """ Return the fiber of single-node mu in axis i.
+        """ Return the fiber of double-node mu in axis i.
         
         The fiber is the tree of single-nodes in axis i frozen at coordinate mu
         in the other axis. """
-        # This implementation is too expensive, but at least I am fairly certain
-        # it works.
-        # It is a BFS in axis i, where we only continue downwards when
-        # mu is in the single-tree (in axis not i) rooted at the current node.
-
-        queue = deque()
-        queue.append(self.root)
-        nodes = []
-        while queue:
-            node = queue.popleft()
-            if not mu in [n.nodes[not i] for n in bfs(node, not i)]:
-                continue
-            if node.marked:
-                continue
-            nodes.append(node)
-            node.marked = True
-            queue.extend(node.children[i])
-        for node in nodes:
-            node.marked = False
-        return [node.nodes[i] for node in nodes]
+        return self.fibers[i][mu]
 
 
 def bfs(roots, i=None):

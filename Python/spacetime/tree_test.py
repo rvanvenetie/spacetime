@@ -1,6 +1,7 @@
 from collections import deque
 from pprint import pprint
 import random
+import pytest
 
 from tree import *
 
@@ -127,17 +128,13 @@ def uniform_sparse_grid(max_level):
 
 def random_double_tree(root_tree_time, root_tree_space, prob):
     """ Makes a random doubletree from the given single trees. """
-    double_root = DebugDoubleNode((root_tree_time, root_tree_space))
-    queue = deque()
-    queue.append(double_root)
-    while queue:
-        double_node = queue.popleft()
-        for i in [0, 1]:
-            if len(double_node.nodes[i].children):
-                if random.random() > prob:
-                    queue.extend(double_node.refine(i))
-
-    return double_root
+    root = full_tensor_double_tree(root_tree_time, root_tree_space)
+    while random.random() < prob:
+        node = root
+        while not node.is_leaf():
+            node = random.choice(bfs(root))
+        node.remove_me()
+    return root
 
 
 def test_full_tensor():
@@ -155,6 +152,15 @@ def test_sparse_tensor():
     DebugDoubleNode.total_counter = 0
 
 
+def test_tree_refine():
+    root_tree_time = uniform_index_tree(2, 'time')
+    root_tree_space = uniform_index_tree(2, 'space')
+    root = DebugDoubleNode((root_tree_time, root_tree_space))
+    left, right = root.refine(0)
+    with pytest.raises(AssertionError):
+        left.refine(1)
+
+
 def test_fiber():
     def slow_fiber(i, mu):
         return [
@@ -162,17 +168,19 @@ def test_fiber():
         ]
 
     for dt_root in [
-            full_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
-                                    corner_refined_index_tree(8, 'space', 1)),
-            sparse_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
-                                      corner_refined_index_tree(8, 'space', 1),
-                                      8),
-            sparse_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
-                                      uniform_index_tree(8, 'space'), 8),
-            random_double_tree(uniform_index_tree(6, 'time'),
-                               uniform_index_tree(6, 'space'),
-                               prob=0.2),
+            #full_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
+            #                        corner_refined_index_tree(8, 'space', 1)),
+            #sparse_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
+            #                          corner_refined_index_tree(8, 'space', 1),
+            #                          8),
+            #sparse_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
+            #                          uniform_index_tree(8, 'space'), 8),
+            random_double_tree(uniform_index_tree(4, 'time'),
+                               uniform_index_tree(4, 'space'),
+                               prob=0.995),
     ]:
         tree = DoubleTree(dt_root)
-        for mu in bfs(tree.root, i=0):
-            assert tree.fiber(1, mu) == slow_fiber(1, mu)
+        for i in [0, 1]:
+            for mu in bfs(tree.root, not i):
+                assert tree.fiber(i, mu.nodes[not i]) == slow_fiber(
+                    i, mu.nodes[not i])

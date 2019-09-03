@@ -24,9 +24,9 @@ def show_level_dots():
                                     uniform_index_tree(6, 'space')),
             sparse_tensor_double_tree(uniform_index_tree(6, 'time'),
                                       uniform_index_tree(6, 'space'), 6),
-            random_double_tree(uniform_index_tree(6, 'time'),
-                               uniform_index_tree(6, 'space'),
-                               prob=0.3),
+            random_double_tree(uniform_index_tree(4, 'time'),
+                               uniform_index_tree(4, 'space'),
+                               prob=0.995),
     ]:
         treeplotter = TreePlotter(DoubleTree(dt_root))
         treeplotter.plot_level_dots()
