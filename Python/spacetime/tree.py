@@ -9,14 +9,14 @@ class Node:
         self.parents = parents if parents else []
         self.children = children if children else []
 
-        # Create a marked field useful for bfs/dfs.
+        # Create a marked field; useful for bfs/dfs.
         self.marked = False
 
 
 def pair(i, item_i, item_not_i):
     """ Helper function to create a pair.
     
-    Given coordinate i. This returns a pair with item_i in coordinate i,
+    Given coordinate i, returns a pair with item_i in coordinate i,
     and item_not_i in coordinate not i.
     """
     result = [None, None]
@@ -27,7 +27,7 @@ def pair(i, item_i, item_not_i):
 
 class DoubleNode:
     def __init__(self, nodes, parents=None, children=None):
-        """ Creates a double node, with nodes pointing to a `normal` index node. """
+        """ Creates double node, with nodes pointing to `single` index node. """
         self.nodes = tuple(nodes)
         self.parents = parents if parents else ([], [])
         self.children = children if children else ([], [])
@@ -77,7 +77,7 @@ class DoubleNode:
                 ghost_child.parents[i].append(self)
                 self.children[i].append(ghost_child)
             else:
-                # Collect all the parents (brothers) necessary to refine the child.
+                # Collect all parents (brothers) necessary to refine the child.
                 if len(child_i.parents) == 1:
                     parents = [self]
                 else:
