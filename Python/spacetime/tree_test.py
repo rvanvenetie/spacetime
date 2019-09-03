@@ -168,13 +168,13 @@ def test_fiber():
         ]
 
     for dt_root in [
-            #full_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
-            #                        corner_refined_index_tree(8, 'space', 1)),
-            #sparse_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
-            #                          corner_refined_index_tree(8, 'space', 1),
-            #                          8),
-            #sparse_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
-            #                          uniform_index_tree(8, 'space'), 8),
+            full_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
+                                    corner_refined_index_tree(8, 'space', 1)),
+            sparse_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
+                                      corner_refined_index_tree(8, 'space', 1),
+                                      8),
+            sparse_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
+                                      uniform_index_tree(8, 'space'), 8),
             random_double_tree(uniform_index_tree(4, 'time'),
                                uniform_index_tree(4, 'space'),
                                prob=0.995),

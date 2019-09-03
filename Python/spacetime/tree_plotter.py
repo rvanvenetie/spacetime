@@ -69,22 +69,22 @@ class TreePlotter(object):
         mlab.show()
 
     def plot_level_dots(self):
-        puntjes = {}
+        dots = {}
         for node_0 in bfs(self.tree.root, 0):
             for node_1 in bfs(node_0, 1):
                 key = (node_0.nodes[0].level, node_1.nodes[1].level)
-                if key in puntjes:
-                    puntjes[key] += 1
+                if key in dots:
+                    dots[key] += 1
                 else:
-                    puntjes[key] = 1
-        print(puntjes)
+                    dots[key] = 1
+        print(dots)
         ml0, ml1 = 0, 0
-        for (l0, l1) in puntjes:
+        for (l0, l1) in dots:
             ml0 = max(ml0, l0)
             ml1 = max(ml1, l1)
-        puntjes_matrix = np.zeros((ml0 + 1, ml1 + 1))
-        for (l0, l1) in puntjes:
-            puntjes_matrix[l0, l1] = puntjes[(l0, l1)]
-        plt.imshow(np.log(puntjes_matrix), origin='lower')
+        dots_matrix = np.zeros((ml0 + 1, ml1 + 1))
+        for (l0, l1) in dots:
+            dots_matrix[l0, l1] = dots[(l0, l1)]
+        plt.imshow(np.log(dots_matrix), origin='lower')
         plt.colorbar()
         plt.show()
