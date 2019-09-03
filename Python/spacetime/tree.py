@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 
 
-class Node:
+class Node(object):
     """ Represents a node in a single coordinate. """
 
     def __init__(self, labda, parents=None, children=None):
@@ -11,6 +11,10 @@ class Node:
 
         # Create a marked field; useful for bfs/dfs.
         self.marked = False
+
+    @property
+    def support(self):
+        pass
 
 
 def pair(i, item_i, item_not_i):
@@ -25,7 +29,7 @@ def pair(i, item_i, item_not_i):
     return tuple(result)
 
 
-class DoubleNode:
+class DoubleNode(object):
     def __init__(self, nodes, parents=None, children=None):
         """ Creates double node, with nodes pointing to `single` index node. """
         self.nodes = tuple(nodes)
@@ -102,6 +106,41 @@ class DoubleNode:
         return "{} x {}".format(self.nodes[0], self.nodes[1])
 
 
+class DoubleTree(object):
+    def __init__(self, root):
+        self.root = root
+
+    def project(self, i):
+        """ Return the tree of single nodes in axis i. """
+        return self.double_root.nodes[i]
+
+    def fiber(self, i, mu):
+        """ Return the fiber of single-node mu in axis i.
+        
+        The fiber is the tree of single-nodes in axis i frozen at coordinate mu
+        in the other axis. """
+        # This implementation is too expensive, but at least I am fairly certain
+        # it works.
+        # It is a BFS in axis i, where we only continue downwards when
+        # mu is in the single-tree (in axis not i) rooted at the current node.
+
+        queue = deque()
+        queue.append(self.root)
+        nodes = []
+        while queue:
+            node = queue.popleft()
+            if not mu in [n.nodes[not i] for n in bfs(node, not i)]:
+                continue
+            if node.marked:
+                continue
+            nodes.append(node)
+            node.marked = True
+            queue.extend(node.children[i])
+        for node in nodes:
+            node.marked = False
+        return [node.nodes[i] for node in nodes]
+
+
 def bfs(roots, i=None):
     """ Does a bfs for the given roots.
     
@@ -117,8 +156,11 @@ def bfs(roots, i=None):
         nodes.append(node)
         node.marked = True
         # Add the children to the queue.
-        if i is not None: queue.extend(node.children[i])
-        else: queue.extend(node.children)
+        if i is not None:
+            queue.extend(node.children[i])
+        else:
+            queue.extend(node.children[0])
+            queue.extend(node.children[1])
 
     for node in nodes:
         node.marked = False
