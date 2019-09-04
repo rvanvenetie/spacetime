@@ -166,10 +166,7 @@ class FrozenDoubleNode:
         return bfs(self)
 
     def __repr__(self):
-        if self.i:
-            return "{} x {}".format('_', self.node)
-        else:
-            return "{} x {}".format(self.node, '_')
+        return '{} x {}'.format(*pair(self.i, self.node, '_'))
 
     def __eq__(self, other):
         if isinstance(other, Node):
