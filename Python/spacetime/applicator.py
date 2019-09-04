@@ -1,7 +1,7 @@
-    class Applicator:
-        """ Class that implements a tensor product operator. """
+class Applicator:
+    """ Class that implements a tensor product operator. """
 
-        def __init__(self,
+    def __init__(self,
                  basis_in,
                  Lambda_in,
                  operator_time,
@@ -13,12 +13,11 @@
         Arguments:
             basis_in: A tensor-basis input.
             Lambda_in: A double tree index set input corresponding to the input.
-            operator_time: The operator that has to be applied to the time part.
-            operator_space: The operator that has to be applied on the space part.
+            operator_time: The operator to be applied to the time axis.
+            operator_space: The operator to be applied on the space axis.
             basis_out: A tensor-basis output.
             Lambda_out: The double tree index set corresponding to the output.
         """
-
         self.basis_in = basis_in
         self.Lambda_in = Lambda_in
         self.operator_time = operator_time
@@ -28,27 +27,26 @@
             basis_out = basis_in
             Lambda_out = Lambda_in
         self.basis_out = basis_out
-        self.Lambda_out = basis_out
+        self.Lambda_out = Lambda_out
 
     def sigma(self):
         """ Returns the double tree Sigma for Lambda_in and Lambda_out. """
         result = {}
         for psi_in_labda in self.Lambda_in.project(1):
-
-            # Get support of psi_in_labda on level + 1
-            elems = [
+            # Get support of psi_in_labda on level + 1.
+            children = [
                 child for elem in psi_in_labda.support
                 for child in elem.children
             ]
 
             # Collect all fiber(2, mu) for psi_out_mu that
-            # intersect with support of psi_in_labda
+            # intersect with support of psi_in_labda.
             space_out = set([
-                self.Lambda_out.fiber(2, mu) for elem in elems
-                for mu in elem.psi_out
+                self.Lambda_out.fiber(2, mu) for child in children
+                for mu in child.psi_out
             ])
 
-            result{psi_in_labda} = space_out
+            result[psi_in_labda] = space_out
         return result
 
     def apply(self, vec):

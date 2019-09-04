@@ -9,14 +9,24 @@ class Node:
         self.parents = parents if parents else []
         self.children = children if children else []
 
-        # Create a marked field useful for bfs/dfs.
+        # Create a marked field; useful for bfs/dfs.
         self.marked = False
+
+    @property
+    def support(self):
+        pass
+
+    def __hash__(self):
+        return hash(self.labda)
+
+    def bfs(self):
+        return bfs(self)
 
 
 def pair(i, item_i, item_not_i):
     """ Helper function to create a pair.
     
-    Given coordinate i. This returns a pair with item_i in coordinate i,
+    Given coordinate i, returns a pair with item_i in coordinate i,
     and item_not_i in coordinate not i.
     """
     result = [None, None]
@@ -27,7 +37,7 @@ def pair(i, item_i, item_not_i):
 
 class DoubleNode:
     def __init__(self, nodes, parents=None, children=None):
-        """ Creates a double node, with nodes pointing to a `normal` index node. """
+        """ Creates double node, with nodes pointing to `single` index node. """
         self.nodes = tuple(nodes)
         self.parents = parents if parents else ([], [])
         self.children = children if children else ([], [])
@@ -36,6 +46,9 @@ class DoubleNode:
 
         # Create a marked field useful for bfs/dfs.
         self.marked = False
+
+    def is_leaf(self):
+        return len(self.children[0]) == 0 and len(self.children[1]) == 0
 
     def find_ghost_child(self, i, nodes):
         """ Checks if the `to-be-created` child already exists.
@@ -46,6 +59,7 @@ class DoubleNode:
         Returns:
             The DoubleNode if such a child exists, if not it simply None."""
         for parent_not_i in self.parents[not i]:
+            assert parent_not_i.children[i]
             for children_i in parent_not_i.children[i]:
                 for children_not_i in children_i.children[not i]:
                     if children_not_i.nodes == nodes:
@@ -77,7 +91,8 @@ class DoubleNode:
                 ghost_child.parents[i].append(self)
                 self.children[i].append(ghost_child)
             else:
-                # Collect all the parents (brothers) necessary to refine the child.
+
+                # Collect all parents (brothers) necessary to refine the child.
                 if len(child_i.parents) == 1:
                     parents = [self]
                 else:
@@ -98,18 +113,50 @@ class DoubleNode:
 
         return self.children[i]
 
+    def coarsen(self):
+        """ Removes `self' from the double tree. """
+        assert self.is_leaf()
+        for i in [0, 1]:
+            for parent in self.parents[i]:
+                parent.children[i].remove(self)
+
+    def bfs(self, i):
+        return bfs(self, i)
+
     def __repr__(self):
         return "{} x {}".format(self.nodes[0], self.nodes[1])
 
 
-def bfs(roots, i=None):
-    """ Does a bfs for the given roots.
-    
-    If `i` is set, we are traversing a double tree, for coordinate i.
-    """
-    if not isinstance(roots, list): roots = [roots]
+class DoubleTree:
+    def __init__(self, root):
+        self.root = root
+
+        self.fibers = [{}, {}]
+        for i in [0, 1]:
+            for node in self.root.bfs(i):
+                self.fibers[not i][node.nodes[i]] = [
+                    n.nodes[not i] for n in node.bfs(not i)
+                ]
+
+    def project(self, i):
+        """ Return the list of single nodes in axis i. """
+        return self.root.nodes[i].bfs()
+
+    def fiber(self, i, mu):
+        """ Return the fiber of double-node mu in axis i.
+        
+        The fiber is the tree of single-nodes in axis i frozen at coordinate mu
+        in the other axis. """
+        return self.fibers[i][mu]
+
+    def bfs(self):
+        return bfs(self.root)
+
+
+def bfs(root, i=None):
+    """ Does a bfs from the given single node or double node. """
     queue = deque()
-    queue.extend(roots)
+    queue.append(root)
     nodes = []
     while queue:
         node = queue.popleft()
@@ -117,9 +164,15 @@ def bfs(roots, i=None):
         nodes.append(node)
         node.marked = True
         # Add the children to the queue.
-        if i is not None: queue.extend(node.children[i])
-        else: queue.extend(node.children)
-
+        if isinstance(node, Node):
+            assert i is None
+            queue.extend(node.children)
+        else:
+            if i is not None:
+                queue.extend(node.children[i])
+            else:
+                queue.extend(node.children[0])
+                queue.extend(node.children[1])
     for node in nodes:
         node.marked = False
     return nodes

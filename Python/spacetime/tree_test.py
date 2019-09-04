@@ -1,5 +1,7 @@
 from collections import deque
 from pprint import pprint
+import random
+import pytest
 
 from tree import *
 
@@ -10,6 +12,11 @@ class DummyNode(Node):
     def __init__(self, labda, node_type, parents=None, children=None):
         super().__init__(labda, parents, children)
         self.node_type = node_type
+
+    @property
+    def support(self):
+        return (self.labda[1] * 2**(-self.labda[0]),
+                (self.labda[1] + 1) * 2**(-self.labda[0]))
 
     def refine(self):
         if self.children: return
@@ -57,11 +64,25 @@ def uniform_index_tree(max_level, node_type):
     return root
 
 
-def full_tensor_double_tree(level_time, level_space):
-    root_tree_time = uniform_index_tree(level_time, 'time')
-    root_tree_space = uniform_index_tree(level_space, 'space')
+def corner_refined_index_tree(max_level, node_type, which_child):
+    """ Creates a (dummy) index tree with 1 element per level.
+    
+    Creates a field node_type inside the nodes and sets it to the node_type.
+    """
+    root = DummyNode((0, 0), node_type)
+    Lambda_l = [root]
+    for _ in range(max_level):
+        Lambda_new = []
+        for node in Lambda_l:
+            children = node.refine()
+            Lambda_new.append(children[which_child])
+        Lambda_l = Lambda_new
+    return root
 
-    double_root = DebugDoubleNode(pair(0, root_tree_time, root_tree_space))
+
+def full_tensor_double_tree(root_tree_time, root_tree_space):
+    """ Makes a full grid doubletree from the given single trees. """
+    double_root = DebugDoubleNode((root_tree_time, root_tree_space))
     queue = deque()
     queue.append(double_root)
     while queue:
@@ -74,10 +95,16 @@ def full_tensor_double_tree(level_time, level_space):
     return double_root
 
 
-def sparse_tensor_double_tree(max_level):
-    root_tree_time = uniform_index_tree(max_level, 'time')
-    root_tree_space = uniform_index_tree(max_level, 'space')
-    double_root = DebugDoubleNode(pair(0, root_tree_time, root_tree_space))
+def uniform_full_grid(time_level, space_level):
+    """ Makes a full grid doubletree of uniformly refined singletrees. """
+    root_tree_time = uniform_index_tree(time_level, 't')
+    root_tree_space = uniform_index_tree(space_level, 'x')
+    return full_tensor_double_tree(root_tree_time, root_tree_space)
+
+
+def sparse_tensor_double_tree(root_tree_time, root_tree_space, max_level):
+    """ Makes a sparse grid doubletree from the given single trees. """
+    double_root = DebugDoubleNode((root_tree_time, root_tree_space))
     queue = deque()
     queue.append(double_root)
     while queue:
@@ -91,16 +118,76 @@ def sparse_tensor_double_tree(max_level):
     return double_root
 
 
+def uniform_sparse_grid(max_level):
+    """ Makes a sparse grid doubletree of uniformly refined singletrees. """
+    root_tree_time = uniform_index_tree(max_level, 't')
+    root_tree_space = uniform_index_tree(max_level, 'x')
+    return sparse_tensor_double_tree(root_tree_time, root_tree_space,
+                                     max_level)
+
+
+def random_double_tree(root_tree_time, root_tree_space, max_level, N):
+    """ Makes a random doubletree from the given single trees. """
+    root = sparse_tensor_double_tree(root_tree_time, root_tree_space,
+                                     max_level)
+    tree = DoubleTree(root)
+    n = 0
+    leaves = set([n for n in tree.bfs() if n.is_leaf()])
+    while n < N and not tree.root.is_leaf():
+        node = leaves.pop()
+        parents = node.parents[0] + node.parents[1]
+        node.coarsen()
+        for parent in parents:
+            if parent.is_leaf():
+                leaves.add(parent)
+        n += 1
+    return root
+
+
 def test_full_tensor():
-    double_root = full_tensor_double_tree(4, 2)
+    double_root = uniform_full_grid(4, 2)
     assert DebugDoubleNode.total_counter == (2**5 - 1) * (2**3 - 1)
     DebugDoubleNode.total_counter = 0
 
 
 def test_sparse_tensor():
-    double_root = sparse_tensor_double_tree(1)
+    double_root = uniform_sparse_grid(1)
     assert DebugDoubleNode.total_counter == 5
     DebugDoubleNode.total_counter = 0
-    double_root = sparse_tensor_double_tree(4)
+    double_root = uniform_sparse_grid(4)
     assert DebugDoubleNode.total_counter == 129
     DebugDoubleNode.total_counter = 0
+
+
+def test_tree_refine():
+    root_tree_time = uniform_index_tree(2, 't')
+    root_tree_space = uniform_index_tree(2, 'x')
+    root = DebugDoubleNode((root_tree_time, root_tree_space))
+    left, right = root.refine(0)
+    with pytest.raises(AssertionError):
+        left.refine(1)
+
+
+def test_fiber():
+    def slow_fiber(i, mu):
+        return [
+            node.nodes[i] for node in tree.bfs() if node.nodes[not i] is mu
+        ]
+
+    for dt_root in [
+            full_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
+                                    corner_refined_index_tree(8, 'x', 1)),
+            sparse_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
+                                      corner_refined_index_tree(8, 'x', 1), 8),
+            sparse_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
+                                      uniform_index_tree(8, 'x'), 8),
+            random_double_tree(uniform_index_tree(7, 't'),
+                               uniform_index_tree(7, 'x'),
+                               7,
+                               N=500),
+    ]:
+        tree = DoubleTree(dt_root)
+        for i in [0, 1]:
+            for mu in tree.root.bfs(not i):
+                assert tree.fiber(i, mu.nodes[not i]) == slow_fiber(
+                    i, mu.nodes[not i])
