@@ -97,8 +97,8 @@ def full_tensor_double_tree(root_tree_time, root_tree_space):
 
 def uniform_full_grid(time_level, space_level):
     """ Makes a full grid doubletree of uniformly refined singletrees. """
-    root_tree_time = uniform_index_tree(time_level, 'time')
-    root_tree_space = uniform_index_tree(space_level, 'space')
+    root_tree_time = uniform_index_tree(time_level, 't')
+    root_tree_space = uniform_index_tree(space_level, 'x')
     return full_tensor_double_tree(root_tree_time, root_tree_space)
 
 
@@ -120,8 +120,8 @@ def sparse_tensor_double_tree(root_tree_time, root_tree_space, max_level):
 
 def uniform_sparse_grid(max_level):
     """ Makes a sparse grid doubletree of uniformly refined singletrees. """
-    root_tree_time = uniform_index_tree(max_level, 'time')
-    root_tree_space = uniform_index_tree(max_level, 'space')
+    root_tree_time = uniform_index_tree(max_level, 't')
+    root_tree_space = uniform_index_tree(max_level, 'x')
     return sparse_tensor_double_tree(root_tree_time, root_tree_space,
                                      max_level)
 
@@ -132,9 +132,8 @@ def random_double_tree(root_tree_time, root_tree_space, N):
     tree = DoubleTree(root)
     n = 0
     while n < N and not tree.root.is_leaf():
-        node = root
-        while not node.is_leaf():
-            node = random.choice(tree.bfs())
+        leaves = [n for n in tree.bfs() if n.is_leaf()]
+        node = random.choice(leaves)
         node.coarsen()
         n += 1
     return root
@@ -156,8 +155,8 @@ def test_sparse_tensor():
 
 
 def test_tree_refine():
-    root_tree_time = uniform_index_tree(2, 'time')
-    root_tree_space = uniform_index_tree(2, 'space')
+    root_tree_time = uniform_index_tree(2, 't')
+    root_tree_space = uniform_index_tree(2, 'x')
     root = DebugDoubleNode((root_tree_time, root_tree_space))
     left, right = root.refine(0)
     with pytest.raises(AssertionError):
@@ -171,15 +170,14 @@ def test_fiber():
         ]
 
     for dt_root in [
-            full_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
-                                    corner_refined_index_tree(8, 'space', 1)),
-            sparse_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
-                                      corner_refined_index_tree(8, 'space', 1),
-                                      8),
-            sparse_tensor_double_tree(corner_refined_index_tree(8, 'time', 0),
-                                      uniform_index_tree(8, 'space'), 8),
-            random_double_tree(uniform_index_tree(4, 'time'),
-                               uniform_index_tree(4, 'space'),
+            full_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
+                                    corner_refined_index_tree(8, 'x', 1)),
+            sparse_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
+                                      corner_refined_index_tree(8, 'x', 1), 8),
+            sparse_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
+                                      uniform_index_tree(8, 'x'), 8),
+            random_double_tree(uniform_index_tree(4, 't'),
+                               uniform_index_tree(4, 'x'),
                                N=500),
     ]:
         tree = DoubleTree(dt_root)
