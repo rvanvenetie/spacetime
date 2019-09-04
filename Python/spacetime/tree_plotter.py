@@ -28,36 +28,18 @@ class TreePlotter:
         return rects
 
     def plot_matplotlib_graph(self, i_in):
-        def gen_G(root, i=None):
-            G = nx.DiGraph()
-            queue = deque()
-            queue.append(root)
-            nodes = []
-            while queue:
-                node = queue.popleft()
-                if node.marked: continue
-                G.add_node(node)
-                if i is not None:
-                    for child in node.children[i]:
-                        G.add_edge(node, child)
-                else:
-                    for child in node.children:
-                        G.add_edge(node, child)
-                nodes.append(node)
-                node.marked = True
-                # Add the children to the queue.
-                if i is not None:
-                    queue.extend(node.children[i])
-                else:
-                    queue.extend(node.children)
-            for node in nodes:
-                node.marked = False
-            return G
+        import networkx as nx
+        from networkx.drawing.nx_agraph import write_dot, graphviz_layout
+        from grave import plot_network
+        from grave.style import use_attributes
 
         def onpick(ax, i, event):
-            graph = event.artist.graph
+            """ Event handler for clicking on a node. """
             if not hasattr(event, 'nodes') or not event.nodes:
                 return
+
+            graph = event.artist.graph
+            # Reset previous highlighted node and highlight the current node.
             for node, attr in graph.nodes.data():
                 attr.pop('color', None)
             double_node = event.nodes[0]
@@ -65,7 +47,8 @@ class TreePlotter:
             event.artist.stale = True
             event.artist.figure.canvas.draw_idle()
 
-            new_G = gen_G(double_node, i=1 - i)
+            # Update the right subplot to show the single-tree.
+            new_G = nx_graph_rooted_at(double_node, i=1 - i)
             ax[1].clear()
             plot_network(new_G,
                          ax=ax[1],
@@ -73,18 +56,16 @@ class TreePlotter:
             ax[1].set_title("Fiber in %s in axis %s" % (double_node, 1 - i))
             plt.draw()
 
-        import networkx as nx
-        from networkx.drawing.nx_agraph import write_dot, graphviz_layout
-        from grave import plot_network
-        from grave.style import use_attributes
-
         fig, axes = plt.subplots(2, 1)
-        G = gen_G(self.tree.root, i_in)
+        # Show the single tree in the left subplot.
+        G = nx_graph_rooted_at(self.tree.root, i_in)
         axes[0].set_title("Double tree in axis %d" % i_in)
         art0 = plot_network(G,
                             ax=axes[0],
                             node_style=use_attributes(),
                             layout=lambda x: graphviz_layout(G, prog='dot'))
+
+        # Add event handler for clicking on a node.
         art0.set_picker(10)
         fig.canvas.mpl_connect('pick_event', lambda x: onpick(axes, i_in, x))
         plt.draw()
@@ -107,3 +88,31 @@ class TreePlotter:
         plt.show()
 
         return dots
+
+
+def nx_graph_rooted_at(root, i=None):
+    import networkx as nx
+    G = nx.DiGraph()
+    queue = deque()
+    queue.append(root)
+    nodes = []
+    while queue:
+        node = queue.popleft()
+        if node.marked: continue
+        G.add_node(node)
+        if i is not None:
+            for child in node.children[i]:
+                G.add_edge(node, child)
+        else:
+            for child in node.children:
+                G.add_edge(node, child)
+        nodes.append(node)
+        node.marked = True
+        # Add the children to the queue.
+        if i is not None:
+            queue.extend(node.children[i])
+        else:
+            queue.extend(node.children)
+    for node in nodes:
+        node.marked = False
+    return G
