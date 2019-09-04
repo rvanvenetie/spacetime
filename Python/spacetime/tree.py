@@ -131,6 +131,10 @@ class FrozenDoubleNode:
     
     The resulting object acts like a single node in the other coordinate.
     """
+
+    # This should be a lightweight class.
+    __slots__ = ['dbl_node', 'i']
+
     def __init__(self, dbl_node, i):
         """ Freezes the dbl_node in coordinate `not i`. """
         self.dbl_node = dbl_node
@@ -172,7 +176,7 @@ class FrozenDoubleNode:
         if isinstance(other, Node):
             return self.node == other
         elif isinstance(other, FrozenDoubleNode):
-            return self.node == other.node
+            return self.i == other.i and self.dbl_node == other.dbl_node
         else:
             assert False
 
