@@ -126,15 +126,20 @@ def uniform_sparse_grid(max_level):
                                      max_level)
 
 
-def random_double_tree(root_tree_time, root_tree_space, N):
+def random_double_tree(root_tree_time, root_tree_space, max_level, N):
     """ Makes a random doubletree from the given single trees. """
-    root = full_tensor_double_tree(root_tree_time, root_tree_space)
+    root = sparse_tensor_double_tree(root_tree_time, root_tree_space,
+                                     max_level)
     tree = DoubleTree(root)
     n = 0
+    leaves = set([n for n in tree.bfs() if n.is_leaf()])
     while n < N and not tree.root.is_leaf():
-        leaves = [n for n in tree.bfs() if n.is_leaf()]
-        node = random.choice(leaves)
+        node = leaves.pop()
+        parents = node.parents[0] + node.parents[1]
         node.coarsen()
+        for parent in parents:
+            if parent.is_leaf():
+                leaves.add(parent)
         n += 1
     return root
 
@@ -176,8 +181,9 @@ def test_fiber():
                                       corner_refined_index_tree(8, 'x', 1), 8),
             sparse_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
                                       uniform_index_tree(8, 'x'), 8),
-            random_double_tree(uniform_index_tree(4, 't'),
-                               uniform_index_tree(4, 'x'),
+            random_double_tree(uniform_index_tree(7, 't'),
+                               uniform_index_tree(7, 'x'),
+                               7,
                                N=500),
     ]:
         tree = DoubleTree(dt_root)
