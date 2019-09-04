@@ -1,4 +1,4 @@
-class Applicator(object):
+class Applicator:
     """ Class that implements a tensor product operator. """
 
     def __init__(self,
@@ -42,8 +42,8 @@ class Applicator(object):
             # Collect all fiber(2, mu) for psi_out_mu that
             # intersect with support of psi_in_labda.
             space_out = set([
-                self.Lambda_out.fiber(2, mu) for elem in children
-                for mu in elem.psi_out
+                self.Lambda_out.fiber(2, mu) for child in children
+                for mu in child.psi_out
             ])
 
             result[psi_in_labda] = space_out

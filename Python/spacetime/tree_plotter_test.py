@@ -12,10 +12,25 @@ def show_rectangle_plot():
                                       6),
             random_double_tree(uniform_index_tree(5, 'time'),
                                uniform_index_tree(5, 'space'),
-                               prob=0.2),
+                               N=500),
     ]:
         treeplotter = TreePlotter(DoubleTree(dt_root))
         treeplotter.plot_support_rectangles()
+
+
+def show_graph():
+    for dt_root in [
+            full_tensor_double_tree(corner_refined_index_tree(6, 'time', 0),
+                                    corner_refined_index_tree(6, 'space', 1)),
+            sparse_tensor_double_tree(corner_refined_index_tree(6, 'time', 0),
+                                      corner_refined_index_tree(6, 'space', 1),
+                                      6),
+            random_double_tree(uniform_index_tree(4, 'time'),
+                               uniform_index_tree(4, 'space'),
+                               N=500),
+    ]:
+        treeplotter = TreePlotter(DoubleTree(dt_root))
+        treeplotter.plot_mayavi_graph()
 
 
 def show_level_dots():
@@ -26,10 +41,10 @@ def show_level_dots():
                                       uniform_index_tree(6, 'space'), 6),
             random_double_tree(uniform_index_tree(4, 'time'),
                                uniform_index_tree(4, 'space'),
-                               prob=0.995),
+                               N=500),
     ]:
         treeplotter = TreePlotter(DoubleTree(dt_root))
-        treeplotter.plot_level_dots()
+        print(treeplotter.plot_level_dots())
 
 
 if __name__ == "__main__":

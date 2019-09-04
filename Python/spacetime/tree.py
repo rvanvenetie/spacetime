@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 
 
-class Node(object):
+class Node:
     """ Represents a node in a single coordinate. """
 
     def __init__(self, labda, parents=None, children=None):
@@ -19,6 +19,9 @@ class Node(object):
     def __hash__(self):
         return hash(self.labda)
 
+    def bfs(self):
+        return bfs(self)
+
 
 def pair(i, item_i, item_not_i):
     """ Helper function to create a pair.
@@ -32,7 +35,7 @@ def pair(i, item_i, item_not_i):
     return tuple(result)
 
 
-class DoubleNode(object):
+class DoubleNode:
     def __init__(self, nodes, parents=None, children=None):
         """ Creates double node, with nodes pointing to `single` index node. """
         self.nodes = tuple(nodes)
@@ -56,7 +59,7 @@ class DoubleNode(object):
         Returns:
             The DoubleNode if such a child exists, if not it simply None."""
         for parent_not_i in self.parents[not i]:
-            assert len(parent_not_i.children[i]) > 0
+            assert parent_not_i.children[i]
             for children_i in parent_not_i.children[i]:
                 for children_not_i in children_i.children[not i]:
                     if children_not_i.nodes == nodes:
@@ -70,12 +73,6 @@ class DoubleNode(object):
                 if sibling_i.nodes == nodes:
                     return sibling_i
         return None
-
-    def remove_me(self):
-        assert self.is_leaf()
-        for i in [0, 1]:
-            for parent in self.parents[i]:
-                parent.children[i].remove(self)
 
     def refine(self, i):
         """ Refines the node in the `i`-th coordinate.
@@ -116,24 +113,34 @@ class DoubleNode(object):
 
         return self.children[i]
 
+    def coarsen(self):
+        """ Removes `self' from the double tree. """
+        assert self.is_leaf()
+        for i in [0, 1]:
+            for parent in self.parents[i]:
+                parent.children[i].remove(self)
+
+    def bfs(self, i):
+        return bfs(self, i)
+
     def __repr__(self):
         return "{} x {}".format(self.nodes[0], self.nodes[1])
 
 
-class DoubleTree(object):
+class DoubleTree:
     def __init__(self, root):
         self.root = root
 
         self.fibers = [{}, {}]
         for i in [0, 1]:
-            for node in bfs(self.root, i):
+            for node in self.root.bfs(i):
                 self.fibers[not i][node.nodes[i]] = [
-                    n.nodes[not i] for n in bfs(node, not i)
+                    n.nodes[not i] for n in node.bfs(not i)
                 ]
 
     def project(self, i):
-        """ Return the tree of single nodes in axis i. """
-        return self.double_root.nodes[i]
+        """ Return the list of single nodes in axis i. """
+        return self.root.nodes[i].bfs()
 
     def fiber(self, i, mu):
         """ Return the fiber of double-node mu in axis i.
@@ -142,15 +149,14 @@ class DoubleTree(object):
         in the other axis. """
         return self.fibers[i][mu]
 
+    def bfs(self):
+        return bfs(self.root)
 
-def bfs(roots, i=None):
-    """ Does a bfs for the given roots.
-    
-    If `i` is set, we are traversing a double tree, for coordinate i.
-    """
-    if not isinstance(roots, list): roots = [roots]
+
+def bfs(root, i=None):
+    """ Does a bfs from the given single node or double node. """
     queue = deque()
-    queue.extend(roots)
+    queue.append(root)
     nodes = []
     while queue:
         node = queue.popleft()
@@ -158,12 +164,15 @@ def bfs(roots, i=None):
         nodes.append(node)
         node.marked = True
         # Add the children to the queue.
-        if i is not None:
-            queue.extend(node.children[i])
+        if isinstance(node, Node):
+            assert i is None
+            queue.extend(node.children)
         else:
-            queue.extend(node.children[0])
-            queue.extend(node.children[1])
-
+            if i is not None:
+                queue.extend(node.children[i])
+            else:
+                queue.extend(node.children[0])
+                queue.extend(node.children[1])
     for node in nodes:
         node.marked = False
     return nodes

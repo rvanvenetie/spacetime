@@ -126,14 +126,17 @@ def uniform_sparse_grid(max_level):
                                      max_level)
 
 
-def random_double_tree(root_tree_time, root_tree_space, prob):
+def random_double_tree(root_tree_time, root_tree_space, N):
     """ Makes a random doubletree from the given single trees. """
     root = full_tensor_double_tree(root_tree_time, root_tree_space)
-    while random.random() < prob:
+    tree = DoubleTree(root)
+    n = 0
+    while n < N and not tree.root.is_leaf():
         node = root
         while not node.is_leaf():
-            node = random.choice(bfs(root))
-        node.remove_me()
+            node = random.choice(tree.bfs())
+        node.coarsen()
+        n += 1
     return root
 
 
@@ -164,7 +167,7 @@ def test_tree_refine():
 def test_fiber():
     def slow_fiber(i, mu):
         return [
-            node.nodes[i] for node in bfs(tree.root) if node.nodes[not i] is mu
+            node.nodes[i] for node in tree.bfs() if node.nodes[not i] is mu
         ]
 
     for dt_root in [
@@ -177,10 +180,10 @@ def test_fiber():
                                       uniform_index_tree(8, 'space'), 8),
             random_double_tree(uniform_index_tree(4, 'time'),
                                uniform_index_tree(4, 'space'),
-                               prob=0.995),
+                               N=500),
     ]:
         tree = DoubleTree(dt_root)
         for i in [0, 1]:
-            for mu in bfs(tree.root, not i):
+            for mu in tree.root.bfs(not i):
                 assert tree.fiber(i, mu.nodes[not i]) == slow_fiber(
                     i, mu.nodes[not i])

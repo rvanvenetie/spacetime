@@ -1,23 +1,21 @@
+from collections import defaultdict, deque
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 import matplotlib.pyplot as plt
 import numpy as np
-import networkx as nx
-from mayavi import mlab
 
-from tree import DoubleTree, bfs
+from tree import DoubleTree
 
 
-class TreePlotter(object):
+class TreePlotter:
     def __init__(self, tree):
         self.tree = tree
 
     def plot_support_rectangles(self, alpha=0.01):
         rects = []
-        for node in bfs(self.tree.root):
+        for node in self.tree.bfs():
             at, bt = node.nodes[0].support
             ax, bx = node.nodes[1].support
-            print((at, bt), (ax, bx))
             rects.append(Rectangle((at, ax), bt - at, bx - ax))
         pc = PatchCollection(rects,
                              facecolor='r',
@@ -27,7 +25,11 @@ class TreePlotter(object):
         ax.add_collection(pc)
         plt.show()
 
+        return rects
+
     def plot_mayavi_graph(self):
+        import networkx as nx
+        from mayavi import mlab
         G = nx.DiGraph()
         queue = deque()
         queue.append(self.tree.root)
@@ -69,15 +71,11 @@ class TreePlotter(object):
         mlab.show()
 
     def plot_level_dots(self):
-        dots = {}
-        for node_0 in bfs(self.tree.root, 0):
-            for node_1 in bfs(node_0, 1):
+        dots = defaultdict(int)
+        for node_0 in self.tree.root.bfs(0):
+            for node_1 in node_0.bfs(1):
                 key = (node_0.nodes[0].level, node_1.nodes[1].level)
-                if key in dots:
-                    dots[key] += 1
-                else:
-                    dots[key] = 1
-        print(dots)
+                dots[key] += 1
         ml0, ml1 = 0, 0
         for (l0, l1) in dots:
             ml0 = max(ml0, l0)
@@ -88,3 +86,5 @@ class TreePlotter(object):
         plt.imshow(np.log(dots_matrix), origin='lower')
         plt.colorbar()
         plt.show()
+
+        return dots
