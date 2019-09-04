@@ -9,7 +9,6 @@ from tree import *
 
 class DummyNode(Node):
     """ Dummy nodes that refines into two children. """
-
     def __init__(self, labda, node_type, parents=None, children=None):
         super().__init__(labda, parents, children)
         self.node_type = node_type
@@ -188,20 +187,16 @@ def test_fiber():
         ]
 
     for dt_root in [
-            full_tensor_double_tree(
-                corner_refined_index_tree(8, 't', 0),
-                corner_refined_index_tree(8, 'x', 1)),
-            sparse_tensor_double_tree(
-                corner_refined_index_tree(8, 't', 0),
-                corner_refined_index_tree(8, 'x', 1), 8),
-            sparse_tensor_double_tree(
-                corner_refined_index_tree(8, 't', 0), uniform_index_tree(
-                    8, 'x'), 8),
-            random_double_tree(
-                uniform_index_tree(7, 't'),
-                uniform_index_tree(7, 'x'),
-                7,
-                N=500),
+            full_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
+                                    corner_refined_index_tree(8, 'x', 1)),
+            sparse_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
+                                      corner_refined_index_tree(8, 'x', 1), 8),
+            sparse_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
+                                      uniform_index_tree(8, 'x'), 8),
+            random_double_tree(uniform_index_tree(7, 't'),
+                               uniform_index_tree(7, 'x'),
+                               7,
+                               N=500),
     ]:
         tree = DoubleTree(dt_root)
         for i in [0, 1]:
