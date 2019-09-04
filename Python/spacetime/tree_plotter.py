@@ -91,29 +91,12 @@ class TreePlotter:
         return dots
 
 
-def nx_graph_rooted_at(root, i=None):
+def nx_graph_rooted_at(root, i):
     import networkx as nx
     G = nx.DiGraph()
-    queue = deque()
-    queue.append(root)
-    nodes = []
-    while queue:
-        node = queue.popleft()
-        if node.marked: continue
-        G.add_node(node)
-        if i is not None:
-            for child in node.children[i]:
-                G.add_edge(node, child)
-        else:
-            for child in node.children:
-                G.add_edge(node, child)
-        nodes.append(node)
-        node.marked = True
-        # Add the children to the queue.
-        if i is not None:
-            queue.extend(node.children[i])
-        else:
-            queue.extend(node.children)
+    nodes = root.bfs(i)
     for node in nodes:
-        node.marked = False
+        G.add_node(node)
+        for child in node.children[i]:
+            G.add_edge(node, child)
     return G
