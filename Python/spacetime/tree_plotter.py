@@ -53,13 +53,14 @@ class TreePlotter:
             plot_network(new_G,
                          ax=ax[1],
                          layout=lambda x: graphviz_layout(new_G, prog='dot'))
-            ax[1].set_title("Fiber in %s in axis %s" % (double_node, 1 - i))
+            ax[1].set_title("Fiber of %s in axis %s" %
+                            (double_node.nodes[i], 1 - i))
             plt.draw()
 
         fig, axes = plt.subplots(2, 1)
         # Show the single tree in the left subplot.
         G = nx_graph_rooted_at(self.tree.root, i_in)
-        axes[0].set_title("Double tree in axis %d" % i_in)
+        axes[0].set_title("Projection in axis %d" % i_in)
         art0 = plot_network(G,
                             ax=axes[0],
                             node_style=use_attributes(),
