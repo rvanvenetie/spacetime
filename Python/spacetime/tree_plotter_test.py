@@ -5,42 +5,45 @@ from tree_plotter import *
 
 def show_rectangle_plot():
     for dt_root in [
-            full_tensor_double_tree(corner_refined_index_tree(6, 'time', 0),
-                                    corner_refined_index_tree(6, 'space', 1)),
-            sparse_tensor_double_tree(corner_refined_index_tree(6, 'time', 0),
-                                      corner_refined_index_tree(6, 'space', 1),
-                                      6),
-            random_double_tree(uniform_index_tree(5, 'time'),
-                               uniform_index_tree(5, 'space'),
+            full_tensor_double_tree(corner_refined_index_tree(6, 't', 0),
+                                    corner_refined_index_tree(6, 'x', 1)),
+            sparse_tensor_double_tree(corner_refined_index_tree(6, 't', 0),
+                                      corner_refined_index_tree(6, 'x', 1), 6),
+            random_double_tree(uniform_index_tree(7, 't'),
+                               uniform_index_tree(7, 'x'),
+                               7,
                                N=500),
     ]:
         treeplotter = TreePlotter(DoubleTree(dt_root))
         treeplotter.plot_support_rectangles()
 
 
-def show_graph():
+def show_matplotlib_graph():
     for dt_root in [
-            full_tensor_double_tree(corner_refined_index_tree(6, 'time', 0),
-                                    corner_refined_index_tree(6, 'space', 1)),
-            sparse_tensor_double_tree(corner_refined_index_tree(6, 'time', 0),
-                                      corner_refined_index_tree(6, 'space', 1),
-                                      6),
-            random_double_tree(uniform_index_tree(4, 'time'),
-                               uniform_index_tree(4, 'space'),
+            full_tensor_double_tree(uniform_index_tree(5, 't'),
+                                    uniform_index_tree(5, 'x')),
+            sparse_tensor_double_tree(uniform_index_tree(5, 't'),
+                                      uniform_index_tree(5, 'x'), 5),
+            random_double_tree(uniform_index_tree(7, 't'),
+                               uniform_index_tree(7, 'x'),
+                               7,
                                N=500),
     ]:
         treeplotter = TreePlotter(DoubleTree(dt_root))
-        treeplotter.plot_mayavi_graph()
+        treeplotter.plot_matplotlib_graph(i_in=0)
+        treeplotter.plot_matplotlib_graph(i_in=1)
+        plt.show()
 
 
 def show_level_dots():
     for dt_root in [
-            full_tensor_double_tree(uniform_index_tree(6, 'time'),
-                                    uniform_index_tree(6, 'space')),
-            sparse_tensor_double_tree(uniform_index_tree(6, 'time'),
-                                      uniform_index_tree(6, 'space'), 6),
-            random_double_tree(uniform_index_tree(4, 'time'),
-                               uniform_index_tree(4, 'space'),
+            full_tensor_double_tree(uniform_index_tree(6, 't'),
+                                    uniform_index_tree(6, 'x')),
+            sparse_tensor_double_tree(uniform_index_tree(6, 't'),
+                                      uniform_index_tree(6, 'x'), 6),
+            random_double_tree(uniform_index_tree(7, 't'),
+                               uniform_index_tree(7, 'x'),
+                               7,
                                N=500),
     ]:
         treeplotter = TreePlotter(DoubleTree(dt_root))
@@ -48,4 +51,4 @@ def show_level_dots():
 
 
 if __name__ == "__main__":
-    show_level_dots()
+    show_matplotlib_graph()
