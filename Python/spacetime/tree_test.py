@@ -1,6 +1,7 @@
+import random
 from collections import deque
 from pprint import pprint
-import random
+
 import pytest
 
 from tree import *
@@ -8,7 +9,6 @@ from tree import *
 
 class DummyNode(Node):
     """ Dummy nodes that refines into two children. """
-
     def __init__(self, labda, node_type, parents=None, children=None):
         super().__init__(labda, parents, children)
         self.node_type = node_type
@@ -168,6 +168,18 @@ def test_tree_refine():
         left.refine(1)
 
 
+def test_project():
+    root_tree_time = uniform_index_tree(2, 't')
+    root_tree_space = uniform_index_tree(3, 'x')
+    for db_root in [
+            full_tensor_double_tree(root_tree_time, root_tree_space),
+            sparse_tensor_double_tree(root_tree_time, root_tree_space, 5)
+    ]:
+        tree = DoubleTree(db_root)
+        assert tree.project(0).bfs() == root_tree_time.bfs()
+        assert tree.project(1).bfs() == root_tree_space.bfs()
+
+
 def test_fiber():
     def slow_fiber(i, mu):
         return [
@@ -189,5 +201,5 @@ def test_fiber():
         tree = DoubleTree(dt_root)
         for i in [0, 1]:
             for mu in tree.root.bfs(not i):
-                assert tree.fiber(i, mu.nodes[not i]) == slow_fiber(
+                assert tree.fiber(i, mu.nodes[not i]).bfs() == slow_fiber(
                     i, mu.nodes[not i])

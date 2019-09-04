@@ -3,7 +3,6 @@ from collections import defaultdict, deque
 
 class Node:
     """ Represents a node in a single coordinate. """
-
     def __init__(self, labda, parents=None, children=None):
         self.labda = labda
         self.parents = parents if parents else []
@@ -127,6 +126,61 @@ class DoubleNode:
         return "{} x {}".format(self.nodes[0], self.nodes[1])
 
 
+class FrozenDoubleNode:
+    """ A double node that is frozen in a single coordinate.
+    
+    The resulting object acts like a single node in the other coordinate.
+    """
+
+    # This should be a lightweight class.
+    __slots__ = ['dbl_node', 'i']
+
+    def __init__(self, dbl_node, i):
+        """ Freezes the dbl_node in coordinate `not i`. """
+        self.dbl_node = dbl_node
+        self.i = i
+
+    @property
+    def marked(self):
+        return self.dbl_node.marked
+
+    @marked.setter
+    def marked(self, value):
+        self.dbl_node.marked = value
+
+    @property
+    def parents(self):
+        return [
+            FrozenDoubleNode(parent, self.i)
+            for parent in self.dbl_node.parents[self.i]
+        ]
+
+    @property
+    def children(self):
+        return [
+            FrozenDoubleNode(child, self.i)
+            for child in self.dbl_node.children[self.i]
+        ]
+
+    @property
+    def node(self):
+        return self.dbl_node.nodes[self.i]
+
+    def bfs(self):
+        return bfs(self)
+
+    def __repr__(self):
+        return '{} x {}'.format(*pair(self.i, self.node, '_'))
+
+    def __eq__(self, other):
+        if isinstance(other, Node):
+            return self.node == other
+        elif isinstance(other, FrozenDoubleNode):
+            return self.i == other.i and self.dbl_node == other.dbl_node
+        else:
+            assert False
+
+
 class DoubleTree:
     def __init__(self, root):
         self.root = root
@@ -134,13 +188,12 @@ class DoubleTree:
         self.fibers = [{}, {}]
         for i in [0, 1]:
             for node in self.root.bfs(i):
-                self.fibers[not i][node.nodes[i]] = [
-                    n.nodes[not i] for n in node.bfs(not i)
-                ]
+                self.fibers[not i][node.nodes[i]] = FrozenDoubleNode(
+                    node, not i)
 
     def project(self, i):
         """ Return the list of single nodes in axis i. """
-        return self.root.nodes[i].bfs()
+        return FrozenDoubleNode(self.root, i)
 
     def fiber(self, i, mu):
         """ Return the fiber of double-node mu in axis i.
@@ -164,15 +217,15 @@ def bfs(root, i=None):
         nodes.append(node)
         node.marked = True
         # Add the children to the queue.
-        if isinstance(node, Node):
-            assert i is None
-            queue.extend(node.children)
-        else:
+        if isinstance(node, DoubleNode):
             if i is not None:
                 queue.extend(node.children[i])
             else:
                 queue.extend(node.children[0])
                 queue.extend(node.children[1])
+        else:
+            assert i is None
+            queue.extend(node.children)
     for node in nodes:
         node.marked = False
     return nodes
