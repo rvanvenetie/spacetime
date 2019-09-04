@@ -3,7 +3,6 @@ from collections import defaultdict, deque
 
 class Node:
     """ Represents a node in a single coordinate. """
-
     def __init__(self, labda, parents=None, children=None):
         self.labda = labda
         self.parents = parents if parents else []
@@ -132,7 +131,6 @@ class FrozenDoubleNode:
     
     The resulting object acts like a single node in the other coordinate.
     """
-
     def __init__(self, dbl_node, i):
         """ Freezes the dbl_node in coordinate `not i`. """
         self.dbl_node = dbl_node
