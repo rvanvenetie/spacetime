@@ -130,7 +130,7 @@ class DoubleNode:
 class FrozenDoubleNode:
     """ A double node that is frozen in a single coordinate.
     
-    The resulting object acts like a node in the other coordinate.
+    The resulting object acts like a single node in the other coordinate.
     """
 
     def __init__(self, dbl_node, i):
