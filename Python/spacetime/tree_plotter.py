@@ -48,13 +48,13 @@ class TreePlotter:
             event.artist.figure.canvas.draw_idle()
 
             # Update the right subplot to show the single-tree.
-            new_G = nx_graph_rooted_at(double_node, i=1 - i)
+            new_G = nx_graph_rooted_at(double_node, i=not i)
             ax[1].clear()
             plot_network(new_G,
                          ax=ax[1],
                          layout=lambda x: graphviz_layout(new_G, prog='dot'))
-            ax[1].set_title("Fiber of %s in axis %s" %
-                            (double_node.nodes[i], 1 - i))
+            ax[1].set_title("Fiber of %s in axis %d" %
+                            (double_node.nodes[i], not i))
             plt.draw()
 
         fig, axes = plt.subplots(2, 1)
