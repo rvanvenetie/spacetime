@@ -68,7 +68,6 @@ class DoubleNode:
         if self has a parent in the `i`-axis, then the step brother would have
         this parent in the `not i`-axis.
         """
-        if self.nodes == nodes: return self
         for parent_i in self.parents[i]:
             for sibling_not_i in parent_i.children[not i]:
                 if sibling_not_i.nodes == nodes:
