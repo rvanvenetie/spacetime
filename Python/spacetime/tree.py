@@ -96,9 +96,9 @@ class DoubleNode:
                 for child_parent_i in child_nodes[i].parents
             ]
             step_brothers = [
-                self.find_step_brother(not i,
-                                       pair(i, child_nodes[i], parent_not_i))
-                for parent_not_i in child_nodes[not i].parents
+                self.find_step_brother(
+                    not i, pair(i, child_nodes[i], child_parent_not_i))
+                for child_parent_not_i in child_nodes[not i].parents
             ]
 
             # TODO: Instead of asserting, we could create the (step)brothers.
