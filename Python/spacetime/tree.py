@@ -3,6 +3,7 @@ from collections import defaultdict, deque
 
 class Node:
     """ Represents a node in a single coordinate. """
+
     def __init__(self, labda, parents=None, children=None):
         self.labda = labda
         self.parents = parents if parents else []
@@ -119,8 +120,40 @@ class DoubleNode:
             for parent in self.parents[i]:
                 parent.children[i].remove(self)
 
-    def bfs(self, i):
+    def bfs(self, i=None):
         return bfs(self, i)
+
+    def union_from(self, other, i):
+        """ Deep-copies the singletree rooted at other in axis i into self). """
+
+        def assert_correct(my_node, other_node):
+            if isinstance(other_node, DoubleNode):
+                assert my_node.nodes[i] == other_node.nodes[i]
+            else:
+                assert my_node.nodes[i] == other_node.node
+
+        queue = deque()
+        queue.append((self, other))
+        nodes = []
+        while queue:
+            my_node, other_node = queue.popleft()
+            assert_correct(my_node, other_node)
+            if my_node.marked: continue
+            my_node.marked = True
+            nodes.append(my_node)
+            if isinstance(other_node, DoubleNode):
+                if other_node.children[i]:
+                    queue.extend([
+                        x
+                        for x in zip(my_node.refine(i), other_node.children[i])
+                    ])
+            else:
+                if other_node.children:
+                    queue.extend([
+                        x for x in zip(my_node.refine(i), other_node.children)
+                    ])
+        for node in nodes:
+            node.marked = False
 
     def __repr__(self):
         return "{} x {}".format(self.nodes[0], self.nodes[1])

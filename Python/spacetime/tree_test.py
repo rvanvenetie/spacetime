@@ -9,6 +9,7 @@ from tree import *
 
 class DummyNode(Node):
     """ Dummy nodes that refines into two children. """
+
     def __init__(self, labda, node_type, parents=None, children=None):
         super().__init__(labda, parents, children)
         self.node_type = node_type
@@ -145,18 +146,18 @@ def random_double_tree(root_tree_time, root_tree_space, max_level, N):
 
 
 def test_full_tensor():
+    DebugDoubleNode.total_counter = 0
     double_root = uniform_full_grid(4, 2)
     assert DebugDoubleNode.total_counter == (2**5 - 1) * (2**3 - 1)
-    DebugDoubleNode.total_counter = 0
 
 
 def test_sparse_tensor():
+    DebugDoubleNode.total_counter = 0
     double_root = uniform_sparse_grid(1)
     assert DebugDoubleNode.total_counter == 5
     DebugDoubleNode.total_counter = 0
     double_root = uniform_sparse_grid(4)
     assert DebugDoubleNode.total_counter == 129
-    DebugDoubleNode.total_counter = 0
 
 
 def test_tree_refine():
@@ -203,3 +204,21 @@ def test_fiber():
             for mu in tree.root.bfs(not i):
                 assert tree.fiber(i, mu.nodes[not i]).bfs() == slow_fiber(
                     i, mu.nodes[not i])
+
+
+def test_union():
+    """ Test that union indeed copies a tree. """
+    time_root = corner_refined_index_tree(7, 't', 0)
+    space_root = corner_refined_index_tree(7, 'x', 1)
+    from_tree = DoubleTree(full_tensor_double_tree(time_root, space_root))
+    to_tree = DoubleTree(DoubleNode((time_root, space_root)))
+
+    assert len(to_tree.bfs()) == 1
+    # Copy axis 0 into `to_tree`.
+    to_tree.root.union_from(from_tree.project(0), 0)
+    assert len(to_tree.bfs()) == len(time_root.bfs())
+
+    # Copy all subtrees in axis 1 into `to_tree`.
+    for item in to_tree.root.bfs(0):
+        item.union_from(from_tree.fiber(1, item.nodes[0]), 1)
+    assert len(to_tree.bfs()) == len(from_tree.bfs())
