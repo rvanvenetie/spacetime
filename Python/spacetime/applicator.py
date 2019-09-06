@@ -45,7 +45,7 @@ class Applicator:
             (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
 
         # Copy self.Lambda_in.project(0) into self.sigma and traverse.
-        sigma_root.union_from(self.Lambda_in.project(0), i=0)
+        sigma_root.union(self.Lambda_in.project(0), i=0)
         empty_labdas = []
         for psi_in_labda in sigma_root.bfs(0):
             # Get support of psi_in_labda on level + 1.
@@ -60,7 +60,7 @@ class Applicator:
             for child in children:
                 for mu in child.psi_out:
                     labda_empty = False
-                    psi_in_labda.union_from(self.Lambda_out.fiber(1, mu), 1)
+                    psi_in_labda.union(self.Lambda_out.fiber(1, mu), 1)
             if labda_empty:
                 empty_labdas.append(psi_in_labda)
 
@@ -75,7 +75,7 @@ class Applicator:
     def theta(self):
         theta = DoubleTree(
             (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
-        sigma.root.union_from(self.Lambda_out.root, i=1)
+        sigma.root.union(self.Lambda_out.root, i=1)
         for psi_out_labda in theta.root.bfs(1):
             # phew...
             pass

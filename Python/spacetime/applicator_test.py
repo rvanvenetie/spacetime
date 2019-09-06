@@ -31,10 +31,10 @@ class FakeFunctionNode(Node):
     def refine(self):
         if self.children: return
         l, n = self.labda
-        self.children.extend([
-            FakeFunctionNode((l + 1, 2 * n + i), self.node_type, [self])
-            for i in [0, 1]
-        ])
+        self.children.append(
+            FakeFunctionNode((l + 1, 2 * n), self.node_type, [self]))
+        self.children.append(
+            FakeFunctionNode((l + 1, 2 * n + 1), self.node_type, [self]))
         return self.children
 
     def is_full(self):
@@ -94,4 +94,3 @@ def test_sigma():
                     if max0 != min(L_in[0], max(0, L_out[0] - 1)) or (
                             max1 != (L_out[1] if L_out[0] != 0 else 0)):
                         print(L_in, L_out, (max0, max1))
-    assert False
