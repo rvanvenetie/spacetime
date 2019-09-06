@@ -32,12 +32,18 @@ class Applicator:
             raise NotImplementedError("This needs a difficult coupling!")
 
         # Reset element.psi_out field in preparation for Sigma.
+        # This does not work when Lambda_in and Lambda_out have different bases.
         for psi_out in self.Lambda_out.project(0).bfs():
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out = []
         for psi_out in self.Lambda_out.project(0).bfs():
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out.append(psi_out.node)
+
+        # This does not work when Lambda_in and Lambda_out have different bases.
+        for psi_in in self.Lambda_in.project(1).bfs():
+            for elem in psi_in.node.support:
+                elem.Theta_gamma = True
 
     def sigma(self):
         """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
@@ -47,6 +53,7 @@ class Applicator:
 
         # Copy self.Lambda_in.project(0) into self.sigma and traverse.
         sigma.root.union(self.Lambda_in.project(0), i=0)
+
         # In copying the 0-projection of Lambda_in into Sigma, we have copied
         # nodes that will have an empty union-of-fibers and we need to remove
         # those nodes later on :-( so let's keep track of those nodes.
@@ -60,12 +67,12 @@ class Applicator:
 
             # Collect all fiber(1, mu) for psi_out_mu that intersect with
             # support of psi_in_labda, and put their union into sigma.
-            labda_empty = True
+            is_empty = True
             for child in children:
                 for mu in child.Sigma_psi_out:
-                    labda_empty = False
+                    is_empty = False
                     psi_in_labda.union(self.Lambda_out.fiber(1, mu))
-            if labda_empty:
+            if is_empty:
                 empty_labdas.append(psi_in_labda)
 
         # Sigh.. remove these nodes from Sigma.
@@ -74,16 +81,34 @@ class Applicator:
                 assert parent.is_full()
         for psi_in_labda in reversed(empty_labdas):
             psi_in_labda.coarsen()
+        sigma.compute_fibers()
         return sigma
 
     def theta(self):
-        theta_root = self.Lambda_in.root.__class__(
-            (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
-        theta_root.union(self.Lambda_in.project(1), i=1)
-        for psi_in_labda in theta_root.bfs(1):
-            self.Lambda_in.fiber(0, psi_in_labda.nodes[0])
-            pass
-        return DoubleTree(theta_root)
+        theta = DoubleTree(
+            self.Lambda_in.root.__class__(
+                (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1])))
+
+        theta.root.union(self.Lambda_in.project(1), i=1)
+        empty_labdas = []
+        for psi_in_labda in theta.project(1).bfs():
+            is_empty = True
+            for psi_out_mu in self.Lambda_out.project(0).bfs():
+                # This field does not exist.
+                if any(elem.Theta_gamma for elem in psi_out_mu.support):
+                    is_empty = False
+                    # This operation does not exist.
+                    psi_in_labda.insert_node(psi_out_mu)
+            if is_empty:
+                empty_labdas.append(psi_in_labda)
+
+        for psi_in_labda in empty_labdas:
+            for parent in psi_in_labda.node.parents:
+                assert parent.is_full()
+        for psi_in_labda in reversed(empty_labdas):
+            psi_in_labda.coarsen()
+        theta.compute_fibers()
+        return theta
 
     def apply(self, vec):
         """ Apply the tensor product applicator to the given vector. """
