@@ -199,6 +199,12 @@ class FrozenDoubleNode:
     def node(self):
         return self.dbl_node.nodes[self.i]
 
+    def union(self, other):
+        return self.dbl_node.union(other, not self.i)
+
+    def coarsen(self):
+        return self.dbl_node.coarsen()
+
     def is_full(self):
         return self.node.is_full()
 
@@ -220,7 +226,9 @@ class FrozenDoubleNode:
 class DoubleTree:
     def __init__(self, root):
         self.root = root
+        self.compute_fibers()
 
+    def compute_fibers(self):
         self.fibers = ({}, {})
         for i in [0, 1]:
             for node in self.root.bfs(i):

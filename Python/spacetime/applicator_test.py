@@ -26,7 +26,7 @@ class FakeFunctionNode(Node):
     def __init__(self, labda, node_type, parents=None, children=None):
         super().__init__(labda, parents, children)
         self.node_type = node_type
-        self.psi_out = []
+        self.Sigma_psi_out = []
 
     def refine(self):
         if self.children: return

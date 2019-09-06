@@ -32,28 +32,29 @@ class Applicator:
             raise NotImplementedError("This needs a difficult coupling!")
 
         # Reset element.psi_out field in preparation for Sigma.
-        for psi_out in self.Lambda_out.root.bfs(0):
-            for elem in psi_out.nodes[0].support:
-                elem.psi_out = []
-        for psi_out in self.Lambda_out.root.bfs(0):
-            for elem in psi_out.nodes[0].support:
-                elem.psi_out.append(psi_out.nodes[0])
+        for psi_out in self.Lambda_out.project(0).bfs():
+            for elem in psi_out.node.support:
+                elem.Sigma_psi_out = []
+        for psi_out in self.Lambda_out.project(0).bfs():
+            for elem in psi_out.node.support:
+                elem.Sigma_psi_out.append(psi_out.node)
 
     def sigma(self):
         """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
-        sigma_root = self.Lambda_in.root.__class__(
-            (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
+        sigma = DoubleTree(
+            self.Lambda_in.root.__class__(
+                (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1])))
 
         # Copy self.Lambda_in.project(0) into self.sigma and traverse.
-        sigma_root.union(self.Lambda_in.project(0), i=0)
+        sigma.root.union(self.Lambda_in.project(0), i=0)
         # In copying the 0-projection of Lambda_in into Sigma, we have copied
-        # in nodes that will have an empty union-of-fibers and we need to remove
-        # those nodes later on..
+        # nodes that will have an empty union-of-fibers and we need to remove
+        # those nodes later on :-( so let's keep track of those nodes.
         empty_labdas = []
-        for psi_in_labda in sigma_root.bfs(0):
+        for psi_in_labda in sigma.project(0).bfs():
             # Get support of psi_in_labda on level + 1.
             children = [
-                child for elem in psi_in_labda.nodes[0].support
+                child for elem in psi_in_labda.node.support
                 for child in elem.children
             ]
 
@@ -61,27 +62,28 @@ class Applicator:
             # support of psi_in_labda, and put their union into sigma.
             labda_empty = True
             for child in children:
-                for mu in child.psi_out:
+                for mu in child.Sigma_psi_out:
                     labda_empty = False
-                    psi_in_labda.union(self.Lambda_out.fiber(1, mu), 1)
+                    psi_in_labda.union(self.Lambda_out.fiber(1, mu))
             if labda_empty:
                 empty_labdas.append(psi_in_labda)
 
-        # Sigh..
+        # Sigh.. remove these nodes from Sigma.
         for psi_in_labda in empty_labdas:
-            for parent in psi_in_labda.nodes[0].parents:
+            for parent in psi_in_labda.node.parents:
                 assert parent.is_full()
         for psi_in_labda in reversed(empty_labdas):
             psi_in_labda.coarsen()
-        return DoubleTree(sigma_root)
+        return sigma
 
     def theta(self):
-        theta = DoubleTree(
+        theta_root = self.Lambda_in.root.__class__(
             (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
-        sigma.root.union(self.Lambda_out.root, i=1)
-        for psi_out_labda in theta.root.bfs(1):
-            # phew...
+        theta_root.union(self.Lambda_in.project(1), i=1)
+        for psi_in_labda in theta_root.bfs(1):
+            self.Lambda_in.fiber(0, psi_in_labda.nodes[0])
             pass
+        return DoubleTree(theta_root)
 
     def apply(self, vec):
         """ Apply the tensor product applicator to the given vector. """
