@@ -1,4 +1,4 @@
-from dag import union
+from tree import *
 
 
 class Applicator:
@@ -32,20 +32,19 @@ class Applicator:
         self.basis_out = basis_out
         self.Lambda_out = Lambda_out
 
-        self.construct_sigma()
-
     def sigma(self):
         """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
-        sigma = DoubleTree(
+        sigma_root = self.Lambda_in.root.__class__(
             (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
+        print(sigma_root)
 
         # Copy self.Lambda_in.project(0) into self.sigma and traverse.
-        sigma.root.union_from(self.Lambda_in.root, i=0)
-        for psi_in_labda in self.sigma.root.bfs(0):
+        sigma_root.union_from(self.Lambda_in.root, i=0)
+        for psi_in_labda in sigma_root.bfs(0):
             # Get support of psi_in_labda on level + 1.
             children = [
-                child for elem in psi_in_labda.support
-                for child in elem.children
+                child for child in elem.children
+                for elem in psi_in_labda.nodes[0].support
             ]
 
             # Collect all fiber(1, mu) for psi_out_mu that intersect with
@@ -53,7 +52,15 @@ class Applicator:
             for child in children:
                 for mu in child.psi_out:
                     psi_in_labda.union_from(self.Lambda_out.fiber(1, mu), 1)
-        return sigma
+        return DoubleTree(sigma_root)
+
+    def theta(self):
+        theta = DoubleTree(
+            (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
+        sigma.root.union_from(self.Lambda_out.root, i=1)
+        for psi_out_labda in theta.root.bfs(1):
+            # phew...
+            pass
 
     def apply(self, vec):
         """ Apply the tensor product applicator to the given vector. """
@@ -73,5 +80,18 @@ class Applicator:
             fiber_out = self.Lambda_out.fiber(0, psi_out_labda)
             w += self.applicator_time.apply_low(v, fiber_in, fiber_out)
 
-        # Now theta
+        # Calculate R_Theta(U_1 x Id)I_Lambda
+        v = {}
         theta = self.theta()
+        for psi_out_labda in theta.project(1):
+            fiber_in = self.Lambda_in.fiber(0, psi_out_labda)
+            fiber_out = theta.fiber(0, psi_out_labda)
+            v += self.applicator_time.apply_upp(vec, fiber_in, fiber_out)
+
+        # Calculate R_Lambda(id x A2)I_Theta
+        for psi_out_labda in self.Lambda_out.project(0):
+            fiber_in = theta.fiber(1, psi_out_labda)
+            fiber_out = self.Lambda_out.fiber(1, psi_out_labda)
+            w += self.applicator_space.apply(v, fiber_in, fiber_out)
+
+        return w

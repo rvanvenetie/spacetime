@@ -222,3 +222,6 @@ def test_union():
     for item in to_tree.root.bfs(0):
         item.union_from(from_tree.fiber(1, item.nodes[0]), 1)
     assert len(to_tree.bfs()) == len(from_tree.bfs())
+    # TODO: this assertion fails because the nephews have not been set yet.
+    assert to_tree.root.children[0][0].children[1][0] == \
+           to_tree.root.children[1][0].children[0][0]

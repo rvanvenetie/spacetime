@@ -79,6 +79,9 @@ class DoubleNode:
         
         If the node that will be introduced has multiple parents, then these
         must be brothers of self (and already exist).
+
+        TODO: we need to implement linking in your "nephews" as well, i.e.
+        restore the parents-children relation in the "other" axis.
         """
         if self.children[i]: return self.children[i]
 
@@ -124,20 +127,31 @@ class DoubleNode:
         return bfs(self, i)
 
     def union_from(self, other, i):
-        """ Deep-copies the singletree rooted at other in axis i into self). """
+        """ Deep-copies the singletree rooted at other in axis i into self).
+        
+        This method is only guaranteed to work well for *full* doubletrees,
+        in that any fiber is a full tree: for every node in the tree,
+        either *none* or *all* of its children are in the tree as well.
+        """
 
-        def assert_correct(my_node, other_node):
+        def assert_same(my_node, other_node):
             if isinstance(other_node, DoubleNode):
                 assert my_node.nodes[i] == other_node.nodes[i]
             else:
                 assert my_node.nodes[i] == other_node.node
+
+        def assert_full(my_node, other_node):
+            if isinstance(other_node, DoubleNode):
+                assert len(my_node.children[i]) == len(other_node.children[i])
+            else:
+                assert len(my_node.children[i]) == len(other_node.children)
 
         queue = deque()
         queue.append((self, other))
         nodes = []
         while queue:
             my_node, other_node = queue.popleft()
-            assert_correct(my_node, other_node)
+            assert_same(my_node, other_node)
             if my_node.marked: continue
             my_node.marked = True
             nodes.append(my_node)
@@ -152,6 +166,7 @@ class DoubleNode:
                     queue.extend([
                         x for x in zip(my_node.refine(i), other_node.children)
                     ])
+            assert_full(my_node, other_node)
         for node in nodes:
             node.marked = False
 
