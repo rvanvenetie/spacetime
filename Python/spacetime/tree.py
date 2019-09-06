@@ -50,28 +50,29 @@ class DoubleNode:
     def is_leaf(self):
         return len(self.children[0]) == 0 and len(self.children[1]) == 0
 
-    def find_ghost_child(self, i, nodes):
-        """ Checks if the `to-be-created` child already exists.
-
-        Arguments:
-            i: the axis along which you are trying to refine the current node.
-            nodes: tuple of nodes that would form the new DoubleNode.
-        Returns:
-            The DoubleNode if such a child exists, if not it simply None."""
-        for parent_not_i in self.parents[not i]:
-            assert parent_not_i.children[i]
-            for children_i in parent_not_i.children[i]:
-                for children_not_i in children_i.children[not i]:
-                    if children_not_i.nodes == nodes:
-                        return children_not_i
-        return None
-
     def find_brother(self, i, nodes):
-        """ Finds the given brother in the given axis. """
+        """ Finds the given brother in the given axis.
+        
+        A brother shares a parent with self in the `i`-axis.
+        """
+        if self.nodes == nodes: return self
         for parent_i in self.parents[i]:
             for sibling_i in parent_i.children[i]:
                 if sibling_i.nodes == nodes:
                     return sibling_i
+        return None
+
+    def find_step_brother(self, i, nodes):
+        """ Finds a step brother in the given axis.
+
+        A step brother shares a parent with self in the `other`-axis. That is,
+        if self has a parent in the `i`-axis, then the step brother would have
+        this parent in the `not i`-axis.
+        """
+        for parent_i in self.parents[i]:
+            for sibling_not_i in parent_i.children[not i]:
+                if sibling_not_i.nodes == nodes:
+                    return sibling_not_i
         return None
 
     def refine(self, i):
@@ -83,36 +84,37 @@ class DoubleNode:
         TODO: we need to implement linking in your "nephews" as well, i.e.
         restore the parents-children relation in the "other" axis.
         """
-        if self.children[i]: return self.children[i]
-
         for child_i in self.nodes[i].children:
             child_nodes = pair(i, child_i, self.nodes[not i])
-            ghost_child = self.find_ghost_child(i, child_nodes)
 
-            if ghost_child:
-                # Child node already exists, update child/parent relations.
-                ghost_child.parents[i].append(self)
-                self.children[i].append(ghost_child)
-            else:
+            # Skip if this child has already exists.
+            if child_nodes in (n.nodes for n in self.children[i]):
+                continue
 
-                # Collect all parents (brothers) necessary to refine the child.
-                if len(child_i.parents) == 1:
-                    parents = [self]
-                else:
-                    parents = []
-                    for brother_nodes in (pair(i, parent, self.nodes[not i])
-                                          for parent in child_i.parents):
-                        tmp = self.find_brother(i, brother_nodes)
-                        # Ensure that we have found this!
-                        assert tmp
-                        parents.append(tmp)
+            # Ensure all the parents of the to be created child exist.
+            # These are brothers, in i and not i axis, of the current node.
+            brothers = [
+                self.find_brother(i, pair(i, child_parent_i,
+                                          child_nodes[not i]))
+                for child_parent_i in child_nodes[i].parents
+            ]
+            step_brothers = [
+                self.find_step_brother(
+                    not i, pair(i, child_nodes[i], child_parent_not_i))
+                for child_parent_not_i in child_nodes[not i].parents
+            ]
 
-                child = self.__class__(child_nodes)
+            # TODO: Instead of asserting, we could create the (step)brothers.
+            assert None not in brothers
+            assert None not in step_brothers
 
-                # Update the parent/child relations
-                for parent in parents:
-                    child.parents[i].append(parent)
-                    parent.children[i].append(child)
+            child = self.__class__(child_nodes)
+            for brother in brothers:
+                child.parents[i].append(brother)
+                brother.children[i].append(child)
+            for step_brother in step_brothers:
+                child.parents[not i].append(step_brother)
+                step_brother.children[not i].append(child)
 
         return self.children[i]
 
@@ -233,7 +235,7 @@ class DoubleTree:
     def __init__(self, root):
         self.root = root
 
-        self.fibers = [{}, {}]
+        self.fibers = ({}, {})
         for i in [0, 1]:
             for node in self.root.bfs(i):
                 self.fibers[not i][node.nodes[i]] = FrozenDoubleNode(
