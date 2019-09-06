@@ -3,7 +3,6 @@ from collections import defaultdict, deque
 
 class Node:
     """ Represents a node in a single coordinate. """
-
     def __init__(self, labda, parents=None, children=None):
         self.labda = labda
         self.parents = parents if parents else []
@@ -124,7 +123,6 @@ class DoubleNode:
 
     def union_from(self, other, i):
         """ Deep-copies the singletree rooted at other in axis i into self). """
-
         def assert_correct(my_node, other_node):
             if isinstance(other_node, DoubleNode):
                 assert my_node.nodes[i] == other_node.nodes[i]
