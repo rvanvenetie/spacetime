@@ -130,52 +130,30 @@ class DoubleNode:
             for parent in self.parents[i]:
                 parent.children[i].remove(self)
 
-    def bfs(self, i=None):
-        return bfs(self, i)
-
-    def union_from(self, other, i):
-        """ Deep-copies the singletree rooted at other in axis i into self).
+    def union(self, other, i):
+        """ Deep-copies the singletree rooted at `other` in axis i into self).
         
-        This method is only guaranteed to work well for *full* doubletrees,
-        in that any fiber is a full tree: for every node in the tree,
-        either *none* or *all* of its children are in the tree as well.
+        It is necessary that the singletree `other` is a "full" tree in that
+        every node either has *no* children or *all of its possible* children.
         """
-        def assert_same(my_node, other_node):
-            if isinstance(other_node, DoubleNode):
-                assert my_node.nodes[i] == other_node.nodes[i]
-            else:
-                assert my_node.nodes[i] == other_node.node
-
-        def assert_full(my_node, other_node):
-            if isinstance(other_node, DoubleNode):
-                assert len(my_node.children[i]) == len(other_node.children[i])
-            else:
-                assert len(my_node.children[i]) == len(other_node.children)
-
         queue = deque()
         queue.append((self, other))
         nodes = []
         while queue:
             my_node, other_node = queue.popleft()
-            assert_same(my_node, other_node)
+            assert my_node.nodes[i] == other_node.node
             if my_node.marked: continue
             my_node.marked = True
             nodes.append(my_node)
-            if isinstance(other_node, DoubleNode):
-                if other_node.children[i]:
-                    queue.extend([
-                        x
-                        for x in zip(my_node.refine(i), other_node.children[i])
-                    ])
-            else:
-                if other_node.children:
-                    queue.extend([
-                        x for x in zip(my_node.refine(i), other_node.children)
-                    ])
-            assert_full(my_node, other_node)
-            assert other_node.is_full()
+            if other_node.children:
+                my_children = my_node.refine(i)
+                assert len(my_children) == len(other_node.children)
+                queue.extend(zip(my_children, other_node.children))
         for node in nodes:
             node.marked = False
+
+    def bfs(self, i):
+        return bfs(self, i)
 
     def __repr__(self):
         return "{} x {}".format(self.nodes[0], self.nodes[1])
