@@ -1,6 +1,8 @@
 from applicator import Applicator
 from tree import DoubleTree, Node
 from tree_test import uniform_full_grid
+from tree_plotter import TreePlotter
+import matplotlib.pyplot as plt
 
 
 class DummyApplicator(Applicator):
@@ -48,5 +50,13 @@ class DummyFunctionNode(Node):
 
 def test_sigma():
     Labda = DoubleTree(uniform_full_grid(4, 2, node_class=DummyFunctionNode))
+    assert len(Labda.bfs()) == 4
     applicator = DummyApplicator(Labda)
-    print(applicator.sigma())
+    sigma = applicator.sigma()
+    treeplotter = TreePlotter(Labda)
+    treeplotter.plot_matplotlib_graph(i_in=0)
+    treeplotter.plot_matplotlib_graph(i_in=1)
+    treeplotter = TreePlotter(sigma)
+    treeplotter.plot_matplotlib_graph(i_in=0)
+    treeplotter.plot_matplotlib_graph(i_in=1)
+    plt.show()
