@@ -19,10 +19,12 @@ class DummyNode(Node):
                 (self.labda[1] + 1) * 2**(-self.labda[0]))
 
     def refine(self):
-        self.children.extend([
-            DummyNode((l + 1, 2 * n + i), self.node_type, [self])
-            for i in [0, 1]
-        ])
+        if self.children: return
+        l, n = self.labda
+        self.children.append(DummyNode((l + 1, 2 * n), self.node_type, [self]))
+        self.children.append(
+            DummyNode((l + 1, 2 * n + 1), self.node_type, [self]))
+        return self.children
 
     @property
     def level(self):
@@ -92,7 +94,8 @@ def full_tensor_double_tree(root_tree_time, root_tree_space, max_levels=None):
     while queue:
         double_node = queue.popleft()
         for i in [0, 1]:
-            if double_node.nodes[i].level >= max_levels[i]: continue
+            if max_levels and double_node.nodes[i].level >= max_levels[i]:
+                continue
             if double_node.children[i]: continue
             queue.extend(double_node.refine(i))
 
