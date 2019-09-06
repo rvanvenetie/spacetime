@@ -36,15 +36,14 @@ class Applicator:
         """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
         sigma_root = self.Lambda_in.root.__class__(
             (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
-        print(sigma_root)
 
         # Copy self.Lambda_in.project(0) into self.sigma and traverse.
         sigma_root.union_from(self.Lambda_in.root, i=0)
         for psi_in_labda in sigma_root.bfs(0):
             # Get support of psi_in_labda on level + 1.
             children = [
-                child for child in elem.children
-                for elem in psi_in_labda.nodes[0].support
+                child for elem in psi_in_labda.nodes[0].support
+                for child in elem.children
             ]
 
             # Collect all fiber(1, mu) for psi_out_mu that intersect with

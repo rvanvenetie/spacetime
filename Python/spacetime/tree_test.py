@@ -20,12 +20,10 @@ class DummyNode(Node):
                 (self.labda[1] + 1) * 2**(-self.labda[0]))
 
     def refine(self):
-        if self.children: return
-        l, n = self.labda
-        self.children.append(DummyNode((l + 1, 2 * n), self.node_type, [self]))
-        self.children.append(
-            DummyNode((l + 1, 2 * n + 1), self.node_type, [self]))
-        return self.children
+        self.children.extend([
+            DummyNode((l + 1, 2 * n + i), self.node_type, [self])
+            for i in [0, 1]
+        ])
 
     @property
     def level(self):
@@ -50,12 +48,12 @@ class DebugDoubleNode(DoubleNode):
         return self.nodes[0].level + self.nodes[1].level
 
 
-def uniform_index_tree(max_level, node_type):
+def uniform_index_tree(max_level, node_type, node_class=DummyNode):
     """ Creates a (dummy) index tree with 2**l elements per level.
     
     Creates a field node_type inside the nodes and sets it to the node_type.
     """
-    root = DummyNode((0, 0), node_type)
+    root = node_class((0, 0), node_type)
     Lambda_l = [root]
     for _ in range(max_level):
         Lambda_new = []
@@ -96,10 +94,10 @@ def full_tensor_double_tree(root_tree_time, root_tree_space):
     return double_root
 
 
-def uniform_full_grid(time_level, space_level):
+def uniform_full_grid(time_level, space_level, node_class=DummyNode):
     """ Makes a full grid doubletree of uniformly refined singletrees. """
-    root_tree_time = uniform_index_tree(time_level, 't')
-    root_tree_space = uniform_index_tree(space_level, 'x')
+    root_tree_time = uniform_index_tree(time_level, 't', node_class)
+    root_tree_space = uniform_index_tree(space_level, 'x', node_class)
     return full_tensor_double_tree(root_tree_time, root_tree_space)
 
 
@@ -222,6 +220,7 @@ def test_union():
     for item in to_tree.root.bfs(0):
         item.union_from(from_tree.fiber(1, item.nodes[0]), 1)
     assert len(to_tree.bfs()) == len(from_tree.bfs())
-    # TODO: this assertion fails because the nephews have not been set yet.
+
+    # Assert double-tree structure is copied as well.
     assert to_tree.root.children[0][0].children[1][0] == \
            to_tree.root.children[1][0].children[0][0]

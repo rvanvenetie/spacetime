@@ -12,6 +12,9 @@ class Node:
         # Create a marked field; useful for bfs/dfs.
         self.marked = False
 
+    def refine(self):
+        pass
+
     @property
     def support(self):
         pass
