@@ -122,33 +122,24 @@ class DoubleNode:
                 parent.children[i].remove(self)
 
     def union_from(self, other, i):
-        """ Deep-copies the singletree rooted at other in axis i into self). """
-        def assert_correct(my_node, other_node):
-            if isinstance(other_node, DoubleNode):
-                assert my_node.nodes[i] == other_node.nodes[i]
-            else:
-                assert my_node.nodes[i] == other_node.node
-
+        """ Deep-copies the singletree rooted at `other` in axis i into self).
+        
+        It is necessary that the singletree `other` is a "full" tree in that
+        every node either has *no* children or *all of its possible* children.
+        """
         queue = deque()
         queue.append((self, other))
         nodes = []
         while queue:
             my_node, other_node = queue.popleft()
-            assert_correct(my_node, other_node)
+            assert my_node.nodes[i] == other_node.node
             if my_node.marked: continue
             my_node.marked = True
             nodes.append(my_node)
-            if isinstance(other_node, DoubleNode):
-                if other_node.children[i]:
-                    queue.extend([
-                        x
-                        for x in zip(my_node.refine(i), other_node.children[i])
-                    ])
-            else:
-                if other_node.children:
-                    queue.extend([
-                        x for x in zip(my_node.refine(i), other_node.children)
-                    ])
+            if other_node.children:
+                queue.extend(
+                    [x for x in zip(my_node.refine(i), other_node.children)])
+                assert len(my_node.children[i]) == len(other_node.children)
         for node in nodes:
             node.marked = False
 
