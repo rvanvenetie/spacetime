@@ -137,8 +137,9 @@ class DoubleNode:
             my_node.marked = True
             nodes.append(my_node)
             if other_node.children:
-                queue.extend(zip(my_node.refine(i), other_node.children))
-                assert len(my_node.children[i]) == len(other_node.children)
+                my_children = my_node.refine(i)
+                assert len(my_children) == len(other_node.children)
+                queue.extend(zip(my_children, other_node.children))
         for node in nodes:
             node.marked = False
 
