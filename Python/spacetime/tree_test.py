@@ -7,8 +7,8 @@ import pytest
 from tree import *
 
 
-class DummyNode(Node):
-    """ Dummy nodes that refines into two children. """
+class FakeNode(Node):
+    """ Fake nodes that refines into two children. """
     def __init__(self, labda, node_type, parents=None, children=None):
         super().__init__(labda, parents, children)
         self.node_type = node_type
@@ -21,9 +21,9 @@ class DummyNode(Node):
     def refine(self):
         if self.children: return
         l, n = self.labda
-        self.children.append(DummyNode((l + 1, 2 * n), self.node_type, [self]))
+        self.children.append(FakeNode((l + 1, 2 * n), self.node_type, [self]))
         self.children.append(
-            DummyNode((l + 1, 2 * n + 1), self.node_type, [self]))
+            FakeNode((l + 1, 2 * n + 1), self.node_type, [self]))
         return self.children
 
     @property
@@ -52,7 +52,7 @@ class DebugDoubleNode(DoubleNode):
         return self.nodes[0].level + self.nodes[1].level
 
 
-def uniform_index_tree(max_level, node_type, node_class=DummyNode):
+def uniform_index_tree(max_level, node_type, node_class=FakeNode):
     """ Creates a (dummy) index tree with 2**l elements per level.
     
     Creates a field node_type inside the nodes and sets it to the node_type.
@@ -70,7 +70,7 @@ def uniform_index_tree(max_level, node_type, node_class=DummyNode):
 def corner_refined_index_tree(max_level,
                               node_type,
                               which_child,
-                              node_class=DummyNode):
+                              node_class=FakeNode):
     """ Creates a (dummy) index tree with 1 element per level.
     
     Creates a field node_type inside the nodes and sets it to the node_type.
