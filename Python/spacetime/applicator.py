@@ -46,6 +46,9 @@ class Applicator:
 
         # Copy self.Lambda_in.project(0) into self.sigma and traverse.
         sigma_root.union(self.Lambda_in.project(0), i=0)
+        # In copying the 0-projection of Lambda_in into Sigma, we have copied
+        # in nodes that will have an empty union-of-fibers and we need to remove
+        # those nodes later on..
         empty_labdas = []
         for psi_in_labda in sigma_root.bfs(0):
             # Get support of psi_in_labda on level + 1.
@@ -64,8 +67,8 @@ class Applicator:
             if labda_empty:
                 empty_labdas.append(psi_in_labda)
 
-        # Zucht hier ben ik niet zo blij mee.
-        for psi_in_labda in reversed(empty_labdas):
+        # Sigh..
+        for psi_in_labda in empty_labdas:
             for parent in psi_in_labda.nodes[0].parents:
                 assert parent.is_full()
         for psi_in_labda in reversed(empty_labdas):

@@ -3,7 +3,7 @@ from itertools import product
 
 from applicator import Applicator
 from tree import DoubleTree, Node
-from tree_test import uniform_index_tree, full_tensor_double_tree, corner_refined_index_tree
+from tree_test import uniform_index_tree, full_tensor_double_tree, corner_index_tree, sparse_tensor_double_tree
 from tree_plotter import TreePlotter
 import matplotlib.pyplot as plt
 
@@ -52,45 +52,42 @@ class FakeFunctionNode(Node):
         return "({}, {}, {})".format(self.node_type, *self.labda)
 
 
-def test_sigma():
+def test_small_sigma():
+    """ I computed on a piece of paper what Sigma should be for this combo. """
+    root_time = uniform_index_tree(1, 't', node_class=FakeFunctionNode)
+    root_space = uniform_index_tree(1, 'x', node_class=FakeFunctionNode)
+    Lambda_in = DoubleTree(full_tensor_double_tree(root_time, root_space))
+    Lambda_out = DoubleTree(full_tensor_double_tree(root_time, root_space))
+    applicator = FakeApplicator(Lambda_in, Lambda_out)
+    sigma = applicator.sigma()
+    assert [n.nodes[0].labda for n in sigma.bfs()] == [(0, 0), (0, 0), (0, 0)]
+    assert [n.nodes[1].labda for n in sigma.bfs()] == [(0, 0), (1, 0), (1, 1)]
 
-    for L_in in product(range(0, 5), range(0, 5)):
-        for L_out in product(range(0, 5), range(0, 5)):
-            for root_tree_time in [
-                    uniform_index_tree(max(L_in[0], L_out[0]),
-                                       't',
-                                       node_class=FakeFunctionNode),
-                    corner_refined_index_tree(max(L_in[0], L_out[0]),
-                                              't',
-                                              0,
-                                              node_class=FakeFunctionNode)
-            ]:
-                for root_tree_space in [
-                        uniform_index_tree(max(L_in[1], L_out[1]),
-                                           'x',
-                                           node_class=FakeFunctionNode),
-                        corner_refined_index_tree(max(L_in[1], L_out[1]),
-                                                  'x',
-                                                  0,
-                                                  node_class=FakeFunctionNode)
-                ]:
-                    Lambda_in = DoubleTree(
-                        full_tensor_double_tree(root_tree_time,
-                                                root_tree_space,
-                                                max_levels=L_in))
-                    Lambda_out = DoubleTree(
-                        full_tensor_double_tree(root_tree_time,
-                                                root_tree_space,
-                                                max_levels=L_out))
 
-                    applicator = FakeApplicator(Lambda_in, Lambda_out)
-                    sigma = applicator.sigma()
-
-                    max0 = 0
-                    max1 = 0
-                    for elem in sigma.bfs():
-                        max0 = max(max0, elem.nodes[0].level)
-                        max1 = max(max1, elem.nodes[1].level)
-                    if max0 != min(L_in[0], max(0, L_out[0] - 1)) or (
-                            max1 != (L_out[1] if L_out[0] != 0 else 0)):
-                        print(L_in, L_out, (max0, max1))
+def test_sigma_combinations():
+    """ I have very little intuition for what Sigma does, exactly, so I just
+    made a bunch of weird combinations of Lambda_in and Lambda_out, made Sigma,
+    and hoped that everything is all-right. """
+    for (L_in, L_out) in product(product(range(0, 5), range(0, 5)),
+                                 product(range(0, 5), range(0, 5))):
+        Lmax = max(L_in[0], L_out[0]), max(L_in[1], L_out[1])
+        for roots in product([
+                uniform_index_tree(Lmax[0], 't', node_class=FakeFunctionNode),
+                corner_index_tree(Lmax[0], 't', node_class=FakeFunctionNode)
+        ], [
+                uniform_index_tree(Lmax[1], 'x', node_class=FakeFunctionNode),
+                corner_index_tree(Lmax[1], 'x', node_class=FakeFunctionNode)
+        ]):
+            Lambdas_in = [
+                DoubleTree(full_tensor_double_tree(*roots, L_in)),
+                DoubleTree(sparse_tensor_double_tree(*roots, L_in[0]))
+            ]
+            Lambdas_out = [
+                DoubleTree(full_tensor_double_tree(*roots, L_out)),
+                DoubleTree(sparse_tensor_double_tree(*roots, L_out[0]))
+            ]
+            for (Lambda_in, Lambda_out) in product(Lambdas_in, Lambdas_out):
+                applicator = FakeApplicator(Lambda_in, Lambda_out)
+                sigma = applicator.sigma()
+                for node in sigma.bfs():
+                    assert node.nodes[0].is_full() and node.nodes[1].is_full()
