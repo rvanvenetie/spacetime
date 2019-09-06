@@ -3,7 +3,6 @@ from collections import defaultdict, deque
 
 class Node:
     """ Represents a node in a single coordinate. """
-
     def __init__(self, labda, parents=None, children=None):
         self.labda = labda
         self.parents = parents if parents else []
@@ -24,6 +23,9 @@ class Node:
 
     def bfs(self):
         return bfs(self)
+
+    def is_full(self):
+        pass
 
 
 def pair(i, item_i, item_not_i):
@@ -138,7 +140,6 @@ class DoubleNode:
         in that any fiber is a full tree: for every node in the tree,
         either *none* or *all* of its children are in the tree as well.
         """
-
         def assert_same(my_node, other_node):
             if isinstance(other_node, DoubleNode):
                 assert my_node.nodes[i] == other_node.nodes[i]
@@ -172,6 +173,7 @@ class DoubleNode:
                         x for x in zip(my_node.refine(i), other_node.children)
                     ])
             assert_full(my_node, other_node)
+            assert other_node.is_full()
         for node in nodes:
             node.marked = False
 
@@ -218,6 +220,9 @@ class FrozenDoubleNode:
     @property
     def node(self):
         return self.dbl_node.nodes[self.i]
+
+    def is_full(self):
+        return self.node.is_full()
 
     def bfs(self):
         return bfs(self)

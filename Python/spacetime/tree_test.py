@@ -28,6 +28,9 @@ class DummyNode(Node):
     def level(self):
         return self.labda[0]
 
+    def is_full(self):
+        return len(self.children) in [0, 2]
+
     def __repr__(self):
         return "({}, {}, {})".format(self.node_type, *self.labda)
 
@@ -62,12 +65,15 @@ def uniform_index_tree(max_level, node_type, node_class=DummyNode):
     return root
 
 
-def corner_refined_index_tree(max_level, node_type, which_child):
+def corner_refined_index_tree(max_level,
+                              node_type,
+                              which_child,
+                              node_class=DummyNode):
     """ Creates a (dummy) index tree with 1 element per level.
     
     Creates a field node_type inside the nodes and sets it to the node_type.
     """
-    root = DummyNode((0, 0), node_type)
+    root = node_class((0, 0), node_type)
     Lambda_l = [root]
     for _ in range(max_level):
         Lambda_new = []
@@ -78,25 +84,25 @@ def corner_refined_index_tree(max_level, node_type, which_child):
     return root
 
 
-def full_tensor_double_tree(root_tree_time, root_tree_space):
+def full_tensor_double_tree(root_tree_time, root_tree_space, max_levels=None):
     """ Makes a full grid doubletree from the given single trees. """
     double_root = DebugDoubleNode((root_tree_time, root_tree_space))
     queue = deque()
     queue.append(double_root)
     while queue:
         double_node = queue.popleft()
-
         for i in [0, 1]:
+            if double_node.nodes[i].level >= max_levels[i]: continue
             if double_node.children[i]: continue
             queue.extend(double_node.refine(i))
 
     return double_root
 
 
-def uniform_full_grid(time_level, space_level, node_class=DummyNode):
+def uniform_full_grid(time_level, space_level):
     """ Makes a full grid doubletree of uniformly refined singletrees. """
-    root_tree_time = uniform_index_tree(time_level, 't', node_class)
-    root_tree_space = uniform_index_tree(space_level, 'x', node_class)
+    root_tree_time = uniform_index_tree(time_level, 't')
+    root_tree_space = uniform_index_tree(space_level, 'x')
     return full_tensor_double_tree(root_tree_time, root_tree_space)
 
 

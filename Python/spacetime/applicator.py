@@ -3,7 +3,6 @@ from tree import *
 
 class Applicator:
     """ Class that implements a tensor product operator. """
-
     def __init__(self,
                  basis_in,
                  Lambda_in,
@@ -26,11 +25,19 @@ class Applicator:
         self.applicator_time = applicator_time
         self.applicator_space = applicator_space
 
-        if basis_out is None:
-            basis_out = basis_in
-            Lambda_out = Lambda_in
-        self.basis_out = basis_out
-        self.Lambda_out = Lambda_out
+        self.basis_out = basis_out if basis_out else basis_in
+        self.Lambda_out = Lambda_out if Lambda_out else Lambda_in
+
+        if self.Lambda_out.root.nodes != self.Lambda_in.root.nodes:
+            raise NotImplementedError("This needs a difficult coupling!")
+
+        # Reset element.psi_out field in preparation for Sigma.
+        for psi_out in self.Lambda_out.root.bfs(0):
+            for elem in psi_out.nodes[0].support:
+                elem.psi_out = []
+        for psi_out in self.Lambda_out.root.bfs(0):
+            for elem in psi_out.nodes[0].support:
+                elem.psi_out.append(psi_out.nodes[0])
 
     def sigma(self):
         """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
@@ -38,7 +45,8 @@ class Applicator:
             (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
 
         # Copy self.Lambda_in.project(0) into self.sigma and traverse.
-        sigma_root.union_from(self.Lambda_in.root, i=0)
+        sigma_root.union_from(self.Lambda_in.project(0), i=0)
+        empty_labdas = []
         for psi_in_labda in sigma_root.bfs(0):
             # Get support of psi_in_labda on level + 1.
             children = [
@@ -48,9 +56,20 @@ class Applicator:
 
             # Collect all fiber(1, mu) for psi_out_mu that intersect with
             # support of psi_in_labda, and put their union into sigma.
+            labda_empty = True
             for child in children:
                 for mu in child.psi_out:
+                    labda_empty = False
                     psi_in_labda.union_from(self.Lambda_out.fiber(1, mu), 1)
+            if labda_empty:
+                empty_labdas.append(psi_in_labda)
+
+        # Zucht hier ben ik niet zo blij mee.
+        for psi_in_labda in reversed(empty_labdas):
+            for parent in psi_in_labda.nodes[0].parents:
+                assert parent.is_full()
+        for psi_in_labda in reversed(empty_labdas):
+            psi_in_labda.coarsen()
         return DoubleTree(sigma_root)
 
     def theta(self):
