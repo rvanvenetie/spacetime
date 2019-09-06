@@ -121,6 +121,28 @@ class DoubleNode:
             for parent in self.parents[i]:
                 parent.children[i].remove(self)
 
+    def union(self, other, i):
+        """ Deep-copies the singletree rooted at `other` in axis i into self).
+        
+        It is necessary that the singletree `other` is a "full" tree in that
+        every node either has *no* children or *all of its possible* children.
+        """
+        queue = deque()
+        queue.append((self, other))
+        nodes = []
+        while queue:
+            my_node, other_node = queue.popleft()
+            assert my_node.nodes[i] == other_node.node
+            if my_node.marked: continue
+            my_node.marked = True
+            nodes.append(my_node)
+            if other_node.children:
+                my_children = my_node.refine(i)
+                assert len(my_children) == len(other_node.children)
+                queue.extend(zip(my_children, other_node.children))
+        for node in nodes:
+            node.marked = False
+
     def bfs(self, i):
         return bfs(self, i)
 

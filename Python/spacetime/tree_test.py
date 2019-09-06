@@ -203,3 +203,25 @@ def test_fiber():
             for mu in tree.root.bfs(not i):
                 assert tree.fiber(i, mu.nodes[not i]).bfs() == slow_fiber(
                     i, mu.nodes[not i])
+
+
+def test_union():
+    """ Test that union indeed copies a tree. """
+    time_root = corner_refined_index_tree(7, 't', 0)
+    space_root = corner_refined_index_tree(7, 'x', 1)
+    from_tree = DoubleTree(full_tensor_double_tree(time_root, space_root))
+    to_tree = DoubleTree(DoubleNode((time_root, space_root)))
+
+    assert len(to_tree.bfs()) == 1
+    # Copy axis 0 into `to_tree`.
+    to_tree.root.union(from_tree.project(0), 0)
+    assert len(to_tree.bfs()) == len(time_root.bfs())
+
+    # Copy all subtrees in axis 1 into `to_tree`.
+    for item in to_tree.root.bfs(0):
+        item.union(from_tree.fiber(1, item.nodes[0]), 1)
+    assert len(to_tree.bfs()) == len(from_tree.bfs())
+
+    # Assert double-tree structure is copied as well.
+    assert to_tree.root.children[0][0].children[1][0] == \
+           to_tree.root.children[1][0].children[0][0]
