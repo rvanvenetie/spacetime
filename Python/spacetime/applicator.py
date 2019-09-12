@@ -58,29 +58,31 @@ class Applicator:
         # nodes that will have an empty union-of-fibers and we need to remove
         # those nodes later on :-( so let's keep track of those nodes.
         empty_labdas = []
-        for psi_in_labda in sigma.project(0).bfs():
-            # Get support of psi_in_labda on level + 1.
+        for psi_in_labda_0 in sigma.project(0).bfs():
+            # Get support of psi_in_labda_0 on level + 1.
             children = [
-                child for elem in psi_in_labda.node.support
+                child for elem in psi_in_labda_0.node.support
                 for child in elem.children
             ]
 
             # Collect all fiber(1, mu) for psi_out_mu that intersect with
-            # support of psi_in_labda, and put their union into sigma.
+            # support of psi_in_labda_0, and put their union into sigma.
             is_empty = True
             for child in children:
                 for mu in child.Sigma_psi_out:
                     is_empty = False
-                    psi_in_labda.union(self.Lambda_out.fiber(1, mu))
+                    psi_in_labda_0.union(self.Lambda_out.fiber(1, mu))
             if is_empty:
-                empty_labdas.append(psi_in_labda)
+                empty_labdas.append(psi_in_labda_0)
 
-        # Sigh.. remove these nodes from Sigma.
-        for psi_in_labda in empty_labdas:
-            for parent in psi_in_labda.node.parents:
-                assert parent.is_full()
-        for psi_in_labda in reversed(empty_labdas):
-            psi_in_labda.coarsen()
+        # Remove the labdas that don't have a subtree.
+        for psi_in_labda_0 in reversed(empty_labdas):
+            psi_in_labda_0.coarsen()
+
+        # Sanity that the resulting sigma is `full`.
+        for psi_in_labda in sigma.bfs():
+            assert psi_in_labda.is_full()
+
         sigma.compute_fibers()
         return sigma
 
@@ -91,22 +93,23 @@ class Applicator:
 
         theta.root.union(self.Lambda_in.project(1), i=1)
         empty_labdas = []
-        for psi_in_labda in theta.project(1).bfs():
+        for psi_in_labda_1 in theta.project(1).bfs():
             is_empty = True
             for psi_out_mu in self.Lambda_out.project(0).bfs():
                 # This field does not exist.
                 if any(elem.Theta_gamma for elem in psi_out_mu.support):
                     is_empty = False
                     # This operation does not exist.
-                    psi_in_labda.insert_node(psi_out_mu)
+                    psi_in_labda_1.insert_node(psi_out_mu)
             if is_empty:
-                empty_labdas.append(psi_in_labda)
+                empty_labdas.append(psi_in_labda_1)
 
-        for psi_in_labda in empty_labdas:
-            for parent in psi_in_labda.node.parents:
-                assert parent.is_full()
-        for psi_in_labda in reversed(empty_labdas):
-            psi_in_labda.coarsen()
+        for psi_in_labda_1 in reversed(empty_labdas):
+            psi_in_labda_1.coarsen()
+
+        for psi_in_labda in theta.bfs():
+            assert psi_in_labda.is_full()
+
         theta.compute_fibers()
         return theta
 
