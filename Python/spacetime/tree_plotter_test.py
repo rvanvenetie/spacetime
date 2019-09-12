@@ -1,14 +1,14 @@
 from tree import *
-from tree_test import uniform_index_tree, corner_refined_index_tree, full_tensor_double_tree, sparse_tensor_double_tree, random_double_tree
+from tree_test import uniform_index_tree, corner_index_tree, full_tensor_double_tree, sparse_tensor_double_tree, random_double_tree
 from tree_plotter import *
 
 
 def show_rectangle_plot():
     for dt_root in [
-            full_tensor_double_tree(corner_refined_index_tree(6, 't', 0),
-                                    corner_refined_index_tree(6, 'x', 1)),
-            sparse_tensor_double_tree(corner_refined_index_tree(6, 't', 0),
-                                      corner_refined_index_tree(6, 'x', 1), 6),
+            full_tensor_double_tree(corner_index_tree(6, 't', 0),
+                                    corner_index_tree(6, 'x', 1)),
+            sparse_tensor_double_tree(corner_index_tree(6, 't', 0),
+                                      corner_index_tree(6, 'x', 1), 6),
             random_double_tree(uniform_index_tree(7, 't'),
                                uniform_index_tree(7, 'x'),
                                7,

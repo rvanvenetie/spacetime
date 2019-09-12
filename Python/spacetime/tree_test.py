@@ -67,10 +67,8 @@ def uniform_index_tree(max_level, node_type, node_class=FakeNode):
     return root
 
 
-def corner_refined_index_tree(max_level,
-                              node_type,
-                              which_child,
-                              node_class=FakeNode):
+def corner_index_tree(max_level, node_type, which_child=0,
+                      node_class=FakeNode):
     """ Creates a (dummy) index tree with 1 element per level.
     
     Creates a field node_type inside the nodes and sets it to the node_type.
@@ -194,11 +192,11 @@ def test_fiber():
         ]
 
     for dt_root in [
-            full_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
-                                    corner_refined_index_tree(8, 'x', 1)),
-            sparse_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
-                                      corner_refined_index_tree(8, 'x', 1), 8),
-            sparse_tensor_double_tree(corner_refined_index_tree(8, 't', 0),
+            full_tensor_double_tree(corner_index_tree(8, 't', 0),
+                                    corner_index_tree(8, 'x', 1)),
+            sparse_tensor_double_tree(corner_index_tree(8, 't', 0),
+                                      corner_index_tree(8, 'x', 1), 8),
+            sparse_tensor_double_tree(corner_index_tree(8, 't', 0),
                                       uniform_index_tree(8, 'x'), 8),
             random_double_tree(uniform_index_tree(7, 't'),
                                uniform_index_tree(7, 'x'),
@@ -214,8 +212,8 @@ def test_fiber():
 
 def test_union():
     """ Test that union indeed copies a tree. """
-    time_root = corner_refined_index_tree(7, 't', 0)
-    space_root = corner_refined_index_tree(7, 'x', 1)
+    time_root = corner_index_tree(7, 't', 0)
+    space_root = corner_index_tree(7, 'x', 1)
     from_tree = DoubleTree(full_tensor_double_tree(time_root, space_root))
     to_tree = DoubleTree(DoubleNode((time_root, space_root)))
 
