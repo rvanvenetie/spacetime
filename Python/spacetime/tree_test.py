@@ -300,21 +300,22 @@ def test_fiber():
 
 def test_union():
     """ Test that union indeed copies a tree. """
-    meta_root_time = corner_index_tree(7, 't', 0)
-    meta_root_space = corner_index_tree(7, 'x', 1)
-    from_tree = full_tensor_double_tree(meta_root_time, meta_root_space)
-    to_tree = DoubleTree(DoubleNode((meta_root_time, meta_root_space)))
+    for cls in [FakeHaarNode, FakeOrthoNode]:
+        meta_root_time = corner_index_tree(7, 't', 0, cls)
+        meta_root_space = corner_index_tree(7, 'x', 1, cls)
+        from_tree = full_tensor_double_tree(meta_root_time, meta_root_space)
+        to_tree = DoubleTree(DoubleNode((meta_root_time, meta_root_space)))
 
-    assert len(to_tree.bfs()) == 1
-    # Copy axis 0 into `to_tree`.
-    to_tree.root.union(from_tree.project(0), 0)
-    assert len(to_tree.bfs()) == len(meta_root_time.bfs())
+        assert len(to_tree.bfs()) == 1
+        # Copy axis 0 into `to_tree`.
+        to_tree.root.union(from_tree.project(0), 0)
+        assert len(to_tree.bfs()) == len(meta_root_time.bfs())
 
-    # Copy all subtrees in axis 1 into `to_tree`.
-    for item in to_tree.root.bfs(0):
-        item.union(from_tree.fiber(1, item.nodes[0]), 1)
-    assert len(to_tree.bfs()) == len(from_tree.bfs())
+        # Copy all subtrees in axis 1 into `to_tree`.
+        for item in to_tree.root.bfs(0):
+            item.union(from_tree.fiber(1, item.nodes[0]), 1)
+        assert len(to_tree.bfs()) == len(from_tree.bfs())
 
-    # Assert double-tree structure is copied as well.
-    assert to_tree.root.children[0][0].children[1][0] == \
-           to_tree.root.children[1][0].children[0][0]
+        # Assert double-tree structure is copied as well.
+        assert to_tree.root.children[0][0].children[1][0] == \
+               to_tree.root.children[1][0].children[0][0]
