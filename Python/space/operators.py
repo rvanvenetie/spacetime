@@ -6,7 +6,6 @@ from scipy.sparse.linalg import LinearOperator
 
 class Operators:
     """ (Temporary) class that defines operators on a triangulation. """
-
     def __init__(self, triang):
         self.triang = triang
 
@@ -23,7 +22,9 @@ class Operators:
 
         w = np.copy(v)
         for (vi, Ti) in self.triang.history:
-            godfather_vertices = self.triang.elements[Ti].edge(0)
+            godfather_vertices = [
+                v.idx for v in self.triang.elements[Ti].edge(0)
+            ]
             for gf in godfather_vertices:
                 w[vi] = w[vi] + 0.5 * w[gf]
         return w
@@ -40,7 +41,9 @@ class Operators:
         """
         w = np.copy(v)
         for (vi, Ti) in reversed(self.triang.history):
-            godfather_vertices = self.triang.elements[Ti].edge(0)
+            godfather_vertices = [
+                v.idx for v in self.triang.elements[Ti].edge(0)
+            ]
             for gf in godfather_vertices:
                 w[gf] = w[gf] + 0.5 * w[vi]
         return w
@@ -53,7 +56,7 @@ class Operators:
             if not elem.is_leaf():
                 continue
 
-            Vids = elem.vertex_ids
+            Vids = [v.idx for v in elem.vertices]
             for (i, j) in itertools.product(range(3), range(3)):
                 w[Vids[j]] += element_mass[i, j] * elem.area * v[Vids[i]]
         return w
@@ -64,8 +67,8 @@ class Operators:
         for elem in self.triang.elements:
             if not elem.is_leaf():
                 continue
-            Vids = elem.vertex_ids
-            V = [self.triang.vertices[idx] for idx in Vids]
+            V = elem.vertices
+            Vids = [v.idx for v in V]
             D = np.array([[V[2].x - V[1].x, V[0].x - V[2].x, V[1].x - V[0].x],
                           [V[2].y - V[1].y, V[0].y - V[2].y, V[1].y - V[0].y]],
                          dtype=float)
@@ -90,15 +93,16 @@ class Operators:
         """ Sets all boundary vertices to zero. """
         w = np.zeros(v.shape)
         for i in range(v.shape[0]):
-            w[i] = v[i] if not self.triang.vertices[i].on_domain_boundary else 0.0
+            w[i] = v[
+                i] if not self.triang.vertices[i].on_domain_boundary else 0.0
         return w
 
     def as_linear_operator(self, method):
         """ Recasts the application of a method as a scipy LinearOperator. """
-        return LinearOperator(
-            dtype=float,
-            shape=(len(self.triang.vertices), len(self.triang.vertices)),
-            matvec=lambda x: method(x))
+        return LinearOperator(dtype=float,
+                              shape=(len(self.triang.vertices),
+                                     len(self.triang.vertices)),
+                              matvec=lambda x: method(x))
 
     def as_boundary_restricted_linear_operator(self, method):
         """ Recasts the application of a method as a scipy LinearOperator. """
