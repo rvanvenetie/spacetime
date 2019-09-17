@@ -35,21 +35,3 @@ def test_vertex_tree():
     T.refine(T.elements[6])
     assert not T.vertices[8].on_domain_boundary
     assert T.vertices[8].parents == [T.vertices[7], T.vertices[5]]
-
-
-def test_vertex_patch():
-    T = Triangulation.unit_square()
-    T.refine(T.elements[0])
-    assert T.vertices[0].patch == [T.elements[0]]
-    assert T.vertices[1].patch == [T.elements[1]]
-    assert T.vertices[2].patch == T.elements[0:2]
-    assert T.vertices[3].patch == T.elements[0:2]
-    assert T.vertices[4].patch == T.elements[2:6]
-    for _ in range(100):
-        T.refine(T.elements[np.random.randint(len(T.vertices))])
-    for v in T.vertices:
-        if v.level == 0: continue
-        if v.on_domain_boundary:
-            assert len(v.patch) == 2
-        else:
-            assert len(v.patch) == 4
