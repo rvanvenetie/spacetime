@@ -29,15 +29,16 @@ class Node:
         pass
 
 
-class MetaRoot:
-    """ Represents the (multiple) roots a (double)tree can have.
+class Tree:
+    """ Represents the (multiple) roots of a (family)tree.
     
-    This meta root is registered as in the actual roots. This will allow
-    for a unified approach in the case of multiple roots. 
+    This `meta root` is registered in the actual roots. 
     """
     def __init__(self, roots):
         if not isinstance(roots, list): roots = [roots]
         self.roots = roots
+
+        self.marked = False
 
         # Register this root as the parent of the actual roots.
         for root in roots:
@@ -46,7 +47,7 @@ class MetaRoot:
             root.parents = [self]
 
     def bfs(self):
-        return bfs(self.roots)
+        return bfs(self)
 
     @property
     def parents(self):
@@ -142,7 +143,6 @@ class DoubleNode:
                     not i, pair(i, child_nodes[i], child_parent_not_i))
                 for child_parent_not_i in child_nodes[not i].parents
             ]
-            print(step_brothers)
 
             # TODO: Instead of asserting, we could create the (step)brothers.
             assert None not in brothers
@@ -250,12 +250,10 @@ class FrozenDoubleNode:
         return '{} x {}'.format(*pair(self.i, self.node, '_'))
 
     def __eq__(self, other):
-        if isinstance(other, Node):
-            return self.node == other
-        elif isinstance(other, FrozenDoubleNode):
+        if isinstance(other, FrozenDoubleNode):
             return self.i == other.i and self.dbl_node == other.dbl_node
         else:
-            assert False
+            return self.node == other
 
 
 class DoubleTree:
@@ -310,4 +308,5 @@ def bfs(root, i=None):
             queue.extend(node.children)
     for node in nodes:
         node.marked = False
+
     return nodes
