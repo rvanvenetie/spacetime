@@ -99,7 +99,7 @@ class Triangulation:
             elements: Tx3 matrix of integers: the indices inside the vertices array.
         """
         self.vertices = [
-            Vertex((0, idx), *vert, on_domain_boundary=False)
+            Vertex((0, i), *vert, on_domain_boundary=False)
             for idx, vert in enumerate(vertices)
         ]
         self.elements = [
