@@ -244,7 +244,7 @@ def test_sparse_tensor():
     assert DebugDoubleNode.total_counter == 2 * 2 + 2 * 2 * 4
 
 
-def test_meta_root_refine():
+def test_tree_refine():
     meta_root_time = uniform_index_tree(2, 't', FakeHaarNode)
     meta_root_space = uniform_index_tree(2, 'x', FakeHaarNode)
     root = DebugDoubleNode((meta_root_time, meta_root_space))
