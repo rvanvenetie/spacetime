@@ -13,3 +13,25 @@ def test_on_domain_bdr():
     for vert in triangulation.vertices:
         assert vert.on_domain_boundary == (vert.x == 0 or vert.x == 1
                                            or vert.y == 0 or vert.y == 1)
+
+
+def test_vertex_tree():
+    T = Triangulation.unit_square()
+    T.refine(T.elements[0])
+    assert T.vertices[4].parents == [T.vertices[0], T.vertices[1]]
+    assert T.vertices[0].children == [T.vertices[4]]
+    assert T.vertices[1].children == [T.vertices[4]]
+
+    T.refine(T.elements[2])
+    assert T.vertices[5].on_domain_boundary
+    assert T.vertices[5].parents == [T.vertices[4]]
+    assert T.vertices[4].children == [T.vertices[5]]
+
+    T.refine(T.elements[4])
+    assert T.vertices[6].on_domain_boundary
+    assert T.vertices[6].parents == [T.vertices[4]]
+    assert T.vertices[4].children == [T.vertices[5], T.vertices[6]]
+
+    T.refine(T.elements[6])
+    assert not T.vertices[8].on_domain_boundary
+    assert T.vertices[8].parents == [T.vertices[7], T.vertices[5]]

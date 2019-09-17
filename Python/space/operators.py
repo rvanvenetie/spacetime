@@ -22,11 +22,11 @@ class Operators:
 
         w = np.copy(v)
         for (vi, Ti) in self.triang.history:
-            godfather_vertices = [
+            godparent_vertices = [
                 v.idx for v in self.triang.elements[Ti].edge(0)
             ]
-            for gf in godfather_vertices:
-                w[vi] = w[vi] + 0.5 * w[gf]
+            for gp in godparent_vertices:
+                w[vi] = w[vi] + 0.5 * w[gp]
         return w
 
     def apply_T_transpose(self, v):
@@ -41,11 +41,11 @@ class Operators:
         """
         w = np.copy(v)
         for (vi, Ti) in reversed(self.triang.history):
-            godfather_vertices = [
+            godparent_vertices = [
                 v.idx for v in self.triang.elements[Ti].edge(0)
             ]
-            for gf in godfather_vertices:
-                w[gf] = w[gf] + 0.5 * w[vi]
+            for gp in godparent_vertices:
+                w[gp] = w[gp] + 0.5 * w[vi]
         return w
 
     def apply_SS_mass(self, v):
