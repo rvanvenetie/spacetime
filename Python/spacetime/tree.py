@@ -37,7 +37,6 @@ class Tree:
     def __init__(self, roots):
         if not isinstance(roots, list): roots = [roots]
         self.roots = roots
-
         self.marked = False
 
         # Register this root as the parent of the actual roots.
@@ -51,16 +50,13 @@ class Tree:
 
     @property
     def parents(self):
+        """ Implement this for ease of further computations. """
         return []
 
     @property
     def children(self):
         """ Fakes this tree property. """
         return self.roots
-
-    @property
-    def level(self):
-        return -1
 
 
 def pair(i, item_i, item_not_i):

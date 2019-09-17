@@ -97,7 +97,9 @@ class DebugDoubleNode(DoubleNode):
 
     @property
     def level(self):
-        return self.nodes[0].level + self.nodes[1].level
+        l = -1 if isinstance(self.nodes, Tree) else self.nodes[0].level
+        l += -1 if isinstance(self.nodes, Tree) else self.nodes[1].level
+        return l
 
 
 def create_roots(node_type, node_class):
