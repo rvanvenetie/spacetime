@@ -49,7 +49,7 @@ class Element:
         """ Instantiates the element object.
 
         Arguments:
-            idx: our index in the `triangulation.elements` array.
+            labda: our (level, index) in the `triangulation.elements` array.
             vertices: array of three Vertex references. 
             parent: reference to the parent of this element.
             """
