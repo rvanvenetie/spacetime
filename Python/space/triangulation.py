@@ -7,8 +7,8 @@ import numpy as np
 
 class Vertex:
     """ A vertex in a locally refined triangulation. """
-
-    def __init__(self, x, y, on_domain_boundary):
+    def __init__(self, idx, x, y, on_domain_boundary):
+        self.idx = idx
         self.x = x
         self.y = y
         self.on_domain_boundary = on_domain_boundary
@@ -19,17 +19,16 @@ class Vertex:
 
 class Element:
     """ A element as part of a locally refined triangulation. """
-
-    def __init__(self, idx, vertex_ids, parent=None):
+    def __init__(self, idx, vertices, parent=None):
         """ Instantiates the element object.
 
         Arguments:
             idx: our index in the `triangulation.elements` array.
-            vertex_ids: vertex id's in the `triangulation.vertices` array.
+            vertices: array of three Vertex references. 
             parent: reference to the parent of this element.
             """
         self.idx = idx
-        self.vertex_ids = vertex_ids
+        self.vertices = vertices
         self.parent = parent
         self.children = []  # References to the children of this element.
         # Indices of my neighbours, ordered by the edge opposite vertex i.
@@ -40,15 +39,15 @@ class Element:
 
     def newest_vertex_id(self):
         """ Returns the newest vertex, i.e., vertex 0. """
-        return self.vertex_ids[0]
+        return self.vertices[0]
 
     def edge(self, i):
         assert 0 <= i <= 2
-        return [self.vertex_ids[(i + 1) % 3], self.vertex_ids[(i + 2) % 3]]
+        return [self.vertices[(i + 1) % 3], self.vertices[(i + 2) % 3]]
 
     def reversed_edge(self, i):
         assert 0 <= i <= 2
-        return [self.vertex_ids[(i + 2) % 3], self.vertex_ids[(i + 1) % 3]]
+        return [self.vertices[(i + 2) % 3], self.vertices[(i + 1) % 3]]
 
     def is_leaf(self):
         return not len(self.children)
@@ -63,9 +62,13 @@ class Triangulation:
             elements: Tx3 matrix of integers: the indices inside the vertices array.
         """
         self.vertices = [
-            Vertex(*vert, on_domain_boundary=False) for vert in vertices
+            Vertex(idx, *vert, on_domain_boundary=False)
+            for idx, vert in enumerate(vertices)
         ]
-        self.elements = [Element(i, elem) for (i, elem) in enumerate(elements)]
+        self.elements = [
+            Element(i, [self.vertices[idx] for idx in elem])
+            for (i, elem) in enumerate(elements)
+        ]
         self.root_ids = set([elem.idx for elem in self.elements])
         self.history = []
 
@@ -87,7 +90,7 @@ class Triangulation:
                 if not nbr:
                     # No neighbour along edge `i` => both vertices on boundary.
                     for v in elem.edge(i):
-                        self.vertices[v].on_domain_boundary = True
+                        v.on_domain_boundary = True
 
     @staticmethod
     def unit_square():
@@ -96,7 +99,7 @@ class Triangulation:
         elements = [[0, 2, 3], [1, 3, 2]]
         return Triangulation(vertices, elements)
 
-    def _bisect(self, elem, new_vertex_id=False):
+    def _bisect(self, elem, new_vertex=False):
         """ Bisects a given element using Newest Vertex Bisection.
 
         Arguments:
@@ -104,23 +107,24 @@ class Triangulation:
             new_vertex_id: index of the new vertex in the `self.vertices` array. If
                 not passed, creates a new vertex.
         """
-        vert_ids = elem.vertex_ids
-        if not new_vertex_id:
+        vertices = elem.vertices
+        if not new_vertex:
             # Create the new vertex object.
-            parents = [self.vertices[v] for v in vert_ids[1:]]
+            parents = vertices[1:]
             on_domain_boundary = all([p.on_domain_boundary for p in parents])
-            new_vertex = Vertex((parents[0].x + parents[1].x) / 2,
+            new_vertex_id = len(self.vertices)
+            new_vertex = Vertex(new_vertex_id,
+                                (parents[0].x + parents[1].x) / 2,
                                 (parents[0].y + parents[1].y) / 2,
                                 on_domain_boundary)
             self.vertices.append(new_vertex)
-            new_vertex_id = len(self.vertices) - 1
             self.history.append((new_vertex_id, elem.idx))
         child1_id = len(self.elements)
         child2_id = len(self.elements) + 1
-        child1 = Element(
-            child1_id, [new_vertex_id, vert_ids[0], vert_ids[1]], parent=elem)
-        child2 = Element(
-            child2_id, [new_vertex_id, vert_ids[2], vert_ids[0]], parent=elem)
+        child1 = Element(child1_id, [new_vertex, vertices[0], vertices[1]],
+                         parent=elem)
+        child2 = Element(child2_id, [new_vertex, vertices[2], vertices[0]],
+                         parent=elem)
 
         self.elements.extend([child1, child2])
         # NB: the neighbours along the newly created edges are not set.
@@ -144,14 +148,14 @@ class Triangulation:
         assert elem1.edge(0) == elem2.reversed_edge(0)
         child11, child12 = self._bisect(
             elem1)  # child11s newest vertex is new.
-        child21, child22 = self._bisect(
-            elem2, new_vertex_id=child11.newest_vertex_id())
+        child21, child22 = self._bisect(elem2,
+                                        new_vertex=child11.newest_vertex_id())
         # Set the neighbour info along shared edges of the children.
         child11.neighbours[1] = child22
         child12.neighbours[2] = child21
         child21.neighbours[1] = child12
         child22.neighbours[2] = child11
-        self.vertices[child11.newest_vertex_id()].on_domain_boundary = False
+        child11.newest_vertex_id().on_domain_boundary = False
 
     def refine(self, elem):
         """ Refines the trianglulation so that element `elem` is bisected.
@@ -181,9 +185,9 @@ class Triangulation:
 
     def _compute_area(self, elem):
         """ Computes the area of the element spanned by `vertex_ids`. """
-        v1 = self.vertices[elem.vertex_ids[0]].as_array()
-        v2 = self.vertices[elem.vertex_ids[1]].as_array()
-        v3 = self.vertices[elem.vertex_ids[2]].as_array()
+        v1 = elem.vertices[0].as_array()
+        v2 = elem.vertices[1].as_array()
+        v3 = elem.vertices[2].as_array()
         return 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1))
 
     def as_matplotlib_triangulation(self):
@@ -211,8 +215,8 @@ def plot_hatfn():
         ax1.set_title("Nodale basis")
         ax2 = fig.add_subplot(1, 2, 2, projection='3d')
         ax2.set_title("Hierarchische basis")
-        ax1.plot_elementsurf(
-            triangulation.as_matplotlib_triangulation(), Z=I[:, i])
+        ax1.plot_elementsurf(triangulation.as_matplotlib_triangulation(),
+                             Z=I[:, i])
         w = triangulation.apply_T(I[:, i])
         ax2.plot_elementsurf(triangulation.as_matplotlib_triangulation(), Z=w)
         plt.show()
