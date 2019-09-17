@@ -1,7 +1,5 @@
 import itertools
 
-import matplotlib.pyplot as plt
-import matplotlib.tri as mpltri
 import numpy as np
 
 
@@ -100,7 +98,7 @@ class Triangulation:
         """
         self.vertices = [
             Vertex((0, i), *vert, on_domain_boundary=False)
-            for idx, vert in enumerate(vertices)
+            for i, vert in enumerate(vertices)
         ]
         self.elements = [
             Element((0, i), [self.vertices[idx] for idx in elem])
@@ -241,35 +239,10 @@ class Triangulation:
 
     def as_matplotlib_triangulation(self):
         """ The current triangulation as matplotlib-compatible object. """
+        import matplotlib.tri as mpltri
         print([v.x for v in self.vertices], [v.y for v in self.vertices],
-              [t.vertex_ids for t in self.elements if t.is_leaf()])
-        return mpltri.Triangulation(
-            [v.x for v in self.vertices], [v.y for v in self.vertices],
-            [t.vertex_ids for t in self.elements if t.is_leaf()])
-
-
-def plot_hatfn():
-    triangulation = Triangulation.unit_square()
-    triangulation.refine(triangulation.elements[0])
-    triangulation.refine(triangulation.elements[4])
-    triangulation.refine(triangulation.elements[7])
-    triangulation.refine(triangulation.elements[2])
-
-    print(triangulation.history)
-    I = np.eye(len(triangulation.vertices))
-    for i in range(len(triangulation.vertices)):
-        fig = plt.figure()
-        fig.suptitle("Hoedfuncties bij vertex %d" % i)
-        ax1 = fig.add_subplot(1, 2, 1, projection='3d')
-        ax1.set_title("Nodale basis")
-        ax2 = fig.add_subplot(1, 2, 2, projection='3d')
-        ax2.set_title("Hierarchische basis")
-        ax1.plot_elementsurf(triangulation.as_matplotlib_triangulation(),
-                             Z=I[:, i])
-        w = triangulation.apply_T(I[:, i])
-        ax2.plot_elementsurf(triangulation.as_matplotlib_triangulation(), Z=w)
-        plt.show()
-
-
-if __name__ == "__main__":
-    plot_hatfn()
+              [t.vertices for t in self.elements if t.is_leaf()])
+        return mpltri.Triangulation([v.x for v in self.vertices],
+                                    [v.y for v in self.vertices],
+                                    [[v.idx for v in t.vertices]
+                                     for t in self.elements if t.is_leaf()])
