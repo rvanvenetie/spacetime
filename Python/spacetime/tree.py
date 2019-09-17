@@ -1,3 +1,4 @@
+import itertools
 from collections import defaultdict, deque
 
 
@@ -26,6 +27,39 @@ class Node:
 
     def is_full(self):
         pass
+
+
+class MetaRoot:
+    """ Represents the (multiple) roots a (double)tree can have.
+    
+    This meta root is registered as in the actual roots. This will allow
+    for a unified approach in the case of multiple roots. 
+    """
+    def __init__(self, roots):
+        if not isinstance(roots, list): roots = [roots]
+        self.roots = roots
+
+        # Register this root as the parent of the actual roots.
+        for root in roots:
+            assert isinstance(root, Node)
+            assert not root.parents
+            root.parents = [self]
+
+    def bfs(self):
+        return bfs(self.roots)
+
+    @property
+    def parents(self):
+        return []
+
+    @property
+    def children(self):
+        """ Fakes this tree property. """
+        return self.roots
+
+    @property
+    def level(self):
+        return -1
 
 
 def pair(i, item_i, item_not_i):
@@ -108,6 +142,7 @@ class DoubleNode:
                     not i, pair(i, child_nodes[i], child_parent_not_i))
                 for child_parent_not_i in child_nodes[not i].parents
             ]
+            print(step_brothers)
 
             # TODO: Instead of asserting, we could create the (step)brothers.
             assert None not in brothers
@@ -253,7 +288,10 @@ class DoubleTree:
 def bfs(root, i=None):
     """ Does a bfs from the given single node or double node. """
     queue = deque()
-    queue.append(root)
+    if isinstance(root, list):
+        queue.extend(root)
+    else:
+        queue.append(root)
     nodes = []
     while queue:
         node = queue.popleft()
