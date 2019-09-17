@@ -9,12 +9,21 @@ class Vertex:
     """ A vertex in a locally refined triangulation.
     
     Vertices also form a (family)tree, induced by the NVB-relation.
+
+    Args:
+      labda: (level, idx), for idx the index in the triang.vertices array.
+      x,y: the physical coordinates
+      on_domain_boundary: does this vertex lie on the domain boundary?
+      patch: the elements that surround this vertex
+      parents: the NVB-parents
+      children: the child nodes that were induces by this vertex
     """
     def __init__(self,
                  labda,
                  x,
                  y,
                  on_domain_boundary,
+                 patch=None,
                  parents=None,
                  children=None):
         self.labda = labda
@@ -22,6 +31,7 @@ class Vertex:
         self.y = y
         self.on_domain_boundary = on_domain_boundary
 
+        self.patch = patch if patch else []
         self.parents = parents if parents else []
         self.children = children if children else []
 
@@ -99,8 +109,8 @@ class Triangulation:
             elements: Tx3 matrix of integers: the indices inside the vertices array.
         """
         self.vertices = [
-            Vertex((0, idx), *vert, on_domain_boundary=False)
-            for idx, vert in enumerate(vertices)
+            Vertex((0, i), *vert, on_domain_boundary=False)
+            for i, vert in enumerate(vertices)
         ]
         self.elements = [
             Element((0, i), [self.vertices[idx] for idx in elem])
@@ -110,8 +120,14 @@ class Triangulation:
         self.vertex_roots = self.vertices.copy()
         self.history = []
 
+        # Set area.
         for elem in self.elements:
             elem.area = self._compute_area(elem)
+
+        # Set patch information.
+        for elem in self.elements:
+            for v in elem.vertices:
+                v.patch.append(elem)
 
         # Set initial neighbour information. Expensive.
         for elem in self.elements:
@@ -181,6 +197,7 @@ class Triangulation:
         child1.neighbours = [elem.neighbours[2], None, child2]
         child2.neighbours = [elem.neighbours[1], child1, None]
         elem.children = [child1, child2]
+        new_vertex.patch.extend(elem.children)
 
         # Also update the neighbours of *the neighbours* of the children;
         # it is currently set to `elem` but should be set to the child itself.
