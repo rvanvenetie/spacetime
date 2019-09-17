@@ -43,8 +43,12 @@ def test_small_sigma():
     Lambda_out = full_tensor_double_tree(root_time, root_space)
     applicator = FakeApplicator(Lambda_in, Lambda_out)
     sigma = applicator.sigma()
-    assert [n.nodes[0].labda for n in sigma.bfs()] == [(0, 0), (0, 0), (0, 0)]
-    assert [n.nodes[1].labda for n in sigma.bfs()] == [(0, 0), (1, 0), (1, 1)]
+    assert [n.nodes[0].labda
+            for n in sigma.bfs(include_meta_root=False)] == [(0, 0), (0, 0),
+                                                             (0, 0)]
+    assert [n.nodes[1].labda
+            for n in sigma.bfs(include_meta_root=False)] == [(0, 0), (1, 0),
+                                                             (1, 1)]
 
 
 def test_sigma_combinations():
@@ -62,12 +66,12 @@ def test_sigma_combinations():
                 corner_index_tree(Lmax[1], 'x', node_class=FakeFunctionNode)
         ]):
             Lambdas_in = [
-                DoubleTree(full_tensor_double_tree(*roots, L_in)),
-                DoubleTree(sparse_tensor_double_tree(*roots, L_in[0]))
+                full_tensor_double_tree(*roots, L_in),
+                sparse_tensor_double_tree(*roots, L_in[0])
             ]
             Lambdas_out = [
-                DoubleTree(full_tensor_double_tree(*roots, L_out)),
-                DoubleTree(sparse_tensor_double_tree(*roots, L_out[0]))
+                full_tensor_double_tree(*roots, L_out),
+                sparse_tensor_double_tree(*roots, L_out[0])
             ]
             for (Lambda_in, Lambda_out) in product(Lambdas_in, Lambdas_out):
                 applicator = FakeApplicator(Lambda_in, Lambda_out)

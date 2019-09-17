@@ -21,6 +21,19 @@ class FakeNode(Node):
         return "({}, {}, {})".format(self.node_type, *self.labda)
 
 
+class FakeMetaRoot(MetaRoot):
+    @property
+    def level(self):
+        return -1
+
+    def is_full(self):
+        if not self.roots: return False
+        if isinstance(self.roots[0], FakeHaarNode): return len(self.roots) == 1
+        if isinstance(self.roots[0], FakeOrthoNode):
+            return len(self.roots) == 2
+        assert False
+
+
 class FakeHaarNode(FakeNode):
     """ Fake haar node. Proper tree structure with two children. """
     @property
@@ -97,21 +110,19 @@ class DebugDoubleNode(DoubleNode):
 
     @property
     def level(self):
-        l = -1 if isinstance(self.nodes[0], MetaRoot) else self.nodes[0].level
-        l += -1 if isinstance(self.nodes[1], MetaRoot) else self.nodes[1].level
-        return l
+        return self.nodes[0].level + self.nodes[1].level
 
 
 def create_roots(node_type, node_class):
     """ Returns a MetaRoot instance, containing all necessary roots. """
     if issubclass(node_class, FakeHaarNode):
-        return MetaRoot(node_class((0, 0), node_type))
-    if issubclass(node_class, FakeOrthoNode):
+        return FakeMetaRoot(node_class((0, 0), node_type))
+    elif issubclass(node_class, FakeOrthoNode):
         root_0 = node_class((0, 0), node_type)
         root_1 = node_class((0, 1), node_type)
         root_0.nbr = root_1
         root_1.nbr = root_0
-        return MetaRoot([root_0, root_1])
+        return FakeMetaRoot([root_0, root_1])
     else:
         assert False
 
@@ -121,14 +132,14 @@ def uniform_index_tree(max_level, node_type, node_class):
     
     Creates a field node_type inside the nodes and sets it to the node_type.
     """
-    tree = create_roots(node_type, node_class)
-    Lambda_l = tree.roots.copy()
+    meta_root = create_roots(node_type, node_class)
+    Lambda_l = meta_root.roots.copy()
     for _ in range(max_level):
         Lambda_new = []
         for node in Lambda_l:
             Lambda_new.extend(node.refine())
         Lambda_l = Lambda_new
-    return tree
+    return meta_root
 
 
 def corner_index_tree(max_level,
@@ -139,15 +150,15 @@ def corner_index_tree(max_level,
     
     Creates a field node_type inside the nodes and sets it to the node_type.
     """
-    tree = create_roots(node_type, node_class)
-    Lambda_l = tree.roots.copy()
+    meta_root = create_roots(node_type, node_class)
+    Lambda_l = meta_root.roots.copy()
     for _ in range(max_level):
         Lambda_new = []
         for node in Lambda_l:
             children = node.refine()
             Lambda_new.append(children[which_child])
         Lambda_l = Lambda_new
-    return tree
+    return meta_root
 
 
 def full_tensor_double_tree(meta_root_time, meta_root_space, max_levels=None):

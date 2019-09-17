@@ -33,9 +33,13 @@ class Applicator:
 
         # Reset element.psi_out field in preparation for Sigma.
         # This does not work when Lambda_in and Lambda_out have different bases.
-        for psi_out in self.Lambda_out.project(0).bfs(include_meta_root=False):
+        # TODO: We really need a better way to reset these fields.
+        for psi_out in self.Lambda_in.project(0).bfs(include_meta_root=False):
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out = []
+                for child in elem.children:
+                    child.Sigma_psi_out = []
+
         for psi_out in self.Lambda_out.project(0).bfs(include_meta_root=False):
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out.append(psi_out.node)
@@ -76,13 +80,14 @@ class Applicator:
             if is_empty:
                 empty_labdas.append(psi_in_labda_0)
 
+        # Sanity that the resulting sigma is `full`.
+        for psi_in_labda in empty_labdas:
+            for parent in psi_in_labda.node.parents:
+                assert parent.is_full()
+
         # Remove the labdas that don't have a subtree.
         for psi_in_labda_0 in reversed(empty_labdas):
             psi_in_labda_0.coarsen()
-
-        # Sanity that the resulting sigma is `full`.
-        for psi_in_labda in sigma.bfs():
-            assert psi_in_labda.is_full()
 
         sigma.compute_fibers()
         return sigma

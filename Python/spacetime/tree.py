@@ -106,7 +106,6 @@ class DoubleNode:
         if self has a parent in the `i`-axis, then the step brother would have
         this parent in the `not i`-axis.
         """
-        print('find_step_brother', self, nodes)
         for parent_i in self.parents[i]:
             for sibling_not_i in parent_i.children[not i]:
                 if sibling_not_i.nodes == nodes:
@@ -141,7 +140,6 @@ class DoubleNode:
                     not i, pair(i, child_nodes[i], child_parent_not_i))
                 for child_parent_not_i in child_nodes[not i].parents
             ]
-            print(step_brothers)
 
             # TODO: Instead of asserting, we could create the (step)brothers.
             assert None not in brothers
