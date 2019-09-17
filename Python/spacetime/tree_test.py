@@ -32,9 +32,9 @@ class FakeHaarNode(FakeNode):
         if self.children: return
         l, n = self.labda
         self.children.append(
-            FakeHaarNode((l + 1, 2 * n), self.node_type, [self]))
+            self.__class__((l + 1, 2 * n), self.node_type, [self]))
         self.children.append(
-            FakeHaarNode((l + 1, 2 * n + 1), self.node_type, [self]))
+            self.__class__((l + 1, 2 * n + 1), self.node_type, [self]))
         return self.children
 
     def is_full(self):
@@ -104,11 +104,11 @@ class DebugDoubleNode(DoubleNode):
 
 def create_roots(node_type, node_class):
     """ Returns a MetaRoot instance, containing all necessary roots. """
-    if node_class is FakeHaarNode:
-        return MetaRoot(FakeHaarNode((0, 0), node_type))
-    elif node_class is FakeOrthoNode:
-        root_0 = FakeOrthoNode((0, 0), node_type)
-        root_1 = FakeOrthoNode((0, 1), node_type)
+    if issubclass(node_class, FakeHaarNode):
+        return MetaRoot(node_class((0, 0), node_type))
+    if issubclass(node_class, FakeOrthoNode):
+        root_0 = node_class((0, 0), node_type)
+        root_1 = node_class((0, 1), node_type)
         root_0.nbr = root_1
         root_1.nbr = root_0
         return MetaRoot([root_0, root_1])

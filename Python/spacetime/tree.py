@@ -46,8 +46,8 @@ class MetaRoot:
             assert not root.parents
             root.parents = [self]
 
-    def bfs(self):
-        return bfs(self)
+    def bfs(self, include_meta_root=True):
+        return bfs(self, include_meta_root=include_meta_root)
 
     @property
     def parents(self):
@@ -106,6 +106,7 @@ class DoubleNode:
         if self has a parent in the `i`-axis, then the step brother would have
         this parent in the `not i`-axis.
         """
+        print('find_step_brother', self, nodes)
         for parent_i in self.parents[i]:
             for sibling_not_i in parent_i.children[not i]:
                 if sibling_not_i.nodes == nodes:
@@ -140,6 +141,7 @@ class DoubleNode:
                     not i, pair(i, child_nodes[i], child_parent_not_i))
                 for child_parent_not_i in child_nodes[not i].parents
             ]
+            print(step_brothers)
 
             # TODO: Instead of asserting, we could create the (step)brothers.
             assert None not in brothers
@@ -240,8 +242,8 @@ class FrozenDoubleNode:
     def is_full(self):
         return self.node.is_full()
 
-    def bfs(self):
-        return bfs(self)
+    def bfs(self, include_meta_root=True):
+        return bfs(self, include_meta_root=include_meta_root)
 
     def __repr__(self):
         return '{} x {}'.format(*pair(self.i, self.node, '_'))
@@ -276,11 +278,11 @@ class DoubleTree:
         in the other axis. """
         return self.fibers[i][mu]
 
-    def bfs(self):
-        return bfs(self.root)
+    def bfs(self, include_meta_root=True):
+        return bfs(self.root, include_meta_root=include_meta_root)
 
 
-def bfs(root, i=None):
+def bfs(root, i=None, include_meta_root=True):
     """ Does a bfs from the given single node or double node. """
     queue = deque()
     if isinstance(root, list):
@@ -305,5 +307,15 @@ def bfs(root, i=None):
             queue.extend(node.children)
     for node in nodes:
         node.marked = False
+
+    if not include_meta_root:
+        nodes = [
+            node for node in nodes
+            if not (isinstance(node, MetaRoot) or (isinstance(
+                node, FrozenDoubleNode) and isinstance(node.node, MetaRoot)) or
+                    (isinstance(node, DoubleNode) and
+                     (isinstance(node.nodes[0], MetaRoot)
+                      or isinstance(node.nodes[1], MetaRoot))))
+        ]
 
     return nodes

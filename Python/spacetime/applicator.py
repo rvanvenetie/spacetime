@@ -33,15 +33,15 @@ class Applicator:
 
         # Reset element.psi_out field in preparation for Sigma.
         # This does not work when Lambda_in and Lambda_out have different bases.
-        for psi_out in self.Lambda_out.project(0).bfs():
+        for psi_out in self.Lambda_out.project(0).bfs(include_meta_root=False):
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out = []
-        for psi_out in self.Lambda_out.project(0).bfs():
+        for psi_out in self.Lambda_out.project(0).bfs(include_meta_root=False):
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out.append(psi_out.node)
 
         # This does not work when Lambda_in and Lambda_out have different bases.
-        for psi_in in self.Lambda_in.project(1).bfs():
+        for psi_in in self.Lambda_in.project(1).bfs(include_meta_root=False):
             for elem in psi_in.node.support:
                 elem.Theta_gamma = True
 
@@ -51,14 +51,15 @@ class Applicator:
             self.Lambda_in.root.__class__(
                 (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1])))
 
-        # Copy self.Lambda_in.project(0) into self.sigma and traverse.
+        # Copy the meta roots into this double tree.
         sigma.root.union(self.Lambda_in.project(0), i=0)
+        sigma.root.union(self.Lambda_out.project(1), i=1)
 
         # In copying the 0-projection of Lambda_in into Sigma, we have copied
         # nodes that will have an empty union-of-fibers and we need to remove
         # those nodes later on :-( so let's keep track of those nodes.
         empty_labdas = []
-        for psi_in_labda_0 in sigma.project(0).bfs():
+        for psi_in_labda_0 in sigma.project(0).bfs(include_meta_root=False):
             # Get support of psi_in_labda_0 on level + 1.
             children = [
                 child for elem in psi_in_labda_0.node.support
