@@ -8,7 +8,7 @@ import numpy as np
 class Vertex:
     """ A vertex in a locally refined triangulation.
     
-    Vertices also form a (family)tree, induces by the NVB-relation.
+    Vertices also form a (family)tree, induced by the NVB-relation.
     """
     def __init__(self,
                  labda,
