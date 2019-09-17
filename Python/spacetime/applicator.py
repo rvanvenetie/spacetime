@@ -56,13 +56,12 @@ class Applicator:
                 (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1])))
 
         # Copy the meta roots into this double tree.
+        # This will copy an additional of roots_in x roots_out into the tree,
+        # some of which will give empty fibers. This shouldn't be a big issue,
+        # since either coordinate will always be of type MetaRoot.
         sigma.root.union(self.Lambda_in.project(0), i=0)
         sigma.root.union(self.Lambda_out.project(1), i=1)
 
-        # In copying the 0-projection of Lambda_in into Sigma, we have copied
-        # nodes that will have an empty union-of-fibers and we need to remove
-        # those nodes later on :-( so let's keep track of those nodes.
-        empty_labdas = []
         for psi_in_labda_0 in sigma.project(0).bfs(include_meta_root=False):
             # Get support of psi_in_labda_0 on level + 1.
             children = [
@@ -72,22 +71,9 @@ class Applicator:
 
             # Collect all fiber(1, mu) for psi_out_mu that intersect with
             # support of psi_in_labda_0, and put their union into sigma.
-            is_empty = True
             for child in children:
                 for mu in child.Sigma_psi_out:
-                    is_empty = False
                     psi_in_labda_0.union(self.Lambda_out.fiber(1, mu))
-            if is_empty:
-                empty_labdas.append(psi_in_labda_0)
-
-        # Sanity that the resulting sigma is `full`.
-        for psi_in_labda in empty_labdas:
-            for parent in psi_in_labda.node.parents:
-                assert parent.is_full()
-
-        # Remove the labdas that don't have a subtree.
-        for psi_in_labda_0 in reversed(empty_labdas):
-            psi_in_labda_0.coarsen()
 
         sigma.compute_fibers()
         return sigma
