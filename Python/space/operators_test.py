@@ -13,7 +13,8 @@ def test_transformation():
     triangulation.refine(triangulation.elements[7])
 
     assert len(triangulation.vertices) == 8
-    assert len([elem for elem in triangulation.elements if elem.is_leaf()]) == 8
+    assert len([elem for elem in triangulation.elements
+                if elem.is_leaf()]) == 8
     assert len(triangulation.history) == 4
 
     operators = Operators(triangulation)
@@ -85,5 +86,10 @@ def test_galerkin(plot=False):
     if plot:
         fig = plt.figure()
         ax = fig.gca(projection='3d')
-        ax.plot_elementsurf(triangulation.as_matplotlib_triangulation(), Z=sol_SS)
+        ax.plot_elementsurf(triangulation.as_matplotlib_triangulation(),
+                            Z=sol_SS)
         plt.show()
+
+
+if __name__ == "__main__":
+    test_galerkin(plot=True)

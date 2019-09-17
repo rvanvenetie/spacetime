@@ -223,4 +223,4 @@ def plot_hatfn():
 
 
 if __name__ == "__main__":
-    test_galerkin(plot=True)
+    plot_hatfn()
