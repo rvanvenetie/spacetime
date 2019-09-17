@@ -29,10 +29,11 @@ class Node:
         pass
 
 
-class Tree:
+class MetaRoot:
     """ Represents the (multiple) roots of a (family)tree.
     
-    This `meta root` is registered in the actual roots. 
+    This `meta root` is registered in the actual roots, and therefore becomes
+    part of the tree.
     """
     def __init__(self, roots):
         if not isinstance(roots, list): roots = [roots]

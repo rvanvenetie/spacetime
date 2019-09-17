@@ -89,7 +89,7 @@ class DebugDoubleNode(DoubleNode):
     def __init__(self, nodes, parents=None, children=None):
         super().__init__(nodes, parents, children)
 
-        if isinstance(nodes[0], Tree) or isinstance(nodes[1], Tree):
+        if isinstance(nodes[0], MetaRoot) or isinstance(nodes[1], MetaRoot):
             return
         # For debugging purposes
         DebugDoubleNode.total_counter += 1
@@ -97,21 +97,21 @@ class DebugDoubleNode(DoubleNode):
 
     @property
     def level(self):
-        l = -1 if isinstance(self.nodes, Tree) else self.nodes[0].level
-        l += -1 if isinstance(self.nodes, Tree) else self.nodes[1].level
+        l = -1 if isinstance(self.nodes[0], MetaRoot) else self.nodes[0].level
+        l += -1 if isinstance(self.nodes[1], MetaRoot) else self.nodes[1].level
         return l
 
 
 def create_roots(node_type, node_class):
-    """ Returns a Tree instance, containing all necessary roots. """
+    """ Returns a MetaRoot instance, containing all necessary roots. """
     if node_class is FakeHaarNode:
-        return Tree(FakeHaarNode((0, 0), node_type))
+        return MetaRoot(FakeHaarNode((0, 0), node_type))
     elif node_class is FakeOrthoNode:
         root_0 = FakeOrthoNode((0, 0), node_type)
         root_1 = FakeOrthoNode((0, 1), node_type)
         root_0.nbr = root_1
         root_1.nbr = root_0
-        return Tree([root_0, root_1])
+        return MetaRoot([root_0, root_1])
     else:
         assert False
 
@@ -150,9 +150,9 @@ def corner_index_tree(max_level,
     return tree
 
 
-def full_tensor_double_tree(tree_time, tree_space, max_levels=None):
+def full_tensor_double_tree(meta_root_time, meta_root_space, max_levels=None):
     """ Makes a full grid doubletree from the given single trees. """
-    double_root = DebugDoubleNode((tree_time, tree_space))
+    double_root = DebugDoubleNode((meta_root_time, meta_root_space))
     queue = deque()
     queue.append(double_root)
     while queue:
@@ -169,14 +169,14 @@ def full_tensor_double_tree(tree_time, tree_space, max_levels=None):
 
 def uniform_full_grid(time_level, space_level, node_class=FakeHaarNode):
     """ Makes a full grid doubletree of uniformly refined singletrees. """
-    tree_time = uniform_index_tree(time_level, 't', node_class)
-    tree_space = uniform_index_tree(space_level, 'x', node_class)
-    return full_tensor_double_tree(tree_time, tree_space)
+    meta_root_time = uniform_index_tree(time_level, 't', node_class)
+    meta_root_space = uniform_index_tree(space_level, 'x', node_class)
+    return full_tensor_double_tree(meta_root_time, meta_root_space)
 
 
-def sparse_tensor_double_tree(tree_time, tree_space, max_level):
+def sparse_tensor_double_tree(meta_root_time, meta_root_space, max_level):
     """ Makes a sparse grid doubletree from the given single trees. """
-    double_root = DebugDoubleNode((tree_time, tree_space))
+    double_root = DebugDoubleNode((meta_root_time, meta_root_space))
     queue = deque()
     queue.append(double_root)
     while queue:
@@ -192,14 +192,16 @@ def sparse_tensor_double_tree(tree_time, tree_space, max_level):
 
 def uniform_sparse_grid(max_level, node_class):
     """ Makes a sparse grid doubletree of uniformly refined singletrees. """
-    tree_time = uniform_index_tree(max_level, 't', node_class)
-    tree_space = uniform_index_tree(max_level, 'x', node_class)
-    return sparse_tensor_double_tree(tree_time, tree_space, max_level)
+    meta_root_time = uniform_index_tree(max_level, 't', node_class)
+    meta_root_space = uniform_index_tree(max_level, 'x', node_class)
+    return sparse_tensor_double_tree(meta_root_time, meta_root_space,
+                                     max_level)
 
 
-def random_double_tree(tree_time, tree_space, max_level, N):
+def random_double_tree(meta_root_time, meta_root_space, max_level, N):
     """ Makes a random doubletree from the given single trees. """
-    tree = sparse_tensor_double_tree(tree_time, tree_space, max_level)
+    tree = sparse_tensor_double_tree(meta_root_time, meta_root_space,
+                                     max_level)
     n = 0
     leaves = set([n for n in tree.bfs() if n.is_leaf()])
     while n < N and not tree.root.is_leaf():
@@ -242,10 +244,10 @@ def test_sparse_tensor():
     assert DebugDoubleNode.total_counter == 2 * 2 + 2 * 2 * 4
 
 
-def test_tree_refine():
-    tree_time = uniform_index_tree(2, 't', FakeHaarNode)
-    tree_space = uniform_index_tree(2, 'x', FakeHaarNode)
-    root = DebugDoubleNode((tree_time, tree_space))
+def test_meta_root_refine():
+    meta_root_time = uniform_index_tree(2, 't', FakeHaarNode)
+    meta_root_space = uniform_index_tree(2, 'x', FakeHaarNode)
+    root = DebugDoubleNode((meta_root_time, meta_root_space))
     # Create the real root
     root.refine(0)
     root.refine(1)
@@ -260,14 +262,14 @@ def test_tree_refine():
 
 def test_project():
     for node_cls in [FakeHaarNode, FakeOrthoNode]:
-        tree_time = uniform_index_tree(2, 't', node_cls)
-        tree_space = uniform_index_tree(3, 'x', node_cls)
+        meta_root_time = uniform_index_tree(2, 't', node_cls)
+        meta_root_space = uniform_index_tree(3, 'x', node_cls)
         for tree in [
-                full_tensor_double_tree(tree_time, tree_space),
-                sparse_tensor_double_tree(tree_time, tree_space, 5)
+                full_tensor_double_tree(meta_root_time, meta_root_space),
+                sparse_tensor_double_tree(meta_root_time, meta_root_space, 5)
         ]:
-            assert tree.project(0).bfs() == tree_time.bfs()
-            assert tree.project(1).bfs() == tree_space.bfs()
+            assert tree.project(0).bfs() == meta_root_time.bfs()
+            assert tree.project(1).bfs() == meta_root_space.bfs()
 
 
 def test_fiber():
@@ -298,15 +300,15 @@ def test_fiber():
 
 def test_union():
     """ Test that union indeed copies a tree. """
-    tree_time = corner_index_tree(7, 't', 0)
-    tree_space = corner_index_tree(7, 'x', 1)
-    from_tree = full_tensor_double_tree(tree_time, tree_space)
-    to_tree = DoubleTree(DoubleNode((tree_time, tree_space)))
+    meta_root_time = corner_index_tree(7, 't', 0)
+    meta_root_space = corner_index_tree(7, 'x', 1)
+    from_tree = full_tensor_double_tree(meta_root_time, meta_root_space)
+    to_tree = DoubleTree(DoubleNode((meta_root_time, meta_root_space)))
 
     assert len(to_tree.bfs()) == 1
     # Copy axis 0 into `to_tree`.
     to_tree.root.union(from_tree.project(0), 0)
-    assert len(to_tree.bfs()) == len(tree_time.bfs())
+    assert len(to_tree.bfs()) == len(meta_root_time.bfs())
 
     # Copy all subtrees in axis 1 into `to_tree`.
     for item in to_tree.root.bfs(0):
