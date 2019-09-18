@@ -11,6 +11,8 @@ def test_ABC():
     with pytest.raises(TypeError):
         root = NodeABC()
 
+
+def test_bfs():
     root = Node()
     root.children = [Node(), Node()]
     root.children[0].children = [Node(), Node()]
