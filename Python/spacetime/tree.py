@@ -280,6 +280,22 @@ class DoubleTree:
         return bfs(self.root, include_meta_root=include_meta_root)
 
 
+def is_meta_root(node):
+    """ Returns if the given node is a meta root.
+
+    If node is a DoubleNode, this returns if either of the coordinates contains
+    a meta root.
+    """
+    if isinstance(node, FrozenDoubleNode):
+        return is_meta_root(node.node)
+    elif isinstance(node, DoubleNode):
+        return is_meta_root(node.nodes[0]) or is_meta_root(node.nodes[1])
+    elif isinstance(node, MetaRoot):
+        return True
+    else:
+        return False
+
+
 def bfs(root, i=None, include_meta_root=True):
     """ Does a bfs from the given single node or double node. """
     queue = deque()
@@ -307,13 +323,6 @@ def bfs(root, i=None, include_meta_root=True):
         node.marked = False
 
     if not include_meta_root:
-        nodes = [
-            node for node in nodes
-            if not (isinstance(node, MetaRoot) or (isinstance(
-                node, FrozenDoubleNode) and isinstance(node.node, MetaRoot)) or
-                    (isinstance(node, DoubleNode) and
-                     (isinstance(node.nodes[0], MetaRoot)
-                      or isinstance(node.nodes[1], MetaRoot))))
-        ]
+        nodes = [node for node in nodes if not is_meta_root(node)]
 
     return nodes
