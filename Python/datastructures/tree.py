@@ -33,9 +33,7 @@ class NodeInterface(ABC):
 
 class NodeAbstract(NodeInterface):
     """ Partial impl. of NodeInterface, using variables for the properties. """
-    children = None
-    parents = None
-    marked = None
+    __slots__ = ['parents', 'children', 'marked']
 
     def __init__(self, parents=None, children=None):
         self.parents = parents if parents else []
