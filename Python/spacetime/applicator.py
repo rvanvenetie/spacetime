@@ -55,10 +55,11 @@ class Applicator:
             self.Lambda_in.root.__class__(
                 (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1])))
 
-        # Copy the meta roots into this double tree.
-        # This will copy an additional of roots_in x roots_out into the tree,
-        # some of which will give empty fibers. This shouldn't be a big issue,
-        # since either coordinate will always be of type MetaRoot.
+        # Insert the `time single tree` x `space meta root` and
+        # the `time meta root` x `space single tree` into Sigma.
+        # This will copy all nodes in time and space into the tree, also the
+        # ones without any subtree. This won't be a big issue, since either
+        # coordinate will always be of type MetaRoot.
         sigma.root.union(self.Lambda_in.project(0), i=0)
         sigma.root.union(self.Lambda_out.project(1), i=1)
 
