@@ -42,7 +42,7 @@ class SparseVector(collections.abc.Mapping):
         return self.vector.__iter__()
 
     def __next__(self):
-        return self.vector.__iter__()
+        return self.vector.__next__()
 
     def __len__(self):
         return len(self.vector)
