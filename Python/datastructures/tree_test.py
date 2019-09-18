@@ -6,6 +6,9 @@ class Node(NodeABC):
     def __init__(self, parents=None, children=None):
         super().__init__()
 
+    def is_full(self):
+        raise NotImplementedError("Cannot call method on fake class.")
+
 
 def test_ABC():
     with pytest.raises(TypeError):
@@ -16,8 +19,6 @@ def test_bfs():
     root = Node()
     root.children = [Node(), Node()]
     root.children[0].children = [Node(), Node()]
-    assert len(root.bfs()) == 5
-
     metaroot = MetaRoot([root])
     assert len(metaroot.bfs()) == 5
-    assert len(metaroot.bfs(include_metaroots=True)) == 6
+    assert len(metaroot.bfs(include_metaroot=True)) == 6

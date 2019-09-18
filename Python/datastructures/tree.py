@@ -13,14 +13,16 @@ class NodeABC(ABC):
         # Create a marked field -- useful for bfs/dfs.
         self.marked = False
 
-    def bfs(self):
-        return _bfs(self)
+    @abstractmethod
+    def is_full(self):
+        pass
 
 
 class MetaRoot(NodeABC):
     """ Combines the roots of a multi-rooted family tree. """
     def __init__(self, roots):
-        assert isinstance(roots, list)
+        if not isinstance(roots, list):
+            roots = [roots]
         super().__init__(children=roots)
 
         # Register self as the parent of the roots. We are now Pater Familias.
@@ -29,28 +31,26 @@ class MetaRoot(NodeABC):
             assert not root.parents
             root.parents = [self]
 
-    def bfs(self, include_metaroots=False):
-        return _bfs(self, include_metaroots=include_metaroots)
+    def is_full(self):
+        return True
 
-
-def _bfs(root, include_metaroots=False):
-    """ Performs a BFS on the family tree rooted at `root`. Private function.
-    
-    Args:
-        root (NodeABC): the root;
-        include_metaroots: whether to return MetaRoot nodes as well.
-    """
-    queue = deque()
-    queue.append(root)
-    nodes = []
-    while queue:
-        node = queue.popleft()
-        if node.marked: continue
-        nodes.append(node)
-        node.marked = True
-        queue.extend(node.children)
-    for node in nodes:
-        node.marked = False
-    if not include_metaroots:
-        nodes = [node for node in nodes if not isinstance(node, MetaRoot)]
-    return nodes
+    def bfs(self, include_metaroot=False):
+        """ Performs a BFS on the family tree rooted at `self`.
+        
+        Args:
+            include_metaroot: whether to return `self` as well.
+        """
+        queue = deque()
+        queue.append(self)
+        nodes = []
+        while queue:
+            node = queue.popleft()
+            if node.marked: continue
+            nodes.append(node)
+            node.marked = True
+            queue.extend(node.children)
+        for node in nodes:
+            node.marked = False
+        if not include_metaroot:
+            return nodes[1:]
+        return nodes
