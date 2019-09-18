@@ -3,22 +3,47 @@ from collections import deque
 """ A module for (single-axis) family trees. """
 
 
-class NodeABC(ABC):
+class NodeInterface(ABC):
     """ Represents a node in a family tree: nodes have multiple parents. """
-    @abstractmethod
-    def __init__(self, parents=None, children=None):
-        self.parents = parents if parents else []
-        self.children = children if children else []
-
-        # Create a marked field -- useful for bfs/dfs.
-        self.marked = False
-
     @abstractmethod
     def is_full(self):
         pass
 
+    @property
+    @abstractmethod
+    def children(self):
+        pass
 
-class MetaRoot(NodeABC):
+    @property
+    @abstractmethod
+    def parents(self):
+        pass
+
+    @property
+    @abstractmethod
+    def marked(self):
+        """ A marked field getter/setter.  Useful for bfs/dfs. """
+        pass
+
+    @marked.setter
+    @abstractmethod
+    def marked(self, value):
+        pass
+
+
+class NodeAbstract(NodeInterface):
+    """ Partial impl. of NodeInterface, using variables for the properties. """
+    children = None
+    parents = None
+    marked = None
+
+    def __init__(self, parents=None, children=None):
+        self.parents = parents if parents else []
+        self.children = children if children else []
+        self.marked = False
+
+
+class MetaRoot(NodeAbstract):
     """ Combines the roots of a multi-rooted family tree. """
     def __init__(self, roots):
         if not isinstance(roots, list):
@@ -27,7 +52,7 @@ class MetaRoot(NodeABC):
 
         # Register self as the parent of the roots. We are now Pater Familias.
         for root in roots:
-            assert isinstance(root, NodeABC)
+            assert isinstance(root, NodeAbstract)
             assert not root.parents
             root.parents = [self]
 
