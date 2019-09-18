@@ -43,12 +43,8 @@ def test_small_sigma():
     Lambda_out = full_tensor_double_tree(root_time, root_space)
     applicator = FakeApplicator(Lambda_in, Lambda_out)
     sigma = applicator.sigma()
-    assert [n.nodes[0].labda
-            for n in sigma.bfs(include_meta_root=False)] == [(0, 0), (0, 0),
-                                                             (0, 0)]
-    assert [n.nodes[1].labda
-            for n in sigma.bfs(include_meta_root=False)] == [(0, 0), (1, 0),
-                                                             (1, 1)]
+    assert [n.nodes[0].labda for n in sigma.bfs()] == [(0, 0), (0, 0), (0, 0)]
+    assert [n.nodes[1].labda for n in sigma.bfs()] == [(0, 0), (1, 0), (1, 1)]
 
 
 def test_sigma_combinations():

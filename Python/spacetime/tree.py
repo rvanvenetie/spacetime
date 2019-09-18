@@ -46,7 +46,7 @@ class MetaRoot:
             assert not root.parents
             root.parents = [self]
 
-    def bfs(self, include_meta_root=True):
+    def bfs(self, include_meta_root=False):
         return bfs(self, include_meta_root=include_meta_root)
 
     @property
@@ -184,8 +184,8 @@ class DoubleNode:
         for node in nodes:
             node.marked = False
 
-    def bfs(self, i):
-        return bfs(self, i)
+    def bfs(self, i, include_meta_root=False):
+        return bfs(self, i=i, include_meta_root=include_meta_root)
 
     def __repr__(self):
         return "{} x {}".format(self.nodes[0], self.nodes[1])
@@ -240,7 +240,7 @@ class FrozenDoubleNode:
     def is_full(self):
         return self.node.is_full()
 
-    def bfs(self, include_meta_root=True):
+    def bfs(self, include_meta_root=False):
         return bfs(self, include_meta_root=include_meta_root)
 
     def __repr__(self):
@@ -261,7 +261,7 @@ class DoubleTree:
     def compute_fibers(self):
         self.fibers = ({}, {})
         for i in [0, 1]:
-            for node in self.root.bfs(i):
+            for node in self.root.bfs(i, include_meta_root=True):
                 self.fibers[not i][node.nodes[i]] = FrozenDoubleNode(
                     node, not i)
 
@@ -276,28 +276,38 @@ class DoubleTree:
         in the other axis. """
         return self.fibers[i][mu]
 
-    def bfs(self, include_meta_root=True):
-        return bfs(self.root, include_meta_root=include_meta_root)
+    def bfs(self, i=None, include_meta_root=False):
+        return bfs(self.root, i=i, include_meta_root=include_meta_root)
 
 
-def is_meta_root(node):
+def is_meta_root(node, i=None):
     """ Returns if the given node is a meta root.
 
     If node is a DoubleNode, this returns if either of the coordinates contains
     a meta root.
     """
-    if isinstance(node, FrozenDoubleNode):
-        return is_meta_root(node.node)
-    elif isinstance(node, DoubleNode):
-        return is_meta_root(node.nodes[0]) or is_meta_root(node.nodes[1])
-    elif isinstance(node, MetaRoot):
-        return True
-    else:
+    if isinstance(node, Node):
         return False
+    elif isinstance(node, FrozenDoubleNode):
+        return isinstance(node.node, MetaRoot)
+    elif isinstance(node, DoubleNode):
+        if i is None:
+            return isinstance(node.nodes[0], MetaRoot) or isinstance(
+                node.nodes[1], MetaRoot)
+        else:
+            return isinstance(node.nodes[i], MetaRoot)
+    else:
+        return isinstance(node, MetaRoot)
 
 
-def bfs(root, i=None, include_meta_root=True):
-    """ Does a bfs from the given single node or double node. """
+def bfs(root, i=None, include_meta_root=False):
+    """ Does a bfs from the given single node or double node.
+    
+    Args:
+        root: a root, or a list of roots, that initialize the BFS.
+        i: if set, this assumes we are bfs'ing a specific axis of a doublenode.
+        include_meta_root: if false, this will filter out all meta root nodes.
+    """
     queue = deque()
     if isinstance(root, list):
         queue.extend(root)
@@ -319,10 +329,11 @@ def bfs(root, i=None, include_meta_root=True):
         else:
             assert i is None
             queue.extend(node.children)
+
     for node in nodes:
         node.marked = False
 
     if not include_meta_root:
-        nodes = [node for node in nodes if not is_meta_root(node)]
+        nodes = [node for node in nodes if not is_meta_root(node, i)]
 
     return nodes

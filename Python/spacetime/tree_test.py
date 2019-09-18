@@ -128,7 +128,7 @@ def create_roots(node_type, node_class):
 
 
 def uniform_index_tree(max_level, node_type, node_class):
-    """ Creates a (dummy) index tree with 2**l elements per level.
+    """ Creates a (dummy) index tree.
     
     Creates a field node_type inside the nodes and sets it to the node_type.
     """
@@ -227,10 +227,10 @@ def random_double_tree(meta_root_time, meta_root_space, max_level, N):
 
 
 def test_uniform_index_tree():
-    root_haar = uniform_index_tree(5, 't', FakeHaarNode)
-    assert len(root_haar.bfs()) == 2**6
+    meta_root_haar = uniform_index_tree(5, 't', FakeHaarNode)
+    assert len(meta_root_haar.bfs()) == 2**6 - 1
     root_ortho = uniform_index_tree(5, 't', FakeOrthoNode)
-    assert len(root_ortho.bfs()) == 2**7 - 1
+    assert len(root_ortho.bfs()) == 2**7 - 2
 
 
 def test_full_tensor():
@@ -256,6 +256,7 @@ def test_sparse_tensor():
 
 
 def test_tree_refine():
+    """ Checks that refine only works if all necessary parents are present. """
     meta_root_time = uniform_index_tree(2, 't', FakeHaarNode)
     meta_root_space = uniform_index_tree(2, 'x', FakeHaarNode)
     root = DebugDoubleNode((meta_root_time, meta_root_space))
@@ -317,13 +318,15 @@ def test_union():
         from_tree = full_tensor_double_tree(meta_root_time, meta_root_space)
         to_tree = DoubleTree(DoubleNode((meta_root_time, meta_root_space)))
 
-        assert len(to_tree.bfs()) == 1
+        assert len(to_tree.bfs(include_meta_root=False)) == 0
+        assert len(to_tree.bfs(include_meta_root=True)) == 1
+
         # Copy axis 0 into `to_tree`.
         to_tree.root.union(from_tree.project(0), 0)
-        assert len(to_tree.bfs()) == len(meta_root_time.bfs())
+        assert len(to_tree.bfs(i=0)) == len(meta_root_time.bfs())
 
         # Copy all subtrees in axis 1 into `to_tree`.
-        for item in to_tree.root.bfs(0):
+        for item in to_tree.root.bfs(i=0, include_meta_root=True):
             item.union(from_tree.fiber(1, item.nodes[0]), 1)
         assert len(to_tree.bfs()) == len(from_tree.bfs())
 

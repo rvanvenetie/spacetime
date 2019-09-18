@@ -34,18 +34,18 @@ class Applicator:
         # Reset element.psi_out field in preparation for Sigma.
         # This does not work when Lambda_in and Lambda_out have different bases.
         # TODO: We really need a better way to reset these fields.
-        for psi_out in self.Lambda_in.project(0).bfs(include_meta_root=False):
+        for psi_out in self.Lambda_in.project(0).bfs():
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out = []
                 for child in elem.children:
                     child.Sigma_psi_out = []
 
-        for psi_out in self.Lambda_out.project(0).bfs(include_meta_root=False):
+        for psi_out in self.Lambda_out.project(0).bfs():
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out.append(psi_out.node)
 
         # This does not work when Lambda_in and Lambda_out have different bases.
-        for psi_in in self.Lambda_in.project(1).bfs(include_meta_root=False):
+        for psi_in in self.Lambda_in.project(1).bfs():
             for elem in psi_in.node.support:
                 elem.Theta_gamma = True
 
@@ -63,7 +63,7 @@ class Applicator:
         sigma.root.union(self.Lambda_in.project(0), i=0)
         sigma.root.union(self.Lambda_out.project(1), i=1)
 
-        for psi_in_labda_0 in sigma.project(0).bfs(include_meta_root=False):
+        for psi_in_labda_0 in sigma.project(0).bfs():
             # Get support of psi_in_labda_0 on level + 1.
             children = [
                 child for elem in psi_in_labda_0.node.support
