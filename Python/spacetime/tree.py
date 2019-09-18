@@ -292,8 +292,7 @@ def is_meta_root(node, i=None):
         return isinstance(node.node, MetaRoot)
     elif isinstance(node, DoubleNode):
         if i is None:
-            return isinstance(node.nodes[0], MetaRoot) or isinstance(
-                node.nodes[1], MetaRoot)
+            return any(isinstance(node, MetaRoot) for node in node.nodes)
         else:
             return isinstance(node.nodes[i], MetaRoot)
     else:
