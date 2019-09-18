@@ -33,9 +33,13 @@ class Applicator:
 
         # Reset element.psi_out field in preparation for Sigma.
         # This does not work when Lambda_in and Lambda_out have different bases.
-        for psi_out in self.Lambda_out.project(0).bfs():
+        # TODO: We really need a better way to reset these fields.
+        for psi_out in self.Lambda_in.project(0).bfs():
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out = []
+                for child in elem.children:
+                    child.Sigma_psi_out = []
+
         for psi_out in self.Lambda_out.project(0).bfs():
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out.append(psi_out.node)
@@ -51,13 +55,14 @@ class Applicator:
             self.Lambda_in.root.__class__(
                 (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1])))
 
-        # Copy self.Lambda_in.project(0) into self.sigma and traverse.
+        # Insert the `time single tree` x `space meta root` and
+        # the `time meta root` x `space single tree` into Sigma.
+        # This will copy all nodes in time and space into the tree, also the
+        # ones without any subtree. This won't be a big issue, since either
+        # coordinate will always be of type MetaRoot.
         sigma.root.union(self.Lambda_in.project(0), i=0)
+        sigma.root.union(self.Lambda_out.project(1), i=1)
 
-        # In copying the 0-projection of Lambda_in into Sigma, we have copied
-        # nodes that will have an empty union-of-fibers and we need to remove
-        # those nodes later on :-( so let's keep track of those nodes.
-        empty_labdas = []
         for psi_in_labda_0 in sigma.project(0).bfs():
             # Get support of psi_in_labda_0 on level + 1.
             children = [
@@ -67,21 +72,9 @@ class Applicator:
 
             # Collect all fiber(1, mu) for psi_out_mu that intersect with
             # support of psi_in_labda_0, and put their union into sigma.
-            is_empty = True
             for child in children:
                 for mu in child.Sigma_psi_out:
-                    is_empty = False
                     psi_in_labda_0.union(self.Lambda_out.fiber(1, mu))
-            if is_empty:
-                empty_labdas.append(psi_in_labda_0)
-
-        # Remove the labdas that don't have a subtree.
-        for psi_in_labda_0 in reversed(empty_labdas):
-            psi_in_labda_0.coarsen()
-
-        # Sanity that the resulting sigma is `full`.
-        for psi_in_labda in sigma.bfs():
-            assert psi_in_labda.is_full()
 
         sigma.compute_fibers()
         return sigma

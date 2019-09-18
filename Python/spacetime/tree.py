@@ -1,3 +1,4 @@
+import itertools
 from collections import defaultdict, deque
 
 
@@ -26,6 +27,37 @@ class Node:
 
     def is_full(self):
         pass
+
+
+class MetaRoot:
+    """ Represents the (multiple) roots of a (family)tree.
+    
+    This `meta root` is registered in the actual roots, and therefore becomes
+    part of the tree.
+    """
+    def __init__(self, roots):
+        if not isinstance(roots, list): roots = [roots]
+        self.roots = roots
+        self.marked = False
+
+        # Register this root as the parent of the actual roots.
+        for root in roots:
+            assert isinstance(root, Node)
+            assert not root.parents
+            root.parents = [self]
+
+    def bfs(self, include_meta_root=False):
+        return bfs(self, include_meta_root=include_meta_root)
+
+    @property
+    def parents(self):
+        """ Implement this for ease of further computations. """
+        return []
+
+    @property
+    def children(self):
+        """ Fakes this tree property. """
+        return self.roots
 
 
 def pair(i, item_i, item_not_i):
@@ -152,8 +184,8 @@ class DoubleNode:
         for node in nodes:
             node.marked = False
 
-    def bfs(self, i):
-        return bfs(self, i)
+    def bfs(self, i, include_meta_root=False):
+        return bfs(self, i=i, include_meta_root=include_meta_root)
 
     def __repr__(self):
         return "{} x {}".format(self.nodes[0], self.nodes[1])
@@ -208,19 +240,17 @@ class FrozenDoubleNode:
     def is_full(self):
         return self.node.is_full()
 
-    def bfs(self):
-        return bfs(self)
+    def bfs(self, include_meta_root=False):
+        return bfs(self, include_meta_root=include_meta_root)
 
     def __repr__(self):
         return '{} x {}'.format(*pair(self.i, self.node, '_'))
 
     def __eq__(self, other):
-        if isinstance(other, Node):
-            return self.node == other
-        elif isinstance(other, FrozenDoubleNode):
+        if isinstance(other, FrozenDoubleNode):
             return self.i == other.i and self.dbl_node == other.dbl_node
         else:
-            assert False
+            return self.node == other
 
 
 class DoubleTree:
@@ -231,7 +261,7 @@ class DoubleTree:
     def compute_fibers(self):
         self.fibers = ({}, {})
         for i in [0, 1]:
-            for node in self.root.bfs(i):
+            for node in self.root.bfs(i, include_meta_root=True):
                 self.fibers[not i][node.nodes[i]] = FrozenDoubleNode(
                     node, not i)
 
@@ -246,14 +276,42 @@ class DoubleTree:
         in the other axis. """
         return self.fibers[i][mu]
 
-    def bfs(self):
-        return bfs(self.root)
+    def bfs(self, i=None, include_meta_root=False):
+        return bfs(self.root, i=i, include_meta_root=include_meta_root)
 
 
-def bfs(root, i=None):
-    """ Does a bfs from the given single node or double node. """
+def is_meta_root(node, i=None):
+    """ Returns if the given node is a meta root.
+
+    If node is a DoubleNode, this returns if either of the coordinates contains
+    a meta root.
+    """
+    if isinstance(node, Node):
+        return False
+    elif isinstance(node, FrozenDoubleNode):
+        return isinstance(node.node, MetaRoot)
+    elif isinstance(node, DoubleNode):
+        if i is None:
+            return any(isinstance(node, MetaRoot) for node in node.nodes)
+        else:
+            return isinstance(node.nodes[i], MetaRoot)
+    else:
+        return isinstance(node, MetaRoot)
+
+
+def bfs(root, i=None, include_meta_root=False):
+    """ Does a bfs from the given single node or double node.
+    
+    Args:
+        root: a root, or a list of roots, that initialize the BFS.
+        i: if set, this assumes we are bfs'ing a specific axis of a doublenode.
+        include_meta_root: if false, this will filter out all meta root nodes.
+    """
     queue = deque()
-    queue.append(root)
+    if isinstance(root, list):
+        queue.extend(root)
+    else:
+        queue.append(root)
     nodes = []
     while queue:
         node = queue.popleft()
@@ -270,6 +328,11 @@ def bfs(root, i=None):
         else:
             assert i is None
             queue.extend(node.children)
+
     for node in nodes:
         node.marked = False
+
+    if not include_meta_root:
+        nodes = [node for node in nodes if not is_meta_root(node, i)]
+
     return nodes
