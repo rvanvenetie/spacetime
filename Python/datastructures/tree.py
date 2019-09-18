@@ -23,7 +23,7 @@ class MetaRoot(NodeABC):
         assert isinstance(roots, list)
         super().__init__(children=roots)
 
-        # Register is as the parent of the roots. We are now Pater Familias.
+        # Register self as the parent of the roots. We are now Pater Familias.
         for root in roots:
             assert isinstance(root, NodeABC)
             assert not root.parents
@@ -34,7 +34,7 @@ class MetaRoot(NodeABC):
 
 
 def _bfs(root, include_metaroots=False):
-    """ Performs a BFS on the family tree rooted at `root`.
+    """ Performs a BFS on the family tree rooted at `root`. Private function.
     
     Args:
         root (NodeABC): the root;
