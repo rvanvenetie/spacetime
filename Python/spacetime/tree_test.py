@@ -260,16 +260,10 @@ def test_tree_refine():
     meta_root_time = uniform_index_tree(2, 't', FakeHaarNode)
     meta_root_space = uniform_index_tree(2, 'x', FakeHaarNode)
     root = DebugDoubleNode((meta_root_time, meta_root_space))
-    # Create the real root
-    root.refine(0)
-    root.refine(1)
-    root.refine(0)[0].refine(0)
-    root.refine(1)[0].refine(0)
-    real_root = root.children[0][0].children[1][0]
-
-    left, right = real_root.refine(0)
+    child = root.refine(0)[0]
     with pytest.raises(AssertionError):
-        left.refine(1)
+        # This will violate the double tree constraint.
+        child.refine(1)
 
 
 def test_project():
