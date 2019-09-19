@@ -7,6 +7,12 @@ class NodeInterface(ABC):
     """ Represents a node in a family tree: nodes have multiple parents. """
     @abstractmethod
     def is_full(self):
+        """ Returns whether this node has all children present. """
+        pass
+
+    @abstractmethod
+    def refine(self):
+        """ Refines this node to ensure it is full. Returns all children. """
         pass
 
     @property
@@ -57,10 +63,15 @@ class MetaRoot(NodeAbstract):
     def is_full(self):
         return True
 
+    def refine(self):
+        return self.children
+      
     @property
     def roots(self):
         """ The roots this MetaRoot is representing (simply the children). """
         return self.children
+      
+
 
     def bfs(self, include_metaroot=False):
         """ Performs a BFS on the family tree rooted at `self`.
