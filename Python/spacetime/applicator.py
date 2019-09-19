@@ -1,4 +1,4 @@
-from .tree import *
+from ..datastructures.double_tree import DoubleTree
 
 
 class Applicator:

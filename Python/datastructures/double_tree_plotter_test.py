@@ -1,8 +1,7 @@
-from .tree import *
-from .tree_test import (uniform_index_tree, corner_index_tree,
-                        full_tensor_double_tree, sparse_tensor_double_tree,
-                        random_double_tree)
-from .tree_plotter import *
+from .double_tree_plotter import DoubleTree
+from .double_tree_test import (corner_index_tree, full_tensor_double_tree,
+                               random_double_tree, sparse_tensor_double_tree,
+                               uniform_index_tree)
 
 
 def show_rectangle_plot():
