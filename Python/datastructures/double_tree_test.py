@@ -60,12 +60,7 @@ def uniform_index_tree(max_level, node_type, node_class):
     Creates a field node_type inside the nodes and sets it to the node_type.
     """
     meta_root = create_roots(node_type, node_class)
-    Lambda_l = meta_root.roots.copy()
-    for _ in range(max_level):
-        Lambda_new = []
-        for node in Lambda_l:
-            Lambda_new.extend(node.refine())
-        Lambda_l = Lambda_new
+    meta_root.uniform_refine(max_level)
     return meta_root
 
 
