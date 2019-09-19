@@ -69,3 +69,27 @@ class FakeOrthoFunction(FakeFunctionNode):
 
     def is_full(self):
         return len(self.children) in [0, 4]
+
+
+def test_haar_function():
+    root = FakeHaarFunction((0, 0), 'haar')
+    root.refine()
+    assert root.is_full()
+    assert root.children[0].labda == (1, 0)
+    assert root.children[1].labda == (1, 1)
+
+
+def test_ortho_function():
+    roots = [
+        FakeOrthoFunction((0, 0), 'ortho'),
+        FakeOrthoFunction((0, 1), 'ortho')
+    ]
+    roots[0].nbr = roots[1]
+    roots[1].nbr = roots[0]
+
+    roots[0].refine()
+    assert roots[0].is_full()
+    assert roots[1].is_full()
+    assert roots[0].children == roots[1].children
+    assert roots[0].children[0].labda == (1, 0)
+    assert roots[1].children[3].labda == (1, 3)
