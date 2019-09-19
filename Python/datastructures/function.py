@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-from tree import NodeAbstract
+from .tree import NodeAbstract
 
 
 class FunctionNode(NodeAbstract):

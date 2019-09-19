@@ -4,14 +4,9 @@ from pprint import pprint
 
 import pytest
 
-<<<<<<< HEAD
+from ..datastructures.function_test import FakeHaarFunction, FakeOrthoFunction
 from ..datastructures.tree import MetaRoot
 from .tree import *
-=======
-from datastructures.function_test import FakeHaarFunction, FakeOrthoFunction
-from datastructures.tree import MetaRoot
-from tree import *
->>>>>>> origin/tree-refactoring
 
 
 class FakeMetaRoot(MetaRoot):

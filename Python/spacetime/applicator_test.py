@@ -3,13 +3,12 @@ from itertools import product
 
 import matplotlib.pyplot as plt
 
-from .applicator import Applicator
-from .tree import DoubleTree, Node
-from .tree_plotter import TreePlotter
-from .tree_test import (FakeHaarNode, corner_index_tree,
-                        full_tensor_double_tree, sparse_tensor_double_tree,
-                        uniform_index_tree)
 from ..datastructures.function_test import FakeHaarFunction
+from .applicator import Applicator
+from .tree import DoubleTree
+from .tree_plotter import TreePlotter
+from .tree_test import (corner_index_tree, full_tensor_double_tree,
+                        sparse_tensor_double_tree, uniform_index_tree)
 
 
 class FakeApplicator(Applicator):
