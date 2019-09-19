@@ -2,7 +2,7 @@ import itertools
 
 import numpy as np
 
-from ..datastructures.tree import BinaryNodeAbstract, NodeAbstract
+from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
 
 
 class Vertex(NodeAbstract):
@@ -11,6 +11,7 @@ class Vertex(NodeAbstract):
     Vertices also form a (family)tree, induced by the NVB-relation.
 
     Args:
+      triangulation: the triangulation object. #TODO: should be removed.
       labda: (level, idx), for idx the index in the triang.vertices array.
       x,y: the physical coordinates
       on_domain_boundary: does this vertex lie on the domain boundary?
@@ -38,7 +39,7 @@ class Vertex(NodeAbstract):
         assert (all([p.level == self.level - 1 for p in self.parents]))
 
     def refine(self):
-        raise TypeError('It is not possible to refine a vertex.')
+        raise TypeError('Refine not possible on a vertex')
 
     def is_full(self):
         return not self.children or len(self.children) == len(self.patch)
@@ -60,15 +61,17 @@ class Vertex(NodeAbstract):
 
 class Element(BinaryNodeAbstract):
     """ A element as part of a locally refined triangulation. """
-    def __init__(self, labda, vertices, parent=None):
+    def __init__(self, triangulation, labda, vertices, parent=None):
         """ Instantiates the element object.
 
         Arguments:
+            triangulation: the triangulation object. #TODO: should be removed.
             labda: our (level, index) in the `triangulation.elements` array.
             vertices: array of three Vertex references. 
             parent: reference to the parent of this element.
             """
         super().__init__(parent=parent)
+        self.triangulation = triangulation
         self.labda = labda
         self.vertices = vertices
         self.children = []  # References to the children of this element.
@@ -79,8 +82,9 @@ class Element(BinaryNodeAbstract):
             self.area = parent.area / 2
 
     def refine(self):
-        raise TypeError(
-            'It is not yet possible to directly refine an element.')
+        self.triangulation.refine(self)
+        assert len(self.children) == 2
+        return self.children
 
     def newest_vertex(self):
         """ Returns the newest vertex, i.e., vertex 0. """
@@ -122,11 +126,11 @@ class Triangulation:
             for i, vert in enumerate(vertices)
         ]
         self.elements = [
-            Element((0, i), [self.vertices[idx] for idx in elem])
+            Element(self, (0, i), [self.vertices[idx] for idx in elem])
             for (i, elem) in enumerate(elements)
         ]
-        self.element_roots = self.elements.copy()
-        self.vertex_roots = self.vertices.copy()
+        self.elem_meta_root = MetaRoot(self.elements.copy())
+        self.vertex_meta_root = MetaRoot(self.vertices.copy())
         self.history = []
 
         # Set area.
@@ -194,10 +198,10 @@ class Triangulation:
         """
         child1_id = len(self.elements)
         child2_id = len(self.elements) + 1
-        child1 = Element((elem.level + 1, child1_id),
+        child1 = Element(self, (elem.level + 1, child1_id),
                          [new_vertex, elem.vertices[0], elem.vertices[1]],
                          parent=elem)
-        child2 = Element((elem.level + 1, child2_id),
+        child2 = Element(self, (elem.level + 1, child2_id),
                          [new_vertex, elem.vertices[2], elem.vertices[0]],
                          parent=elem)
 

@@ -53,3 +53,17 @@ def test_vertex_patch():
             assert len(v.patch) == 2
         else:
             assert len(v.patch) == 4
+
+
+def test_elem_tree():
+    T = Triangulation.unit_square()
+    elem_meta_root = T.elem_meta_root
+    assert elem_meta_root.is_full()
+    for root in elem_meta_root.roots:
+        assert root.level == 0
+
+    elem_meta_root.uniform_refine(3)
+    assert set(elem_meta_root.bfs()) == set(T.elements)
+
+    for elem in T.elements:
+        assert elem.level <= 3
