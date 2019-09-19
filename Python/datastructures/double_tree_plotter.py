@@ -8,13 +8,14 @@ from matplotlib.patches import Rectangle
 from .double_tree import DoubleTree
 
 
-class TreePlotter:
-    def __init__(self, tree):
-        self.tree = tree
+class DoubleTreePlotter:
+    def __init__(self, doubletree):
+        assert isinstance(doubletree, DoubleTree)
+        self.doubletree = doubletree
 
     def plot_support_rectangles(self, alpha=0.01):
         rects = []
-        for node in self.tree.bfs():
+        for node in self.doubletree.bfs():
             at, bt = node.nodes[0].support
             ax, bx = node.nodes[1].support
             rects.append(Rectangle((at, ax), bt - at, bx - ax))
@@ -24,7 +25,6 @@ class TreePlotter:
                              edgecolor='None')
         fig, ax = plt.subplots(1)
         ax.add_collection(pc)
-        plt.show()
 
         return rects
 
@@ -60,7 +60,7 @@ class TreePlotter:
 
         fig, axes = plt.subplots(2, 1)
         # Show the single tree in the left subplot.
-        G = nx_graph_rooted_at(self.tree.root, i_in)
+        G = nx_graph_rooted_at(self.doubletree.root, i_in)
         axes[0].set_title("Projection in axis %d" % i_in)
         art0 = plot_network(G,
                             ax=axes[0],
@@ -74,7 +74,7 @@ class TreePlotter:
 
     def plot_level_dots(self):
         dots = defaultdict(int)
-        for node_0 in self.tree.root.bfs(0):
+        for node_0 in self.doubletree.root.bfs(0):
             for node_1 in node_0.bfs(1):
                 key = (node_0.nodes[0].level, node_1.nodes[1].level)
                 dots[key] += 1
@@ -87,7 +87,6 @@ class TreePlotter:
             dots_matrix[l0, l1] = dots[(l0, l1)]
         plt.imshow(np.log(dots_matrix), origin='lower')
         plt.colorbar()
-        plt.show()
 
         return dots
 
