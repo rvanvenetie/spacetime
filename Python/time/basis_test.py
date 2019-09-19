@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pytest import approx
 
+from ..datastructures.tree import NodeInterface
 from .basis import Scaling, Wavelet
 from .haar_basis import HaarBasis
 from .linear_operator_test import check_linop_transpose
@@ -132,6 +133,18 @@ def test_3pt_local_refinement():
         assert {psi.labda
                 for psi in Lambda.per_level[l]} == {(l, 0),
                                                     (l, 2**(l - 1) - 1)}
+
+
+def test_all_subclasses():
+    for basis, Lambda in [
+            HaarBasis.uniform_basis(3),
+            OrthonormalBasis.uniform_basis(3),
+            ThreePointBasis.uniform_basis(3)
+    ]:
+        assert all(isinstance(psi, NodeInterface) for psi in Lambda)
+        assert all(
+            isinstance(elem, NodeInterface) for psi in Lambda
+            for elem in psi.support)
 
 
 def test_basis_PQ():
