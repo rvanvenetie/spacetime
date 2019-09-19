@@ -8,7 +8,10 @@ class Node(NodeAbstract):
         super().__init__()
 
     def is_full(self):
-        raise NotImplementedError("Cannot call method on fake class.")
+        raise NotImplementedError("Cannot call is_full on fake class.")
+
+    def refine(self):
+        raise NotImplementedError("Cannot call refine on fake class.")
 
 
 def test_ABC():
