@@ -14,11 +14,27 @@ class Node(NodeAbstract):
         raise NotImplementedError("Cannot call refine on fake class.")
 
 
+class BinaryNode(BinaryNodeAbstract):
+    def __init__(self, parent=None, children=None):
+        super().__init__(parent, children)
+
+    def refine(self):
+        raise NotImplementedError("Cannot call refine on fake class.")
+
+
 def test_ABC():
     with pytest.raises(TypeError):
         root = NodeAbstract()
     with pytest.raises(TypeError):
         root = NodeInterface()
+
+
+def test_binary():
+    root = BinaryNode()
+    root.children = [BinaryNode(root), BinaryNode(root)]
+    assert root.children[0].parent == root
+    assert root.children[1].parent == root
+    assert root.is_full()
 
 
 def test_bfs():

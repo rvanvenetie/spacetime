@@ -47,6 +47,24 @@ class NodeAbstract(NodeInterface):
         self.marked = False
 
 
+class BinaryNodeAbstract(NodeAbstract):
+    """ Partial impl. of a binary node. """
+    def __init__(self, parent=None, children=None):
+        super().__init__(parents=[parent], children=children)
+
+    @property
+    def parent(self):
+        return self.parents[0]
+
+    @parent.setter
+    def parent(self, parent):
+        assert isinstance(parent, NodeInterface)
+        self.parents = [parent]
+
+    def is_full(self):
+        return len(self.children) in [0, 2]
+
+
 class MetaRoot(NodeAbstract):
     """ Combines the roots of a multi-rooted family tree. """
     def __init__(self, roots):
@@ -65,13 +83,11 @@ class MetaRoot(NodeAbstract):
 
     def refine(self):
         return self.children
-      
+
     @property
     def roots(self):
         """ The roots this MetaRoot is representing (simply the children). """
         return self.children
-      
-
 
     def bfs(self, include_metaroot=False):
         """ Performs a BFS on the family tree rooted at `self`.
