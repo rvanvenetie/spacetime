@@ -54,7 +54,7 @@ def create_roots(node_type, node_class):
         assert False
 
 
-def uniform_index_tree(max_level, node_type, node_class):
+def uniform_index_tree(max_level, node_type, node_class=FakeHaarFunction):
     """ Creates a (dummy) index tree.
     
     Creates a field node_type inside the nodes and sets it to the node_type.
