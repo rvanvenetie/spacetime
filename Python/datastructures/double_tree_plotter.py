@@ -1,10 +1,11 @@
 from collections import defaultdict, deque
-from matplotlib.patches import Rectangle
-from matplotlib.collections import PatchCollection
+
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Rectangle
 
-from .tree import DoubleTree
+from .double_tree import DoubleTree
 
 
 class TreePlotter:

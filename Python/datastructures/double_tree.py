@@ -4,7 +4,7 @@ from collections import defaultdict, deque
 from ..datastructures.tree import MetaRoot, NodeAbstract, NodeInterface
 
 
-def pair(i, item_i, item_not_i):
+def _pair(i, item_i, item_not_i):
     """ Helper function to create a pair.
     
     Given coordinate i, returns a pair with item_i in coordinate i,
@@ -17,6 +17,9 @@ def pair(i, item_i, item_not_i):
 
 
 class DoubleNode:
+    """ Class that represents a double node. """
+    __slots__ = ['nodes', 'parents', 'children', 'marked']
+
     def __init__(self, nodes, parents=None, children=None):
         """ Creates double node, with nodes pointing to `single` index node. """
         self.nodes = tuple(nodes)
@@ -61,12 +64,9 @@ class DoubleNode:
         
         If the node that will be introduced has multiple parents, then these
         must be brothers of self (and already exist).
-
-        TODO: we need to implement linking in your "nephews" as well, i.e.
-        restore the parents-children relation in the "other" axis.
         """
         for child_i in self.nodes[i].children:
-            child_nodes = pair(i, child_i, self.nodes[not i])
+            child_nodes = _pair(i, child_i, self.nodes[not i])
 
             # Skip if this child has already exists.
             if child_nodes in (n.nodes for n in self.children[i]):
@@ -75,13 +75,13 @@ class DoubleNode:
             # Ensure all the parents of the to be created child exist.
             # These are brothers, in i and not i axis, of the current node.
             brothers = [
-                self.find_brother(i, pair(i, child_parent_i,
-                                          child_nodes[not i]))
+                self.find_brother(i,
+                                  _pair(i, child_parent_i, child_nodes[not i]))
                 for child_parent_i in child_nodes[i].parents
             ]
             step_brothers = [
                 self.find_step_brother(
-                    not i, pair(i, child_nodes[i], child_parent_not_i))
+                    not i, _pair(i, child_nodes[i], child_parent_not_i))
                 for child_parent_not_i in child_nodes[not i].parents
             ]
 
@@ -128,8 +128,39 @@ class DoubleNode:
         for node in nodes:
             node.marked = False
 
-    def bfs(self, i, include_meta_root=False):
-        return bfs(self, i=i, include_meta_root=include_meta_root)
+    def bfs(self, i=None, include_meta_root=False):
+        """ Does a bfs from the given double node.
+        
+        Args:
+            i: if set, this assumes we are bfs'ing inside a specific axis.
+            include_meta_root: if false, this will filter out all meta root nodes.
+        """
+        queue = deque()
+        queue.append(self)
+        nodes = []
+        while queue:
+            node = queue.popleft()
+            if node.marked: continue
+            nodes.append(node)
+            node.marked = True
+            # Add the children to the queue.
+            if i is None:
+                queue.extend(node.children[0])
+                queue.extend(node.children[1])
+            else:
+                queue.extend(node.children[i])
+
+        for node in nodes:
+            node.marked = False
+
+        if not include_meta_root:
+            axis = [0, 1] if i is None else [i]
+            nodes = [
+                node for node in nodes
+                if not any(isinstance(node.nodes[j], MetaRoot) for j in axis)
+            ]
+
+        return nodes
 
     def __repr__(self):
         return "{} x {}".format(self.nodes[0], self.nodes[1])
@@ -188,10 +219,12 @@ class FrozenDoubleNode(NodeInterface):
         return self.node.is_full()
 
     def bfs(self, include_meta_root=False):
-        return bfs(self, include_meta_root=include_meta_root)
+        nodes = self.dbl_node.bfs(self.i, include_meta_root)
+        # This returns the items as double nodes, so convert them.
+        return [FrozenDoubleNode(node, self.i) for node in nodes]
 
     def __repr__(self):
-        return '{} x {}'.format(*pair(self.i, self.node, '_'))
+        return '{} x {}'.format(*_pair(self.i, self.node, '_'))
 
     def __eq__(self, other):
         if isinstance(other, FrozenDoubleNode):
@@ -224,62 +257,4 @@ class DoubleTree:
         return self.fibers[i][mu]
 
     def bfs(self, i=None, include_meta_root=False):
-        return bfs(self.root, i=i, include_meta_root=include_meta_root)
-
-
-def is_meta_root(node, i=None):
-    """ Returns if the given node is a meta root.
-
-    If node is a DoubleNode, this returns if either of the coordinates contains
-    a meta root.
-    """
-    if isinstance(node, MetaRoot):
-        return True
-    elif isinstance(node, FrozenDoubleNode):
-        return isinstance(node.node, MetaRoot)
-    elif isinstance(node, DoubleNode):
-        if i is None:
-            return any(isinstance(node, MetaRoot) for node in node.nodes)
-        else:
-            return isinstance(node.nodes[i], MetaRoot)
-    else:
-        return False
-
-
-def bfs(root, i=None, include_meta_root=False):
-    """ Does a bfs from the given single node or double node.
-    
-    Args:
-        root: a root, or a list of roots, that initialize the BFS.
-        i: if set, this assumes we are bfs'ing a specific axis of a doublenode.
-        include_meta_root: if false, this will filter out all meta root nodes.
-    """
-    queue = deque()
-    if isinstance(root, list):
-        queue.extend(root)
-    else:
-        queue.append(root)
-    nodes = []
-    while queue:
-        node = queue.popleft()
-        if node.marked: continue
-        nodes.append(node)
-        node.marked = True
-        # Add the children to the queue.
-        if isinstance(node, DoubleNode):
-            if i is not None:
-                queue.extend(node.children[i])
-            else:
-                queue.extend(node.children[0])
-                queue.extend(node.children[1])
-        else:
-            assert i is None
-            queue.extend(node.children)
-
-    for node in nodes:
-        node.marked = False
-
-    if not include_meta_root:
-        nodes = [node for node in nodes if not is_meta_root(node, i)]
-
-    return nodes
+        return self.root.bfs(i=i, include_meta_root=include_meta_root)
