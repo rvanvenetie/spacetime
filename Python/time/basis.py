@@ -1,6 +1,7 @@
 from fractions import Fraction
 
 from ..datastructures.tree import BinaryNodeAbstract
+from ..datastructures.function import FunctionNode
 from .linear_operator import LinearOperator
 
 
@@ -46,10 +47,14 @@ class Element1D(BinaryNodeAbstract):
         return 'Element1D({}, {})'.format(self.level, self.node_index)
 
 
-class Function:
-    """ This is a base class for an object represention a basis function.  """
-    def __init__(self, labda):
-        self.labda = labda
+class CoefficientFunction(FunctionNode):
+    """ This is a base represention of a basis function with coefficients. """
+    __slots__ = ['support', 'coeff']
+
+    def __init__(self, labda, parents, support):
+        super().__init__(labda, parents, children=None)
+
+        self.support = support  # Support is a list of Element1D's.
 
         # TODO: This should be removed, or neatly integrated.
         self.reset_coeff()
@@ -65,11 +70,9 @@ class Function:
         return "{}({}, {})".format(self.__class__.__name__, *self.labda)
 
 
-class Scaling(Function):
+class Scaling(CoefficientFunction):
     def __init__(self, labda, parents, support):
-        super().__init__(labda)
-        self.parents = parents
-        self.support = support  # Support is a list.
+        super().__init__(labda, parents, support)
         self.multi_scale = []  # Transpose of the wavelet to multiscale.
 
     def prolongate(self):
@@ -81,12 +84,11 @@ class Scaling(Function):
         pass
 
 
-class Wavelet(Function):
+class Wavelet(CoefficientFunction):
     def __init__(self, labda, parents, single_scale):
-        super().__init__(labda)
-        self.parents = parents
+        super().__init__(labda, parents, support=None)
+
         self.single_scale = list(single_scale)
-        self.children = []
         self.support = []
         for phi, coeff in self.single_scale:
             self.support.extend(phi.support)
