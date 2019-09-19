@@ -1,19 +1,19 @@
 from fractions import Fraction
 
 from linear_operator import LinearOperator
+from datastructures.tree import BinaryNodeAbstract
 
 
-class Element:
+class Element1D(BinaryNodeAbstract):
     """ Represents an element (interval) as result of dyadic refinement.
 
-    The element (l, n) represents an interval on level l given by: [2^(-l)*n, 2^(-l)*(n+1)].
+    The element (l, n) is an interval on level l given by: [2^-l*n, 2^-l*(n+1)].
     """
+    def __init__(self, level, node_index, parent=None):
+        super().__init__(parent=parent, children=None)
 
-    def __init__(self, level, node_index, parent):
         self.level = level
         self.node_index = node_index
-        self.parent = parent
-        self.children = []
 
         # Create variables to register non-zero scaling functions.
         # The ordering of functions inside these lists is important.
@@ -29,12 +29,14 @@ class Element:
         self.Pi_in = False
         self.Pi_out = False
 
-    def bisect(self):
-        if self.children: return
-        child_left = self.__class__(self.level + 1, self.node_index * 2, self)
-        child_right = self.__class__(self.level + 1, self.node_index * 2 + 1,
-                                     self)
-        self.children = [child_left, child_right]
+    def refine(self):
+        if not self.children:
+            child_left = self.__class__(self.level + 1, self.node_index * 2,
+                                        self)
+            child_right = self.__class__(self.level + 1,
+                                         self.node_index * 2 + 1, self)
+            self.children = [child_left, child_right]
+        return self.children
 
     @property
     def interval(self):
@@ -42,12 +44,11 @@ class Element:
         return (h * self.node_index, h * (self.node_index + 1))
 
     def __repr__(self):
-        return 'Element({}, {})'.format(self.level, self.node_index)
+        return 'Element1D({}, {})'.format(self.level, self.node_index)
 
 
 class Function:
     """ This is a base class for an object represention a basis function.  """
-
     def __init__(self, labda):
         self.labda = labda
 
@@ -102,7 +103,6 @@ class Wavelet(Function):
 
 class MultiscaleFunctions:
     """ Immutable set of multiscale functions.  """
-
     def __init__(self, functions):
         self.functions = functions
         self.maximum_level = max([fn.labda[0] for fn in functions])
@@ -238,4 +238,4 @@ class Basis:
 
 
 # Initializes a mother_element to be used for all bases.
-mother_element = Element(0, 0, None)
+mother_element = Element1D(0, 0, None)
