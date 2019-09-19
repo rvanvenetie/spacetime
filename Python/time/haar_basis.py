@@ -17,15 +17,15 @@ class DiscConstScaling(basis.Scaling):
         support[0].phi_disc_const = self
 
     def refine(self):
-        if self.children: return self.children
-        self.support[0].bisect()
-        l, n = self.labda
-        self.children.append(
-            DiscConstScaling((l + 1, 2 * n), self,
-                             [self.support[0].children[0]]))
-        self.children.append(
-            DiscConstScaling((l + 1, 2 * n + 1), self,
-                             [self.support[0].children[1]]))
+        if not self.children:
+            self.support[0].refine()
+            l, n = self.labda
+            self.children.append(
+                DiscConstScaling((l + 1, 2 * n), self,
+                                 [self.support[0].children[0]]))
+            self.children.append(
+                DiscConstScaling((l + 1, 2 * n + 1), self,
+                                 [self.support[0].children[1]]))
         return self.children
 
     def prolongate(self):
@@ -34,6 +34,9 @@ class DiscConstScaling(basis.Scaling):
 
     def restrict(self):
         return [(self.parents, 1)]
+
+    def is_full(self):
+        return len(self.children) in [0, 2]
 
     @staticmethod
     def eval_mother(x):
@@ -50,19 +53,23 @@ class HaarWavelet(basis.Wavelet):
         super().__init__(labda, parents, single_scale)
 
     def refine(self):
-        if self.children: return
-        phi_left, phi_right = [phi for phi, _ in self.single_scale]
-        phi_left.refine()
-        phi_right.refine()
+        if not self.children:
+            phi_left, phi_right = [phi for phi, _ in self.single_scale]
+            phi_left.refine()
+            phi_right.refine()
 
-        l, n = self.labda
-        child_left = HaarWavelet((l + 1, 2 * n), self,
-                                 [(phi_left.children[0], 1),
-                                  (phi_left.children[1], -1)])
-        child_right = HaarWavelet((l + 1, 2 * n + 1), self,
-                                  [(phi_right.children[0], 1),
-                                   (phi_right.children[1], -1)])
-        self.children = [child_left, child_right]
+            l, n = self.labda
+            child_left = HaarWavelet((l + 1, 2 * n), self,
+                                     [(phi_left.children[0], 1),
+                                      (phi_left.children[1], -1)])
+            child_right = HaarWavelet((l + 1, 2 * n + 1), self,
+                                      [(phi_right.children[0], 1),
+                                       (phi_right.children[1], -1)])
+            self.children = [child_left, child_right]
+        return self.children
+
+    def is_full(self):
+        return len(self.children) in [0, 2]
 
 
 class HaarBasis(basis.Basis):

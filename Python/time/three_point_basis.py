@@ -30,13 +30,19 @@ class ContLinearScaling(basis.Scaling):
             assert support[-1].phi_cont_lin[0] is None
             support[-1].phi_cont_lin[0] = self
 
+    def refine(self):
+        raise TypeError("Regular refinement of ContLinearScaling impossible!")
+
+    def is_full(self):
+        raise TypeError("ContLinearScaling functions cannot be `full' or not!")
+
     def refine_mid(self):
         if self.child_mid: return self.child_mid
         l, n = self.labda
 
         # Calculate the support of the refined hat.
         for elem in self.support:
-            elem.bisect()
+            elem.refine()
         child_support = []
         if n > 0: child_support.append(self.support[0].children[1])
         if n < 2**l: child_support.append(self.support[-1].children[0])
@@ -129,40 +135,46 @@ class ThreePointWavelet(basis.Wavelet):
         super().__init__(labda, parents, single_scale)
 
     def refine(self):
-        if self.children: return
-        phi_left, phi_mid, phi_right = [phi for phi, _ in self.single_scale]
-        l, n = self.labda
-        scaling = 2**((l + 1) / 2)
+        if not self.children:
+            phi_left, phi_mid, phi_right = [
+                phi for phi, _ in self.single_scale
+            ]
+            l, n = self.labda
+            scaling = 2**((l + 1) / 2)
 
-        # First refine the left part
-        phi_children = phi_left.refine_mid(), phi_mid.refine_left(
-        ), phi_mid.refine_mid()
-        if n == 0:
-            child_left = ThreePointWavelet(
-                (l + 1, 2 * n), self,
-                zip(phi_children,
-                    (-1 * scaling, 1 * scaling, -1 / 2 * scaling)))
-        else:
-            child_left = ThreePointWavelet(
-                (l + 1, 2 * n), self,
-                zip(phi_children,
-                    (-1 / 2 * scaling, 1 * scaling, -1 / 2 * scaling)))
+            # First refine the left part
+            phi_children = phi_left.refine_mid(), phi_mid.refine_left(
+            ), phi_mid.refine_mid()
+            if n == 0:
+                child_left = ThreePointWavelet(
+                    (l + 1, 2 * n), self,
+                    zip(phi_children,
+                        (-1 * scaling, 1 * scaling, -1 / 2 * scaling)))
+            else:
+                child_left = ThreePointWavelet(
+                    (l + 1, 2 * n), self,
+                    zip(phi_children,
+                        (-1 / 2 * scaling, 1 * scaling, -1 / 2 * scaling)))
 
-        # Now refine the right part
-        phi_children = phi_mid.refine_mid(), phi_mid.refine_right(
-        ), phi_right.refine_mid()
-        if n == 2**(l - 1) - 1:
-            child_right = ThreePointWavelet(
-                (l + 1, 2 * n + 1), self,
-                zip(phi_children,
-                    (-1 / 2 * scaling, 1 * scaling, -1 * scaling)))
-        else:
-            child_right = ThreePointWavelet(
-                (l + 1, 2 * n + 1), self,
-                zip(phi_children,
-                    (-1 / 2 * scaling, 1 * scaling, -1 / 2 * scaling)))
+            # Now refine the right part
+            phi_children = phi_mid.refine_mid(), phi_mid.refine_right(
+            ), phi_right.refine_mid()
+            if n == 2**(l - 1) - 1:
+                child_right = ThreePointWavelet(
+                    (l + 1, 2 * n + 1), self,
+                    zip(phi_children,
+                        (-1 / 2 * scaling, 1 * scaling, -1 * scaling)))
+            else:
+                child_right = ThreePointWavelet(
+                    (l + 1, 2 * n + 1), self,
+                    zip(phi_children,
+                        (-1 / 2 * scaling, 1 * scaling, -1 / 2 * scaling)))
 
-        self.children = [child_left, child_right]
+            self.children = [child_left, child_right]
+        return self.children
+
+    def is_full(self):
+        return len(self.children) in [0, 2]
 
 
 class ThreePointBasis(basis.Basis):

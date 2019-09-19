@@ -15,6 +15,11 @@ class FunctionNode(NodeAbstract):
     def support(self):
         pass
 
+    @support.setter
+    @abstractmethod
+    def support(self, value):
+        pass
+
     @property
     def level(self):
         return self.labda[0]

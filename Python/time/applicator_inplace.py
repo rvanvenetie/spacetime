@@ -1,4 +1,4 @@
-from .basis import Element, mother_element
+from .basis import mother_element
 from .sparse_vector import SparseVector
 
 

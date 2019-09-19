@@ -38,30 +38,26 @@ class DiscLinearScaling(basis.Scaling):
             support[0].phi_disc_lin[1] = self
 
     def refine(self):
-        if self.children: return self.children
-        if not self.pw_constant: return self.nbr.refine()
-        self.support[0].bisect()
-        l, n = self.labda
-        parents = [self, self.nbr]
-        child_left_cons = DiscLinearScaling((l + 1, 2 * n), parents,
-                                            [self.support[0].children[0]])
-        child_left_lin = DiscLinearScaling((l + 1, 2 * n + 1), parents,
-                                           [self.support[0].children[0]])
-        child_right_cons = DiscLinearScaling((l + 1, 2 * n + 2), parents,
-                                             [self.support[0].children[1]])
-        child_right_lin = DiscLinearScaling((l + 1, 2 * n + 3), parents,
-                                            [self.support[0].children[1]])
+        if not self.children:
+            if not self.pw_constant:
+                return self.nbr.refine()
+            self.support[0].refine()
+            l, n = self.labda
+            P = [self, self.nbr]
+            child_elts = self.support[0].children
+            self.children = [
+                DiscLinearScaling((l + 1, 2 * n + 0), P, [child_elts[0]]),
+                DiscLinearScaling((l + 1, 2 * n + 1), P, [child_elts[0]]),
+                DiscLinearScaling((l + 1, 2 * n + 2), P, [child_elts[1]]),
+                DiscLinearScaling((l + 1, 2 * n + 3), P, [child_elts[1]])
+            ]
+            self.nbr.children = self.children
 
-        self.children = [
-            child_left_cons, child_left_lin, child_right_cons, child_right_lin
-        ]
-        self.nbr.children = self.children
-
-        # Update neighbouring relations.
-        child_left_cons.nbr = child_left_lin
-        child_left_lin.nbr = child_left_cons
-        child_right_cons.nbr = child_right_lin
-        child_right_lin.nbr = child_right_cons
+            # Update neighbouring relations.
+            self.children[0].nbr = self.children[1]
+            self.children[1].nbr = self.children[0]
+            self.children[2].nbr = self.children[3]
+            self.children[3].nbr = self.children[2]
         return self.children
 
     def prolongate(self):
@@ -81,6 +77,9 @@ class DiscLinearScaling(basis.Scaling):
             return [(self.parents[0], 1), (self.parents[1], sq3 / 2)]
         else:
             return [(self.parents[1], 1 / 2)]
+
+    def is_full(self):
+        return len(self.children) in [0, 4]
 
     @staticmethod
     def eval_mother(constant, x, deriv):
@@ -103,25 +102,29 @@ class OrthonormalWavelet(basis.Wavelet):
         super().__init__(labda, parents, single_scale)
 
     def refine(self):
-        if self.children: return self.children
-        l, n = self.labda
-        s = 2**(l / 2)  # scaling
-        for i in range(2):
-            if n % 2 == 0:
-                phi = self.single_scale[2 * i][0]
-                phi.refine()
-                self.children.append(
-                    OrthonormalWavelet(
-                        (l + 1, 2 * (n + i)), self,
-                        zip(phi.children,
-                            (-s / 2, -sq3 * s / 2, s / 2, -sq3 * s / 2))))
-            else:
-                phi = self.single_scale[i][0]
-                phi.refine()
-                self.children.append(
-                    OrthonormalWavelet((l + 1, 2 * (n + i) - 1), self,
-                                       [(phi.children[1], -s),
-                                        (phi.children[3], s)]))
+        if not self.children:
+            l, n = self.labda
+            s = 2**(l / 2)  # scaling
+            for i in range(2):
+                if n % 2 == 0:
+                    phi = self.single_scale[2 * i][0]
+                    phi.refine()
+                    self.children.append(
+                        OrthonormalWavelet(
+                            (l + 1, 2 * (n + i)), self,
+                            zip(phi.children,
+                                (-s / 2, -sq3 * s / 2, s / 2, -sq3 * s / 2))))
+                else:
+                    phi = self.single_scale[i][0]
+                    phi.refine()
+                    self.children.append(
+                        OrthonormalWavelet((l + 1, 2 * (n + i) - 1), self,
+                                           [(phi.children[1], -s),
+                                            (phi.children[3], s)]))
+        return self.children
+
+    def is_full(self):
+        return len(self.children) in [0, 4]
 
 
 class OrthonormalBasis(basis.Basis):

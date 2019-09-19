@@ -1,18 +1,20 @@
 from fractions import Fraction
 
+from ..datastructures.tree import BinaryNodeAbstract
+from ..datastructures.function import FunctionNode
 from .linear_operator import LinearOperator
 
 
-class Element:
+class Element1D(BinaryNodeAbstract):
     """ Represents an element (interval) as result of dyadic refinement.
 
-    The element (l, n) represents an interval on level l given by: [2^(-l)*n, 2^(-l)*(n+1)].
+    The element (l, n) is an interval on level l given by: [2^-l*n, 2^-l*(n+1)].
     """
-    def __init__(self, level, node_index, parent):
+    def __init__(self, level, node_index, parent=None):
+        super().__init__(parent=parent, children=None)
+
         self.level = level
         self.node_index = node_index
-        self.parent = parent
-        self.children = []
 
         # Create variables to register non-zero scaling functions.
         # The ordering of functions inside these lists is important.
@@ -28,12 +30,13 @@ class Element:
         self.Pi_in = False
         self.Pi_out = False
 
-    def bisect(self):
-        if self.children: return
-        child_left = self.__class__(self.level + 1, self.node_index * 2, self)
-        child_right = self.__class__(self.level + 1, self.node_index * 2 + 1,
-                                     self)
-        self.children = [child_left, child_right]
+    def refine(self):
+        if not self.children:
+            child_left = Element1D(self.level + 1, self.node_index * 2, self)
+            child_right = Element1D(self.level + 1, self.node_index * 2 + 1,
+                                    self)
+            self.children = [child_left, child_right]
+        return self.children
 
     @property
     def interval(self):
@@ -41,13 +44,16 @@ class Element:
         return (h * self.node_index, h * (self.node_index + 1))
 
     def __repr__(self):
-        return 'Element({}, {})'.format(self.level, self.node_index)
+        return 'Element1D({}, {})'.format(self.level, self.node_index)
 
 
-class Function:
-    """ This is a base class for an object represention a basis function.  """
-    def __init__(self, labda):
-        self.labda = labda
+class CoefficientFunction(FunctionNode):
+    """ This is a base represention of a basis function with coefficients. """
+    __slots__ = ['support', 'coeff']
+
+    def __init__(self, labda, parents, support):
+        super().__init__(labda, parents, children=None)
+        self.support = support  # Support is a list of Element1D's.
 
         # TODO: This should be removed, or neatly integrated.
         self.reset_coeff()
@@ -63,11 +69,9 @@ class Function:
         return "{}({}, {})".format(self.__class__.__name__, *self.labda)
 
 
-class Scaling(Function):
+class Scaling(CoefficientFunction):
     def __init__(self, labda, parents, support):
-        super().__init__(labda)
-        self.parents = parents
-        self.support = support  # Support is a list.
+        super().__init__(labda, parents, support)
         self.multi_scale = []  # Transpose of the wavelet to multiscale.
 
     def prolongate(self):
@@ -79,12 +83,11 @@ class Scaling(Function):
         pass
 
 
-class Wavelet(Function):
+class Wavelet(CoefficientFunction):
     def __init__(self, labda, parents, single_scale):
-        super().__init__(labda)
-        self.parents = parents
+        super().__init__(labda, parents, support=None)
+
         self.single_scale = list(single_scale)
-        self.children = []
         self.support = []
         for phi, coeff in self.single_scale:
             self.support.extend(phi.support)
@@ -235,4 +238,4 @@ class Basis:
 
 
 # Initializes a mother_element to be used for all bases.
-mother_element = Element(0, 0, None)
+mother_element = Element1D(0, 0, None)
