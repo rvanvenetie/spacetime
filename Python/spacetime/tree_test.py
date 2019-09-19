@@ -4,22 +4,9 @@ from pprint import pprint
 
 import pytest
 
+from datastructures.function_test import FakeHaarFunction, FakeOrthoFunction
 from datastructures.tree import MetaRoot
 from tree import *
-
-
-class FakeNode(Node):
-    """ Fake node. Implements some basic funcionality. """
-    def __init__(self, labda, node_type, parents=None, children=None):
-        super().__init__(labda=labda, parents=parents, children=children)
-        self.node_type = node_type
-
-    @property
-    def level(self):
-        return self.labda[0]
-
-    def __repr__(self):
-        return "({}, {}, {})".format(self.node_type, *self.labda)
 
 
 class FakeMetaRoot(MetaRoot):
@@ -33,67 +20,6 @@ class FakeMetaRoot(MetaRoot):
         if isinstance(self.roots[0], FakeOrthoNode):
             return len(self.roots) == 2
         assert False
-
-
-class FakeHaarNode(FakeNode):
-    """ Fake haar node. Proper tree structure with two children. """
-    @property
-    def support(self):
-        l, n = self.labda
-        return (n * 2**-l, (n + 1) * 2**-l)
-
-    def refine(self):
-        if self.children: return
-        l, n = self.labda
-        self.children.append(
-            self.__class__((l + 1, 2 * n), self.node_type, [self]))
-        self.children.append(
-            self.__class__((l + 1, 2 * n + 1), self.node_type, [self]))
-        return self.children
-
-    def is_full(self):
-        return len(self.children) in [0, 2]
-
-
-class FakeOrthoNode(FakeNode):
-    """ Fake orthonormal node. Familytree structure with 4 children, 2 parents. """
-    def __init__(self, labda, node_type, parents=None, children=None):
-        super().__init__(labda, node_type, parents, children)
-        self.node_type = node_type
-        self.nbr = None
-
-        l, n = self.labda
-        if l > 0: assert self.parents
-
-    @property
-    def support(self):
-        l, n = labda
-        return (n // 2 * 2**-l, (n // 2 + 1) * 2**-l)
-
-    def refine(self):
-        if self.children: return self.children
-        l, n = self.labda
-        type_0 = n % 2 == 0  # Store some type.
-        if not type_0: return self.nbr.refine()
-        parents = [self, self.nbr]
-
-        # Create four children
-        left_0 = FakeOrthoNode((l + 1, 2 * n), self.node_type, parents)
-        left_1 = FakeOrthoNode((l + 1, 2 * n + 1), self.node_type, parents)
-        right_0 = FakeOrthoNode((l + 1, 2 * n + 2), self.node_type, parents)
-        right_1 = FakeOrthoNode((l + 1, 2 * n + 3), self.node_type, parents)
-        self.children = [left_0, left_1, right_0, right_1]
-        self.nbr.children = self.children
-
-        # Update neighbouring relations.
-        left_0.nbr = left_1
-        left_1.nbr = left_0
-        right_0.nbr = right_1
-        right_1.nbr = right_0
-        return self.children
-
-    def is_full(self):
-        return len(self.children) in [0, 4]
 
 
 class DebugDoubleNode(DoubleNode):
@@ -116,9 +42,9 @@ class DebugDoubleNode(DoubleNode):
 
 def create_roots(node_type, node_class):
     """ Returns a MetaRoot instance, containing all necessary roots. """
-    if issubclass(node_class, FakeHaarNode):
+    if issubclass(node_class, FakeHaarFunction):
         return FakeMetaRoot(node_class((0, 0), node_type))
-    elif issubclass(node_class, FakeOrthoNode):
+    elif issubclass(node_class, FakeOrthoFunction):
         root_0 = node_class((0, 0), node_type)
         root_1 = node_class((0, 1), node_type)
         root_0.nbr = root_1
@@ -146,7 +72,7 @@ def uniform_index_tree(max_level, node_type, node_class):
 def corner_index_tree(max_level,
                       node_type,
                       which_child=0,
-                      node_class=FakeHaarNode):
+                      node_class=FakeHaarFunction):
     """ Creates a (dummy) index tree with 1 element per level.
     
     Creates a field node_type inside the nodes and sets it to the node_type.
@@ -179,7 +105,7 @@ def full_tensor_double_tree(meta_root_time, meta_root_space, max_levels=None):
     return DoubleTree(double_root)
 
 
-def uniform_full_grid(time_level, space_level, node_class=FakeHaarNode):
+def uniform_full_grid(time_level, space_level, node_class=FakeHaarFunction):
     """ Makes a full grid doubletree of uniformly refined singletrees. """
     meta_root_time = uniform_index_tree(time_level, 't', node_class)
     meta_root_space = uniform_index_tree(space_level, 'x', node_class)
@@ -228,38 +154,38 @@ def random_double_tree(meta_root_time, meta_root_space, max_level, N):
 
 
 def test_uniform_index_tree():
-    meta_root_haar = uniform_index_tree(5, 't', FakeHaarNode)
+    meta_root_haar = uniform_index_tree(5, 't', FakeHaarFunction)
     assert len(meta_root_haar.bfs()) == 2**6 - 1
-    root_ortho = uniform_index_tree(5, 't', FakeOrthoNode)
+    root_ortho = uniform_index_tree(5, 't', FakeOrthoFunction)
     assert len(root_ortho.bfs()) == 2**7 - 2
 
 
 def test_full_tensor():
     DebugDoubleNode.total_counter = 0
-    double_root = uniform_full_grid(4, 2, FakeHaarNode)
+    double_root = uniform_full_grid(4, 2, FakeHaarFunction)
     assert DebugDoubleNode.total_counter == (2**5 - 1) * (2**3 - 1)
     DebugDoubleNode.total_counter = 0
-    double_root = uniform_full_grid(4, 2, FakeOrthoNode)
+    double_root = uniform_full_grid(4, 2, FakeOrthoFunction)
     assert DebugDoubleNode.total_counter == (2**6 - 2) * (2**4 - 2)
 
 
 def test_sparse_tensor():
     DebugDoubleNode.total_counter = 0
-    double_root = uniform_sparse_grid(1, FakeHaarNode)
+    double_root = uniform_sparse_grid(1, FakeHaarFunction)
     assert DebugDoubleNode.total_counter == 5
     DebugDoubleNode.total_counter = 0
-    double_root = uniform_sparse_grid(4, FakeHaarNode)
+    double_root = uniform_sparse_grid(4, FakeHaarFunction)
     assert DebugDoubleNode.total_counter == 129
 
     DebugDoubleNode.total_counter = 0
-    double_root = uniform_sparse_grid(1, FakeOrthoNode)
+    double_root = uniform_sparse_grid(1, FakeOrthoFunction)
     assert DebugDoubleNode.total_counter == 2 * 2 + 2 * 2 * 4
 
 
 def test_tree_refine():
     """ Checks that refine only works if all necessary parents are present. """
-    meta_root_time = uniform_index_tree(2, 't', FakeHaarNode)
-    meta_root_space = uniform_index_tree(2, 'x', FakeHaarNode)
+    meta_root_time = uniform_index_tree(2, 't', FakeHaarFunction)
+    meta_root_space = uniform_index_tree(2, 'x', FakeHaarFunction)
     root = DebugDoubleNode((meta_root_time, meta_root_space))
     child, = root.refine(0)
     with pytest.raises(AssertionError):
@@ -268,7 +194,7 @@ def test_tree_refine():
 
 
 def test_project():
-    for node_cls in [FakeHaarNode, FakeOrthoNode]:
+    for node_cls in [FakeHaarFunction, FakeOrthoFunction]:
         meta_root_time = uniform_index_tree(2, 't', node_cls)
         meta_root_space = uniform_index_tree(3, 'x', node_cls)
         for tree in [
@@ -285,7 +211,7 @@ def test_fiber():
             node.nodes[i] for node in tree.bfs() if node.nodes[not i] is mu
         ]
 
-    for cls in [FakeHaarNode, FakeOrthoNode]:
+    for cls in [FakeHaarFunction, FakeOrthoFunction]:
         for tree in [
                 full_tensor_double_tree(corner_index_tree(4, 't', 0, cls),
                                         corner_index_tree(4, 'x', 1, cls)),
@@ -307,7 +233,7 @@ def test_fiber():
 
 def test_union():
     """ Test that union indeed copies a tree. """
-    for cls in [FakeHaarNode, FakeOrthoNode]:
+    for cls in [FakeHaarFunction, FakeOrthoFunction]:
         meta_root_time = corner_index_tree(7, 't', 0, cls)
         meta_root_space = corner_index_tree(7, 'x', 1, cls)
         from_tree = full_tensor_double_tree(meta_root_time, meta_root_space)

@@ -1,13 +1,19 @@
+from abc import abstractmethod
+
 from tree import NodeAbstract
 
 
 class FunctionNode(NodeAbstract):
     """ This represents a (multilevel) function. """
-    def __init__(self, labda, support, parents=None, children=None):
+    def __init__(self, labda, parents=None, children=None):
         """  Function for labda = (l, x) living on level l. """
         super().__init__(parents, children)
         self.labda = labda
-        self.support = support
+
+    @property
+    @abstractmethod
+    def support(self):
+        pass
 
     @property
     def level(self):

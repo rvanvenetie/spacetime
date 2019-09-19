@@ -4,26 +4,6 @@ from collections import defaultdict, deque
 from datastructures.tree import MetaRoot, NodeAbstract, NodeInterface
 
 
-class Node(NodeAbstract):
-    """ Represents a node in a single coordinate. """
-    def __init__(self, labda, parents=None, children=None):
-        super().__init__(parents, children)
-        self.labda = labda
-
-    def refine(self):
-        pass
-
-    @property
-    def support(self):
-        pass
-
-    def __hash__(self):
-        return hash(self.labda)
-
-    def bfs(self):
-        return bfs(self)
-
-
 def pair(i, item_i, item_not_i):
     """ Helper function to create a pair.
     
@@ -253,8 +233,8 @@ def is_meta_root(node, i=None):
     If node is a DoubleNode, this returns if either of the coordinates contains
     a meta root.
     """
-    if isinstance(node, Node):
-        return False
+    if isinstance(node, MetaRoot):
+        return True
     elif isinstance(node, FrozenDoubleNode):
         return isinstance(node.node, MetaRoot)
     elif isinstance(node, DoubleNode):
@@ -263,7 +243,7 @@ def is_meta_root(node, i=None):
         else:
             return isinstance(node.nodes[i], MetaRoot)
     else:
-        return isinstance(node, MetaRoot)
+        return False
 
 
 def bfs(root, i=None, include_meta_root=False):
