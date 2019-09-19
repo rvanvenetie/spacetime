@@ -54,17 +54,13 @@ def create_roots(node_type, node_class):
         assert False
 
 
-def uniform_index_tree(max_level, meta_root):
+def uniform_index_tree(max_level, node_type, node_class):
     """ Creates a (dummy) index tree.
     
     Creates a field node_type inside the nodes and sets it to the node_type.
     """
-    Lambda_l = meta_root.roots.copy()
-    for _ in range(max_level):
-        Lambda_new = []
-        for node in Lambda_l:
-            Lambda_new.extend(node.refine())
-        Lambda_l = Lambda_new
+    meta_root = create_roots(node_type, node_class)
+    meta_root.uniform_refine(max_level)
     return meta_root
 
 
@@ -106,10 +102,8 @@ def full_tensor_double_tree(meta_root_time, meta_root_space, max_levels=None):
 
 def uniform_full_grid(time_level, space_level, node_class=FakeHaarFunction):
     """ Makes a full grid doubletree of uniformly refined singletrees. """
-    meta_root_time = uniform_index_tree(time_level,
-                                        create_roots('t', node_class))
-    meta_root_space = uniform_index_tree(space_level,
-                                         create_roots('x', node_class))
+    meta_root_time = uniform_index_tree(time_level, 't', node_class)
+    meta_root_space = uniform_index_tree(space_level, 'x', node_class)
     return full_tensor_double_tree(meta_root_time, meta_root_space)
 
 
@@ -131,10 +125,8 @@ def sparse_tensor_double_tree(meta_root_time, meta_root_space, max_level):
 
 def uniform_sparse_grid(max_level, node_class):
     """ Makes a sparse grid doubletree of uniformly refined singletrees. """
-    meta_root_time = uniform_index_tree(max_level,
-                                        create_roots('t', node_class))
-    meta_root_space = uniform_index_tree(max_level,
-                                         create_roots('x', node_class))
+    meta_root_time = uniform_index_tree(max_level, 't', node_class)
+    meta_root_space = uniform_index_tree(max_level, 'x', node_class)
     return sparse_tensor_double_tree(meta_root_time, meta_root_space,
                                      max_level)
 
@@ -198,8 +190,8 @@ def test_tree_refine():
 
 def test_project():
     for node_cls in [FakeHaarFunction, FakeOrthoFunction]:
-        meta_root_time = uniform_index_tree(2, create_roots('t', node_cls))
-        meta_root_space = uniform_index_tree(3, create_roots('x', node_cls))
+        meta_root_time = uniform_index_tree(2, 't', node_cls)
+        meta_root_space = uniform_index_tree(3, 'x', node_cls)
         for tree in [
                 full_tensor_double_tree(meta_root_time, meta_root_space),
                 sparse_tensor_double_tree(meta_root_time, meta_root_space, 5)
@@ -221,13 +213,10 @@ def test_fiber():
                 sparse_tensor_double_tree(corner_index_tree(4, 't', 0, cls),
                                           corner_index_tree(4, 'x', 1, cls),
                                           8),
-                sparse_tensor_double_tree(
-                    corner_index_tree(4, 't', 0, cls),
-                    uniform_index_tree(4, create_roots('x', cls)), 8),
-                random_double_tree(uniform_index_tree(4,
-                                                      create_roots('t', cls)),
-                                   uniform_index_tree(4,
-                                                      create_roots('x', cls)),
+                sparse_tensor_double_tree(corner_index_tree(4, 't', 0, cls),
+                                          uniform_index_tree(4, 'x', cls), 8),
+                random_double_tree(uniform_index_tree(4, 't', cls),
+                                   uniform_index_tree(4, 'x', cls),
                                    7,
                                    N=500),
         ]:
