@@ -1,8 +1,9 @@
-from tree import *
 import pytest
 
+from tree import *
 
-class Node(NodeABC):
+
+class Node(NodeAbstract):
     def __init__(self, parents=None, children=None):
         super().__init__()
 
@@ -12,7 +13,9 @@ class Node(NodeABC):
 
 def test_ABC():
     with pytest.raises(TypeError):
-        root = NodeABC()
+        root = NodeAbstract()
+    with pytest.raises(TypeError):
+        root = NodeInterface()
 
 
 def test_bfs():
