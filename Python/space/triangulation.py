@@ -2,10 +2,8 @@ import itertools
 
 import numpy as np
 
-from datastructures.tree import BinaryNodeAbstract, NodeAbstract
 
-
-class Vertex(NodeAbstract):
+class Vertex:
     """ A vertex in a locally refined triangulation.
     
     Vertices also form a (family)tree, induced by the NVB-relation.
@@ -26,22 +24,17 @@ class Vertex(NodeAbstract):
                  patch=None,
                  parents=None,
                  children=None):
-        super().__init__(parents=parents, children=children)
         self.labda = labda
         self.x = x
         self.y = y
         self.on_domain_boundary = on_domain_boundary
 
         self.patch = patch if patch else []
+        self.parents = parents if parents else []
+        self.children = children if children else []
 
         # Sanity check.
         assert (all([p.level == self.level - 1 for p in self.parents]))
-
-    def refine(self):
-        raise TypeError('It is not possible to refine a vertex.')
-
-    def is_full(self):
-        return not self.children or len(self.children) == len(self.patch)
 
     @property
     def level(self):
@@ -58,7 +51,7 @@ class Vertex(NodeAbstract):
         return '{}'.format(self.labda)
 
 
-class Element(BinaryNodeAbstract):
+class Element:
     """ A element as part of a locally refined triangulation. """
     def __init__(self, labda, vertices, parent=None):
         """ Instantiates the element object.
@@ -68,19 +61,15 @@ class Element(BinaryNodeAbstract):
             vertices: array of three Vertex references. 
             parent: reference to the parent of this element.
             """
-        super().__init__(parent=parent)
         self.labda = labda
         self.vertices = vertices
+        self.parent = parent
         self.children = []  # References to the children of this element.
         # Indices of my neighbours, ordered by the edge opposite vertex i.
         self.neighbours = [None, None, None]
 
-        if parent:
-            self.area = parent.area / 2
-
-    def refine(self):
-        raise TypeError(
-            'It is not yet possible to directly refine an element.')
+        if self.parent:
+            self.area = self.parent.area / 2
 
     def newest_vertex(self):
         """ Returns the newest vertex, i.e., vertex 0. """
