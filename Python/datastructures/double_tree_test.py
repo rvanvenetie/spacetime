@@ -4,9 +4,9 @@ from pprint import pprint
 
 import pytest
 
-from ..datastructures.function_test import FakeHaarFunction, FakeOrthoFunction
-from ..datastructures.tree import MetaRoot
 from .double_tree import DoubleNode, DoubleTree
+from .function_test import FakeHaarFunction, FakeOrthoFunction
+from .tree import MetaRoot
 
 
 class FakeMetaRoot(MetaRoot):
