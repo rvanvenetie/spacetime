@@ -55,6 +55,7 @@ class NodeView(NodeAbstract):
                 for parent in self.parents:
                     parent.refine(make_conforming=True,
                                   refine_underlying_tree=False)
+
                 # Brothers of self should now exist, try again.
                 return self.refine(make_conforming, refine_underlying_tree)
 
