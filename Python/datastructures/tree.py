@@ -53,7 +53,7 @@ class NodeAbstract(NodeInterface):
 
 
 class BinaryNodeAbstract(NodeAbstract):
-    """ Partial impl. of a binary node. """
+    """ Partial impl. of a binary tree node (hence, with a single parent). """
     def __init__(self, parent=None, children=None):
         if parent:
             super().__init__(parents=[parent], children=children)

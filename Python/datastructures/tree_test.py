@@ -1,6 +1,20 @@
 import pytest
 
+from .function_test import FakeHaarFunction, FakeOrthoFunction
 from .tree import *
+
+
+class FakeMetaRoot(MetaRoot):
+    @property
+    def level(self):
+        return -1
+
+    def is_full(self):
+        if not self.roots: return False
+        if isinstance(self.roots[0], FakeHaarNode): return len(self.roots) == 1
+        if isinstance(self.roots[0], FakeOrthoNode):
+            return len(self.roots) == 2
+        assert False
 
 
 class FakeNode(NodeAbstract):
@@ -28,6 +42,49 @@ class FakeBinaryNode(BinaryNodeAbstract):
         raise NotImplementedError("Cannot call refine on fake class.")
 
 
+def create_roots(node_type, node_class):
+    """ Returns a MetaRoot instance, containing all necessary roots. """
+    if issubclass(node_class, FakeHaarFunction):
+        return FakeMetaRoot(node_class((0, 0), node_type))
+    elif issubclass(node_class, FakeOrthoFunction):
+        root_0 = node_class((0, 0), node_type)
+        root_1 = node_class((0, 1), node_type)
+        root_0.nbr = root_1
+        root_1.nbr = root_0
+        return FakeMetaRoot([root_0, root_1])
+    else:
+        assert False
+
+
+def uniform_index_tree(max_level, node_type, node_class=FakeHaarFunction):
+    """ Creates a (dummy) index tree.
+    
+    Creates a field node_type inside the nodes and sets it to the node_type.
+    """
+    meta_root = create_roots(node_type, node_class)
+    meta_root.uniform_refine(max_level)
+    return meta_root
+
+
+def corner_index_tree(max_level,
+                      node_type,
+                      which_child=0,
+                      node_class=FakeHaarFunction):
+    """ Creates a (dummy) index tree with 1 element per level.
+    
+    Creates a field node_type inside the nodes and sets it to the node_type.
+    """
+    meta_root = create_roots(node_type, node_class)
+    Lambda_l = meta_root.roots.copy()
+    for _ in range(max_level):
+        Lambda_new = []
+        for node in Lambda_l:
+            children = node.refine()
+            Lambda_new.append(children[which_child])
+        Lambda_l = Lambda_new
+    return meta_root
+
+
 def test_ABC():
     with pytest.raises(TypeError):
         root = NodeAbstract()
@@ -50,3 +107,19 @@ def test_bfs():
     metaroot = MetaRoot([root])
     assert len(metaroot.bfs()) == 5
     assert len(metaroot.bfs(include_metaroot=True)) == 6
+
+
+def test_diamond_structure():
+    root = FakeNode()
+    root.children = [FakeNode(), FakeNode()]
+    root.children[0].children = [FakeNode()]
+    root.children[0].parents.append(root.children[1])
+    metaroot = MetaRoot([root])
+    assert len(metaroot.bfs()) == 4
+
+
+def test_uniform_index_tree():
+    meta_root_haar = uniform_index_tree(5, 't', FakeHaarFunction)
+    assert len(meta_root_haar.bfs()) == 2**6 - 1
+    root_ortho = uniform_index_tree(5, 't', FakeOrthoFunction)
+    assert len(root_ortho.bfs()) == 2**7 - 2
