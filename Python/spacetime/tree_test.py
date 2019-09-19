@@ -4,6 +4,7 @@ from pprint import pprint
 
 import pytest
 
+from datastructures.tree import MetaRoot
 from tree import *
 
 
