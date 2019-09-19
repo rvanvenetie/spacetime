@@ -1,5 +1,5 @@
-import basis
-from sparse_vector import SparseVector
+from . import basis
+from .sparse_vector import SparseVector
 
 
 class Applicator(object):

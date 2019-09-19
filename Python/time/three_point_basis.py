@@ -1,4 +1,4 @@
-import basis
+from . import basis
 
 
 class ContLinearScaling(basis.Scaling):
@@ -11,7 +11,6 @@ class ContLinearScaling(basis.Scaling):
 
     The field Element.phi_disc_lin object is ordered by labda, i.e. left, right.
     """
-
     def __init__(self, labda, parents, support):
         super().__init__(labda, parents, support)
 
@@ -126,7 +125,6 @@ class ThreePointWavelet(basis.Wavelet):
     Scaling functions are simply the hat functions. A hat function on given
     level is indexed by the corresponding node index. A wavelet on level l >= 1
     is indexed by 0..2^l-1, corresponding to the odd nodes on level l."""
-
     def __init__(self, labda, parents, single_scale):
         super().__init__(labda, parents, single_scale)
 

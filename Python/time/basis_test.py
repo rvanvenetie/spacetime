@@ -1,14 +1,13 @@
 from fractions import Fraction
-
 import matplotlib.pyplot as plt
 import numpy as np
 from pytest import approx
 
-from basis import Scaling, Wavelet
-from haar_basis import HaarBasis
-from linear_operator_test import check_linop_transpose
-from orthonormal_basis import OrthonormalBasis
-from three_point_basis import ThreePointBasis
+from .basis import Scaling, Wavelet
+from .haar_basis import HaarBasis
+from .linear_operator_test import check_linop_transpose
+from .orthonormal_basis import OrthonormalBasis
+from .three_point_basis import ThreePointBasis
 
 
 def test_haar_mother_functions():
@@ -30,7 +29,7 @@ def test_haar_mother_functions():
 def test_haar_uniform_refinement():
     ml = 5
     basis, Lambda = HaarBasis.uniform_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
 
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2**(l - 1)
@@ -49,7 +48,7 @@ def test_haar_uniform_refinement():
 def test_haar_local_refinement():
     ml = 8
     basis, Lambda = HaarBasis.origin_refined_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
 
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 1
@@ -62,7 +61,7 @@ def test_ortho_uniform_refinement():
     sq3 = np.sqrt(3)
     ml = 5
     basis, Lambda = OrthonormalBasis.uniform_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2**l
         assert len(Delta.per_level[l]) == 2**(l + 1)
@@ -91,7 +90,7 @@ def test_ortho_uniform_refinement():
 def test_ortho_local_refinement():
     ml = 8
     basis, Lambda = OrthonormalBasis.origin_refined_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2
         assert len(Delta.per_level[l]) == 4
@@ -101,7 +100,7 @@ def test_ortho_local_refinement():
 def test_3pt_uniform_refinement():
     ml = 5
     basis, Lambda = ThreePointBasis.uniform_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2**(l - 1)
         assert len(Delta.per_level[l]) == 2**l + 1
@@ -119,20 +118,20 @@ def test_3pt_uniform_refinement():
 def test_3pt_local_refinement():
     ml = 8
     basis, Lambda = ThreePointBasis.origin_refined_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 1
         assert len(Delta.per_level[l]) == 3
         assert Lambda.per_level[l][0].labda == (l, 0)
 
     basis, Lambda = ThreePointBasis.end_points_refined_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     for l in range(2, ml + 1):
         assert len(Lambda.per_level[l]) == 2
         assert len(Delta.per_level[l]) <= 6
         assert {psi.labda
-                for psi in Lambda.per_level[l]} == {(l, 0), (l,
-                                                             2**(l - 1) - 1)}
+                for psi in Lambda.per_level[l]} == {(l, 0),
+                                                    (l, 2**(l - 1) - 1)}
 
 
 def test_basis_PQ():
@@ -151,7 +150,7 @@ def test_basis_PQ():
             ThreePointBasis.origin_refined_basis(oml),
             ThreePointBasis.end_points_refined_basis(oml),
     ]:
-        Delta = Lambda.single_scale_indices()
+        Delta = Lambda.single_scale_functions()
         ml = Lambda.maximum_level
         print('Print testing PQ for {} with {} levels.'.format(
             basis.__class__.__name__, ml))
@@ -206,7 +205,7 @@ def test_basis_PQ_matrix():
             ThreePointBasis.origin_refined_basis(oml),
             ThreePointBasis.end_points_refined_basis(oml),
     ]:
-        Delta = Lambda.single_scale_indices()
+        Delta = Lambda.single_scale_functions()
         ml = Lambda.maximum_level
         for l in range(1, ml):
             print('test PQ on level {} for {}'.format(

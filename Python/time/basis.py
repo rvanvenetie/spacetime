@@ -1,7 +1,7 @@
 from fractions import Fraction
 
-from linear_operator import LinearOperator
-from datastructures.tree import BinaryNodeAbstract
+from ..datastructures.tree import BinaryNodeAbstract
+from .linear_operator import LinearOperator
 
 
 class Element1D(BinaryNodeAbstract):

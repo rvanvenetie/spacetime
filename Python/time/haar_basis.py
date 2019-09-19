@@ -1,4 +1,4 @@
-import basis
+from . import basis
 
 
 class DiscConstScaling(basis.Scaling):
@@ -7,7 +7,6 @@ class DiscConstScaling(basis.Scaling):
     The function (l, n) corresponds to the indicator function on element (l,n).
     That is, it has support [2^(-l)*n, 2^(-l)*(n+1)].
     """
-
     def __init__(self, labda, parents, support):
         assert len(support) == 1
         super().__init__(labda, parents, support)

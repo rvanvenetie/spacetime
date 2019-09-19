@@ -1,7 +1,7 @@
 import itertools
 from collections import defaultdict, deque
 
-from datastructures.tree import MetaRoot, NodeAbstract, NodeInterface
+from ..datastructures.tree import MetaRoot, NodeAbstract, NodeInterface
 
 
 class Node(NodeAbstract):
@@ -168,6 +168,9 @@ class FrozenDoubleNode(NodeInterface):
         """ Freezes the dbl_node in coordinate `not i`. """
         self.dbl_node = dbl_node
         self.i = i
+
+    def refine(self):
+        raise TypeError('FrozenDoubleNode does not support refinement.')
 
     @property
     def marked(self):

@@ -1,4 +1,4 @@
-from tree import *
+from .tree import *
 
 
 class Applicator:
