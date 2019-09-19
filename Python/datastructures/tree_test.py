@@ -3,7 +3,7 @@ import pytest
 from .tree import *
 
 
-class Node(NodeAbstract):
+class FakeNode(NodeAbstract):
     def __init__(self, parents=None, children=None):
         super().__init__()
 
@@ -17,7 +17,7 @@ class Node(NodeAbstract):
         raise NotImplementedError("Cannot call refine on fake class.")
 
 
-class BinaryNode(BinaryNodeAbstract):
+class FakeBinaryNode(BinaryNodeAbstract):
     def __init__(self, parent=None, children=None):
         super().__init__(parent, children)
 
@@ -36,17 +36,17 @@ def test_ABC():
 
 
 def test_binary():
-    root = BinaryNode()
-    root.children = [BinaryNode(root), BinaryNode(root)]
+    root = FakeBinaryNode()
+    root.children = [FakeBinaryNode(root), FakeBinaryNode(root)]
     assert root.children[0].parent == root
     assert root.children[1].parent == root
     assert root.is_full()
 
 
 def test_bfs():
-    root = Node()
-    root.children = [Node(), Node()]
-    root.children[0].children = [Node(), Node()]
+    root = FakeNode()
+    root.children = [FakeNode(), FakeNode()]
+    root.children[0].children = [FakeNode(), FakeNode()]
     metaroot = MetaRoot([root])
     assert len(metaroot.bfs()) == 5
     assert len(metaroot.bfs(include_metaroot=True)) == 6
