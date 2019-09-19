@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from sparse_vector import SparseVector
+from .sparse_vector import SparseVector
 
 
 def check_linop_transpose(linop, indices_in, indices_out):

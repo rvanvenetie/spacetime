@@ -1,15 +1,14 @@
 from fractions import Fraction
-
 import numpy as np
 from pytest import approx
 from scipy.integrate import quad
 
-import applicator
-import operators
-from haar_basis import HaarBasis
-from orthonormal_basis import OrthonormalBasis
-from sparse_vector import SparseVector
-from three_point_basis import ThreePointBasis
+from . import applicator
+from . import operators
+from .haar_basis import HaarBasis
+from .orthonormal_basis import OrthonormalBasis
+from .sparse_vector import SparseVector
+from .three_point_basis import ThreePointBasis
 
 np.random.seed(0)
 np.set_printoptions(linewidth=10000, precision=3)
@@ -35,9 +34,9 @@ def test_haar_multiscale_mass():
                 np_vec = np.random.rand(len(Lambda_l))
                 vec = SparseVector(Lambda_l, np_vec)
                 res = applicator.apply(vec)
-                assert np.allclose([(1.0 if phi.labda[0] == 0 else 2**
-                                     (phi.labda[0] - 1)) * res[phi]
-                                    for phi in Lambda_l], np_vec)
+                assert np.allclose(
+                    [(1.0 if phi.labda[0] == 0 else 2**(phi.labda[0] - 1)) *
+                     res[phi] for phi in Lambda_l], np_vec)
 
 
 def test_orthonormal_multiscale_mass():
@@ -71,8 +70,8 @@ def test_multiscale_mass_quadrature():
     deriv = (False, False)
     for basis_in, basis_out in [(hbu, hbu), (hbo, hbo), (hbu, hbo), (oru, oru),
                                 (oro, oro), (oru, oro), (tpu, tpu), (tpo, tpo),
-                                (tpu, tpo), (hbu, tpu), (tpo, hbu), (hbo,
-                                                                     tpu)]:
+                                (tpu, tpo), (hbu, tpu), (tpo, hbu),
+                                (hbo, tpu)]:
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
         operator = operators.mass(basis_in, basis_out)
@@ -162,9 +161,11 @@ def test_multiscale_operator_quadrature_lin_comb():
                 points = list(map(float, points))
 
                 # Apply quadrature.
-                true_val = quad(lambda x: psi_vec_in_eval(x, deriv=deriv[0]) * psi_out.eval(x, deriv=deriv[1]),
+                true_val = quad(lambda x: psi_vec_in_eval(x, deriv=deriv[0]) *
+                                psi_out.eval(x, deriv=deriv[1]),
                                 supp_psi_out[0],
-                                supp_psi_out[1], points=points)[0]
+                                supp_psi_out[1],
+                                points=points)[0]
 
                 assert true_val == approx(vec_out[psi_out])
 
@@ -197,5 +198,5 @@ def test_apply_upp_low_vs_full():
             c = SparseVector(Lambda_in, np.random.rand(len(Lambda_in)))
             res_full_op = applicator.apply(c)
             res_upp_low = applicator.apply_upp(c) + applicator.apply_low(c)
-            assert np.allclose(
-                res_full_op.asarray(Lambda_in), res_upp_low.asarray(Lambda_in))
+            assert np.allclose(res_full_op.asarray(Lambda_in),
+                               res_upp_low.asarray(Lambda_in))

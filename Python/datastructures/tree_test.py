@@ -1,6 +1,6 @@
 import pytest
 
-from tree import *
+from .tree import *
 
 
 class Node(NodeAbstract):

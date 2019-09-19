@@ -1,6 +1,6 @@
 import numpy as np
 
-from triangulation import Triangulation
+from .triangulation import Triangulation
 
 
 def test_on_domain_bdr():

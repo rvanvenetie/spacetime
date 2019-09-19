@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-import applicator
-import applicator_inplace
-import operators
-from applicator import Applicator
-from three_point_basis import ThreePointBasis
-from sparse_vector import SparseVector
+from . import applicator
+from . import applicator_inplace
+from . import operators
+from .applicator import Applicator
+from .three_point_basis import ThreePointBasis
+from .sparse_vector import SparseVector
 
 
 def plot_results(results):

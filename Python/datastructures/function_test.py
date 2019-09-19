@@ -1,4 +1,4 @@
-from datastructures.function import FunctionNode
+from .function import FunctionNode
 
 
 class FakeFunctionNode(FunctionNode):

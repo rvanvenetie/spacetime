@@ -1,11 +1,10 @@
 from collections import defaultdict
 
-from sparse_vector import SparseVector
+from .sparse_vector import SparseVector
 
 
 class LinearOperator(object):
     """ Linear operator. """
-
     def __init__(self, row, col=None):
         """ Initialize the LinearOperator.
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-import basis
+from . import basis
 
 sq3 = np.sqrt(3)
 
@@ -22,7 +22,6 @@ class DiscLinearScaling(basis.Scaling):
 
     The field Element.phi_disc_lin object is also ordered by labda: cons, lin.
     """
-
     def __init__(self, labda, parents, support):
         assert len(support) == 1
         super().__init__(labda, parents, support)

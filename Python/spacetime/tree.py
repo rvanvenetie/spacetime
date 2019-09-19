@@ -1,7 +1,7 @@
 import itertools
 from collections import defaultdict, deque
 
-from datastructures.tree import MetaRoot, NodeAbstract, NodeInterface
+from ..datastructures.tree import MetaRoot, NodeAbstract, NodeInterface
 
 
 def pair(i, item_i, item_not_i):

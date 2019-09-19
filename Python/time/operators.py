@@ -1,7 +1,7 @@
-from haar_basis import DiscConstScaling, HaarBasis
-from linear_operator import LinearOperator
-from orthonormal_basis import DiscLinearScaling, OrthonormalBasis
-from three_point_basis import ContLinearScaling, ThreePointBasis
+from .haar_basis import DiscConstScaling, HaarBasis
+from .linear_operator import LinearOperator
+from .orthonormal_basis import DiscLinearScaling, OrthonormalBasis
+from .three_point_basis import ContLinearScaling, ThreePointBasis
 
 
 def _mass_haar_in_haar_out(phi_in):

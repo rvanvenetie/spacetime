@@ -2,7 +2,7 @@ import itertools
 
 import numpy as np
 
-from datastructures.tree import BinaryNodeAbstract, NodeAbstract
+from ..datastructures.tree import BinaryNodeAbstract, NodeAbstract
 
 
 class Vertex(NodeAbstract):

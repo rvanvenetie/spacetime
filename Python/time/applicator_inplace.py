@@ -1,5 +1,5 @@
-from basis import Element, mother_element
-from sparse_vector import SparseVector
+from .basis import Element, mother_element
+from .sparse_vector import SparseVector
 
 
 class Applicator(object):
