@@ -7,12 +7,12 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
     __slots__ = ['labda']
 
     def __init__(self, vertex, parents=None, children=None):
-        """ Initializes the Hierarhical basis function.
+        """ Initializes the Hierarchical basis function.
         
         Args:
-          vertex: the vertex associated to this basis function
-          parents: the parents of this  basis function
-          children: the children of this basis func
+          vertex: the vertex associated to this basis function.
+          parents: the parents of this basis function.
+          children: the children of this basis function.
         """
         super().__init__(vertex, parents, children)
         self.labda = (vertex.level, vertex)
@@ -23,7 +23,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
 
     @staticmethod
     def from_triangulation(triangulation):
-        """ Creates a hierarhical basis function tree from the given triang. """
+        """ Creates a hierarchical basis function tree from the given triang. """
         function_roots = [
             HierarchicalBasisFunction(vertex)
             for vertex in triangulation.vertex_meta_root.roots

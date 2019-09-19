@@ -41,6 +41,9 @@ class NodeInterface(ABC):
     def marked(self, value):
         pass
 
+    def is_leaf(self):
+        return len(self.children) == 0
+
 
 class NodeAbstract(NodeInterface):
     """ Partial impl. of NodeInterface, using variables for the properties. """

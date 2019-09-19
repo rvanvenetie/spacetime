@@ -1,4 +1,4 @@
-from .tree import NodeAbstract
+from .tree import NodeAbstract, NodeInterface
 
 
 class NodeView(NodeAbstract):
@@ -13,6 +13,7 @@ class NodeView(NodeAbstract):
           parents: the parents of this node view object.
           children: the children of this node view object.
         """
+        assert isinstance(node, NodeInterface)
         super().__init__(parents=parents, children=children)
         self.node = node
 
@@ -30,7 +31,7 @@ class NodeView(NodeAbstract):
                     return sibling
         return None
 
-    def refine(self, refine_underlying_tree=False):
+    def refine(self, make_conforming=False, refine_underlying_tree=False):
         """ Refines the tree view according to the real tree.
         
         If refine_underlying_tree is true, this will refine the actual tree
@@ -44,7 +45,18 @@ class NodeView(NodeAbstract):
             brothers_view = [
                 self.find_brother(parent) for parent in child.parents
             ]
-            assert None not in brothers_view
+
+            # We are missing a brother.
+            if None in brothers_view:
+                if not make_conforming: assert False
+
+                # We want to ensure this brother exists, so recurse.
+                for parent in self.parents:
+                    parent.refine(make_conforming=True,
+                                  refine_underlying_tree=False)
+                # Brothers of self should now exist, try again.
+                return self.refine(make_conforming, refine_underlying_tree)
+
             child_view = self.__class__(child, parents=brothers_view)
             for brother_view in brothers_view:
                 brother_view.children.append(child_view)
