@@ -19,8 +19,6 @@ class Vertex(NodeAbstract):
       parents: the NVB-parents
       children: the child nodes that were induces by this vertex
     """
-    __slots__ = ['labda', 'x', 'y', 'on_domain_boundary', 'patch']
-
     def __init__(self,
                  labda,
                  x,
