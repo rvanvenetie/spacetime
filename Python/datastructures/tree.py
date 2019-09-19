@@ -55,7 +55,10 @@ class NodeAbstract(NodeInterface):
 class BinaryNodeAbstract(NodeAbstract):
     """ Partial impl. of a binary node. """
     def __init__(self, parent=None, children=None):
-        super().__init__(parents=[parent], children=children)
+        if parent:
+            super().__init__(parents=[parent], children=children)
+        else:
+            super().__init__(children=children)
 
     @property
     def parent(self):
