@@ -1,3 +1,6 @@
+from tree import NodeAbstract
+
+
 class FunctionNode(NodeAbstract):
     """ This represents a (multilevel) function. """
     def __init__(self, labda, support, parents=None, children=None):
