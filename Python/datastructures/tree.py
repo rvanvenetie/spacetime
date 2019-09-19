@@ -15,6 +15,11 @@ class NodeInterface(ABC):
         """ Refines this node to ensure it is full. Returns all children. """
         pass
 
+    @abstractmethod
+    def level(self):
+        """ The level of this node. Root has level 0, its children 1, etc. """
+        pass
+
     @property
     @abstractmethod
     def children(self):
@@ -50,7 +55,10 @@ class NodeAbstract(NodeInterface):
 class BinaryNodeAbstract(NodeAbstract):
     """ Partial impl. of a binary node. """
     def __init__(self, parent=None, children=None):
-        super().__init__(parents=[parent], children=children)
+        if parent:
+            super().__init__(parents=[parent], children=children)
+        else:
+            super().__init__(children=children)
 
     @property
     def parent(self):
@@ -83,6 +91,24 @@ class MetaRoot(NodeAbstract):
 
     def refine(self):
         return self.children
+
+    def level(self):
+        return -1
+
+    def uniform_refine(self, max_level):
+        """ Ensure that the tree contains up to max_level nodes. """
+        nodes = []
+        queue = deque()
+        queue.extend(self.roots)
+        while queue:
+            node = queue.popleft()
+            if node.marked: continue
+            nodes.append(node)
+            node.marked = True
+            if node.level < max_level: queue.extend(node.refine())
+        for node in nodes:
+            node.marked = False
+        return nodes
 
     @property
     def roots(self):

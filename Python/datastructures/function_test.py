@@ -1,4 +1,5 @@
 from .function import FunctionNode
+from .tree import MetaRoot
 
 
 class FakeFunctionNode(FunctionNode):
@@ -93,3 +94,26 @@ def test_ortho_function():
     assert roots[0].children == roots[1].children
     assert roots[0].children[0].labda == (1, 0)
     assert roots[1].children[3].labda == (1, 3)
+
+
+def test_haar_refine():
+    meta_root = MetaRoot(FakeHaarFunction((0, 0), 'haar'))
+    meta_root.uniform_refine(4)
+    assert len(meta_root.bfs()) == 2**5 - 1
+    for node in meta_root.bfs():
+        assert node.level <= 4
+
+
+def test_ortho_refine():
+    roots = [
+        FakeOrthoFunction((0, 0), 'ortho'),
+        FakeOrthoFunction((0, 1), 'ortho')
+    ]
+    roots[0].nbr = roots[1]
+    roots[1].nbr = roots[0]
+
+    meta_root = MetaRoot(roots)
+    meta_root.uniform_refine(4)
+    assert len(meta_root.bfs()) == (2**6 - 2)
+    for node in meta_root.bfs():
+        assert node.level <= 4
