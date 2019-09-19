@@ -169,6 +169,9 @@ class FrozenDoubleNode(NodeInterface):
         self.dbl_node = dbl_node
         self.i = i
 
+    def refine(self):
+        raise TypeError('FrozenDoubleNode does not support refinement.')
+
     @property
     def marked(self):
         return self.dbl_node.marked
