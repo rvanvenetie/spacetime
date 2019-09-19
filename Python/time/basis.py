@@ -53,7 +53,6 @@ class CoefficientFunction(FunctionNode):
 
     def __init__(self, labda, parents, support):
         super().__init__(labda, parents, children=None)
-
         self.support = support  # Support is a list of Element1D's.
 
         # TODO: This should be removed, or neatly integrated.

@@ -43,27 +43,21 @@ class DiscLinearScaling(basis.Scaling):
                 return self.nbr.refine()
             self.support[0].refine()
             l, n = self.labda
-            parents = [self, self.nbr]
-            child_left_cons = DiscLinearScaling((l + 1, 2 * n), parents,
-                                                [self.support[0].children[0]])
-            child_left_lin = DiscLinearScaling((l + 1, 2 * n + 1), parents,
-                                               [self.support[0].children[0]])
-            child_right_cons = DiscLinearScaling((l + 1, 2 * n + 2), parents,
-                                                 [self.support[0].children[1]])
-            child_right_lin = DiscLinearScaling((l + 1, 2 * n + 3), parents,
-                                                [self.support[0].children[1]])
-
+            P = [self, self.nbr]
+            child_elts = self.support[0].children
             self.children = [
-                child_left_cons, child_left_lin, child_right_cons,
-                child_right_lin
+                DiscLinearScaling((l + 1, 2 * n + 0), P, [child_elts[0]]),
+                DiscLinearScaling((l + 1, 2 * n + 1), P, [child_elts[0]]),
+                DiscLinearScaling((l + 1, 2 * n + 2), P, [child_elts[1]]),
+                DiscLinearScaling((l + 1, 2 * n + 3), P, [child_elts[1]])
             ]
             self.nbr.children = self.children
 
             # Update neighbouring relations.
-            child_left_cons.nbr = child_left_lin
-            child_left_lin.nbr = child_left_cons
-            child_right_cons.nbr = child_right_lin
-            child_right_lin.nbr = child_right_cons
+            self.children[0].nbr = self.children[1]
+            self.children[1].nbr = self.children[0]
+            self.children[2].nbr = self.children[3]
+            self.children[3].nbr = self.children[2]
         return self.children
 
     def prolongate(self):
