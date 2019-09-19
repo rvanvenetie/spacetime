@@ -196,8 +196,8 @@ class Triangulation:
 
         Arguments:
             elem: reference to a Element2D object.
-            new_vertex_id: index of the new vertex in the `self.vertices` array. If
-                not passed, creates a new vertex.
+            new_vertex: reference to the new vertex in the `self.vertices` array.
+              If not passed, creates a new vertex.
         """
         child1_id = len(self.elements)
         child2_id = len(self.elements) + 1
