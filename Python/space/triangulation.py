@@ -66,8 +66,6 @@ class Vertex(NodeAbstract):
 
 class Element2D(BinaryNodeAbstract):
     """ A element as part of a locally refined triangulation. """
-    __slots__ = ['triangulation', 'labda', 'vertices']
-
     def __init__(self, triangulation, labda, vertices, parent=None):
         """ Instantiates the element object.
 
