@@ -23,3 +23,6 @@ class FunctionNode(NodeAbstract):
     @property
     def level(self):
         return self.labda[0]
+
+    def __repr__(self):
+        return "({}, {})".format(*self.labda)
