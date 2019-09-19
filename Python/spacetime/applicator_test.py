@@ -9,6 +9,7 @@ from .tree_plotter import TreePlotter
 from .tree_test import (FakeHaarNode, corner_index_tree,
                         full_tensor_double_tree, sparse_tensor_double_tree,
                         uniform_index_tree)
+from ..datastructures.function_test import FakeHaarFunction
 
 
 class FakeApplicator(Applicator):
@@ -24,10 +25,10 @@ class FakeApplicator(Applicator):
                          self.FakeSingleApplicator('x'), None, Lambda_out)
 
 
-class FakeFunctionNode(FakeHaarNode):
-    """ Fake nodes refining into 2, representing a function AND an element. """
-    def __init__(self, labda, node_type, parents=None, children=None):
-        super().__init__(labda, node_type, parents, children)
+class FakeHaarFunctionExt(FakeHaarFunction):
+    """ Extend the FakeHaarFunction by fields necessary for the applicator. """
+    def __init__(self, labda, f_type, parents=None, children=None):
+        super().__init__(labda, f_type, parents, children)
         self.Sigma_psi_out = []
 
     @property
@@ -37,8 +38,8 @@ class FakeFunctionNode(FakeHaarNode):
 
 def test_small_sigma():
     """ I computed on a piece of paper what Sigma should be for this combo. """
-    root_time = uniform_index_tree(1, 't', node_class=FakeFunctionNode)
-    root_space = uniform_index_tree(1, 'x', node_class=FakeFunctionNode)
+    root_time = uniform_index_tree(1, 't', node_class=FakeHaarFunctionExt)
+    root_space = uniform_index_tree(1, 'x', node_class=FakeHaarFunctionExt)
     Lambda_in = full_tensor_double_tree(root_time, root_space)
     Lambda_out = full_tensor_double_tree(root_time, root_space)
     applicator = FakeApplicator(Lambda_in, Lambda_out)
@@ -55,11 +56,13 @@ def test_sigma_combinations():
                                  product(range(0, 5), range(0, 5))):
         Lmax = max(L_in[0], L_out[0]), max(L_in[1], L_out[1])
         for roots in product([
-                uniform_index_tree(Lmax[0], 't', node_class=FakeFunctionNode),
-                corner_index_tree(Lmax[0], 't', node_class=FakeFunctionNode)
+                uniform_index_tree(
+                    Lmax[0], 't', node_class=FakeHaarFunctionExt),
+                corner_index_tree(Lmax[0], 't', node_class=FakeHaarFunctionExt)
         ], [
-                uniform_index_tree(Lmax[1], 'x', node_class=FakeFunctionNode),
-                corner_index_tree(Lmax[1], 'x', node_class=FakeFunctionNode)
+                uniform_index_tree(
+                    Lmax[1], 'x', node_class=FakeHaarFunctionExt),
+                corner_index_tree(Lmax[1], 'x', node_class=FakeHaarFunctionExt)
         ]):
             Lambdas_in = [
                 full_tensor_double_tree(*roots, L_in),

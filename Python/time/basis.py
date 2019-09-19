@@ -31,10 +31,9 @@ class Element1D(BinaryNodeAbstract):
 
     def refine(self):
         if not self.children:
-            child_left = self.__class__(self.level + 1, self.node_index * 2,
-                                        self)
-            child_right = self.__class__(self.level + 1,
-                                         self.node_index * 2 + 1, self)
+            child_left = Element1D(self.level + 1, self.node_index * 2, self)
+            child_right = Element1D(self.level + 1, self.node_index * 2 + 1,
+                                    self)
             self.children = [child_left, child_right]
         return self.children
 
