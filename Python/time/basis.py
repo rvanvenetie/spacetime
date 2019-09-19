@@ -1,6 +1,6 @@
 from fractions import Fraction
 
-from linear_operator import LinearOperator
+from .linear_operator import LinearOperator
 
 
 class Element:
@@ -8,7 +8,6 @@ class Element:
 
     The element (l, n) represents an interval on level l given by: [2^(-l)*n, 2^(-l)*(n+1)].
     """
-
     def __init__(self, level, node_index, parent):
         self.level = level
         self.node_index = node_index
@@ -47,7 +46,6 @@ class Element:
 
 class Function:
     """ This is a base class for an object represention a basis function.  """
-
     def __init__(self, labda):
         self.labda = labda
 
@@ -102,7 +100,6 @@ class Wavelet(Function):
 
 class MultiscaleFunctions:
     """ Immutable set of multiscale functions.  """
-
     def __init__(self, functions):
         self.functions = functions
         self.maximum_level = max([fn.labda[0] for fn in functions])

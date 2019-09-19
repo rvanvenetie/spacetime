@@ -4,7 +4,7 @@ from matplotlib.collections import PatchCollection
 import matplotlib.pyplot as plt
 import numpy as np
 
-from tree import DoubleTree
+from .tree import DoubleTree
 
 
 class TreePlotter:

@@ -3,12 +3,12 @@ from collections import defaultdict
 import numpy as np
 from pytest import approx
 
-import operators
-from haar_basis import HaarBasis
-from linear_operator_test import check_linop_transpose
-from orthonormal_basis import OrthonormalBasis
-from sparse_vector import SparseVector
-from three_point_basis import ThreePointBasis
+from . import operators
+from .haar_basis import HaarBasis
+from .linear_operator_test import check_linop_transpose
+from .orthonormal_basis import OrthonormalBasis
+from .sparse_vector import SparseVector
+from .three_point_basis import ThreePointBasis
 
 
 def test_haar_scaling_mass():
@@ -23,8 +23,8 @@ def test_haar_scaling_mass():
         for _ in range(100):
             d = SparseVector(indices, np.random.rand(2**l))
             res = mass.matvec(d, set(indices), indices)
-            assert np.allclose(
-                d.asarray(indices), 2.0**l * res.asarray(indices))
+            assert np.allclose(d.asarray(indices),
+                               2.0**l * res.asarray(indices))
 
 
 def test_ortho_scaling_mass():
@@ -39,8 +39,8 @@ def test_ortho_scaling_mass():
         for _ in range(100):
             d = SparseVector(indices, np.random.rand(2**(l + 1)))
             res = mass.matvec(d, set(indices), indices)
-            assert np.allclose(
-                d.asarray(indices), 2.0**l * res.asarray(indices))
+            assert np.allclose(d.asarray(indices),
+                               2.0**l * res.asarray(indices))
 
 
 def test_three_point_scaling_mass():

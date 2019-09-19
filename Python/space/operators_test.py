@@ -2,8 +2,8 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.sparse.linalg import cg
 
-from operators import Operators
-from triangulation import Triangulation
+from .operators import Operators
+from .triangulation import Triangulation
 
 
 def test_transformation():

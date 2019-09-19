@@ -4,8 +4,8 @@ from pprint import pprint
 
 import pytest
 
-from datastructures.tree import MetaRoot
-from tree import *
+from ..datastructures.tree import MetaRoot
+from .tree import *
 
 
 class FakeNode(Node):

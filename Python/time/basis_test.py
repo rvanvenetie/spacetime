@@ -1,14 +1,13 @@
 from fractions import Fraction
-
 import matplotlib.pyplot as plt
 import numpy as np
 from pytest import approx
 
-from basis import Scaling, Wavelet
-from haar_basis import HaarBasis
-from linear_operator_test import check_linop_transpose
-from orthonormal_basis import OrthonormalBasis
-from three_point_basis import ThreePointBasis
+from .basis import Scaling, Wavelet
+from .haar_basis import HaarBasis
+from .linear_operator_test import check_linop_transpose
+from .orthonormal_basis import OrthonormalBasis
+from .three_point_basis import ThreePointBasis
 
 
 def test_haar_mother_functions():
@@ -131,8 +130,8 @@ def test_3pt_local_refinement():
         assert len(Lambda.per_level[l]) == 2
         assert len(Delta.per_level[l]) <= 6
         assert {psi.labda
-                for psi in Lambda.per_level[l]} == {(l, 0), (l,
-                                                             2**(l - 1) - 1)}
+                for psi in Lambda.per_level[l]} == {(l, 0),
+                                                    (l, 2**(l - 1) - 1)}
 
 
 def test_basis_PQ():
