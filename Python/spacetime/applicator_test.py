@@ -35,6 +35,8 @@ class FakeHaarFunctionExt(FakeHaarFunction):
     def support(self):
         return [self]
 
+def test_spacetime_tree():
+    root_time = uniform_index_tree(1, 
 
 def test_small_sigma():
     """ I computed on a piece of paper what Sigma should be for this combo. """
@@ -46,6 +48,7 @@ def test_small_sigma():
     sigma = applicator.sigma()
     assert [n.nodes[0].labda for n in sigma.bfs()] == [(0, 0), (0, 0), (0, 0)]
     assert [n.nodes[1].labda for n in sigma.bfs()] == [(0, 0), (1, 0), (1, 1)]
+
 
 
 def test_sigma_combinations():

@@ -7,6 +7,9 @@ class Node(NodeAbstract):
     def __init__(self, parents=None, children=None):
         super().__init__()
 
+    def level(self):
+        raise NotImplementedError("Cannot call level on fake class.")
+
     def is_full(self):
         raise NotImplementedError("Cannot call is_full on fake class.")
 
@@ -17,6 +20,9 @@ class Node(NodeAbstract):
 class BinaryNode(BinaryNodeAbstract):
     def __init__(self, parent=None, children=None):
         super().__init__(parent, children)
+
+    def level(self):
+        raise NotImplementedError("Cannot call level on fake class.")
 
     def refine(self):
         raise NotImplementedError("Cannot call refine on fake class.")
