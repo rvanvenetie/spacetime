@@ -34,8 +34,9 @@ class NodeView(NodeAbstract):
     def refine(self, make_conforming=False, refine_underlying_tree=False):
         """ Refines the tree view according to the real tree.
         
-        If refine_underlying_tree is true, this will refine the actual tree
-        if necessary. """
+        Args:
+          make_conforming: In case not all parents are present of the children.
+          refine_underlying_tree: Refine the underlying tree if necessary."""
         if refine_underlying_tree: self.node.refine()
         for child in self.node.children:
             # Check if we already have this child.
