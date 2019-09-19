@@ -65,6 +65,13 @@ class MetaRoot(NodeAbstract):
 
     def refine(self):
         return self.children
+      
+    @property
+    def roots(self):
+        """ The roots this MetaRoot is representing (simply the children). """
+        return self.children
+      
+
 
     def bfs(self, include_metaroot=False):
         """ Performs a BFS on the family tree rooted at `self`.

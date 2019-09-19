@@ -1,16 +1,14 @@
 import itertools
 from collections import defaultdict, deque
 
+from datastructures.tree import MetaRoot, NodeAbstract, NodeInterface
 
-class Node:
+
+class Node(NodeAbstract):
     """ Represents a node in a single coordinate. """
     def __init__(self, labda, parents=None, children=None):
+        super().__init__(parents, children)
         self.labda = labda
-        self.parents = parents if parents else []
-        self.children = children if children else []
-
-        # Create a marked field; useful for bfs/dfs.
-        self.marked = False
 
     def refine(self):
         pass
@@ -24,40 +22,6 @@ class Node:
 
     def bfs(self):
         return bfs(self)
-
-    def is_full(self):
-        pass
-
-
-class MetaRoot:
-    """ Represents the (multiple) roots of a (family)tree.
-    
-    This `meta root` is registered in the actual roots, and therefore becomes
-    part of the tree.
-    """
-    def __init__(self, roots):
-        if not isinstance(roots, list): roots = [roots]
-        self.roots = roots
-        self.marked = False
-
-        # Register this root as the parent of the actual roots.
-        for root in roots:
-            assert isinstance(root, Node)
-            assert not root.parents
-            root.parents = [self]
-
-    def bfs(self, include_meta_root=False):
-        return bfs(self, include_meta_root=include_meta_root)
-
-    @property
-    def parents(self):
-        """ Implement this for ease of further computations. """
-        return []
-
-    @property
-    def children(self):
-        """ Fakes this tree property. """
-        return self.roots
 
 
 def pair(i, item_i, item_not_i):
@@ -191,7 +155,7 @@ class DoubleNode:
         return "{} x {}".format(self.nodes[0], self.nodes[1])
 
 
-class FrozenDoubleNode:
+class FrozenDoubleNode(NodeInterface):
     """ A double node that is frozen in a single coordinate.
     
     The resulting object acts like a single node in the other coordinate.
