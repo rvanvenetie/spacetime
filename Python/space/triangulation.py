@@ -72,9 +72,9 @@ class Element(BinaryNodeAbstract):
         self.labda = labda
         self.vertices = vertices
         self.children = []  # References to the children of this element.
+
         # Indices of my neighbours, ordered by the edge opposite vertex i.
         self.neighbours = [None, None, None]
-
         if parent:
             self.area = parent.area / 2
 
