@@ -18,7 +18,7 @@ class DiscConstScaling(basis.Scaling):
 
     def refine(self):
         if self.children: return self.children
-        self.support[0].bisect()
+        self.support[0].refine()
         l, n = self.labda
         self.children.append(
             DiscConstScaling((l + 1, 2 * n), self,

@@ -40,7 +40,7 @@ class DiscLinearScaling(basis.Scaling):
     def refine(self):
         if self.children: return self.children
         if not self.pw_constant: return self.nbr.refine()
-        self.support[0].bisect()
+        self.support[0].refine()
         l, n = self.labda
         parents = [self, self.nbr]
         child_left_cons = DiscLinearScaling((l + 1, 2 * n), parents,

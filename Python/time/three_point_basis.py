@@ -36,7 +36,7 @@ class ContLinearScaling(basis.Scaling):
 
         # Calculate the support of the refined hat.
         for elem in self.support:
-            elem.bisect()
+            elem.refine()
         child_support = []
         if n > 0: child_support.append(self.support[0].children[1])
         if n < 2**l: child_support.append(self.support[-1].children[0])
