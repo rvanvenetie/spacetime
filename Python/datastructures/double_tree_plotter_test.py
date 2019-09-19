@@ -1,4 +1,7 @@
-from .double_tree_plotter import DoubleTree
+import matplotlib.pyplot as plt
+
+from .double_tree import DoubleTree
+from .double_tree_plotter import DoubleTreePlotter
 from .double_tree_test import (corner_index_tree, full_tensor_double_tree,
                                random_double_tree, sparse_tensor_double_tree,
                                uniform_index_tree)
@@ -15,8 +18,9 @@ def show_rectangle_plot():
                                7,
                                N=500),
     ]:
-        treeplotter = TreePlotter(DoubleTree(dt_root))
+        treeplotter = DoubleTreePlotter(DoubleTree(dt_root))
         treeplotter.plot_support_rectangles()
+        plt.show()
 
 
 def show_matplotlib_graph():
@@ -30,7 +34,7 @@ def show_matplotlib_graph():
                                7,
                                N=500),
     ]:
-        treeplotter = TreePlotter(DoubleTree(dt_root))
+        treeplotter = DoubleTreePlotter(DoubleTree(dt_root))
         treeplotter.plot_matplotlib_graph(i_in=0)
         treeplotter.plot_matplotlib_graph(i_in=1)
         plt.show()
@@ -47,8 +51,9 @@ def show_level_dots():
                                7,
                                N=500),
     ]:
-        treeplotter = TreePlotter(DoubleTree(dt_root))
-        print(treeplotter.plot_level_dots())
+        treeplotter = DoubleTreePlotter(DoubleTree(dt_root))
+        treeplotter.plot_level_dots()
+        plt.show()
 
 
 if __name__ == "__main__":
