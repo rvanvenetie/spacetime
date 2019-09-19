@@ -34,19 +34,16 @@ class Vertex(NodeAbstract):
         self.x = x
         self.y = y
         self.on_domain_boundary = on_domain_boundary
-        self.refined = False
-
         self.patch = patch if patch else []
 
         # Sanity check.
         assert (all([p.level == self.level - 1 for p in self.parents]))
 
     def refine(self):
-        if not self.refined:
-            # Refine the elements in the patch surrounding this vertex.
+        # It might the case this vertex never gets children..
+        if not self.children:
             for elem in self.patch:
                 elem.refine()
-            self.refined = True
         return self.children
 
     def is_full(self):
