@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 
 from .double_tree import DoubleTree
+from .tree_plotter import TreePlotter
 from .double_tree_plotter import DoubleTreePlotter
 from .double_tree_test import (corner_index_tree, full_tensor_double_tree,
                                random_double_tree, sparse_tensor_double_tree,
@@ -41,7 +42,7 @@ def show_matplotlib_graph():
 
 def show_spacetime_tree():
     T = Triangulation.unit_square()
-    for _ in range(4):
+    for _ in range(5):
         T.refine_uniform()
     dt_root = full_tensor_double_tree(uniform_index_tree(5, 't'),
                                       T.vertex_meta_root)

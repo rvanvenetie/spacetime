@@ -242,7 +242,7 @@ class FrozenDoubleNode(NodeInterface):
 
 class DoubleTree:
     def __init__(self, root):
-        assert isinstance(root, DoubleNode)
+        assert all(isinstance(root.nodes[i], MetaRoot) for i in [0, 1])
         self.root = root
         self.compute_fibers()
 
