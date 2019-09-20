@@ -59,7 +59,7 @@ class Vertex(NodeAbstract):
         return np.array([self.x, self.y], dtype=float)
 
     def __repr__(self):
-        return '{}'.format(self.labda)
+        return 'V{}'.format(self.labda)
 
 
 class Element2D(BinaryNodeAbstract):
@@ -113,7 +113,7 @@ class Element2D(BinaryNodeAbstract):
         return self.labda[1]
 
     def __repr__(self):
-        return '{}: {}'.format(self.labda, self.vertices)
+        return 'Element2D{}: {}'.format(self.labda, self.vertices)
 
 
 class Triangulation:
