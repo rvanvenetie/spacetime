@@ -45,10 +45,6 @@ class NodeInterface(ABC):
     def is_leaf(self):
         return len(self.children) == 0
 
-    def shallow_copy(self):
-        """ Produces a shallow copy of `self`. """
-        return self.__class__()
-
 
 class NodeAbstract(NodeInterface):
     """ Partial impl. of NodeInterface, using variables for the properties. """
@@ -144,33 +140,6 @@ class MetaRoot(NodeAbstract):
         if not include_metaroot:
             return nodes[1:]
         return nodes
-
-    def shallow_copy(self):
-        new = super().shallow_copy()
-        new.roots = [root.shallow_copy() for root in self.roots]
-
-    def deep_copy(self):
-        """ Produces a deep copy of `self`. """
-        other = MetaRoot([root.shallow_copy() for root in self.roots])
-        queue = deque()
-        queue.append((other, self))
-        nodes = []
-        while queue:
-            new_node, my_node = queue.popleft()
-            new_node.shallow_copy_from(my_node)
-
-            if my_node.marked: continue
-            my_node.marked = True
-            nodes.append(my_node)
-
-            if my_node.children:
-                new_children = new_node.refine(
-                    children=[c.node for c in my_node.children])
-                queue.extend(zip(new_children, my_node.children))
-        for node in nodes:
-            node.marked = False
-
-        return other
 
     def __repr__(self):
         return "MR(%s)" % self.roots

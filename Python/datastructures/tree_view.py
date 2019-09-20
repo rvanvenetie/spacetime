@@ -3,36 +3,6 @@ from collections import deque
 from .tree import MetaRoot, NodeAbstract, NodeInterface
 
 
-class MetaRootView(MetaRoot):
-    def deep_copy(self):
-        """ Deep-copies `self` into a new NodeView tree. """
-        other = self.__class__(self.node, parents=None, children=None)
-        queue = deque()
-        queue.append((other, self))
-        nodes = []
-        while queue:
-            new_node, my_node = queue.popleft()
-            assert new_node.node == my_node.node
-            new_node.shallow_copy_from(my_node)
-
-            if my_node.marked: continue
-            my_node.marked = True
-            nodes.append(my_node)
-
-            if my_node.children:
-                print(my_node, my_node.node,
-                      [c.node for c in my_node.children])
-                new_children = new_node.refine(
-                    children=[c.node for c in my_node.children])
-                print("hier")
-                assert len(new_children) == len(my_node.children)
-                queue.extend(zip(new_children, my_node.children))
-        for node in nodes:
-            node.marked = False
-
-        return other
-
-
 class NodeView(NodeAbstract):
     """ This defines a `view` or `subtree` of an existing underlying tree. """
     __slots__ = ['node']
@@ -106,20 +76,36 @@ class NodeView(NodeAbstract):
 
         return self.children
 
-    def refine_until_complete(self):
-        """ Refine until we contain all nodes of the underlying tree. """
-        to_refine = deque()
-        to_refine.append(self)
-        while to_refine:
-            node = to_refine.popleft()
-            if node.is_leaf() or not node.is_full():
-                print("refining node ", node.node, node.node.children)
-                to_refine.extend(node.refine())
-
-    def shallow_copy_from(self, other):
+    def copy_data_from(self, other):
         """ Copies the appropriate fields from `other` into `self`. """
         assert type(self) == type(other)
-        self.node = other.node
+        pass
+
+
+class MetaRootView(MetaRoot):
+    def deep_copy(self):
+        """ Deep-copies `self` into a new NodeView tree. """
+        other = self.__class__(self.node, parents=None, children=None)
+        queue = deque()
+        queue.append((other, self))
+        nodes = []
+        while queue:
+            new_node, my_node = queue.popleft()
+            new_node.shallow_copy_from(my_node)
+
+            if my_node.marked: continue
+            my_node.marked = True
+            nodes.append(my_node)
+
+            if my_node.children:
+                new_children = new_node.refine(
+                    children=[c.node for c in my_node.children])
+                assert len(new_children) == len(my_node.children)
+                queue.extend(zip(new_children, my_node.children))
+        for node in nodes:
+            node.marked = False
+
+        return other
 
 
 class NodeVector(NodeView):
