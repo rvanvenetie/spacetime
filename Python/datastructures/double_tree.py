@@ -227,7 +227,7 @@ class FrozenDoubleNode(NodeInterface):
         return self.dbl_node.coarsen()
 
     def is_full(self):
-        return self.node.is_full()
+        return self.dbl_node.is_full(self.i)
 
     def bfs(self, include_meta_root=False):
         nodes = self.dbl_node.bfs(self.i, include_meta_root)
