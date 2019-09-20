@@ -15,6 +15,7 @@ class NodeInterface(ABC):
         """ Refines this node to ensure it is full. Returns all children. """
         pass
 
+    @property
     @abstractmethod
     def level(self):
         """ The level of this node. Root has level 0, its children 1, etc. """
@@ -95,6 +96,7 @@ class MetaRoot(NodeAbstract):
     def refine(self):
         return self.children
 
+    @property
     def level(self):
         return -1
 
@@ -138,3 +140,6 @@ class MetaRoot(NodeAbstract):
         if not include_metaroot:
             return nodes[1:]
         return nodes
+
+    def __repr__(self):
+        return "MR(%s)" % self.roots

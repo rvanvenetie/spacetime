@@ -81,3 +81,9 @@ def test_vertex_tree():
     for vertex in T.vertices:
         assert vertex.level <= 3
     assert len(T.elements) == (2**4 - 1) * len(T.elem_meta_root.roots)
+
+
+def test_refined_tree():
+    T = Triangulation.unit_square()
+    for _ in range(5):
+        T.refine_uniform()
