@@ -82,15 +82,11 @@ class NodeView(NodeAbstract):
 
 
 class MetaRootView(MetaRoot):
-    def copy_data_from(self, other):
-        pass
-
     def deep_copy(self):
         """ Deep-copies `self` into a new NodeView tree. """
         new_roots = []
         for root in self.roots:
             new_root = root.__class__(root.node)
-            new_root.copy_data_from(root)
             new_roots.append(new_root)
         other = self.__class__(roots=new_roots)
 
@@ -99,9 +95,9 @@ class MetaRootView(MetaRoot):
         nodes = []
         while queue:
             new_node, my_node = queue.popleft()
-            new_node.copy_data_from(my_node)
-
             if my_node.marked: continue
+
+            new_node.copy_data_from(my_node)
             my_node.marked = True
             nodes.append(my_node)
 
