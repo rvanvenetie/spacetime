@@ -2,7 +2,7 @@ from .basis import HierarchicalBasisFunction
 from .triangulation import Triangulation
 
 
-def test_hierarhical_basis():
+def test_hierarchical_basis():
     T = Triangulation.unit_square()
     basis_meta_root = HierarchicalBasisFunction.from_triangulation(T)
     assert basis_meta_root.is_full()
@@ -12,7 +12,7 @@ def test_hierarhical_basis():
     assert len(T.elements) == 2
 
 
-def test_refine_hierarhical_basis():
+def test_refine_hierarchical_basis():
     T = Triangulation.unit_square()
     basis_meta_root = HierarchicalBasisFunction.from_triangulation(T)
     for root in basis_meta_root.roots:
