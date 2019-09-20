@@ -1,7 +1,7 @@
 from fractions import Fraction
 
-from ..datastructures.tree import BinaryNodeAbstract
 from ..datastructures.function import FunctionNode
+from ..datastructures.tree import BinaryNodeAbstract
 from .linear_operator import LinearOperator
 
 
@@ -10,6 +10,11 @@ class Element1D(BinaryNodeAbstract):
 
     The element (l, n) is an interval on level l given by: [2^-l*n, 2^-l*(n+1)].
     """
+    __slots__ = [
+        'level', 'node_index', 'phi_disc_const', 'phi_disc_lin',
+        'phi_cont_lin', 'Lambda_in', 'Lambda_out', 'Pi_in', 'Pi_out'
+    ]
+
     def __init__(self, level, node_index, parent=None):
         super().__init__(parent=parent, children=None)
 

@@ -32,14 +32,17 @@ class Vertex(NodeAbstract):
         self.x = x
         self.y = y
         self.on_domain_boundary = on_domain_boundary
-
         self.patch = patch if patch else []
 
         # Sanity check.
         assert (all([p.level == self.level - 1 for p in self.parents]))
 
     def refine(self):
-        raise TypeError('Refine not possible on a vertex')
+        # It might the case this vertex never gets children..
+        if not self.children:
+            for elem in self.patch:
+                elem.refine()
+        return self.children
 
     def is_full(self):
         return not self.children or len(self.children) == len(self.patch)
@@ -59,7 +62,7 @@ class Vertex(NodeAbstract):
         return '{}'.format(self.labda)
 
 
-class Element(BinaryNodeAbstract):
+class Element2D(BinaryNodeAbstract):
     """ A element as part of a locally refined triangulation. """
     def __init__(self, triangulation, labda, vertices, parent=None):
         """ Instantiates the element object.
@@ -126,7 +129,7 @@ class Triangulation:
             for i, vert in enumerate(vertices)
         ]
         self.elements = [
-            Element(self, (0, i), [self.vertices[idx] for idx in elem])
+            Element2D(self, (0, i), [self.vertices[idx] for idx in elem])
             for (i, elem) in enumerate(elements)
         ]
         self.elem_meta_root = MetaRoot(self.elements.copy())
@@ -192,18 +195,18 @@ class Triangulation:
         """ Bisects a given element using Newest Vertex Bisection.
 
         Arguments:
-            elem: reference to a Element object.
-            new_vertex_id: index of the new vertex in the `self.vertices` array. If
-                not passed, creates a new vertex.
+            elem: reference to a Element2D object.
+            new_vertex: reference to the new vertex in the `self.vertices` array.
+              If not passed, creates a new vertex.
         """
         child1_id = len(self.elements)
         child2_id = len(self.elements) + 1
-        child1 = Element(self, (elem.level + 1, child1_id),
-                         [new_vertex, elem.vertices[0], elem.vertices[1]],
-                         parent=elem)
-        child2 = Element(self, (elem.level + 1, child2_id),
-                         [new_vertex, elem.vertices[2], elem.vertices[0]],
-                         parent=elem)
+        child1 = Element2D(self, (elem.level + 1, child1_id),
+                           [new_vertex, elem.vertices[0], elem.vertices[1]],
+                           parent=elem)
+        child2 = Element2D(self, (elem.level + 1, child2_id),
+                           [new_vertex, elem.vertices[2], elem.vertices[0]],
+                           parent=elem)
 
         self.elements.extend([child1, child2])
         # NB: the neighbours along the newly created edges are not set.

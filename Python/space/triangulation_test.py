@@ -67,3 +67,17 @@ def test_elem_tree():
 
     for elem in T.elements:
         assert elem.level <= 3
+
+
+def test_vertex_tree():
+    T = Triangulation.unit_square()
+    vertex_meta_root = T.vertex_meta_root
+    assert vertex_meta_root.is_full()
+    for root in vertex_meta_root.roots:
+        assert root.level == 0
+
+    vertex_meta_root.uniform_refine(3)
+    assert set(vertex_meta_root.bfs()) == set(T.vertices)
+    for vertex in T.vertices:
+        assert vertex.level <= 3
+    assert len(T.elements) == (2**4 - 1) * len(T.elem_meta_root.roots)
