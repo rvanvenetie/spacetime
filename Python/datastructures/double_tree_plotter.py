@@ -49,18 +49,19 @@ class DoubleTreePlotter:
             event.artist.figure.canvas.draw_idle()
 
             # Update the right subplot to show the single-tree.
-            new_G = nx_graph_rooted_at(double_node, i=not i)
+            new_G = nx_graph_rooted_at(
+                self.doubletree.fiber(not i, double_node.node))
             ax[1].clear()
             plot_network(new_G,
                          ax=ax[1],
                          layout=lambda x: graphviz_layout(new_G, prog='dot'))
             ax[1].set_title("Fiber of %s in axis %d" %
-                            (double_node.nodes[i], not i))
+                            (double_node.node, not i))
             plt.draw()
 
         fig, axes = plt.subplots(2, 1)
         # Show the single tree in the left subplot.
-        G = nx_graph_rooted_at(self.doubletree.root, i_in)
+        G = nx_graph_rooted_at(self.doubletree.project(i_in))
         axes[0].set_title("Projection in axis %d" % i_in)
         art0 = plot_network(G,
                             ax=axes[0],
@@ -91,12 +92,12 @@ class DoubleTreePlotter:
         return dots
 
 
-def nx_graph_rooted_at(root, i):
+def nx_graph_rooted_at(root):
     import networkx as nx
     G = nx.DiGraph()
-    nodes = root.bfs(i)
+    nodes = root.bfs()
     for node in nodes:
         G.add_node(node)
-        for child in node.children[i]:
+        for child in node.children:
             G.add_edge(node, child)
     return G

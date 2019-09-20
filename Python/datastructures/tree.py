@@ -138,3 +138,6 @@ class MetaRoot(NodeAbstract):
         if not include_metaroot:
             return nodes[1:]
         return nodes
+
+    def __repr__(self):
+        return "MR(%s)" % self.roots

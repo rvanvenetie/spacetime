@@ -18,7 +18,7 @@ def show_rectangle_plot():
                                7,
                                N=500),
     ]:
-        treeplotter = DoubleTreePlotter(DoubleTree(dt_root))
+        treeplotter = DoubleTreePlotter(dt_root)
         treeplotter.plot_support_rectangles()
         plt.show()
 
@@ -34,7 +34,7 @@ def show_matplotlib_graph():
                                7,
                                N=500),
     ]:
-        treeplotter = DoubleTreePlotter(DoubleTree(dt_root))
+        treeplotter = DoubleTreePlotter(dt_root)
         treeplotter.plot_matplotlib_graph(i_in=0)
         treeplotter.plot_matplotlib_graph(i_in=1)
         plt.show()
@@ -51,7 +51,7 @@ def show_level_dots():
                                7,
                                N=500),
     ]:
-        treeplotter = DoubleTreePlotter(DoubleTree(dt_root))
+        treeplotter = DoubleTreePlotter(dt_root)
         treeplotter.plot_level_dots()
         plt.show()
 

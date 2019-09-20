@@ -133,7 +133,7 @@ class DoubleNode:
         
         Args:
             i: if set, this assumes we are bfs'ing inside a specific axis.
-            include_meta_root: if false, this will filter out all meta root nodes.
+            include_meta_root: if false, filter out all MetaRoot nodes.
         """
         queue = deque()
         queue.append(self)
@@ -229,6 +229,9 @@ class FrozenDoubleNode(NodeInterface):
     def __repr__(self):
         return '{} x {}'.format(*_pair(self.i, self.node, '_'))
 
+    def __hash__(self):
+        return hash((self.dbl_node, self.i))
+
     def __eq__(self, other):
         if isinstance(other, FrozenDoubleNode):
             return self.i == other.i and self.dbl_node == other.dbl_node
@@ -238,6 +241,7 @@ class FrozenDoubleNode(NodeInterface):
 
 class DoubleTree:
     def __init__(self, root):
+        assert isinstance(root, DoubleNode)
         self.root = root
         self.compute_fibers()
 
