@@ -29,7 +29,7 @@ class FakeHaarFunction(FakeFunctionNode):
         return self.children
 
     def is_full(self):
-        return len(self.children) in [0, 2]
+        return len(self.children) == 2
 
 
 class FakeOrthoFunction(FakeFunctionNode):
@@ -69,7 +69,7 @@ class FakeOrthoFunction(FakeFunctionNode):
         return self.children
 
     def is_full(self):
-        return len(self.children) in [0, 4]
+        return len(self.children) == 4
 
 
 def test_haar_function():

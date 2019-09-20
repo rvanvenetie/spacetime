@@ -34,6 +34,12 @@ class DoubleNode:
     def is_leaf(self):
         return len(self.children[0]) == 0 and len(self.children[1]) == 0
 
+    def is_full(self, i=None):
+        if i is None:
+            return self.is_full(0) and self.is_full(1)
+        else:
+            return len(self.children[i]) == len(self.nodes[i].children)
+
     def find_brother(self, i, nodes):
         """ Finds the given brother in the given axis.
         
@@ -65,6 +71,8 @@ class DoubleNode:
         If the node that will be introduced has multiple parents, then these
         must be brothers of self (and already exist).
         """
+        if self.is_full(i): return self.children[i]
+
         for child_i in self.nodes[i].children:
             child_nodes = _pair(i, child_i, self.nodes[not i])
 
