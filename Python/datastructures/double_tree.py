@@ -120,7 +120,7 @@ class DoubleNode:
         while queue:
             my_node, other_node = queue.popleft()
             assert my_node.nodes[i] == other_node.node
-            assert other_node.node.is_full()
+            assert other_node.node.is_leaf() or other_node.node.is_full()
             if my_node.marked: continue
             my_node.marked = True
             nodes.append(my_node)
