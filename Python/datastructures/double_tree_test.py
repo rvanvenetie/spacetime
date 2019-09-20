@@ -6,8 +6,8 @@ import pytest
 
 from .double_tree import DoubleNode, DoubleTree
 from .function_test import FakeHaarFunction, FakeOrthoFunction
-from .tree_test import uniform_index_tree, corner_index_tree
 from .tree import MetaRoot
+from .tree_test import corner_index_tree, uniform_index_tree
 
 
 class DebugDoubleNode(DoubleNode):
@@ -38,9 +38,7 @@ def full_tensor_double_tree(meta_root_time, meta_root_space, max_levels=None):
         for i in [0, 1]:
             if max_levels and double_node.nodes[i].level >= max_levels[i]:
                 continue
-            if len(double_node.children[i]) == \
-               len(double_node.nodes[i].children):
-                continue
+            if double_node.is_full(i): continue
             children = double_node.refine(i)
             queue.extend(children)
 
