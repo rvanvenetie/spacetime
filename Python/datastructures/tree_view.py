@@ -51,8 +51,8 @@ class NodeView(NodeAbstract):
 
             # Find the parents of the to be created child.
             brothers_view = []
-            for parent_child in child.parents:
-                brother_view = self.find_brother(parent_child)
+            for brother in child.parents:
+                brother_view = self.find_brother(brother)
 
                 # If a parent of the to be created child is missing, then
                 # create it if `make_conforming` is set to true.
@@ -60,9 +60,9 @@ class NodeView(NodeAbstract):
                     if not make_conforming: assert False
                     # Create this missing brother.
                     for parent_view in self.parents:
-                        parent_view.refine(children=[parent_child],
+                        parent_view.refine(children=[brother],
                                            make_conforming=True)
-                    brother_view = self.find_brother(parent_child)
+                    brother_view = self.find_brother(brother)
 
                 # The brother_view must now exist.
                 assert brother_view
