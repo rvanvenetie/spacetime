@@ -38,7 +38,9 @@ def full_tensor_double_tree(meta_root_time, meta_root_space, max_levels=None):
         for i in [0, 1]:
             if max_levels and double_node.nodes[i].level >= max_levels[i]:
                 continue
-            if double_node.children[i]: continue
+            if len(double_node.children[i]) == \
+               len(double_node.nodes[i].children):
+                continue
             children = double_node.refine(i)
             queue.extend(children)
 
