@@ -17,7 +17,8 @@ def test_refine_hierarhical_basis():
     basis_meta_root = HierarchicalBasisFunction.from_triangulation(T)
     for root in basis_meta_root.roots:
         assert root.is_full()
-        root.refine(refine_underlying_tree=True)
+        root.node.refine()
+        root.refine()
     assert len(T.elements) == 6
     assert len(T.vertices) == 5
     assert len(basis_meta_root.bfs()) == 5
@@ -25,6 +26,6 @@ def test_refine_hierarhical_basis():
     leaves = set([f for f in basis_meta_root.bfs() if f.is_leaf()])
     for i in range(400):
         f = leaves.pop()
-        leaves.update(
-            f.refine(make_conforming=True, refine_underlying_tree=True))
+        f.node.refine()
+        leaves.update(f.refine())
         assert len(basis_meta_root.bfs()) == len(T.vertices)

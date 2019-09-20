@@ -31,35 +31,45 @@ class NodeView(NodeAbstract):
                     return sibling
         return None
 
-    def refine(self, make_conforming=False, refine_underlying_tree=False):
-        """ Refines the tree view according to the real tree.
+    def refine(self, children=None, make_conforming=True):
+        """ Refines all children in the tree view according to the real tree.
         
         Args:
-          make_conforming: In case not all parents are present of the children.
-          refine_underlying_tree: Refine the underlying tree if necessary."""
-        if refine_underlying_tree: self.node.refine()
-        for child in self.node.children:
+          children: If set, the list of children to create. If none, refine
+                    all children that exist in the underlying tree.
+          make_conforming: Ensure that the tree constraint is maintained.
+        """
+        if children is None:
+            children = self.node.children
+
+        for child in children:
+            # If this child does not exist in underlying tree, we can stop.
+            if child not in self.node.children: continue
+
             # Check if we already have this child.
             if child in (n.node for n in self.children): continue
 
             # Find the parents of the to be created child.
-            brothers_view = [
-                self.find_brother(parent) for parent in child.parents
-            ]
+            brothers_view = []
+            for parent_child in child.parents:
+                brother_view = self.find_brother(parent_child)
 
-            # We are missing a brother.
-            if None in brothers_view:
-                if not make_conforming: assert False
+                # If a parent of the to be created child is missing, then
+                # create it if `make_conforming` is set to true.
+                if brother_view is None:
+                    if not make_conforming: assert False
+                    # Create this missing brother.
+                    for parent_view in self.parents:
+                        parent_view.refine(children=[parent_child],
+                                           make_conforming=True)
+                    brother_view = self.find_brother(parent_child)
 
-                # We want to ensure this brother exists, so recurse.
-                for parent in self.parents:
-                    parent.refine(make_conforming=True,
-                                  refine_underlying_tree=False)
-
-                # Brothers of self should now exist, try again.
-                return self.refine(make_conforming, refine_underlying_tree)
+                # The brother_view must now exist.
+                assert brother_view
+                brothers_view.append(brother_view)
 
             child_view = self.__class__(child, parents=brothers_view)
             for brother_view in brothers_view:
                 brother_view.children.append(child_view)
+
         return self.children
