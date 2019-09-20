@@ -111,5 +111,70 @@ class MetaRootView(MetaRoot):
 
         return other
 
+    def union(self, other, callback):
+        assert isinstance(other, MetaRootView)
+        queue = deque()
+        queue.extend(zip(self.roots, other.roots))
+        nodes = []
+        while queue:
+            my_node, other_node = queue.popleft()
+            assert type(my_node) == type(other_node)
+            assert my_node.node == other_node.node
+            if my_node.marked: continue
+
+            callback(my_node, other_node)
+            my_node.marked = True
+            nodes.append(my_node)
+
+            if other_node.children:
+                my_node.refine(children=[c.node for c in other_node.children])
+            assert len(my_node.children) >= len(other_node.children)
+
+            # Hidden "quadratic" loop, RIP..
+            for other_child in other_node.children:
+                for my_child in my_node.children:
+                    # Assumes that NodeInterface.__eq__ is implemented :O
+                    if other_child.node == my_child.node:
+                        queue.append((my_child, other_child))
+        for node in nodes:
+            node.marked = False
+        return self
+
+    def __iadd__(self, other):
+        def callback(my_node, other_node):
+            my_node += other_node
+
+        return self.union(other, callback=callback)
+
+    def __imul__(self, number):
+        assert isinstance(number, float)
+        for node in self.bfs():
+            node *= number
+        return self
+
     def __repr__(self):
         return "MRV(%s)" % self.roots
+
+
+class NodeVector(NodeView):
+    """ This is a vector on a subtree of an existing underlying tree. """
+    def __init__(self, node, value=0.0, parents=None, children=None):
+        assert isinstance(node, NodeInterface)
+        super().__init__(node, parents=parents, children=children)
+        self.value = value
+
+    @property
+    def level(self):
+        return self.node.level
+
+    def copy_data_from(self, other):
+        super().copy_data_from(other)
+        self.value = other.value
+
+    def __iadd__(self, other):
+        self.value += other.value
+        return self
+
+    def __imul__(self, number):
+        self.value *= number
+        return self

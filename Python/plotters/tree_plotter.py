@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from .tree import NodeInterface
+from ..datastructures.tree import NodeInterface
 
 
 class TreePlotter:
