@@ -11,7 +11,6 @@ class Vertex(NodeAbstract):
     Vertices also form a (family)tree, induced by the NVB-relation.
 
     Args:
-      triangulation: the triangulation object. #TODO: should be removed.
       labda: (level, idx), for idx the index in the triang.vertices array.
       x,y: the physical coordinates
       on_domain_boundary: does this vertex lie on the domain boundary?

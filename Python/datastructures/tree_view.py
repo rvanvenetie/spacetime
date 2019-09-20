@@ -79,19 +79,27 @@ class NodeView(NodeAbstract):
     def copy_data_from(self, other):
         """ Copies the appropriate fields from `other` into `self`. """
         assert type(self) == type(other)
-        pass
 
 
 class MetaRootView(MetaRoot):
+    def copy_data_from(self, other):
+        pass
+
     def deep_copy(self):
         """ Deep-copies `self` into a new NodeView tree. """
-        other = self.__class__(self.node, parents=None, children=None)
+        new_roots = []
+        for root in self.roots:
+            new_root = root.__class__(root.node)
+            new_root.copy_data_from(root)
+            new_roots.append(new_root)
+        other = self.__class__(roots=new_roots)
+
         queue = deque()
-        queue.append((other, self))
+        queue.extend(zip(other.roots, self.roots))
         nodes = []
         while queue:
             new_node, my_node = queue.popleft()
-            new_node.shallow_copy_from(my_node)
+            new_node.copy_data_from(my_node)
 
             if my_node.marked: continue
             my_node.marked = True
@@ -107,45 +115,5 @@ class MetaRootView(MetaRoot):
 
         return other
 
-
-class NodeVector(NodeView):
-    """ This is a vector on a subtree of an existing underlying tree. """
-    def __init__(self, node, value=0.0, parents=None, children=None):
-        assert isinstance(node, NodeInterface)
-        super().__init__(node, parents=parents, children=children)
-        self.value = value
-
-    def shallow_copy_from(self, other):
-        super().shallow_copy_from(other)
-        self.value = other.value
-
-    def __iadd__(self, other):
-        """ TODO """
-        assert isinstance(other, NodeVector)
-        queue = deque()
-        queue.append((self, other))
-        nodes = []
-        while queue:
-            my_node, other_node = queue.popleft()
-            assert my_node.node == other_node.node
-            if my_child.marked: continue
-
-            my_node.value += other_node.value
-            my_child.marked = True
-            nodes.append(my_node)
-
-            if other_node.children:
-                my_node.refine(children=[c.node for c in other_node.children])
-
-            # Hidden "quadratic" loop, RIP..
-            for other_child in other_node.children:
-                for my_child in my_node.children:
-                    if other_child.node == my_child.node:
-                        queue.append((my_child, other_child))
-        for node in nodes:
-            node.marked = False
-
-    def __eq__(self, other):
-        return isinstance(
-            other, NodeVector
-        ) and self.node == other.node and self.value == other.value
+    def __repr__(self):
+        return "MRV(%s)" % self.roots

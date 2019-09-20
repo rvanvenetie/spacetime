@@ -126,10 +126,3 @@ def test_uniform_index_tree():
     assert len(meta_root_haar.bfs()) == 2**6 - 1
     root_ortho = uniform_index_tree(5, 't', FakeOrthoFunction)
     assert len(root_ortho.bfs()) == 2**7 - 2
-
-
-def test_deep_copy():
-    # Generate some metaroots to work with.
-    root_ortho = uniform_index_tree(5, 't', FakeOrthoFunction)
-    root_copy = root_ortho.deep_copy()
-    assert root_copy.bfs() == root_ortho.bfs()
