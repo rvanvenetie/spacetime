@@ -21,6 +21,7 @@ class FakeNode(NodeAbstract):
     def __init__(self, parents=None, children=None):
         super().__init__()
 
+    @property
     def level(self):
         raise NotImplementedError("Cannot call level on fake class.")
 
@@ -35,6 +36,7 @@ class FakeBinaryNode(BinaryNodeAbstract):
     def __init__(self, parent=None, children=None):
         super().__init__(parent, children)
 
+    @property
     def level(self):
         raise NotImplementedError("Cannot call level on fake class.")
 

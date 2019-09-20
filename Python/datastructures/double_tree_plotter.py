@@ -6,16 +6,14 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
 
 from .double_tree import DoubleTree
+from .tree_plotter import TreePlotter
 
 
 class DoubleTreePlotter:
-    def __init__(self, doubletree):
-        assert isinstance(doubletree, DoubleTree)
-        self.doubletree = doubletree
-
-    def plot_support_rectangles(self, alpha=0.01):
+    @staticmethod
+    def plot_support_rectangles(doubletree, alpha=0.01):
         rects = []
-        for node in self.doubletree.bfs():
+        for node in doubletree.bfs():
             at, bt = node.nodes[0].support
             ax, bx = node.nodes[1].support
             rects.append(Rectangle((at, ax), bt - at, bx - ax))
@@ -28,7 +26,9 @@ class DoubleTreePlotter:
 
         return rects
 
-    def plot_matplotlib_graph(self, i_in):
+    @staticmethod
+    def plot_matplotlib_graph(doubletree, i_in):
+        assert isinstance(doubletree, DoubleTree)
         import networkx as nx
         from networkx.drawing.nx_agraph import write_dot, graphviz_layout
         from grave import plot_network
@@ -49,33 +49,29 @@ class DoubleTreePlotter:
             event.artist.figure.canvas.draw_idle()
 
             # Update the right subplot to show the single-tree.
-            new_G = nx_graph_rooted_at(
-                self.doubletree.fiber(not i, double_node.node))
             ax[1].clear()
-            plot_network(new_G,
-                         ax=ax[1],
-                         layout=lambda x: graphviz_layout(new_G, prog='dot'))
+            TreePlotter.draw_matplotlib_graph(doubletree.fiber(
+                not i, double_node.node),
+                                              axis=ax[1])
             ax[1].set_title("Fiber of %s in axis %d" %
                             (double_node.node, not i))
             plt.draw()
 
         fig, axes = plt.subplots(2, 1)
         # Show the single tree in the left subplot.
-        G = nx_graph_rooted_at(self.doubletree.project(i_in))
+        artist = TreePlotter.draw_matplotlib_graph(doubletree.project(i_in),
+                                                   axis=axes[0])
         axes[0].set_title("Projection in axis %d" % i_in)
-        art0 = plot_network(G,
-                            ax=axes[0],
-                            node_style=use_attributes(),
-                            layout=lambda x: graphviz_layout(G, prog='dot'))
 
         # Add event handler for clicking on a node.
-        art0.set_picker(10)
+        artist.set_picker(10)
         fig.canvas.mpl_connect('pick_event', lambda x: onpick(axes, i_in, x))
         plt.draw()
 
-    def plot_level_dots(self):
+    @staticmethod
+    def plot_level_dots(doubletree):
         dots = defaultdict(int)
-        for node_0 in self.doubletree.root.bfs(0):
+        for node_0 in doubletree.root.bfs(0):
             for node_1 in node_0.bfs(1):
                 key = (node_0.nodes[0].level, node_1.nodes[1].level)
                 dots[key] += 1
@@ -90,14 +86,3 @@ class DoubleTreePlotter:
         plt.colorbar()
 
         return dots
-
-
-def nx_graph_rooted_at(root):
-    import networkx as nx
-    G = nx.DiGraph()
-    nodes = root.bfs()
-    for node in nodes:
-        G.add_node(node)
-        for child in node.children:
-            G.add_edge(node, child)
-    return G
