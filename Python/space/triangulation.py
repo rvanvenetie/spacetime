@@ -11,7 +11,6 @@ class Vertex(NodeAbstract):
     Vertices also form a (family)tree, induced by the NVB-relation.
 
     Args:
-      triangulation: the triangulation object. #TODO: should be removed.
       labda: (level, idx), for idx the index in the triang.vertices array.
       x,y: the physical coordinates
       on_domain_boundary: does this vertex lie on the domain boundary?
@@ -58,7 +57,7 @@ class Vertex(NodeAbstract):
         return np.array([self.x, self.y], dtype=float)
 
     def __repr__(self):
-        return '{}'.format(self.labda)
+        return 'V{}'.format(self.labda)
 
 
 class Element2D(BinaryNodeAbstract):
@@ -113,7 +112,7 @@ class Element2D(BinaryNodeAbstract):
         return self.labda[1]
 
     def __repr__(self):
-        return '{}: {}'.format(self.labda, self.vertices)
+        return 'Element2D{}: {}'.format(self.labda, self.vertices)
 
 
 class Triangulation:

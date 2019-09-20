@@ -1,6 +1,6 @@
 from ..datastructures.function import FunctionInterface
 from ..datastructures.tree import MetaRoot
-from ..datastructures.tree_view import NodeView
+from ..datastructures.tree_view import NodeView, MetaRootView
 
 
 class HierarchicalBasisFunction(FunctionInterface, NodeView):
@@ -28,4 +28,4 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
             HierarchicalBasisFunction(vertex)
             for vertex in triangulation.vertex_meta_root.roots
         ]
-        return MetaRoot(function_roots)
+        return MetaRootView(function_roots)
