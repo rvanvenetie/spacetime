@@ -38,14 +38,13 @@ class Vertex(NodeAbstract):
         assert (all([p.level == self.level - 1 for p in self.parents]))
 
     def refine(self):
-        # It might the case this vertex never gets children..
-        if not self.children:
+        if not self.is_full():
             for elem in self.patch:
                 elem.refine()
         return self.children
 
     def is_full(self):
-        return not self.children or len(self.children) == len(self.patch)
+        return all(elem.is_full() for elem in self.patch)
 
     @property
     def level(self):
@@ -85,8 +84,9 @@ class Element2D(BinaryNodeAbstract):
             self.area = parent.area / 2
 
     def refine(self):
-        self.triangulation.refine(self)
-        assert len(self.children) == 2
+        if not self.is_full():
+            self.triangulation.refine(self)
+            assert len(self.children) == 2
         return self.children
 
     def newest_vertex(self):

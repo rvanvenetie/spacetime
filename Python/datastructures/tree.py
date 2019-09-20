@@ -7,7 +7,7 @@ class NodeInterface(ABC):
     """ Represents a node in a family tree: nodes have multiple parents. """
     @abstractmethod
     def is_full(self):
-        """ Returns whether this node has all children present. """
+        """ Returns whether this node has all possible children present. """
         pass
 
     @abstractmethod
@@ -74,7 +74,7 @@ class BinaryNodeAbstract(NodeAbstract):
         self.parents = [parent]
 
     def is_full(self):
-        return len(self.children) in [0, 2]
+        return len(self.children) == 2
 
 
 class MetaRoot(NodeAbstract):

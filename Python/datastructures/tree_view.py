@@ -19,8 +19,7 @@ class NodeView(NodeAbstract):
 
     def is_full(self):
         """ Do we represent a `full` node? """
-        return not self.children or len(self.children) == len(
-            self.node.children)
+        return len(self.children) == len(self.node.children)
 
     def find_brother(self, node):
         """ Finds a brother of this node. """
@@ -39,8 +38,8 @@ class NodeView(NodeAbstract):
                     all children that exist in the underlying tree.
           make_conforming: Ensure that the tree constraint is maintained.
         """
-        if children is None:
-            children = self.node.children
+        if self.is_full(): return self.children
+        if children is None: children = self.node.children
 
         for child in children:
             # If this child does not exist in underlying tree, we can stop.

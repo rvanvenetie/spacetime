@@ -79,7 +79,7 @@ class DiscLinearScaling(basis.Scaling):
             return [(self.parents[1], 1 / 2)]
 
     def is_full(self):
-        return len(self.children) in [0, 4]
+        return len(self.children) == 4
 
     @staticmethod
     def eval_mother(constant, x, deriv):
@@ -124,7 +124,7 @@ class OrthonormalWavelet(basis.Wavelet):
         return self.children
 
     def is_full(self):
-        return len(self.children) in [0, 4]
+        return len(self.children) == 4
 
 
 class OrthonormalBasis(basis.Basis):

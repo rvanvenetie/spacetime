@@ -174,7 +174,7 @@ class ThreePointWavelet(basis.Wavelet):
         return self.children
 
     def is_full(self):
-        return len(self.children) in [0, 2]
+        return len(self.children) == 2
 
 
 class ThreePointBasis(basis.Basis):

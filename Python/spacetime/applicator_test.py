@@ -76,4 +76,6 @@ def test_sigma_combinations():
                 applicator = FakeApplicator(Lambda_in, Lambda_out)
                 sigma = applicator.sigma()
                 for node in sigma.bfs():
-                    assert node.nodes[0].is_full() and node.nodes[1].is_full()
+                    assert all(
+                        node.nodes[i].is_full() or node.nodes[i].is_leaf()
+                        for i in [0, 1])

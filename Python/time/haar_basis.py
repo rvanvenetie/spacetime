@@ -36,7 +36,7 @@ class DiscConstScaling(basis.Scaling):
         return [(self.parents, 1)]
 
     def is_full(self):
-        return len(self.children) in [0, 2]
+        return len(self.children) == 2
 
     @staticmethod
     def eval_mother(x):
@@ -69,7 +69,7 @@ class HaarWavelet(basis.Wavelet):
         return self.children
 
     def is_full(self):
-        return len(self.children) in [0, 2]
+        return len(self.children) == 2
 
 
 class HaarBasis(basis.Basis):
