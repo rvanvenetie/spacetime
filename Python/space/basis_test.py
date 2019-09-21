@@ -1,9 +1,9 @@
 from .basis import HierarchicalBasisFunction
-from .triangulation import Triangulation
+from .triangulation import InitialTriangulation
 
 
 def test_hierarchical_basis():
-    T = Triangulation.unit_square()
+    T = InitialTriangulation.unit_square()
     basis_meta_root = HierarchicalBasisFunction.from_triangulation(T)
     assert basis_meta_root.is_full()
     for root in basis_meta_root.roots:
@@ -13,7 +13,7 @@ def test_hierarchical_basis():
 
 
 def test_diamond_no_overrefine():
-    T = Triangulation.unit_square()
+    T = InitialTriangulation.unit_square()
     for _ in range(2):
         T.refine_uniform()
     # Find the first leaf and refine it, creating a diamond in the vertex tree.
@@ -39,7 +39,7 @@ def test_diamond_no_overrefine():
 
 
 def test_refine_hierarchical_basis():
-    T = Triangulation.unit_square()
+    T = InitialTriangulation.unit_square()
     basis_meta_root = HierarchicalBasisFunction.from_triangulation(T)
     for root in basis_meta_root.roots:
         assert root.is_full()

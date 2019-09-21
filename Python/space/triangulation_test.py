@@ -1,22 +1,26 @@
+from collections import defaultdict
+
 import numpy as np
 
-from .triangulation import Triangulation
+from .triangulation import InitialTriangulation
 
 
 def test_on_domain_bdr():
-    triangulation = Triangulation.unit_square()
-    assert all([v.on_domain_boundary for v in triangulation.vertices])
-    triangulation.refine(triangulation.elements[0])
+    init_triang = InitialTriangulation.unit_square()
+    assert all(v.on_domain_boundary for v in init_triang.vertex_roots)
+    init_triang.element_roots[0].refine()
+
+    leaves = set(init_triang.element_roots)
     for _ in range(100):
-        triangulation.refine(triangulation.elements[np.random.randint(
-            len(triangulation.vertices))])
-    for vert in triangulation.vertices:
+        elem = leaves.pop()
+        leaves.update(elem.refine())
+    for vert in init_triang.vertex_meta_root.bfs():
         assert vert.on_domain_boundary == (vert.x == 0 or vert.x == 1
                                            or vert.y == 0 or vert.y == 1)
 
 
 def test_vertex_tree():
-    T = Triangulation.unit_square()
+    T = InitialTriangulation.unit_square()
     T.refine(T.elements[0])
     assert T.vertices[4].parents == [T.vertices[0], T.vertices[1]]
     assert T.vertices[0].children == [T.vertices[4]]
@@ -53,6 +57,24 @@ def test_vertex_patch():
             assert len(v.patch) == 2
         else:
             assert len(v.patch) == 4
+
+
+def test_unif_refinement():
+    T = InitialTriangulation.unit_square()
+    elem_meta_root = T.elem_meta_root
+    assert elem_meta_root.is_full()
+    for root in elem_meta_root.roots:
+        assert root.level == 0
+
+    elem_meta_root.uniform_refine(5)
+    assert len(elem_meta_root.bfs()) == (2**6 - 1) * len(elem_meta_root.roots)
+    counts = defaultdict(int)
+    for elem in elem_meta_root.bfs():
+        assert elem.level <= 5
+        counts[elem.level] += 1
+
+    for level in range(6):
+        assert counts[level] == 2**level * len(elem_meta_root.roots)
 
 
 def test_elem_tree():
