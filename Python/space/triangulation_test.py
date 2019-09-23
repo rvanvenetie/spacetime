@@ -37,10 +37,28 @@ def test_vertex_subtree():
     elem_subtree = elem_tree_from_vertex_tree(vertex_subtree)
     assert len(elem_subtree.bfs()) < len(T.elem_meta_root.bfs())
 
+    # Check that we do not have duplicates
+    vertices_subtree = set(v.node for v in vertex_subtree.bfs())
+    assert len(vertex_subtree.bfs()) == len(vertices_subtree)
 
-def test_duplicate_vertices():
+    # Check all nodes necessary for the elem subtree are inside the vertices_subtree
+    for elem in elem_subtree.bfs():
+        for vtx in elem.node.vertices:
+            assert vtx in vertices_subtree
+
+    # And the other way around.
+    elements_subtree = set(e.node for e in elem_subtree.bfs())
+    assert len(elem_subtree.bfs()) == len(elements_subtree)
+    for vertex in vertex_subtree.bfs():
+        for elem in vertex.node.patch:
+            assert elem in elements_subtree
+
+
+def test_duplicates():
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(10)
+    assert len(
+        T.elem_meta_root.bfs()) == (2**11 - 1) * len(T.elem_meta_root.roots)
     V = [(v.x, v.y) for v in T.vertex_meta_root.bfs()]
     assert len(set(V)) == len(V)
 
