@@ -21,7 +21,6 @@ def test_on_domain_bdr():
 
 
 def test_vertex_subtree():
-    import matplotlib.pyplot as plt
     T = InitialTriangulation.unit_square()
     elem_meta_root = T.elem_meta_root
     elem_meta_root.uniform_refine(6)
@@ -37,6 +36,13 @@ def test_vertex_subtree():
 
     elem_subtree = elem_tree_from_vertex_tree(vertex_subtree)
     assert len(elem_subtree.bfs()) < len(T.elem_meta_root.bfs())
+
+
+def test_duplicate_vertices():
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(10)
+    V = [(v.x, v.y) for v in T.vertex_meta_root.bfs()]
+    assert len(set(V)) == len(V)
 
 
 def test_vertex_tree():
