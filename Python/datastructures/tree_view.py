@@ -91,11 +91,11 @@ class MetaRootView(MetaRoot):
     @classmethod
     def from_metaroot(cls, metaroot, node_view_cls):
         """ Initializes a MetaRootView by shallow-copying a MetaRoot. """
-        # Only allow copying of a "non-view" metaroot.
-        # This can become an if-else if we do need copying a MetaRootView.
         if isinstance(metaroot, MetaRootView):
+            # On a MetaRootView, create NodeViews of underlying non-view nodes.
             return cls([node_view_cls(node=rt.node) for rt in metaroot.roots])
         else:
+            # On a non-view MetaRoot, create NodeViews of the roots themselves.
             return cls([node_view_cls(node=rt) for rt in metaroot.roots])
 
     def deep_copy(self):
