@@ -11,7 +11,6 @@ class Vertex(NodeAbstract):
     Vertices also form a (family)tree, induced by the NVB-relation.
 
     Args:
-      triangulation: the triangulation object. #TODO: should be removed.
       level: the uniform level that introduces this vertex. 
       x,y: the physical coordinates
       on_domain_boundary: does this vertex lie on the domain boundary?
@@ -52,7 +51,7 @@ class Vertex(NodeAbstract):
         return np.array([self.x, self.y], dtype=float)
 
     def __repr__(self):
-        return '({}, [{}, {}])'.format(self.level, self.x, self.y)
+        return 'V({}, [{}, {}])'.format(self.level, self.x, self.y)
 
 
 class Element2D(BinaryNodeAbstract):
@@ -111,7 +110,7 @@ class Element2D(BinaryNodeAbstract):
         return not len(self.children)
 
     def __repr__(self):
-        return '{}: {}'.format(self.level, self.vertices)
+        return 'Element2D({}, {})'.format(self.level, self.vertices)
 
     def _create_new_vertex(self, nbr=None):
         """ Creates a new vertex necessary for bisection.

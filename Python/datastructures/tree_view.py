@@ -1,4 +1,6 @@
-from .tree import NodeAbstract, NodeInterface
+from collections import deque
+
+from .tree import MetaRoot, NodeAbstract, NodeInterface
 
 
 class NodeView(NodeAbstract):
@@ -72,3 +74,41 @@ class NodeView(NodeAbstract):
                 brother_view.children.append(child_view)
 
         return self.children
+
+    def copy_data_from(self, other):
+        """ Copies the appropriate fields from `other` into `self`. """
+        assert type(self) == type(other)
+
+
+class MetaRootView(MetaRoot):
+    def deep_copy(self):
+        """ Deep-copies `self` into a new NodeView tree. """
+        new_roots = []
+        for root in self.roots:
+            new_root = root.__class__(root.node)
+            new_roots.append(new_root)
+        other = self.__class__(roots=new_roots)
+
+        queue = deque()
+        queue.extend(zip(other.roots, self.roots))
+        nodes = []
+        while queue:
+            new_node, my_node = queue.popleft()
+            if my_node.marked: continue
+
+            new_node.copy_data_from(my_node)
+            my_node.marked = True
+            nodes.append(my_node)
+
+            if my_node.children:
+                new_children = new_node.refine(
+                    children=[c.node for c in my_node.children])
+                assert len(new_children) == len(my_node.children)
+                queue.extend(zip(new_children, my_node.children))
+        for node in nodes:
+            node.marked = False
+
+        return other
+
+    def __repr__(self):
+        return "MRV(%s)" % self.roots

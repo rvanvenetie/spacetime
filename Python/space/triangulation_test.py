@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 
+from ..datastructures.tree_view import MetaRootView, NodeView
 from .triangulation import InitialTriangulation
 
 
@@ -17,6 +18,15 @@ def test_on_domain_bdr():
     for vert in init_triang.vertex_meta_root.bfs():
         assert vert.on_domain_boundary == (vert.x == 0 or vert.x == 1
                                            or vert.y == 0 or vert.y == 1)
+
+
+def test_vertex_subtree():
+    init_triang = InitialTriangulation.unit_square()
+    elem_meta_root = init_triang.elem_meta_root
+    elem_meta_root.uniform_refine(5)
+
+    vertex_meta_root_view = MetaRootView(
+        [NodeView(vertex) for vertex in init_triang.vertex_meta_root.roots])
 
 
 def test_vertex_tree():

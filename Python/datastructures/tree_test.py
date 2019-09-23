@@ -11,8 +11,9 @@ class FakeMetaRoot(MetaRoot):
 
     def is_full(self):
         if not self.roots: return False
-        if isinstance(self.roots[0], FakeHaarNode): return len(self.roots) == 1
-        if isinstance(self.roots[0], FakeOrthoNode):
+        if isinstance(self.roots[0], FakeHaarFunction):
+            return len(self.roots) == 1
+        if isinstance(self.roots[0], FakeOrthoFunction):
             return len(self.roots) == 2
         assert False
 

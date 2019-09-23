@@ -3,7 +3,7 @@ from .tree import MetaRoot
 
 
 class FakeFunctionNode(FunctionNode):
-    """ Fake node. Implements some basic funcionality. """
+    """ Fake node. Implements some basic functionality. """
     def __init__(self, labda, f_type, parents=None, children=None):
         super().__init__(labda=labda, parents=parents, children=children)
         self.f_type = f_type
