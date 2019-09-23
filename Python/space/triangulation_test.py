@@ -2,8 +2,8 @@ from collections import defaultdict
 
 import numpy as np
 
-from ..datastructures.tree_view import MetaRootView, NodeView
-from .triangulation import InitialTriangulation, elem_tree_from_vertex_tree
+from ..datastructures.tree_view import NodeView
+from .triangulation import InitialTriangulation, VertexMetaRootView
 
 
 def test_on_domain_bdr():
@@ -25,16 +25,16 @@ def test_vertex_subtree():
     elem_meta_root = T.elem_meta_root
     elem_meta_root.uniform_refine(6)
 
-    vertex_subtree = MetaRootView.from_metaroot(T.vertex_meta_root)
-    elem_subtree = elem_tree_from_vertex_tree(vertex_subtree)
+    vertex_subtree = VertexMetaRootView.from_metaroot(T.vertex_meta_root)
+    elem_subtree = vertex_subtree.element_tree()
     assert len(elem_subtree.bfs()) == 2
 
     # Create a subtree with only vertices lying below the diagonal.
-    vertex_subtree.uniform_refine(1)
-    vertex_subtree.local_refine(lambda vertex: vertex.x + vertex.y <= 1)
+    vertex_subtree = VertexMetaRootView.from_metaroot_deep(
+        T.vertex_meta_root, lambda vertex: vertex.x + vertex.y <= 1)
     assert len(vertex_subtree.bfs()) < len(T.vertex_meta_root.bfs())
 
-    elem_subtree = elem_tree_from_vertex_tree(vertex_subtree)
+    elem_subtree = vertex_subtree.element_tree()
     assert len(elem_subtree.bfs()) < len(T.elem_meta_root.bfs())
 
     # Check that we do not have duplicates

@@ -240,27 +240,26 @@ class InitialTriangulation:
         return 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1))
 
 
-def elem_tree_from_vertex_tree(vertex_meta_root):
-    """ Returns the element tree associated to the given vertex (sub)tree. """
-    def newest_vertex_in_tree_view(elem):
-        return elem.newest_vertex().marked
+class VertexMetaRootView(MetaRootView):
+    def element_tree(self):
+        """ Returns the element tree associated to the given vertex (sub)tree. """
+        def newest_vertex_in_tree_view(elem):
+            return elem.newest_vertex().marked
 
-    assert isinstance(vertex_meta_root, MetaRootView)
+        # Extract the original element root.
+        elem_meta_root = self.roots[0].node.patch[0].parent
+        assert isinstance(elem_meta_root, MetaRoot)
 
-    # Extract the original element root.
-    elem_meta_root = vertex_meta_root.roots[0].node.patch[0].parent
-    assert isinstance(elem_meta_root, MetaRoot)
+        # Mark all vertices that need to be in the triangulation.
+        for vertex in self.bfs():
+            vertex.node.marked = True
 
-    elem_meta_root_view = MetaRootView.from_metaroot(elem_meta_root)
+        elem_meta_root_view = MetaRootView.from_metaroot_deep(
+            elem_meta_root, newest_vertex_in_tree_view)
+        for vertex in self.bfs():
+            vertex.node.marked = False
 
-    for vertex in vertex_meta_root.bfs():
-        vertex.node.marked = True
-
-    elem_meta_root_view.local_refine(newest_vertex_in_tree_view)
-    for vertex in vertex_meta_root.bfs():
-        vertex.node.marked = False
-
-    return elem_meta_root_view
+        return elem_meta_root_view
 
 
 def to_matplotlib_triangulation(elem_meta_root, vertex_meta_root):

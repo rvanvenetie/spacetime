@@ -104,6 +104,31 @@ class MetaRootView(MetaRoot):
             # On a non-view MetaRoot, create NodeViews of the roots themselves.
             return cls([node_view_cls(node=rt) for rt in metaroot.roots])
 
+    @classmethod
+    def from_metaroot_deep(cls, metaroot, callback, node_view_cls=NodeView):
+        """ Creates a MetaRootView by deep-copying a MetaRoot with callback.
+
+        Args:
+          metaroot: Metaroot of the underlying tree.
+          node_view_cls: The class of the nodeview objects to be constructed.
+          callback: This callback determines whether a given node in the 
+            argument should be inside the subtree.
+        """
+        meta_root_view = cls.from_metaroot(metaroot)
+        nodes = []
+        queue = deque(meta_root_view.roots)
+        while queue:
+            node = queue.popleft()
+            if node.marked: continue
+            nodes.append(node)
+            node.marked = True
+            for child in node.node.children:
+                if callback(child):
+                    queue.extend(node.refine(children=[child]))
+        for node in nodes:
+            node.marked = False
+        return meta_root_view
+
     def deep_copy(self):
         """ Deep-copies `self` into a new NodeView tree. """
         def callback(new_node, my_node):
@@ -138,22 +163,6 @@ class MetaRootView(MetaRoot):
         for node in nodes:
             node.marked = False
         return self
-
-    def local_refine(self, callback):
-        """ Refines this MetaRootView according to the callback. """
-        nodes = []
-        queue = deque(self.roots)
-        while queue:
-            node = queue.popleft()
-            if node.marked: continue
-            nodes.append(node)
-            node.marked = True
-            for child in node.node.children:
-                if callback(child):
-                    queue.extend(node.refine(children=[child]))
-        for node in nodes:
-            node.marked = False
-        return nodes
 
     def __iadd__(self, other):
         def callback(my_node, other_node):
