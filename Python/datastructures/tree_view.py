@@ -115,6 +115,7 @@ class MetaRootView(MetaRoot):
 
     def union(self, other, callback):
         assert isinstance(other, MetaRootView)
+        assert len(self.roots) == len(other.roots)
         queue = deque(zip(self.roots, other.roots))
         nodes = []
         while queue:

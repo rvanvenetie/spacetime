@@ -65,24 +65,33 @@ def test_duplicates():
 
 def test_vertex_tree():
     T = InitialTriangulation.unit_square()
-    T.refine(T.elements[0])
-    assert T.vertices[4].parents == [T.vertices[0], T.vertices[1]]
-    assert T.vertices[0].children == [T.vertices[4]]
-    assert T.vertices[1].children == [T.vertices[4]]
+    T.elem_meta_root.uniform_refine(1)
 
-    T.refine(T.elements[2])
-    assert T.vertices[5].on_domain_boundary
-    assert T.vertices[5].parents == [T.vertices[4]]
-    assert T.vertices[4].children == [T.vertices[5]]
+    elements = T.elem_meta_root.bfs()
+    vertices = T.vertex_meta_root.bfs()
+    assert vertices[4].parents == [vertices[0], vertices[1]]
+    assert vertices[0].children == [vertices[4]]
+    assert vertices[1].children == [vertices[4]]
 
-    T.refine(T.elements[4])
-    assert T.vertices[6].on_domain_boundary
-    assert T.vertices[6].parents == [T.vertices[4]]
-    assert T.vertices[4].children == [T.vertices[5], T.vertices[6]]
+    elements[2].refine()
+    elements = T.elem_meta_root.bfs()
+    vertices = T.vertex_meta_root.bfs()
+    assert vertices[5].on_domain_boundary
+    assert vertices[5].parents == [vertices[4]]
+    assert vertices[4].children == [vertices[5]]
 
-    T.refine(T.elements[6])
-    assert not T.vertices[8].on_domain_boundary
-    assert T.vertices[8].parents == [T.vertices[7], T.vertices[5]]
+    elements[4].refine()
+    elements = T.elem_meta_root.bfs()
+    vertices = T.vertex_meta_root.bfs()
+    assert vertices[6].on_domain_boundary
+    assert vertices[6].parents == [vertices[4]]
+    assert vertices[4].children == [vertices[5], vertices[6]]
+
+    elements[6].refine()
+    elements = T.elem_meta_root.bfs()
+    vertices = T.vertex_meta_root.bfs()
+    assert not vertices[8].on_domain_boundary
+    assert vertices[8].parents == [vertices[5], vertices[7]]
 
 
 def test_vertex_patch():
@@ -141,7 +150,7 @@ def test_elem_tree():
         assert elem.level <= 3
 
 
-def test_vertex_tree():
+def test_vertex_tree_refinement():
     T = InitialTriangulation.unit_square()
     vertex_meta_root = T.vertex_meta_root
     assert vertex_meta_root.is_full()
