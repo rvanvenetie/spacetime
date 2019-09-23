@@ -87,8 +87,8 @@ class Element2D(BinaryNodeAbstract):
             nbr = self.neighbours[0]
             if not nbr:  # Refinement edge of `elem` is on domain boundary.
                 self._bisect()
+            # Shared refinement edge.
             elif nbr.edge(0) != self.reversed_edge(0):
-                # Shared refinement edge.
                 nbr.refine()
                 return self.refine()
             else:
