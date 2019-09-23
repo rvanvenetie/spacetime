@@ -81,34 +81,97 @@ class NodeView(NodeAbstract):
 
 
 class MetaRootView(MetaRoot):
+    def __init__(self, roots):
+        if not isinstance(roots, list):
+            roots = [roots]
+        assert all(isinstance(root, NodeView) for root in roots)
+        super().__init__(roots=roots)
+
+    @classmethod
+    def from_metaroot(cls, metaroot, node_view_cls):
+        """ Initializes a MetaRootView by shallow-copying a MetaRoot. """
+        if isinstance(metaroot, MetaRootView):
+            # On a MetaRootView, create NodeViews of underlying non-view nodes.
+            return cls([node_view_cls(node=rt.node) for rt in metaroot.roots])
+        else:
+            # On a non-view MetaRoot, create NodeViews of the roots themselves.
+            return cls([node_view_cls(node=rt) for rt in metaroot.roots])
+
     def deep_copy(self):
         """ Deep-copies `self` into a new NodeView tree. """
-        new_roots = []
-        for root in self.roots:
-            new_root = root.__class__(root.node)
-            new_roots.append(new_root)
-        other = self.__class__(roots=new_roots)
+        def callback(new_node, my_node):
+            return new_node.copy_data_from(my_node)
 
+        new_metaroot = MetaRootView.from_metaroot(
+            self, node_view_cls=self.roots[0].__class__)
+        return new_metaroot.union(self, callback=callback)
+
+    def union(self, other, callback):
+        assert isinstance(other, MetaRootView)
         queue = deque()
-        queue.extend(zip(other.roots, self.roots))
+        queue.extend(zip(self.roots, other.roots))
         nodes = []
         while queue:
-            new_node, my_node = queue.popleft()
+            my_node, other_node = queue.popleft()
+            assert type(my_node) == type(other_node)
+            assert my_node.node == other_node.node
             if my_node.marked: continue
 
-            new_node.copy_data_from(my_node)
+            callback(my_node, other_node)
             my_node.marked = True
             nodes.append(my_node)
 
-            if my_node.children:
-                new_children = new_node.refine(
-                    children=[c.node for c in my_node.children])
-                assert len(new_children) == len(my_node.children)
-                queue.extend(zip(new_children, my_node.children))
+            if other_node.children:
+                my_node.refine(children=[c.node for c in other_node.children])
+            assert len(my_node.children) >= len(other_node.children)
+
+            # Hidden "quadratic" loop, RIP..
+            for other_child in other_node.children:
+                for my_child in my_node.children:
+                    if other_child.node is my_child.node:
+                        queue.append((my_child, other_child))
         for node in nodes:
             node.marked = False
+        return self
 
-        return other
+    def __iadd__(self, other):
+        def callback(my_node, other_node):
+            my_node += other_node
+
+        return self.union(other, callback=callback)
+
+    def __imul__(self, x):
+        assert isinstance(x, (int, float, complex)) and not isinstance(x, bool)
+        for node in self.bfs():
+            node *= x
+        return self
 
     def __repr__(self):
         return "MRV(%s)" % self.roots
+
+
+class NodeVector(NodeView):
+    """ This is a vector on a subtree of an existing underlying tree. """
+    def __init__(self, node, value=0.0, parents=None, children=None):
+        assert isinstance(node, NodeInterface)
+        super().__init__(node, parents=parents, children=children)
+        self.value = value
+
+    @property
+    def level(self):
+        return self.node.level
+
+    def copy_data_from(self, other):
+        super().copy_data_from(other)
+        self.value = other.value
+
+    def __iadd__(self, other):
+        """ Shallow `add` operator. """
+        self.value += other.value
+        return self
+
+    def __imul__(self, x):
+        """ Shallow `mul` operator. """
+        assert isinstance(x, (int, float, complex)) and not isinstance(x, bool)
+        self.value *= x
+        return self
