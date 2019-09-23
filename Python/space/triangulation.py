@@ -3,6 +3,7 @@ import itertools
 import numpy as np
 
 from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
+from ..datastructures.tree_view import MetaRootView, NodeView
 
 
 class Vertex(NodeAbstract):
@@ -239,17 +240,41 @@ class InitialTriangulation:
         return 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1))
 
 
+def elem_tree_from_vertex_tree(vertex_meta_root):
+    """ Returns the element tree associated to the given vertex (sub)tree. """
+    def newest_vertex_in_tree_view(elem):
+        return elem.newest_vertex().marked
+
+    assert isinstance(vertex_meta_root, MetaRootView)
+
+    # Extract the original element root.
+    elem_meta_root = vertex_meta_root.roots[0].node.patch[0].parent
+    assert isinstance(elem_meta_root, MetaRoot)
+
+    elem_meta_root_view = MetaRootView.from_metaroot(elem_meta_root)
+
+    for vertex in vertex_meta_root.bfs():
+        vertex.node.marked = True
+
+    elem_meta_root_view.local_refine(newest_vertex_in_tree_view)
+    for vertex in vertex_meta_root.bfs():
+        vertex.node.marked = False
+
+    return elem_meta_root_view
+
+
 def to_matplotlib_triangulation(elem_meta_root, vertex_meta_root):
     """ The current triangulation as matplotlib-compatible object. """
     import matplotlib.tri as mpltri
-    elements = elem_meta_root.bfs()
+    elements = [e for e in elem_meta_root.bfs() if e.is_leaf()]
     vertices = vertex_meta_root.bfs()
+    if isinstance(vertices[0], NodeView):
+        vertices = [v.node for v in vertices]
+        elements = [e.node for e in elements]
     vertex_to_index = {}
     for idx, vertex in enumerate(vertices):
         vertex_to_index[vertex] = idx
-    print([v.x for v in vertices], [v.y for v in vertices],
-          [t.vertices for t in elements if t.is_leaf()])
     return mpltri.Triangulation([v.x for v in vertices],
                                 [v.y for v in vertices],
                                 [[vertex_to_index[v] for v in t.vertices]
-                                 for t in elements if t.is_leaf()])
+                                 for t in elements])

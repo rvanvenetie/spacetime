@@ -9,17 +9,16 @@ def test_hierarchical_basis():
     for root in basis_meta_root.roots:
         assert root.is_full()
         root.refine()
-    assert len(T.elements) == 2
+    assert len(T.elem_meta_root.bfs()) == 2
 
 
 def test_diamond_no_overrefine():
     T = InitialTriangulation.unit_square()
-    for _ in range(2):
-        T.refine_uniform()
+    T.elem_meta_root.uniform_refine(2)
     # Find the first leaf and refine it, creating a diamond in the vertex tree.
-    leaves = [elem for elem in T.elements if elem.is_leaf()]
+    leaves = [elem for elem in T.elem_meta_root.bfs() if elem.is_leaf()]
     assert len(leaves) == 8
-    T.refine(leaves[0])
+    leaves[0].refine()
 
     basis_meta_root = HierarchicalBasisFunction.from_triangulation(T)
 
@@ -35,7 +34,7 @@ def test_diamond_no_overrefine():
     # *not* have the entire vertex tree.
     level2_fn.refine()
     assert len(basis_meta_root.bfs()) == 8
-    assert len(T.vertices) == 10
+    assert len(T.vertex_meta_root.bfs()) == 10
 
 
 def test_refine_hierarchical_basis():
@@ -45,8 +44,8 @@ def test_refine_hierarchical_basis():
         assert root.is_full()
         root.node.refine()
         root.refine()
-    assert len(T.elements) == 6
-    assert len(T.vertices) == 5
+    assert len(T.elem_meta_root.bfs()) == 6
+    assert len(T.vertex_meta_root.bfs()) == 5
     assert len(basis_meta_root.bfs()) == 5
 
     leaves = set([f for f in basis_meta_root.bfs() if f.is_leaf()])
@@ -54,4 +53,4 @@ def test_refine_hierarchical_basis():
         f = leaves.pop()
         f.node.refine()
         leaves.update(f.refine())
-        assert len(basis_meta_root.bfs()) == len(T.vertices)
+        assert len(basis_meta_root.bfs()) == len(T.vertex_meta_root.bfs())

@@ -6,9 +6,9 @@ from ..datastructures.double_tree_test import (corner_index_tree,
                                                random_double_tree,
                                                sparse_tensor_double_tree,
                                                uniform_index_tree)
-from ..space.triangulation import Triangulation
-from .tree_plotter import TreePlotter
+from ..space.triangulation import InitialTriangulation
 from .double_tree_plotter import DoubleTreePlotter
+from .tree_plotter import TreePlotter
 
 
 def show_rectangle_plot():
@@ -43,9 +43,8 @@ def show_matplotlib_graph():
 
 
 def show_spacetime_tree():
-    T = Triangulation.unit_square()
-    for _ in range(5):
-        T.refine_uniform()
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(5)
     dt_root = full_tensor_double_tree(uniform_index_tree(5, 't'),
                                       T.vertex_meta_root)
     DoubleTreePlotter.plot_matplotlib_graph(dt_root, i_in=0)
