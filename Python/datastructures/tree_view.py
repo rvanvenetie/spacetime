@@ -82,17 +82,30 @@ class NodeView(NodeAbstract):
 
 
 class MetaRootView(MetaRoot):
+    def __init__(self, roots):
+        if not isinstance(roots, list):
+            roots = [roots]
+        assert all(isinstance(root, NodeView) for root in roots)
+        super().__init__(roots=roots)
+
+    @classmethod
+    def from_metaroot(cls, metaroot, node_view_cls):
+        """ Initializes a MetaRootView by shallow-copying a MetaRoot. """
+        # Only allow copying of a "non-view" metaroot.
+        # This can become an if-else if we do need copying a MetaRootView.
+        if isinstance(metaroot, MetaRootView):
+            return cls([node_view_cls(node=rt.node) for rt in metaroot.roots])
+        else:
+            return cls([node_view_cls(node=rt) for rt in metaroot.roots])
+
     def deep_copy(self):
         """ Deep-copies `self` into a new NodeView tree. """
         def callback(new_node, my_node):
             return new_node.copy_data_from(my_node)
 
-        new_roots = []
-        for root in self.roots:
-            new_root = root.__class__(root.node)
-            new_roots.append(new_root)
-        other = self.__class__(roots=new_roots)
-        return other.union(self, callback=callback)
+        new_metaroot = MetaRootView.from_metaroot(
+            self, node_view_cls=self.roots[0].__class__)
+        return new_metaroot.union(self, callback=callback)
 
     def union(self, other, callback):
         assert isinstance(other, MetaRootView)
@@ -128,10 +141,10 @@ class MetaRootView(MetaRoot):
 
         return self.union(other, callback=callback)
 
-    def __imul__(self, number):
-        assert isinstance(number, float)
+    def __imul__(self, x):
+        assert isinstance(x, (int, float, complex)) and not isinstance(x, bool)
         for node in self.bfs():
-            node *= number
+            node *= x
         return self
 
     def __repr__(self):
@@ -158,6 +171,8 @@ class NodeVector(NodeView):
         self.value += other.value
         return self
 
-    def __imul__(self, number):
-        self.value *= number
+    def __imul__(self, x):
+        """ Shallow `mul` operator. """
+        assert isinstance(x, (int, float, complex)) and not isinstance(x, bool)
+        self.value *= x
         return self

@@ -19,8 +19,7 @@ def test_deep_copy():
     for _ in range(5):
         T.refine_uniform()
     for metaroot in [T.elem_meta_root, T.vertex_meta_root]:
-        metaroot_view = MetaRootView(
-            [FakeNodeView(root) for root in metaroot.roots])
+        metaroot_view = MetaRootView.from_metaroot(metaroot, FakeNodeView)
         metaroot_view.uniform_refine(max_level=10**9)
         assert [n.node for n in metaroot_view.bfs()] == metaroot.bfs()
 
@@ -34,7 +33,7 @@ def test_vector_add():
     for _ in range(4):
         T.refine_uniform()
     for metaroot in [T.elem_meta_root, T.vertex_meta_root]:
-        vec = MetaRootView([NodeVector(root, 0.0) for root in metaroot.roots])
+        vec = MetaRootView.from_metaroot(metaroot, NodeVector)
         vec.uniform_refine(max_level=5)
         for node in vec.bfs():
             node.value = random.random()
@@ -57,7 +56,7 @@ def test_vector_add():
                            [a.value for a in vec.bfs()])
 
         # Create a unit vector on a coarser grid.
-        vec2 = MetaRootView([NodeVector(root, 0.0) for root in metaroot.roots])
+        vec2 = MetaRootView.from_metaroot(metaroot, NodeVector)
         vec2.uniform_refine(max_level=2)
         for node in vec2.bfs():
             node.value = 1.0
