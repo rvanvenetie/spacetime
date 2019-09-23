@@ -1,12 +1,14 @@
 import matplotlib.pyplot as plt
 
-from .double_tree import DoubleTree
+from ..datastructures.double_tree import DoubleTree
+from ..datastructures.double_tree_test import (corner_index_tree,
+                                               full_tensor_double_tree,
+                                               random_double_tree,
+                                               sparse_tensor_double_tree,
+                                               uniform_index_tree)
+from ..space.triangulation import Triangulation
 from .tree_plotter import TreePlotter
 from .double_tree_plotter import DoubleTreePlotter
-from .double_tree_test import (corner_index_tree, full_tensor_double_tree,
-                               random_double_tree, sparse_tensor_double_tree,
-                               uniform_index_tree)
-from ..space.triangulation import Triangulation
 
 
 def show_rectangle_plot():
