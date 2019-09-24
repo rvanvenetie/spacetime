@@ -242,27 +242,6 @@ class InitialTriangulation:
         return 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1))
 
 
-class VertexMetaRootView(MetaRootView):
-    def element_tree(self):
-        """ Returns the element tree associated to the given vertex (sub)tree. """
-        def newest_vertex_in_tree_view(elem):
-            return elem.newest_vertex().marked
-
-        # Extract the original element root.
-        elem_meta_root = self.roots[0].node.patch[0].parent
-        assert isinstance(elem_meta_root, MetaRoot)
-
-        # Mark all vertices that need to be in the triangulation.
-        for vertex in self.bfs():
-            vertex.node.marked = True
-        elem_meta_root_view = MetaRootView.from_metaroot_deep(
-            elem_meta_root, newest_vertex_in_tree_view)
-        for vertex in self.bfs():
-            vertex.node.marked = False
-
-        return elem_meta_root_view
-
-
 def to_matplotlib_triangulation(elem_meta_root, vertex_meta_root):
     """ The current triangulation as matplotlib-compatible object. """
     import matplotlib.tri as mpltri

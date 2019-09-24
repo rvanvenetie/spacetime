@@ -105,26 +105,35 @@ class MetaRootView(MetaRoot):
             return cls([node_view_cls(node=rt) for rt in metaroot.roots])
 
     @classmethod
-    def from_metaroot_deep(cls, metaroot, callback, node_view_cls=NodeView):
+    def from_metaroot_deep(cls,
+                           metaroot,
+                           node_view_cls=NodeView,
+                           call_filter=None,
+                           call_postprocess=None):
         """ Creates a MetaRootView by deep-copying a MetaRoot with callback.
 
         Args:
           metaroot: Metaroot of the underlying tree.
           node_view_cls: The class of the nodeview objects to be constructed.
-          callback: This callback determines whether a given node in the 
-            argument should be inside the subtree.
+          call_filter: This call determines whether a given node in the 
+              argument should be inside the subtree.
+          call_postprocess: This call will be invoked with a freshly
+              created nodeview object. Can be used to load data, etc.
         """
-        meta_root_view = cls.from_metaroot(metaroot)
+        if call_filter is None: call_filter = lambda _: True
+        if call_postprocess is None: call_postprocess = lambda _: True
+        meta_root_view = cls.from_metaroot(metaroot,
+                                           node_view_cls=node_view_cls)
         nodes = []
         queue = deque(meta_root_view.roots)
         while queue:
             node = queue.popleft()
             if node.marked: continue
             nodes.append(node)
+            call_postprocess(node)
             node.marked = True
-            for child in node.node.children:
-                if callback(child):
-                    queue.extend(node.refine(children=[child]))
+            for child in filter(call_filter, node.node.children):
+                queue.extend(node.refine(children=[child]))
         for node in nodes:
             node.marked = False
         return meta_root_view
@@ -134,7 +143,7 @@ class MetaRootView(MetaRoot):
         def callback(new_node, my_node):
             return new_node.copy_data_from(my_node)
 
-        new_metaroot = MetaRootView.from_metaroot(
+        new_metaroot = self.__class__.from_metaroot(
             self, node_view_cls=self.roots[0].__class__)
         return new_metaroot.union(self, callback=callback)
 
@@ -178,26 +187,3 @@ class MetaRootView(MetaRoot):
 
     def __repr__(self):
         return "MRV(%s)" % self.roots
-
-
-class NodeVector(NodeView):
-    """ This is a vector on a subtree of an existing underlying tree. """
-    def __init__(self, node, value=0.0, parents=None, children=None):
-        assert isinstance(node, NodeInterface)
-        super().__init__(node, parents=parents, children=children)
-        self.value = value
-
-    def copy_data_from(self, other):
-        super().copy_data_from(other)
-        self.value = other.value
-
-    def __iadd__(self, other):
-        """ Shallow `add` operator. """
-        self.value += other.value
-        return self
-
-    def __imul__(self, x):
-        """ Shallow `mul` operator. """
-        assert isinstance(x, (int, float, complex)) and not isinstance(x, bool)
-        self.value *= x
-        return self
