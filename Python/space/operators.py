@@ -89,9 +89,9 @@ class Operators:
     def apply_boundary_restriction(self, v):
         """ Sets all boundary vertices to zero. """
         w = np.zeros(v.shape)
-        for i in range(v.shape[0]):
-            w[i] = v[i] if not self.triang.vertices[
-                i].node.on_domain_boundary else 0.0
+        for i, vertex in enumerate(self.triang.vertices):
+            if not vertex.node.on_domain_boundary:
+                w[i] = v[i]
         return w
 
     def as_linear_operator(self, method):

@@ -121,7 +121,7 @@ class MetaRootView(MetaRoot):
               created nodeview object. Can be used to load data, etc.
         """
         if call_filter is None: call_filter = lambda _: True
-        if call_postprocess is None: call_postprocess = lambda _: True
+        if call_postprocess is None: call_postprocess = lambda _: None
         meta_root_view = cls.from_metaroot(metaroot,
                                            node_view_cls=node_view_cls)
         nodes = []
