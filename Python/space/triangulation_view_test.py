@@ -20,6 +20,10 @@ def test_vertex_subtree():
     T_view = TriangulationView(vertex_subtree)
     assert len(T_view.elements) < len(T.elem_meta_root.bfs())
 
+    # Check that the history object contains exactly non-root vertices
+    assert len(T_view.history) == len(vertex_subtree.bfs()) - len(
+        vertex_subtree.roots)
+
     # Check that we do not have duplicates
     vertices_subtree = set(v.node for v in vertex_subtree.bfs())
     assert len(vertex_subtree.bfs()) == len(vertices_subtree)
