@@ -122,7 +122,9 @@ class Element2D(BinaryNodeAbstract):
         """
         assert self.is_leaf()
         vertex_parents = [self.newest_vertex()]
-        if nbr: vertex_parents.append(nbr.newest_vertex())
+        if nbr:
+            assert nbr.edge(0) == self.reversed_edge(0)
+            vertex_parents.append(nbr.newest_vertex())
 
         godparents = self.vertices[1:]
         new_vertex = Vertex(vertex_parents[0].level + 1,
@@ -253,7 +255,6 @@ class VertexMetaRootView(MetaRootView):
         # Mark all vertices that need to be in the triangulation.
         for vertex in self.bfs():
             vertex.node.marked = True
-
         elem_meta_root_view = MetaRootView.from_metaroot_deep(
             elem_meta_root, newest_vertex_in_tree_view)
         for vertex in self.bfs():
