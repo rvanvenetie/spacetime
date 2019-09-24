@@ -110,29 +110,30 @@ class Operators:
 
 
 def plot_hatfn():
-    from triangulation import Triangulation
+    from .triangulation import InitialTriangulation, to_matplotlib_triangulation
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.pyplot as plt
-    triangulation = Triangulation.unit_square()
-    op = Operators(triangulation)
-    triangulation.refine(triangulation.elements[0])
-    triangulation.refine(triangulation.elements[4])
-    triangulation.refine(triangulation.elements[7])
-    triangulation.refine(triangulation.elements[2])
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.bfs()[0].refine()
+    T.elem_meta_root.bfs()[4].refine()
+    T.elem_meta_root.bfs()[7].refine()
+    T.elem_meta_root.bfs()[2].refine()
+    T_view = TriangulationView(T)
+    matplotlib_triang = to_matplotlib_triangulation(T.elem_meta_root,
+                                                    T.vertex_meta_root)
 
-    print(triangulation.history)
-    I = np.eye(len(triangulation.vertices))
-    for i in range(len(triangulation.vertices)):
+    print(T_view.history)
+    I = np.eye(len(T_view.vertices))
+    for i in range(len(T_view.vertices)):
         fig = plt.figure()
         fig.suptitle("Hoedfuncties bij vertex %d" % i)
         ax1 = fig.add_subplot(1, 2, 1, projection='3d')
         ax1.set_title("Nodale basis")
         ax2 = fig.add_subplot(1, 2, 2, projection='3d')
         ax2.set_title("Hierarchische basis")
-        ax1.plot_trisurf(triangulation.as_matplotlib_triangulation(),
-                         Z=I[:, i])
+        ax1.plot_trisurf(matplotlib_triang, Z=I[:, i])
         w = op.apply_T(I[:, i])
-        ax2.plot_trisurf(triangulation.as_matplotlib_triangulation(), Z=w)
+        ax2.plot_trisurf(matplotlib_triang, Z=w)
         plt.show()
 
 
