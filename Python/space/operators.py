@@ -118,10 +118,11 @@ def plot_hatfn():
     T.elem_meta_root.bfs()[4].refine()
     T.elem_meta_root.bfs()[7].refine()
     T.elem_meta_root.bfs()[2].refine()
-    T_view = TriangulationView(T)
+    T_view = TriangulationView(T.vertex_meta_root)
+    op = Operators(T_view)
+
     matplotlib_triang = to_matplotlib_triangulation(T.elem_meta_root,
                                                     T.vertex_meta_root)
-
     print(T_view.history)
     I = np.eye(len(T_view.vertices))
     for i in range(len(T_view.vertices)):

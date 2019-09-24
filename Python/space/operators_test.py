@@ -10,12 +10,9 @@ from .triangulation_view import TriangulationView
 
 def test_transformation():
     T = InitialTriangulation.unit_square()
-    T.elem_meta_root.uniform_refine(1)
-    elements = T.elem_meta_root.bfs()
-    elements[4].refine()
-    elements = T.elem_meta_root.bfs()
-    elements[7].refine()
-
+    T.elem_meta_root.bfs()[0].refine()
+    T.elem_meta_root.bfs()[4].refine()
+    T.elem_meta_root.bfs()[7].refine()
     vertices = T.vertex_meta_root.bfs()
     elements = T.elem_meta_root.bfs()
 
