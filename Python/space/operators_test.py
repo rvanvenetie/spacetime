@@ -4,7 +4,7 @@ from scipy.sparse.linalg import cg
 
 from ..datastructures.tree_view import MetaRootView, NodeView
 from .operators import Operators
-from .triangulation import InitialTriangulation
+from .triangulation import InitialTriangulation, to_matplotlib_triangulation
 from .triangulation_view import TriangulationView
 
 
@@ -94,10 +94,14 @@ def test_galerkin(plot=False):
         assert np.abs(sol_SS[i] - 0.181145) < 1e-3  # solution in (0.5, 0.5).
 
     if plot:
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+
         fig = plt.figure()
         ax = fig.gca(projection='3d')
-        ax.plot_elementsurf(triangulation.as_matplotlib_triangulation(),
-                            Z=sol_SS)
+        ax.plot_trisurf(to_matplotlib_triangulation(T.elem_meta_root,
+                                                    T.vertex_meta_root),
+                        Z=sol_SS)
         plt.show()
 
 
