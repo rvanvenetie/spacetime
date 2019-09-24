@@ -19,6 +19,10 @@ class NodeView(NodeAbstract):
         super().__init__(parents=parents, children=children)
         self.node = node
 
+    @property
+    def level(self):
+        return self.node.level
+
     def is_full(self):
         """ Do we represent a `full` node? """
         return len(self.children) == len(self.node.children)
@@ -79,6 +83,9 @@ class NodeView(NodeAbstract):
         """ Copies the appropriate fields from `other` into `self`. """
         assert type(self) == type(other)
 
+    def __repr__(self):
+        return "NV_%s" % self.node
+
 
 class MetaRootView(MetaRoot):
     def __init__(self, roots):
@@ -88,7 +95,7 @@ class MetaRootView(MetaRoot):
         super().__init__(roots=roots)
 
     @classmethod
-    def from_metaroot(cls, metaroot, node_view_cls):
+    def from_metaroot(cls, metaroot, node_view_cls=NodeView):
         """ Initializes a MetaRootView by shallow-copying a MetaRoot. """
         if isinstance(metaroot, MetaRootView):
             # On a MetaRootView, create NodeViews of underlying non-view nodes.
@@ -96,6 +103,31 @@ class MetaRootView(MetaRoot):
         else:
             # On a non-view MetaRoot, create NodeViews of the roots themselves.
             return cls([node_view_cls(node=rt) for rt in metaroot.roots])
+
+    @classmethod
+    def from_metaroot_deep(cls, metaroot, callback, node_view_cls=NodeView):
+        """ Creates a MetaRootView by deep-copying a MetaRoot with callback.
+
+        Args:
+          metaroot: Metaroot of the underlying tree.
+          node_view_cls: The class of the nodeview objects to be constructed.
+          callback: This callback determines whether a given node in the 
+            argument should be inside the subtree.
+        """
+        meta_root_view = cls.from_metaroot(metaroot)
+        nodes = []
+        queue = deque(meta_root_view.roots)
+        while queue:
+            node = queue.popleft()
+            if node.marked: continue
+            nodes.append(node)
+            node.marked = True
+            for child in node.node.children:
+                if callback(child):
+                    queue.extend(node.refine(children=[child]))
+        for node in nodes:
+            node.marked = False
+        return meta_root_view
 
     def deep_copy(self):
         """ Deep-copies `self` into a new NodeView tree. """
@@ -108,8 +140,8 @@ class MetaRootView(MetaRoot):
 
     def union(self, other, callback):
         assert isinstance(other, MetaRootView)
-        queue = deque()
-        queue.extend(zip(self.roots, other.roots))
+        assert len(self.roots) == len(other.roots)
+        queue = deque(zip(self.roots, other.roots))
         nodes = []
         while queue:
             my_node, other_node = queue.popleft()
@@ -120,9 +152,7 @@ class MetaRootView(MetaRoot):
             callback(my_node, other_node)
             my_node.marked = True
             nodes.append(my_node)
-
-            if other_node.children:
-                my_node.refine(children=[c.node for c in other_node.children])
+            my_node.refine(children=[c.node for c in other_node.children])
             assert len(my_node.children) >= len(other_node.children)
 
             # Hidden "quadratic" loop, RIP..
@@ -156,10 +186,6 @@ class NodeVector(NodeView):
         assert isinstance(node, NodeInterface)
         super().__init__(node, parents=parents, children=children)
         self.value = value
-
-    @property
-    def level(self):
-        return self.node.level
 
     def copy_data_from(self, other):
         super().copy_data_from(other)

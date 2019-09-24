@@ -103,8 +103,7 @@ class MetaRoot(NodeAbstract):
     def uniform_refine(self, max_level):
         """ Ensure that the tree contains up to max_level nodes. """
         nodes = []
-        queue = deque()
-        queue.extend(self.roots)
+        queue = deque(self.roots)
         while queue:
             node = queue.popleft()
             if node.marked: continue
@@ -126,8 +125,7 @@ class MetaRoot(NodeAbstract):
         Args:
             include_metaroot: whether to return `self` as well.
         """
-        queue = deque()
-        queue.append(self)
+        queue = deque([self])
         nodes = []
         while queue:
             node = queue.popleft()

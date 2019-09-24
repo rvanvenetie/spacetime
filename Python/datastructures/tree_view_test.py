@@ -1,23 +1,23 @@
-from collections import deque
 import random
+from collections import deque
+
 import numpy as np
 
-from .tree_test import uniform_index_tree, corner_index_tree
-from .tree_view import NodeView, MetaRootView, NodeVector
-from ..space.triangulation import Triangulation
+from ..space.triangulation import InitialTriangulation
+from .tree_test import corner_index_tree, uniform_index_tree
+from .tree_view import MetaRootView, NodeVector, NodeView
 
 
 class FakeNodeView(NodeView):
     @property
     def level(self):
-        return self.node.labda[0]
+        return self.node.level
 
 
 def test_deep_copy():
     # Generate some metaroots to work with.
-    T = Triangulation.unit_square()
-    for _ in range(5):
-        T.refine_uniform()
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(5)
     for metaroot in [T.elem_meta_root, T.vertex_meta_root]:
         metaroot_view = MetaRootView.from_metaroot(metaroot, FakeNodeView)
         metaroot_view.uniform_refine(max_level=10**9)
@@ -29,9 +29,8 @@ def test_deep_copy():
 
 def test_vector_add():
     # Generate some metaroots to work with.
-    T = Triangulation.unit_square()
-    for _ in range(4):
-        T.refine_uniform()
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(4)
     for metaroot in [T.elem_meta_root, T.vertex_meta_root]:
         vec = MetaRootView.from_metaroot(metaroot, NodeVector)
         vec.uniform_refine(max_level=5)

@@ -12,7 +12,6 @@ from .tree_test import corner_index_tree, uniform_index_tree
 
 class DebugDoubleNode(DoubleNode):
     total_counter = 0
-    idx_counter = defaultdict(int)
 
     def __init__(self, nodes, parents=None, children=None):
         super().__init__(nodes, parents, children)
@@ -21,7 +20,6 @@ class DebugDoubleNode(DoubleNode):
             return
         # For debugging purposes
         DebugDoubleNode.total_counter += 1
-        DebugDoubleNode.idx_counter[(nodes[0].labda, nodes[1].labda)] += 1
 
     @property
     def level(self):

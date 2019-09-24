@@ -122,8 +122,7 @@ class DoubleNode:
 
         TODO: should get rid of this full-tree condition; it is not necessary.
         """
-        queue = deque()
-        queue.append((self, other))
+        queue = deque([(self, other)])
         nodes = []
         while queue:
             my_node, other_node = queue.popleft()
@@ -146,8 +145,7 @@ class DoubleNode:
             i: if set, this assumes we are bfs'ing inside a specific axis.
             include_meta_root: if false, filter out all MetaRoot nodes.
         """
-        queue = deque()
-        queue.append(self)
+        queue = deque([self])
         nodes = []
         while queue:
             node = queue.popleft()
