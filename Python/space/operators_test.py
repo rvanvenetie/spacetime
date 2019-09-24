@@ -2,23 +2,26 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.sparse.linalg import cg
 
+from ..datastructures.tree_view import MetaRootView, NodeView
 from .operators import Operators
-from .triangulation import Triangulation
+from .triangulation import InitialTriangulation, to_matplotlib_triangulation
+from .triangulation_view import TriangulationView
 
 
 def test_transformation():
-    triangulation = Triangulation.unit_square()
-    triangulation.refine(triangulation.elements[0])
-    triangulation.refine(triangulation.elements[4])
-    triangulation.refine(triangulation.elements[7])
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.bfs()[0].refine()
+    T.elem_meta_root.bfs()[4].refine()
+    T.elem_meta_root.bfs()[7].refine()
+    vertices = T.vertex_meta_root.bfs()
+    elements = T.elem_meta_root.bfs()
 
-    assert len(triangulation.vertices) == 8
-    assert len([elem for elem in triangulation.elements
-                if elem.is_leaf()]) == 8
-    assert len(triangulation.history) == 4
+    assert len(vertices) == 8
+    assert len([elem for elem in elements if elem.is_leaf()]) == 8
 
-    operators = Operators(triangulation)
-
+    # Create a view of the vertices.
+    T_view = TriangulationView(T.vertex_meta_root)
+    operators = Operators(T_view)
     v = np.array([0, 0, 0, 1, 0, 0, 0, 0], dtype=float)
     w = np.array([0, 0, 0, 1, 0.5, 0.5, 0.5, 0.75], dtype=float)
     w2 = operators.apply_T(v)
@@ -46,7 +49,7 @@ def test_transformation():
 
 def test_galerkin(plot=False):
     """ Tests -Laplace u = 1 on [-1,1]^2 with zero boundary conditions.
-    
+
     From http://people.inf.ethz.ch/arbenz/FEM17/pdfs/0-19-852868-X.pdf,
     we find the analytical solution. We use Mathematica to compute a few
     values with adequate precision, through
@@ -59,14 +62,18 @@ def test_galerkin(plot=False):
     """
     vertices = [[-1, -1], [1, 1], [1, -1], [-1, 1]]
     elements = [[0, 2, 3], [1, 3, 2]]
-    triangulation = Triangulation(vertices, elements)
-    ones = np.ones(len(triangulation.vertices), dtype=float)
-    operators = Operators(triangulation)
+    T = InitialTriangulation(vertices, elements)
+    # Create a view of the vertices.
+    T_view = TriangulationView(T.vertex_meta_root)
+    ones = np.ones(len(T_view.vertices), dtype=float)
+    operators = Operators(T_view)
     rhs = operators.apply_T_transpose(operators.apply_SS_mass(ones))
 
-    for _ in range(9):
-        triangulation.refine_uniform()
-        ones = np.ones(len(triangulation.vertices), dtype=float)
+    for i in range(9):
+        T.elem_meta_root.uniform_refine(i)
+        T_view = TriangulationView(T.vertex_meta_root)
+        operators = Operators(T_view)
+        ones = np.ones(len(T_view.vertices), dtype=float)
         new_rhs = operators.apply_T_transpose(operators.apply_SS_mass(ones))
         # Test that the first V elements of the right-hand side coincide -- we
         # have a hierarchic basis after all.
@@ -84,10 +91,14 @@ def test_galerkin(plot=False):
         assert np.abs(sol_SS[i] - 0.181145) < 1e-3  # solution in (0.5, 0.5).
 
     if plot:
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+
         fig = plt.figure()
         ax = fig.gca(projection='3d')
-        ax.plot_elementsurf(triangulation.as_matplotlib_triangulation(),
-                            Z=sol_SS)
+        ax.plot_trisurf(to_matplotlib_triangulation(T.elem_meta_root,
+                                                    T.vertex_meta_root),
+                        Z=sol_SS)
         plt.show()
 
 
