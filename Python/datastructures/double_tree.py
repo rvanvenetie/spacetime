@@ -2,6 +2,7 @@ import itertools
 from collections import defaultdict, deque
 
 from .tree import MetaRoot, NodeAbstract, NodeInterface
+from .tree_view import NodeViewInterface
 
 
 def _pair(i, item_i, item_not_i):
@@ -175,7 +176,7 @@ class DoubleNode:
         return "{} x {}".format(self.nodes[0], self.nodes[1])
 
 
-class FrozenDoubleNode(NodeInterface):
+class FrozenDoubleNode(NodeViewInterface):
     """ A double node that is frozen in a single coordinate.
     
     The resulting object acts like a single node in the other coordinate.
@@ -193,10 +194,6 @@ class FrozenDoubleNode(NodeInterface):
         raise TypeError('FrozenDoubleNode does not support refinement.')
 
     @property
-    def level(self):
-        return self.dbl_node[self.i].level
-
-    @property
     def marked(self):
         return self.dbl_node.marked
 
@@ -207,14 +204,14 @@ class FrozenDoubleNode(NodeInterface):
     @property
     def parents(self):
         return [
-            FrozenDoubleNode(parent, self.i)
+            self.__class__(parent, self.i)
             for parent in self.dbl_node.parents[self.i]
         ]
 
     @property
     def children(self):
         return [
-            FrozenDoubleNode(child, self.i)
+            Fself.__class__(child, self.i)
             for child in self.dbl_node.children[self.i]
         ]
 
@@ -222,19 +219,13 @@ class FrozenDoubleNode(NodeInterface):
     def node(self):
         return self.dbl_node.nodes[self.i]
 
-    def union(self, other):
-        return self.dbl_node.union(other, not self.i)
-
-    def coarsen(self):
-        return self.dbl_node.coarsen()
-
     def is_full(self):
         return self.dbl_node.is_full(self.i)
 
     def bfs(self, include_meta_root=False):
         nodes = self.dbl_node.bfs(self.i, include_meta_root)
         # This returns the items as double nodes, so convert them.
-        return [FrozenDoubleNode(node, self.i) for node in nodes]
+        return [self.__class__(node, self.i) for node in nodes]
 
     def __repr__(self):
         return '{} x {}'.format(*_pair(self.i, self.node, '_'))
@@ -259,12 +250,11 @@ class DoubleTree:
         self.fibers = ({}, {})
         for i in [0, 1]:
             for node in self.root.bfs(i, include_meta_root=True):
-                self.fibers[not i][node.nodes[i]] = FrozenDoubleNode(
-                    node, not i)
+                self.fibers[not i][node.nodes[i]] = self.__class__(node, not i)
 
     def project(self, i):
         """ Return the list of single nodes in axis i. """
-        return FrozenDoubleNode(self.root, i)
+        return self.__class__(self.root, i)
 
     def fiber(self, i, mu):
         """ Return the fiber of double-node mu in axis i.
