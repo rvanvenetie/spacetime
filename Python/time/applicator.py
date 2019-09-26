@@ -35,6 +35,8 @@ class Applicator(object):
 
     def _initialize_elements(self):
         """ Helper function to set correct fields inside the elements. """
+
+        # TODO: This is non-linear, fix this.
         def reset(elem):
             """ Reset the variables! :-) """
             elem.Lambda_in = False

@@ -47,6 +47,7 @@ class Applicator(object):
             psi.coeff[0] = value
 
         # Second, reset data inside the `elements`.
+        # TODO: This is non-linear, fix this.
         def reset(elem):
             """ Reset the variables! :-) """
             elem.Lambda_in = False
