@@ -9,9 +9,8 @@ from ..datastructures.double_tree_test import (corner_index_tree,
                                                sparse_tensor_double_tree,
                                                uniform_index_tree)
 from ..datastructures.function_test import FakeHaarFunction
-from ..datastructures.haar import Haar
 from ..space.triangulation import InitialTriangulation
-from ..time.haar_basis import HaarWavelet
+from ..time.haar_basis import HaarBasis
 from .applicator import Applicator
 
 
@@ -55,23 +54,26 @@ def test_applicator_small():
     # Create space part.
     triang = InitialTriangulation.unit_square()
     triang.elem_meta_root.uniform_refine(2)
-    # Create time part.
-    haar = HaarBasis()
-    haar.
 
-    dt_root = full_tensor_double_tree(uniform_index_tree(5, 't'),
+    # Create time part.
+    HaarBasis.metaroot_wavelet.uniform_refine(2)
+
+    dt_root = full_tensor_double_tree(HaarBasis.metaroot_wavelet,
                                       T.vertex_meta_root)
-    DoubleTreePlotter.plot_matplotlib_graph(dt_root, i_in=0)
-    DoubleTreePlotter.plot_matplotlib_graph(dt_root, i_in=1)
-    plt.show()
-    root_time = uniform_index_tree(2, 't', node_class=HaarWavelet)
-    root_space = uniform_index_tree(2, 'x', node_class=Vertex)
-    Lambda_in = full_tensor_double_tree(root_time, root_space)
-    Lambda_out = full_tensor_double_tree(root_time, root_space)
-    applicator = FakeApplicator(Lambda_in, Lambda_out)
-    sigma = applicator.sigma()
-    assert [n.nodes[0].labda for n in sigma.bfs()] == [(0, 0), (0, 0), (0, 0)]
-    assert [n.nodes[1].labda for n in sigma.bfs()] == [(0, 0), (1, 0), (1, 1)]
+    print(db_root.bfs())
+
+
+#    DoubleTreePlotter.plot_matplotlib_graph(dt_root, i_in=0)
+#    DoubleTreePlotter.plot_matplotlib_graph(dt_root, i_in=1)
+#    plt.show()
+#    root_time = uniform_index_tree(2, 't', node_class=HaarWavelet)
+#    root_space = uniform_index_tree(2, 'x', node_class=Vertex)
+#    Lambda_in = full_tensor_double_tree(root_time, root_space)
+#    Lambda_out = full_tensor_double_tree(root_time, root_space)
+#    applicator = FakeApplicator(Lambda_in, Lambda_out)
+#    sigma = applicator.sigma()
+#    assert [n.nodes[0].labda for n in sigma.bfs()] == [(0, 0), (0, 0), (0, 0)]
+#    assert [n.nodes[1].labda for n in sigma.bfs()] == [(0, 0), (1, 0), (1, 1)]
 
 
 def test_sigma_combinations():

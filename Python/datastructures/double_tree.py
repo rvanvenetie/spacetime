@@ -211,7 +211,7 @@ class FrozenDoubleNode(NodeViewInterface):
     @property
     def children(self):
         return [
-            Fself.__class__(child, self.i)
+            self.__class__(child, self.i)
             for child in self.dbl_node.children[self.i]
         ]
 
@@ -250,11 +250,12 @@ class DoubleTree:
         self.fibers = ({}, {})
         for i in [0, 1]:
             for node in self.root.bfs(i, include_meta_root=True):
-                self.fibers[not i][node.nodes[i]] = self.__class__(node, not i)
+                self.fibers[not i][node.nodes[i]] = FrozenDoubleNode(
+                    node, not i)
 
     def project(self, i):
         """ Return the list of single nodes in axis i. """
-        return self.__class__(self.root, i)
+        return FrozenDoubleNode(self.root, i)
 
     def fiber(self, i, mu):
         """ Return the fiber of double-node mu in axis i.
