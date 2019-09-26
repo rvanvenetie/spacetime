@@ -1,4 +1,5 @@
 from fractions import Fraction
+
 import matplotlib.pyplot as plt
 import numpy as np
 from pytest import approx
