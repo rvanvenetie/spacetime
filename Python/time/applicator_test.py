@@ -148,7 +148,3 @@ def test_apply_upp_low_vs_full():
             res_upp_low = applicator.apply_upp(c) + applicator.apply_low(c)
             assert np.allclose(res_full_op.asarray(Lambda_in),
                                res_upp_low.asarray(Lambda_in))
-
-
-if __name__ == '__main__':
-    assert False
