@@ -1,12 +1,17 @@
-from .function import FunctionNode
-from .tree import MetaRoot
+from .function import FunctionInterface
+from .tree import MetaRoot, NodeAbstract
 
 
-class FakeFunctionNode(FunctionNode):
+class FakeFunctionNode(FunctionInterface, NodeAbstract):
     """ Fake node. Implements some basic functionality. """
     def __init__(self, labda, f_type, parents=None, children=None):
-        super().__init__(labda=labda, parents=parents, children=children)
+        super().__init__(parents=parents, children=children)
+        self.labda = labda
         self.f_type = f_type
+
+    @property
+    def level(self):
+        return self.labda[0]
 
     def __repr__(self):
         return "({}, {}, {})".format(self.f_type, *self.labda)

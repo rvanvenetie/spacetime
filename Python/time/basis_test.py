@@ -1,4 +1,5 @@
 from fractions import Fraction
+
 import matplotlib.pyplot as plt
 import numpy as np
 from pytest import approx
@@ -67,9 +68,12 @@ def test_ortho_uniform_refinement():
         assert len(Lambda.per_level[l]) == 2**l
         assert len(Delta.per_level[l]) == 2**(l + 1)
         h = Fraction(1, 2**l)
+        h_supp = Fraction(1, 2**(l - 1))
         for psi in Lambda.per_level[l]:
             psi_l, psi_n = psi.labda
             assert psi_l == l
+            assert psi.support[0].interval[0] == h_supp * (psi_n // 2)
+            assert psi.support[-1].interval[1] == h_supp * (psi_n // 2 + 1)
             if psi_n % 2 == 1:
                 assert psi.eval(2 * h * (psi_n // 2) + 1e-8) == approx(
                     sq3 * 2**((l - 1) / 2))
@@ -99,7 +103,7 @@ def test_ortho_local_refinement():
 
 
 def test_3pt_uniform_refinement():
-    ml = 5
+    ml = 7
     basis, Lambda = ThreePointBasis.uniform_basis(ml)
     Delta = Lambda.single_scale_functions()
     for l in range(1, ml + 1):
@@ -110,10 +114,18 @@ def test_3pt_uniform_refinement():
             psi_l, psi_n = psi.labda
             assert psi_l == l
             assert psi.eval(h * (2 * psi_n + 1)) == 2**(l / 2)
-            if psi_n > 0: assert psi.eval(h * (2 * psi_n)) == 0.5 * -2**(l / 2)
+            if psi_n > 0:
+                assert psi.eval(h * (2 * psi_n)) == 0.5 * -2**(l / 2)
+                assert psi.support[0].interval[0] == h * (2 * psi_n - 1)
             if psi_n < 2**(l - 1) - 1:
                 assert psi.eval(h * (2 * psi_n + 2)) == 0.5 * -2**(l / 2)
-            if psi_n == 0: assert psi.eval(0) == -2**(l / 2)
+                assert psi.support[-1].interval[1] == h * (2 * psi_n + 3)
+            if psi_n == 0:
+                assert psi.support[0].interval[0] == h * (2 * psi_n)
+                assert psi.eval(0) == -2**(l / 2)
+            if psi_n == 2**(l - 1) - 1:
+                assert psi.support[-1].interval[1] == h * (2 * psi_n + 2)
+                assert psi.eval(1) == -2**(l / 2)
 
 
 def test_3pt_local_refinement():

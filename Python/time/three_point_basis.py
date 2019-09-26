@@ -1,4 +1,5 @@
 from . import basis
+from ..datastructures.tree import MetaRoot
 
 
 class ContLinearScaling(basis.Scaling):
@@ -11,8 +12,8 @@ class ContLinearScaling(basis.Scaling):
 
     The field Element.phi_disc_lin object is ordered by labda, i.e. left, right.
     """
-    def __init__(self, labda, parents, support):
-        super().__init__(labda, parents, support)
+    def __init__(self, labda, support, parents=None):
+        super().__init__(labda, support=support, parents=parents)
 
         # TODO: We could read all these properties from the Element directly.
         self.nbr_left = None
@@ -48,7 +49,7 @@ class ContLinearScaling(basis.Scaling):
         if n < 2**l: child_support.append(self.support[-1].children[0])
 
         # Create element.
-        child = ContLinearScaling((l + 1, 2 * n), [self], child_support)
+        child = ContLinearScaling((l + 1, 2 * n), child_support, [self])
         self.child_mid = child
 
         # Update nbrs.
@@ -75,8 +76,11 @@ class ContLinearScaling(basis.Scaling):
         phi_right = self
 
         # Create child element.
-        child = ContLinearScaling((l + 1, n * 2 - 1), [phi_left, phi_right],
-                                  phi_right.support[0].children)
+        child = ContLinearScaling(
+            (l + 1, n * 2 - 1),
+            support=phi_right.support[0].children,
+            parents=[phi_left, phi_right],
+        )
         phi_left.child_right = child
         phi_right.child_left = child
 
@@ -131,11 +135,33 @@ class ThreePointWavelet(basis.Wavelet):
     Scaling functions are simply the hat functions. A hat function on given
     level is indexed by the corresponding node index. A wavelet on level l >= 1
     is indexed by 0..2^l-1, corresponding to the odd nodes on level l."""
-    def __init__(self, labda, parents, single_scale):
-        super().__init__(labda, parents, single_scale)
+    def __init__(self, labda, single_scale, parents=None):
+        super().__init__(labda, single_scale=single_scale, parents=parents)
 
     def refine(self):
-        if not self.children:
+        if not self.children and self.level == 0:
+            # Find all other wavelets on level 0 -- copy of scaling functions.
+            parents = self.parents[0].children
+            assert len(parents) == 2
+            assert parents[0].labda == (0, 0)
+            assert parents[1].labda == (0, 1)
+
+            # Find the associated single_scale functions.
+            mother_scalings = [
+                parents[0].single_scale[0][0], parents[1].single_scale[0][0]
+            ]
+
+            # Create the mother wavelet.
+            sq2 = 2**(1 / 2)
+            child = ThreePointWavelet(
+                (1, 0),
+                single_scale=[(mother_scalings[0].refine_mid(), -sq2),
+                              (mother_scalings[0].refine_right(), sq2),
+                              (mother_scalings[1].refine_mid(), -sq2)],
+                parents=parents)
+            for parent in parents:
+                parent.children = [child]
+        elif not self.children and self.level > 0:
             phi_left, phi_mid, phi_right = [
                 phi for phi, _ in self.single_scale
             ]
@@ -146,30 +172,31 @@ class ThreePointWavelet(basis.Wavelet):
             phi_children = phi_left.refine_mid(), phi_mid.refine_left(
             ), phi_mid.refine_mid()
             if n == 0:
-                child_left = ThreePointWavelet(
-                    (l + 1, 2 * n), self,
-                    zip(phi_children,
-                        (-1 * scaling, 1 * scaling, -1 / 2 * scaling)))
+                single_scale = zip(
+                    phi_children,
+                    (-1 * scaling, 1 * scaling, -1 / 2 * scaling))
             else:
-                child_left = ThreePointWavelet(
-                    (l + 1, 2 * n), self,
-                    zip(phi_children,
-                        (-1 / 2 * scaling, 1 * scaling, -1 / 2 * scaling)))
+                single_scale = zip(
+                    phi_children,
+                    (-1 / 2 * scaling, 1 * scaling, -1 / 2 * scaling))
+
+            child_left = ThreePointWavelet((l + 1, 2 * n), single_scale,
+                                           [self])
 
             # Now refine the right part
             phi_children = phi_mid.refine_mid(), phi_mid.refine_right(
             ), phi_right.refine_mid()
             if n == 2**(l - 1) - 1:
-                child_right = ThreePointWavelet(
-                    (l + 1, 2 * n + 1), self,
-                    zip(phi_children,
-                        (-1 / 2 * scaling, 1 * scaling, -1 * scaling)))
+                single_scale = zip(
+                    phi_children,
+                    (-1 / 2 * scaling, 1 * scaling, -1 * scaling))
             else:
-                child_right = ThreePointWavelet(
-                    (l + 1, 2 * n + 1), self,
-                    zip(phi_children,
-                        (-1 / 2 * scaling, 1 * scaling, -1 / 2 * scaling)))
+                single_scale = zip(
+                    phi_children,
+                    (-1 / 2 * scaling, 1 * scaling, -1 / 2 * scaling))
 
+            child_right = ThreePointWavelet((l + 1, 2 * n + 1), single_scale,
+                                            [self])
             self.children = [child_left, child_right]
         return self.children
 
@@ -178,21 +205,23 @@ class ThreePointWavelet(basis.Wavelet):
 
 
 class ThreePointBasis(basis.Basis):
-    # Create static mother scaling functions.
+    # Create mother scaling functions; roots of scaling tree.
     mother_scalings = [
-        ContLinearScaling((0, 0), None, [basis.mother_element]),
-        ContLinearScaling((0, 1), None, [basis.mother_element])
+        ContLinearScaling((0, 0), [basis.mother_element]),
+        ContLinearScaling((0, 1), [basis.mother_element])
     ]
     mother_scalings[0].nbr_right = mother_scalings[1]
     mother_scalings[1].nbr_left = mother_scalings[0]
 
-    # Create the static mother wavelet.
+    # Create the root of the wavelet tree -- same as the mother scaling.
     mother_wavelets = [
-        ThreePointWavelet((1, 0), None,
-                          [(mother_scalings[0].refine_mid(), -2**(1 / 2)),
-                           (mother_scalings[0].refine_right(), 2**(1 / 2)),
-                           (mother_scalings[1].refine_mid(), -2**(1 / 2))])
+        ThreePointWavelet((0, 0), single_scale=[(mother_scalings[0], 1)]),
+        ThreePointWavelet((0, 1), single_scale=[(mother_scalings[1], 1)])
     ]
+
+    # Create the metaroots
+    metaroot_wavelet = MetaRoot(mother_wavelets)
+    metaroot_scaling = MetaRoot(mother_scalings)
 
     def __init__(self):
         pass
