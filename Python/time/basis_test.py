@@ -70,6 +70,11 @@ def test_ortho_uniform_refinement():
         h = Fraction(1, 2**l)
         h_supp = Fraction(1, 2**(l - 1))
         for psi in Lambda.per_level[l]:
+            assert len(psi.parents) == 2
+            assert len(psi.children) in [0, 4]
+            for i in range(len(psi.children) - 1):
+                assert psi.children[i].labda[1] + 1 == psi.children[i +
+                                                                    1].labda[1]
             psi_l, psi_n = psi.labda
             assert psi_l == l
             assert psi.support[0].interval[0] == h_supp * (psi_n // 2)

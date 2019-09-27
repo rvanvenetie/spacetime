@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from fractions import Fraction
 
 from ..datastructures.function import FunctionInterface
@@ -103,10 +104,14 @@ class Wavelet(CoefficientFunction1D):
 
         assert single_scale
         self.single_scale = list(single_scale)
+        support = []
         for phi, coeff in self.single_scale:
-            self.support.extend(phi.support)
+            support.extend(phi.support)
             # Register this wavelet in the corresponding phi.
             phi.multi_scale.append((self, coeff))
+
+        # Deduplicate the support.
+        self.support = list(OrderedDict.fromkeys(support))
 
     def eval(self, x, deriv=False):
         result = 0
