@@ -81,9 +81,6 @@ def test_applicator_real():
     for db_node in dt_root.bfs():
         db_node.value = np.random.rand()
 
-    # Invoke the fake applicator to the random tree.
-    applicator.apply(dt_root)
-
 
 def test_sigma_combinations():
     """ I have very little intuition for what Sigma does, exactly, so I just
