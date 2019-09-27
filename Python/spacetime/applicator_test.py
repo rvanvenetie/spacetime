@@ -1,13 +1,17 @@
 from collections import defaultdict
 from itertools import product
+from pprint import pprint
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from ..datastructures.double_tree import DoubleTree
 from ..datastructures.double_tree_test import (corner_index_tree,
                                                full_tensor_double_tree,
                                                sparse_tensor_double_tree,
                                                uniform_index_tree)
+from ..datastructures.double_tree_vector import (DoubleNodeVector,
+                                                 FrozenDoubleNodeVector)
 from ..datastructures.function_test import FakeHaarFunction
 from ..space.triangulation import InitialTriangulation
 from ..time.haar_basis import HaarBasis
@@ -50,7 +54,7 @@ def test_small_sigma():
     assert [n.nodes[1].labda for n in sigma.bfs()] == [(0, 0), (1, 0), (1, 1)]
 
 
-def test_applicator_small():
+def test_applicator_real():
     # Create space part.
     triang = InitialTriangulation.unit_square()
     triang.elem_meta_root.uniform_refine(2)
@@ -58,9 +62,16 @@ def test_applicator_small():
     # Create time part.
     HaarBasis.metaroot_wavelet.uniform_refine(2)
 
-    dt_root = full_tensor_double_tree(HaarBasis.metaroot_wavelet,
-                                      T.vertex_meta_root)
-    print(db_root.bfs())
+    # Create a DoubleTree Vector
+    dt_root = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
+                                     triang.vertex_meta_root,
+                                     dbl_node_cls=DoubleNodeVector,
+                                     frozen_dbl_cls=FrozenDoubleNodeVector)
+
+    # Initialize it to random values
+    for db_node in dt_root.bfs():
+        db_node.value = np.random.rand()
+    pprint(dt_root.bfs())
 
 
 #    DoubleTreePlotter.plot_matplotlib_graph(dt_root, i_in=0)

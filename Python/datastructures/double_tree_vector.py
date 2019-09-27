@@ -9,6 +9,9 @@ class DoubleNodeVector(DoubleNode):
         super().__init__(nodes=nodes, parents=parents, children=children)
         self.value = value
 
+    def __repr__(self):
+        return '({} x {}): {}'.format(self.nodes[0], self.nodes[1], self.value)
+
 
 class FrozenDoubleNodeVector(FrozenDoubleNode):
     @property

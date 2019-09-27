@@ -1,22 +1,9 @@
-from abc import ABC, abstractmethod
 from collections import deque
 
 from .tree import MetaRoot, NodeAbstract, NodeInterface
 
 
-class NodeViewInterface(NodeInterface):
-    """ Defines the interface of a node view like object. """
-    @property
-    @abstractmethod
-    def node(self):
-        pass
-
-    @property
-    def level(self):
-        return self.node.level
-
-
-class NodeView(NodeAbstract, NodeViewInterface):
+class NodeView(NodeAbstract):
     """ This defines a `view` or `subtree` of an existing underlying tree. """
     __slots__ = ['node']
 
@@ -31,6 +18,10 @@ class NodeView(NodeAbstract, NodeViewInterface):
         assert isinstance(node, NodeInterface)
         super().__init__(parents=parents, children=children)
         self.node = node
+
+    @property
+    def level(self):
+        return self.node.level
 
     def is_full(self):
         """ Do we represent a `full` node? """
