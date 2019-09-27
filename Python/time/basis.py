@@ -197,11 +197,13 @@ class Basis:
         ]
         n_wavelets = len([psi for psi in Lambda if psi.level == 1])
         for _ in range(max_level - 1):
-            parents = list(Lambda[-n_wavelets:])
-            for parent in parents:
-                parent.refine()
-                #TODO: This assumes the left child is always 0
-                Lambda.append(parent.children[0])
+            # Get the left-most parent
+            parent = Lambda[-n_wavelets]
+
+            # Assume that its children are all wavelets in the corner.
+            parent.refine()
+            assert len(parent.children) >= n_wavelets
+            Lambda.extend(parent.children[:n_wavelets])
 
         return basis, MultiscaleFunctions(Lambda)
 
@@ -221,21 +223,25 @@ class Basis:
         n_wavelets = len(mother_wavelets)
 
         # First add all the wavelets near the origin
-        # TODO: assumets the left child is 0
         for _ in range(max_level - 1):
-            parents = list(Lambda[-n_wavelets:])
-            for parent in parents:
-                parent.refine()
-                Lambda.append(parent.children[0])
+            # Get the left-most parent
+            parent = Lambda[-n_wavelets]
+
+            # Assume that its children are all wavelets in the corner.
+            parent.refine()
+            assert len(parent.children) >= n_wavelets
+            Lambda.extend(parent.children[:n_wavelets])
 
         # Now add all the wavelets near the endpoint.
         # TODO: dirty hacks involved here
         Lambda = Lambda[n_wavelets:] + mother_wavelets
         for _ in range(max_level - 1):
-            parents = list(Lambda[-n_wavelets:])
-            for parent in parents:
-                parent.refine()
-                Lambda.append(parent.children[-1])
+            # Get rightmost parent
+            parent = Lambda[-1]
+            # Assume that its children are all wavelets in the corner.
+            parent.refine()
+            assert len(parent.children) >= n_wavelets
+            Lambda.extend(parent.children[-n_wavelets:])
 
         Lambda = basis.metaroot_wavelet.children + Lambda
         return basis, MultiscaleFunctions(Lambda)
