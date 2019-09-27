@@ -266,14 +266,19 @@ class DoubleTree:
 
     def project(self, i):
         """ Return the list of single nodes in axis i. """
-        return self.frozen_dbl_cls(self.root, i)
+
+        # This should not use the frozen double node class.
+        return FrozenDoubleNode(self.root, i)
 
     def fiber(self, i, mu):
         """ Return the fiber of double-node mu in axis i.
         
         The fiber is the tree of single-nodes in axis i frozen at coordinate mu
         in the other axis. """
-        return self.fibers[i][mu]
+        if isinstance(mu, FrozenDoubleNode):
+            return self.fibers[i][mu.node]
+        else:
+            return self.fibers[i][mu]
 
     def bfs(self, i=None, include_meta_root=False):
         return self.root.bfs(i=i, include_meta_root=include_meta_root)

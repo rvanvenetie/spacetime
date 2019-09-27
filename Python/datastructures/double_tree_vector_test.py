@@ -38,10 +38,11 @@ def test_double_tree_vector():
     for db_node in dt_root.bfs():
         assert db_node.value == 1
 
-    for f_node in dt_root.project(0).bfs():
-        assert f_node.dbl_node.value == 1
+    # Check that this also holds for the fibers.
+    for labda in dt_root.project(0).bfs():
+        fiber = dt_root.fiber(1, labda)
+        assert all(f_node.value == 1 for f_node in fiber.bfs())
 
-    # Check that this also holds for the main trees.
-    print(dt_root.project(0).bfs())
-    assert all(f_node.value == 1 for f_node in dt_root.project(0).bfs())
-    assert all(f_node.value == 1 for f_node in dt_root.project(1).bfs())
+    for labda in dt_root.project(1).bfs():
+        fiber = dt_root.fiber(0, labda)
+        assert all(f_node.value == 1 for f_node in fiber.bfs())
