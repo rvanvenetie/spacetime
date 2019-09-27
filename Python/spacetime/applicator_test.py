@@ -56,32 +56,6 @@ def test_small_sigma():
     assert [n.nodes[1].labda for n in sigma.bfs()] == [(0, 0), (1, 0), (1, 1)]
 
 
-def test_applicator_real():
-    # Create space part.
-    triang = InitialTriangulation.unit_square()
-    triang.elem_meta_root.uniform_refine(2)
-
-    # Create a hierarchical basis
-    hierarch_basis = MetaRootView.from_metaroot_deep(
-        metaroot=triang.vertex_meta_root,
-        node_view_cls=HierarchicalBasisFunction)
-
-    # Create time part.
-    HaarBasis.metaroot_wavelet.uniform_refine(2)
-
-    # Create a DoubleTree Vector
-    dt_root = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
-                                     hierarch_basis,
-                                     dbl_node_cls=DoubleNodeVector,
-                                     frozen_dbl_cls=FrozenDoubleNodeVector)
-    # Create a fake applicator
-    applicator = FakeApplicator(dt_root, dt_root)
-
-    # Initialize the vector to random values
-    for db_node in dt_root.bfs():
-        db_node.value = np.random.rand()
-
-
 def test_sigma_combinations():
     """ I have very little intuition for what Sigma does, exactly, so I just
     made a bunch of weird combinations of Lambda_in and Lambda_out, made Sigma,
