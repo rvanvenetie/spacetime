@@ -93,10 +93,6 @@ class HaarBasis(basis.Basis):
     # Create the root of the wavelet tree -- same as the mother scaling.
     root_wavelet = HaarWavelet((0, 0), single_scale=[(mother_scaling, 1)])
 
-    # Legacy
-    mother_wavelets = root_wavelet.refine()
-    mother_wavelet = mother_wavelets[0]
-
     # Create the metaroots
     metaroot_wavelet = MetaRoot(root_wavelet)
     metaroot_scaling = MetaRoot(mother_scaling)
