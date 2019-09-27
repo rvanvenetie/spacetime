@@ -101,6 +101,15 @@ class OrthonormalWavelet(basis.Wavelet):
     def __init__(self, labda, single_scale, parents=None):
         super().__init__(labda, single_scale=single_scale, parents=parents)
 
+    def _nbr(self):
+        """ Finds the `neighbour` of this wavelet, i.e. its twin brother. """
+        _, n = self.labda
+        nbr_indices = [1, 0, 3, 2]
+        nbr = self.parents[0].children[nbr_indices[n % 4]]
+        assert self.support == nbr.support
+        assert self.labda != nbr.labda
+        return nbr
+
     def refine(self):
         if not self.children and self.level == 0:
             mother_scalings_children = self.single_scale[0][0].refine()
@@ -125,23 +134,27 @@ class OrthonormalWavelet(basis.Wavelet):
                 parent.children = children
         elif not self.children and self.level > 0:
             l, n = self.labda
+            nbr = self._nbr()
+            assert not nbr.children
+
+            # Only invoke on the wavelet of type 0.
+            if n % 2: return nbr.refine()
+
             s = 2**(l / 2)  # scaling
             for i in range(2):
-                if n % 2 == 0:
-                    phi = self.single_scale[2 * i][0]
-                    single_scale = zip(
-                        phi.refine(),
-                        (-s / 2, -sq3 * s / 2, s / 2, -sq3 * s / 2))
-                    self.children.append(
-                        OrthonormalWavelet((l + 1, 2 * (n + i)), single_scale,
-                                           [self]))
-                else:
-                    phi = self.single_scale[i][0]
-                    single_scale = [(phi.children[1], -s),
-                                    (phi.children[3], s)]
-                    self.children.append(
-                        OrthonormalWavelet((l + 1, 2 * (n + i) - 1),
-                                           single_scale, [self]))
+                phi = self.single_scale[2 * i][0]
+                # Create child of type 0.
+                single_scale = zip(phi.refine(),
+                                   (-s / 2, -sq3 * s / 2, s / 2, -sq3 * s / 2))
+                self.children.append(
+                    OrthonormalWavelet((l + 1, 2 * (n + i)), single_scale,
+                                       [self, nbr]))
+                # Create child of type 1.
+                single_scale = [(phi.children[1], -s), (phi.children[3], s)]
+                self.children.append(
+                    OrthonormalWavelet((l + 1, 2 * (n + i) + 1), single_scale,
+                                       [self, nbr]))
+            nbr.children = self.children
         return self.children
 
     def is_full(self):
