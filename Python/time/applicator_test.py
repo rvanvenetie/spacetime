@@ -4,7 +4,7 @@ import numpy as np
 from pytest import approx
 from scipy.integrate import quad
 
-from . import applicator, operators
+from . import Applicator_class, applicator, operators
 from .haar_basis import HaarBasis
 from .orthonormal_basis import OrthonormalBasis
 from .sparse_vector import SparseVector
