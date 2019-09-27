@@ -1,4 +1,6 @@
 from ..datastructures.double_tree import DoubleTree
+from ..datastructures.double_tree_vector import (DoubleNodeVector,
+                                                 FrozenDoubleNodeVector)
 
 
 class Applicator:
@@ -46,17 +48,18 @@ class Applicator:
 
     def sigma(self):
         """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
-        sigma = DoubleTree(
-            self.Lambda_in.root.__class__(
-                (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1])))
+
+        # Sigma is actually an empty vector.
+        sigma_root = DoubleNodeVector(nodes=self.Lambda_in.root.nodes, value=0)
+        sigma = DoubleTree(sigma_root, frozen_dbl_cls=FrozenDoubleNodeVector)
 
         # Insert the `time single tree` x `space meta root` and
         # the `time meta root` x `space single tree` into Sigma.
         # This will copy all nodes in time and space into the tree, also the
         # ones without any subtree. This won't be a big issue, since either
         # coordinate will always be of type MetaRoot.
-        sigma.root.union(self.Lambda_in.project(0), i=0)
-        sigma.root.union(self.Lambda_out.project(1), i=1)
+        sigma_root.union(self.Lambda_in.project(0), i=0)
+        sigma_root.union(self.Lambda_out.project(1), i=1)
 
         for psi_in_labda_0 in sigma.project(0).bfs():
             # Get support of psi_in_labda_0 on level + 1.
@@ -75,9 +78,9 @@ class Applicator:
         return sigma
 
     def theta(self):
-        theta = DoubleTree(
-            self.Lambda_in.root.__class__(
-                (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1])))
+        # Theta is actually an empty vector.
+        theta_root = DoubleNodeVector(nodes=self.Lambda_in.root.nodes, value=0)
+        theta = DoubleTree(theta_root, frozen_dbl_cls=FrozenDoubleNodeVector)
 
         theta.root.union(self.Lambda_in.project(1), i=1)
         empty_labdas = []
@@ -101,26 +104,30 @@ class Applicator:
         theta.compute_fibers()
         return theta
 
-    def apply(self, vec):
+    def apply(self, vec_in, vec_out):
         """ Apply the tensor product applicator to the given vector. """
 
+        # Assert that the output vector is empty
+        assert isinstance(vec_out.root, DoubleNodeVector)
+        assert all(db_node.value == 0
+                   for db_node in vec_out.bfs(include_meta_root=True))
+
         # Calculate R_sigma(Id x A_1)I_Lambda
-        v = {}
         sigma = self.sigma()
-        for psi_in_labda in sigma.project(0):
-            fiber_in = self.Lambda_in.fiber(1, psi_in_labda)
+        assert isinstance(sigma.root, DoubleNodeVector)
+        for psi_in_labda in sigma.project(0).bfs():
+            fiber_in = vec_in.fiber(1, psi_in_labda)
             fiber_out = sigma.fiber(1, psi_in_labda)
-            v += self.applicator_space.apply(vec, fiber_in, fiber_out)
+            self.applicator_space.apply(fiber_in, fiber_out)
 
         # Calculate R_Lambda(L_0 x Id)I_Sigma
-        w = {}
-        for psi_out_labda in self.Lambda_out.project(1):
+        for psi_out_labda in self.Lambda_out.project(1).bfs():
             fiber_in = sigma.fiber(0, psi_out_labda)
             fiber_out = self.Lambda_out.fiber(0, psi_out_labda)
-            w += self.applicator_time.apply_low(v, fiber_in, fiber_out)
+            self.applicator_time.apply_low(fiber_in, fiber_out)
 
         # Calculate R_Theta(U_1 x Id)I_Lambda
-        v = {}
+        v = []
         theta = self.theta()
         for psi_out_labda in theta.project(1):
             fiber_in = self.Lambda_in.fiber(0, psi_out_labda)

@@ -8,7 +8,13 @@ from ..datastructures.double_tree_test import (corner_index_tree,
                                                full_tensor_double_tree,
                                                sparse_tensor_double_tree,
                                                uniform_index_tree)
+from ..datastructures.double_tree_vector import (DoubleNodeVector,
+                                                 FrozenDoubleNodeVector)
 from ..datastructures.function_test import FakeHaarFunction
+from ..datastructures.tree_view import MetaRootView
+from ..space.basis import HierarchicalBasisFunction
+from ..space.triangulation import InitialTriangulation
+from ..time.haar_basis import HaarBasis
 from .applicator import Applicator
 
 
@@ -17,8 +23,20 @@ class FakeApplicator(Applicator):
         def __init__(self, axis):
             self.axis = axis
 
-        def apply(vec, fiber_in, fiber_out):
-            return {}
+        def apply(self, vec_in, vec_out):
+            """ This simply sets all output values to 1. """
+            for labda in vec_out.bfs():
+                vec_out.dbl_node.value = 1
+
+        def apply_low(self, vec_in, vec_out):
+            """ This simply sets all output values to 1. """
+            for labda in vec_out.bfs():
+                vec_out.dbl_node.value = 1
+
+        def apply_upp(self, vec_in, vec_out):
+            """ This simply sets all output values to 1. """
+            for labda in vec_out.bfs():
+                vec_out.dbl_node.value = 1
 
     def __init__(self, Lambda_in, Lambda_out=None):
         super().__init__(None, Lambda_in, self.FakeSingleApplicator('t'),
@@ -79,3 +97,36 @@ def test_sigma_combinations():
                     assert all(
                         node.nodes[i].is_full() or node.nodes[i].is_leaf()
                         for i in [0, 1])
+
+
+def test_applicator_real():
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.elem_meta_root.uniform_refine(2)
+
+    # Create a hierarchical basis
+    hierarch_basis = MetaRootView.from_metaroot_deep(
+        metaroot=triang.vertex_meta_root,
+        node_view_cls=HierarchicalBasisFunction)
+
+    # Create time part.
+    HaarBasis.metaroot_wavelet.uniform_refine(2)
+
+    # Create a DoubleTree input and output vector
+    vec_in = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
+                                    hierarch_basis,
+                                    dbl_node_cls=DoubleNodeVector,
+                                    frozen_dbl_cls=FrozenDoubleNodeVector)
+
+    vec_out = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
+                                     hierarch_basis,
+                                     dbl_node_cls=DoubleNodeVector,
+                                     frozen_dbl_cls=FrozenDoubleNodeVector)
+
+    # Initialize the input vector with ones.
+    for db_node in vec_in.bfs():
+        db_node.value = 1
+
+    # Create and apply a fake applicator.
+    applicator = FakeApplicator(vec_in, vec_out)
+    applicator.apply(vec_in, vec_out)
