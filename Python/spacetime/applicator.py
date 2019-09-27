@@ -44,11 +44,6 @@ class Applicator:
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out.append(psi_out.node)
 
-        # This does not work when Lambda_in and Lambda_out have different bases.
-        for psi_in in self.Lambda_in.project(1).bfs():
-            for elem in psi_in.node.support:
-                elem.Theta_gamma = True
-
     def sigma(self):
         """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
         sigma = DoubleTree(
