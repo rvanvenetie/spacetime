@@ -1,22 +1,14 @@
 from collections import defaultdict
 from itertools import product
-from pprint import pprint
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 from ..datastructures.double_tree import DoubleTree
 from ..datastructures.double_tree_test import (corner_index_tree,
                                                full_tensor_double_tree,
                                                sparse_tensor_double_tree,
                                                uniform_index_tree)
-from ..datastructures.double_tree_vector import (DoubleNodeVector,
-                                                 FrozenDoubleNodeVector)
 from ..datastructures.function_test import FakeHaarFunction
-from ..datastructures.tree_view import MetaRootView
-from ..space.basis import HierarchicalBasisFunction
-from ..space.triangulation import InitialTriangulation
-from ..time.haar_basis import HaarBasis
 from .applicator import Applicator
 
 
