@@ -110,7 +110,7 @@ class Wavelet(CoefficientFunction1D):
             # Register this wavelet in the corresponding phi.
             phi.multi_scale.append((self, coeff))
 
-        # Deduplicate the support.
+        # Deduplicate the support while keeping the ordering intact.
         self.support = list(OrderedDict.fromkeys(support))
 
     def eval(self, x, deriv=False):
