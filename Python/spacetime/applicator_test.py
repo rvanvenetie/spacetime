@@ -74,7 +74,7 @@ def test_applicator_real():
                                      hierarch_basis,
                                      dbl_node_cls=DoubleNodeVector,
                                      frozen_dbl_cls=FrozenDoubleNodeVector)
-    # Create an fake applicator
+    # Create a fake applicator
     applicator = FakeApplicator(dt_root, dt_root)
 
     # Initialize the vector to random values
