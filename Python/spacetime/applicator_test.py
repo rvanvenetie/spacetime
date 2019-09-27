@@ -13,6 +13,8 @@ from ..datastructures.double_tree_test import (corner_index_tree,
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  FrozenDoubleNodeVector)
 from ..datastructures.function_test import FakeHaarFunction
+from ..datastructures.tree_view import MetaRootView
+from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..time.haar_basis import HaarBasis
 from .applicator import Applicator
@@ -59,32 +61,28 @@ def test_applicator_real():
     triang = InitialTriangulation.unit_square()
     triang.elem_meta_root.uniform_refine(2)
 
+    # Create a hierarchical basis
+    hierarch_basis = MetaRootView.from_metaroot_deep(
+        metaroot=triang.vertex_meta_root,
+        node_view_cls=HierarchicalBasisFunction)
+
     # Create time part.
     HaarBasis.metaroot_wavelet.uniform_refine(2)
 
     # Create a DoubleTree Vector
     dt_root = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
-                                     triang.vertex_meta_root,
+                                     hierarch_basis,
                                      dbl_node_cls=DoubleNodeVector,
                                      frozen_dbl_cls=FrozenDoubleNodeVector)
+    # Create an fake applicator
+    applicator = FakeApplicator(dt_root, dt_root)
 
-    # Initialize it to random values
+    # Initialize the vector to random values
     for db_node in dt_root.bfs():
         db_node.value = np.random.rand()
-    pprint(dt_root.bfs())
 
-
-#    DoubleTreePlotter.plot_matplotlib_graph(dt_root, i_in=0)
-#    DoubleTreePlotter.plot_matplotlib_graph(dt_root, i_in=1)
-#    plt.show()
-#    root_time = uniform_index_tree(2, 't', node_class=HaarWavelet)
-#    root_space = uniform_index_tree(2, 'x', node_class=Vertex)
-#    Lambda_in = full_tensor_double_tree(root_time, root_space)
-#    Lambda_out = full_tensor_double_tree(root_time, root_space)
-#    applicator = FakeApplicator(Lambda_in, Lambda_out)
-#    sigma = applicator.sigma()
-#    assert [n.nodes[0].labda for n in sigma.bfs()] == [(0, 0), (0, 0), (0, 0)]
-#    assert [n.nodes[1].labda for n in sigma.bfs()] == [(0, 0), (1, 0), (1, 1)]
+    # Invoke the fake applicator to the random tree.
+    applicator.apply(dt_root)
 
 
 def test_sigma_combinations():
