@@ -35,6 +35,8 @@ class Applicator(object):
 
     def _initialize_elements(self):
         """ Helper function to set correct fields inside the elements. """
+
+        # TODO: This is non-linear, fix this.
         def reset(elem):
             """ Reset the variables! :-) """
             elem.Lambda_in = False
@@ -64,11 +66,7 @@ class Applicator(object):
             self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
         self._initialize_elements()
-        e, f = self._apply_recur(l=1,
-                                 Pi_in=self.Lambda_in.on_level(0),
-                                 Pi_out=self.Lambda_out.on_level(0),
-                                 d=vec,
-                                 c=vec)
+        e, f = self._apply_recur(l=0, Pi_in=[], Pi_out=[], d=vec, c=vec)
         return e + f
 
     def apply_upp(self, vec):
@@ -81,11 +79,7 @@ class Applicator(object):
             Upper part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
         self._initialize_elements()
-        e, f = self._apply_upp_recur(l=1,
-                                     Pi_in=self.Lambda_in.on_level(0),
-                                     Pi_out=self.Lambda_out.on_level(0),
-                                     d=vec,
-                                     c=vec)
+        e, f = self._apply_upp_recur(l=0, Pi_in=[], Pi_out=[], d=vec, c=vec)
         return e + f
 
     def apply_low(self, vec):
@@ -98,10 +92,7 @@ class Applicator(object):
             Lower part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
         self._initialize_elements()
-        f = self._apply_low_recur(l=1,
-                                  Pi_in=self.Lambda_in.on_level(0),
-                                  d=vec,
-                                  c=vec)
+        f = self._apply_low_recur(l=0, Pi_in=[], d=vec, c=vec)
         return f
 
     #  Private methods from here on out.

@@ -36,12 +36,18 @@ class Applicator(object):
     def _initialize(self, vec):
         """ Helper function to initialize fields in datastructures. """
 
+        # Reset the output vector.
+        for psi in self.Lambda_out:
+            psi.reset_coeff()
+
         # First, store the vector inside the wavelet.
         # TODO: This should be removed.
         for psi, value in vec.items():
+            psi.reset_coeff()
             psi.coeff[0] = value
 
         # Second, reset data inside the `elements`.
+        # TODO: This is non-linear, fix this.
         def reset(elem):
             """ Reset the variables! :-) """
             elem.Lambda_in = False
@@ -75,9 +81,7 @@ class Applicator(object):
         self._initialize(vec)
 
         # Apply the recursive method.
-        self._apply_recur(l=1,
-                          Pi_in=self.Lambda_in.on_level(0),
-                          Pi_out=self.Lambda_out.on_level(0))
+        self._apply_recur(l=0, Pi_in=[], Pi_out=[])
 
         # Copy data back from basis into a vector.
         return SparseVector({psi: psi.coeff[1] for psi in self.Lambda_out})
@@ -93,9 +97,7 @@ class Applicator(object):
         """
         self._initialize(vec)
 
-        self._apply_upp_recur(l=1,
-                              Pi_in=self.Lambda_in.on_level(0),
-                              Pi_out=self.Lambda_out.on_level(0))
+        self._apply_upp_recur(l=0, Pi_in=[], Pi_out=[])
 
         return SparseVector({psi: psi.coeff[1] for psi in self.Lambda_out})
 
@@ -110,7 +112,7 @@ class Applicator(object):
         """
         self._initialize(vec)
 
-        self._apply_low_recur(l=1, Pi_in=self.Lambda_in.on_level(0))
+        self._apply_low_recur(l=0, Pi_in=[])
         return SparseVector({psi: psi.coeff[1] for psi in self.Lambda_out})
 
     #  Private methods from here on out.
