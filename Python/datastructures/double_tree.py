@@ -244,9 +244,9 @@ class FrozenDoubleNode(NodeInterface):
 
     def __eq__(self, other):
         if isinstance(other, FrozenDoubleNode):
-            return self.i == other.i and self.dbl_node == other.dbl_node
+            return self.i == other.i and self.dbl_node is other.dbl_node
         else:
-            return self.node == other
+            return self.node is other
 
 
 class DoubleTree:
