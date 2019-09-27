@@ -102,9 +102,10 @@ class OrthonormalWavelet(basis.Wavelet):
         super().__init__(labda, single_scale=single_scale, parents=parents)
 
     def _nbr(self):
-        """ Finds the `neighbour` of this wavelet. """
+        """ Finds the `neighbour` of this wavelet, i.e. its twin brother. """
         _, n = self.labda
-        nbr = self.parents[0].children[[1, 0, 3, 2][n % 4]]
+        nbr_indices = [1, 0, 3, 2]
+        nbr = self.parents[0].children[nbr_indices[n % 4]]
         assert self.support == nbr.support
         assert self.labda != nbr.labda
         return nbr
