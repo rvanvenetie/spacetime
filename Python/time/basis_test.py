@@ -14,15 +14,22 @@ from .three_point_basis import ThreePointBasis
 
 def test_haar_mother_functions():
     basis = HaarBasis()
+    assert len(basis.metaroot_scaling.roots) == 1
+    assert len(basis.metaroot_wavelet.roots) == 1
+    mother_scaling = basis.metaroot_scaling.roots[0]
 
-    assert basis.mother_scaling.labda == (0, 0)
-    assert basis.mother_scaling.eval(0.25) == 1.0
-    assert basis.mother_scaling.eval(0.85) == 1.0
+    assert mother_scaling.labda == (0, 0)
+    assert mother_scaling.eval(0.25) == 1.0
+    assert mother_scaling.eval(0.85) == 1.0
 
-    assert basis.mother_wavelet.labda == (1, 0)
-    assert basis.mother_wavelet.eval(0.25) == 1.0
-    assert basis.mother_wavelet.eval(0.85) == -1.0
-    assert basis.mother_wavelet.single_scale == [
+    basis.metaroot_wavelet.roots[0].refine()
+    assert len(basis.metaroot_wavelet.roots[0].children) == 1
+    mother_wavelet = basis.metaroot_wavelet.roots[0].children[0]
+
+    assert mother_wavelet.labda == (1, 0)
+    assert mother_wavelet.eval(0.25) == 1.0
+    assert mother_wavelet.eval(0.85) == -1.0
+    assert mother_wavelet.single_scale == [
         (basis.mother_scaling.children[0], 1),
         (basis.mother_scaling.children[1], -1)
     ]

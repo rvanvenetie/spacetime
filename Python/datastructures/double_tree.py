@@ -207,14 +207,14 @@ class FrozenDoubleNode(NodeInterface):
     @property
     def parents(self):
         return [
-            FrozenDoubleNode(parent, self.i)
+            self.__class__(parent, self.i)
             for parent in self.dbl_node.parents[self.i]
         ]
 
     @property
     def children(self):
         return [
-            FrozenDoubleNode(child, self.i)
+            self.__class__(child, self.i)
             for child in self.dbl_node.children[self.i]
         ]
 
@@ -234,7 +234,7 @@ class FrozenDoubleNode(NodeInterface):
     def bfs(self, include_meta_root=False):
         nodes = self.dbl_node.bfs(self.i, include_meta_root)
         # This returns the items as double nodes, so convert them.
-        return [FrozenDoubleNode(node, self.i) for node in nodes]
+        return [self.__class__(node, self.i) for node in nodes]
 
     def __repr__(self):
         return '{} x {}'.format(*_pair(self.i, self.node, '_'))
@@ -244,26 +244,30 @@ class FrozenDoubleNode(NodeInterface):
 
     def __eq__(self, other):
         if isinstance(other, FrozenDoubleNode):
-            return self.i == other.i and self.dbl_node == other.dbl_node
+            return self.i == other.i and self.dbl_node is other.dbl_node
         else:
-            return self.node == other
+            return self.node is other
 
 
 class DoubleTree:
-    def __init__(self, root):
+    def __init__(self, root, frozen_dbl_cls=FrozenDoubleNode):
         assert all(isinstance(root.nodes[i], MetaRoot) for i in [0, 1])
+        assert issubclass(frozen_dbl_cls, FrozenDoubleNode)
         self.root = root
+        self.frozen_dbl_cls = frozen_dbl_cls
         self.compute_fibers()
 
     def compute_fibers(self):
         self.fibers = ({}, {})
         for i in [0, 1]:
             for node in self.root.bfs(i, include_meta_root=True):
-                self.fibers[not i][node.nodes[i]] = FrozenDoubleNode(
+                self.fibers[not i][node.nodes[i]] = self.frozen_dbl_cls(
                     node, not i)
 
     def project(self, i):
         """ Return the list of single nodes in axis i. """
+
+        # This should not use the frozen double node class.
         return FrozenDoubleNode(self.root, i)
 
     def fiber(self, i, mu):
@@ -271,7 +275,31 @@ class DoubleTree:
         
         The fiber is the tree of single-nodes in axis i frozen at coordinate mu
         in the other axis. """
-        return self.fibers[i][mu]
+        if isinstance(mu, FrozenDoubleNode):
+            return self.fibers[i][mu.node]
+        else:
+            return self.fibers[i][mu]
 
     def bfs(self, i=None, include_meta_root=False):
         return self.root.bfs(i=i, include_meta_root=include_meta_root)
+
+    @staticmethod
+    def full_tensor(meta_root_time,
+                    meta_root_space,
+                    max_levels=None,
+                    dbl_node_cls=DoubleNode,
+                    frozen_dbl_cls=FrozenDoubleNode):
+        """ Makes a full grid doubletree from the given single trees. """
+        double_root = dbl_node_cls((meta_root_time, meta_root_space))
+        queue = deque()
+        queue.append(double_root)
+        while queue:
+            double_node = queue.popleft()
+            for i in [0, 1]:
+                if max_levels and double_node.nodes[i].level >= max_levels[i]:
+                    continue
+                if double_node.is_full(i): continue
+                children = double_node.refine(i)
+                queue.extend(children)
+
+        return DoubleTree(double_root, frozen_dbl_cls=frozen_dbl_cls)

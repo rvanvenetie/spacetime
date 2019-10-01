@@ -28,19 +28,9 @@ class DebugDoubleNode(DoubleNode):
 
 def full_tensor_double_tree(meta_root_time, meta_root_space, max_levels=None):
     """ Makes a full grid doubletree from the given single trees. """
-    double_root = DebugDoubleNode((meta_root_time, meta_root_space))
-    queue = deque()
-    queue.append(double_root)
-    while queue:
-        double_node = queue.popleft()
-        for i in [0, 1]:
-            if max_levels and double_node.nodes[i].level >= max_levels[i]:
-                continue
-            if double_node.is_full(i): continue
-            children = double_node.refine(i)
-            queue.extend(children)
-
-    return DoubleTree(double_root)
+    return DoubleTree.full_tensor(meta_root_time,
+                                  meta_root_space,
+                                  dbl_node_cls=DebugDoubleNode)
 
 
 def uniform_full_grid(time_level, space_level, node_class=FakeHaarFunction):
@@ -135,6 +125,16 @@ def test_project():
             assert tree.project(0).bfs() == meta_root_time.bfs()
             assert tree.project(1).bfs() == meta_root_space.bfs()
 
+            # Assert that the projection doesn't create new nodes
+            assert tree.project(0).dbl_node is tree.root
+            assert tree.project(1).dbl_node is tree.root
+
+            dbl_nodes = set(tree.bfs(include_meta_root=True))
+            for f_node in tree.project(0).bfs():
+                assert f_node.dbl_node in dbl_nodes
+            for f_node in tree.project(1).bfs():
+                assert f_node.dbl_node in dbl_nodes
+
 
 def test_fiber():
     def slow_fiber(i, mu):
@@ -156,10 +156,13 @@ def test_fiber():
                                    7,
                                    N=500),
         ]:
+            dbl_nodes = set(tree.bfs(include_meta_root=True))
             for i in [0, 1]:
                 for mu in tree.root.bfs(not i):
                     assert tree.fiber(i, mu.nodes[not i]).bfs() == slow_fiber(
                         i, mu.nodes[not i])
+                    for f_node in tree.fiber(i, mu.nodes[not i]).bfs():
+                        assert f_node.dbl_node in dbl_nodes
 
 
 def test_union():
