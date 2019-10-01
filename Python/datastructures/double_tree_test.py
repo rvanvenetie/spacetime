@@ -177,12 +177,12 @@ def test_union():
         assert len(to_tree.bfs(include_meta_root=True)) == 1
 
         # Copy axis 0 into `to_tree`.
-        to_tree.project(1).union(from_tree.project(0))
+        to_tree.project(0).union(from_tree.project(0))
         assert len(to_tree.project(0).bfs()) == len(meta_root_time.bfs())
 
         # Copy all subtrees in axis 1 into `to_tree`.
         for item in to_tree.project(0).bfs(include_meta_root=True):
-            item.union(from_tree.fiber(1, item))
+            item.frozen_other_axis().union(from_tree.fiber(1, item))
         assert len(to_tree.bfs()) == len(from_tree.bfs())
 
         # Assert double-tree structure is copied as well.

@@ -178,8 +178,8 @@ class FrozenDoubleNode(NodeViewInterface):
     def union(self, other):
         """ Deep-copies the singletree rooted at `other` into self. """
 
-        # We can only union if self and other are frozen in the same axis.
-        if self.i != other.i: return self.frozen_other_axis().union(other)
+        # Only possible if self and other are frozen in the same axis.
+        assert self.i == other.i
         return self._union(other)
 
     def frozen_other_axis(self):
@@ -226,18 +226,15 @@ class DoubleTree:
         return self.frozen_dbl_cls(self.root, i)
 
     def fiber(self, i, mu):
-        """ Return the fiber of double-node mu in axis i.
+        """ Return the fiber of (single) node mu in axis i.
         
         The fiber is the tree of single-nodes in axis i frozen at coordinate mu
         in the other axis. """
         if isinstance(mu, FrozenDoubleNode):
+            assert not mu.i == i
             return self.fibers[i][mu.node]
         else:
             return self.fibers[i][mu]
-
-    def union(self, other):
-        """ Unions the root with the given singletree. """
-        return self.project(other.i).union(other)
 
     def bfs(self, include_meta_root=False):
         """ Does a bfs from the given double node.
