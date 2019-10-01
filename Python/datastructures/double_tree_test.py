@@ -135,6 +135,16 @@ def test_project():
             assert tree.project(0).bfs() == meta_root_time.bfs()
             assert tree.project(1).bfs() == meta_root_space.bfs()
 
+            # Assert that the projection doesn't create new nodes
+            assert tree.project(0).dbl_node is tree.root
+            assert tree.project(1).dbl_node is tree.root
+
+            dbl_nodes = set(tree.bfs(include_meta_root=True))
+            for f_node in tree.project(0).bfs():
+                assert f_node.dbl_node in dbl_nodes
+            for f_node in tree.project(1).bfs():
+                assert f_node.dbl_node in dbl_nodes
+
 
 def test_fiber():
     def slow_fiber(i, mu):
@@ -156,10 +166,13 @@ def test_fiber():
                                    7,
                                    N=500),
         ]:
+            dbl_nodes = set(tree.bfs(include_meta_root=True))
             for i in [0, 1]:
                 for mu in tree.root.bfs(not i):
                     assert tree.fiber(i, mu.nodes[not i]).bfs() == slow_fiber(
                         i, mu.nodes[not i])
+                    for f_node in tree.fiber(i, mu.nodes[not i]).bfs():
+                        assert f_node.dbl_node in dbl_nodes
 
 
 def test_union():
