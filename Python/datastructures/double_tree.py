@@ -1,7 +1,8 @@
 import itertools
 from collections import defaultdict, deque
 
-from .tree import MetaRoot, NodeAbstract, NodeInterface
+from .tree import MetaRootInterface, NodeInterface
+from .tree_view import NodeViewInterface
 
 
 def _pair(i, item_i, item_not_i):
@@ -65,15 +66,22 @@ class DoubleNode:
                     return sibling_not_i
         return None
 
-    def refine(self, i):
+    def refine(self, i, children=None):
         """ Refines the node in the `i`-th coordinate.
         
         If the node that will be introduced has multiple parents, then these
         must be brothers of self (and already exist).
+
+        Args:
+          i: The axis we are considering.
+          children: If set, the list of children to create. If none, refine
+                    all children that exist in the underlying tree.
+
         """
         if self.is_full(i): return self.children[i]
+        if children is None: children = self.nodes[i].children
 
-        for child_i in self.nodes[i].children:
+        for child_i in children:
             child_nodes = _pair(i, child_i, self.nodes[not i])
 
             # Skip if this child has already exists.
@@ -114,68 +122,11 @@ class DoubleNode:
             for parent in self.parents[i]:
                 parent.children[i].remove(self)
 
-    def union(self, other, i):
-        """ Deep-copies the singletree rooted at `other` in axis i into self.
-
-        It is necessary that the singletree `other` is a "full" tree in that
-        every node either has *no* children or *all of its possible* children.
-
-        TODO: should get rid of this full-tree condition; it is not necessary.
-        """
-        queue = deque([(self, other)])
-        nodes = []
-        while queue:
-            my_node, other_node = queue.popleft()
-            assert my_node.nodes[i] == other_node.node
-            assert other_node.node.is_leaf() or other_node.node.is_full()
-            if my_node.marked: continue
-            my_node.marked = True
-            nodes.append(my_node)
-            if other_node.children:
-                my_children = my_node.refine(i)
-                assert len(my_children) == len(other_node.children)
-                queue.extend(zip(my_children, other_node.children))
-        for node in nodes:
-            node.marked = False
-
-    def bfs(self, i=None, include_meta_root=False):
-        """ Does a bfs from the given double node.
-        
-        Args:
-            i: if set, this assumes we are bfs'ing inside a specific axis.
-            include_meta_root: if false, filter out all MetaRoot nodes.
-        """
-        queue = deque([self])
-        nodes = []
-        while queue:
-            node = queue.popleft()
-            if node.marked: continue
-            nodes.append(node)
-            node.marked = True
-            # Add the children to the queue.
-            if i is None:
-                queue.extend(node.children[0])
-                queue.extend(node.children[1])
-            else:
-                queue.extend(node.children[i])
-
-        for node in nodes:
-            node.marked = False
-
-        if not include_meta_root:
-            axis = [0, 1] if i is None else [i]
-            nodes = [
-                node for node in nodes
-                if not any(isinstance(node.nodes[j], MetaRoot) for j in axis)
-            ]
-
-        return nodes
-
     def __repr__(self):
         return "{} x {}".format(self.nodes[0], self.nodes[1])
 
 
-class FrozenDoubleNode(NodeInterface):
+class FrozenDoubleNode(NodeViewInterface):
     """ A double node that is frozen in a single coordinate.
     
     The resulting object acts like a single node in the other coordinate.
@@ -189,12 +140,17 @@ class FrozenDoubleNode(NodeInterface):
         self.dbl_node = dbl_node
         self.i = i
 
-    def refine(self):
-        raise TypeError('FrozenDoubleNode does not support refinement.')
-
+    # Implement the NodeViewInterface method.
     @property
-    def level(self):
-        return self.dbl_node[self.i].level
+    def node(self):
+        return self.dbl_node.nodes[self.i]
+
+    def is_full(self):
+        return self.dbl_node.is_full(self.i)
+
+    # Implement the NodeInterface methods.
+    def refine(self, children=None):
+        return self.dbl_node.refine(self.i, children)
 
     @property
     def marked(self):
@@ -218,23 +174,24 @@ class FrozenDoubleNode(NodeInterface):
             for child in self.dbl_node.children[self.i]
         ]
 
-    @property
-    def node(self):
-        return self.dbl_node.nodes[self.i]
-
+    # Implement some extra methods.
     def union(self, other):
-        return self.dbl_node.union(other, not self.i)
+        """ Deep-copies the singletree rooted at `other` into self. """
 
-    def coarsen(self):
-        return self.dbl_node.coarsen()
+        # We can only union if self and other are frozen in the same axis.
+        if self.i != other.i: return self.frozen_other_axis().union(other)
+        return self._union(other)
 
-    def is_full(self):
-        return self.dbl_node.is_full(self.i)
+    def frozen_other_axis(self):
+        """ Helper function to get the `self` frozen in the other axis. """
+        return self.__class__(self.dbl_node, not self.i)
 
     def bfs(self, include_meta_root=False):
-        nodes = self.dbl_node.bfs(self.i, include_meta_root)
-        # This returns the items as double nodes, so convert them.
-        return [self.__class__(node, self.i) for node in nodes]
+        nodes = self._bfs()
+        if not include_meta_root and isinstance(self.node, MetaRootInterface):
+            return nodes[1:]
+        else:
+            return nodes
 
     def __repr__(self):
         return '{} x {}'.format(*_pair(self.i, self.node, '_'))
@@ -251,7 +208,8 @@ class FrozenDoubleNode(NodeInterface):
 
 class DoubleTree:
     def __init__(self, root, frozen_dbl_cls=FrozenDoubleNode):
-        assert all(isinstance(root.nodes[i], MetaRoot) for i in [0, 1])
+        assert all(
+            isinstance(root.nodes[i], MetaRootInterface) for i in [0, 1])
         assert issubclass(frozen_dbl_cls, FrozenDoubleNode)
         self.root = root
         self.frozen_dbl_cls = frozen_dbl_cls
@@ -260,15 +218,12 @@ class DoubleTree:
     def compute_fibers(self):
         self.fibers = ({}, {})
         for i in [0, 1]:
-            for node in self.root.bfs(i, include_meta_root=True):
-                self.fibers[not i][node.nodes[i]] = self.frozen_dbl_cls(
-                    node, not i)
+            for f_node in self.project(i).bfs(include_meta_root=True):
+                self.fibers[not i][f_node.node] = f_node.frozen_other_axis()
 
     def project(self, i):
         """ Return the list of single nodes in axis i. """
-
-        # This should not use the frozen double node class.
-        return FrozenDoubleNode(self.root, i)
+        return self.frozen_dbl_cls(self.root, i)
 
     def fiber(self, i, mu):
         """ Return the fiber of double-node mu in axis i.
@@ -280,8 +235,38 @@ class DoubleTree:
         else:
             return self.fibers[i][mu]
 
-    def bfs(self, i=None, include_meta_root=False):
-        return self.root.bfs(i=i, include_meta_root=include_meta_root)
+    def union(self, other):
+        """ Unions the root with the given singletree. """
+        return self.project(other.i).union(other)
+
+    def bfs(self, include_meta_root=False):
+        """ Does a bfs from the given double node.
+        
+        Args:
+            i: if set, this assumes we are bfs'ing inside a specific axis.
+            include_meta_root: if false, filter out all MetaRoot nodes.
+        """
+        queue = deque([self.root])
+        nodes = []
+        while queue:
+            node = queue.popleft()
+            if node.marked: continue
+            nodes.append(node)
+            node.marked = True
+            # Add the children to the queue.
+            queue.extend(node.children[0])
+            queue.extend(node.children[1])
+
+        for node in nodes:
+            node.marked = False
+
+        if not include_meta_root:
+            nodes = [
+                n for n in nodes if not any(
+                    isinstance(n.nodes[j], MetaRootInterface) for j in [0, 1])
+            ]
+
+        return nodes
 
     @staticmethod
     def full_tensor(meta_root_time,

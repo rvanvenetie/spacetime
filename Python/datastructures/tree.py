@@ -92,7 +92,33 @@ class BinaryNodeAbstract(NodeAbstract):
         return len(self.children) == 2
 
 
-class MetaRoot(NodeAbstract):
+class MetaRootInterface(NodeInterface):
+    def is_full(self):
+        return True
+
+    @property
+    def roots(self):
+        """ The roots this MetaRoot is representing (simply the children). """
+        return self.children
+
+    @property
+    def level(self):
+        return -1
+
+    def bfs(self, include_metaroot=False):
+        """ Performs a BFS on the family tree rooted at `self`.
+        
+        Args:
+            include_metaroot: whether to return `self` as well.
+        """
+        nodes = self._bfs()
+        if not include_metaroot:
+            return nodes[1:]
+        else:
+            return nodes
+
+
+class MetaRoot(MetaRootInterface, NodeAbstract):
     """ Combines the roots of a multi-rooted family tree. """
     def __init__(self, roots):
         if not isinstance(roots, list):
@@ -105,15 +131,8 @@ class MetaRoot(NodeAbstract):
             assert not root.parents
             root.parents = [self]
 
-    def is_full(self):
-        return True
-
     def refine(self):
         return self.children
-
-    @property
-    def level(self):
-        return -1
 
     def uniform_refine(self, max_level):
         """ Ensure that the tree contains up to max_level nodes. """
@@ -128,23 +147,6 @@ class MetaRoot(NodeAbstract):
         for node in nodes:
             node.marked = False
         return nodes
-
-    @property
-    def roots(self):
-        """ The roots this MetaRoot is representing (simply the children). """
-        return self.children
-
-    def bfs(self, include_metaroot=False):
-        """ Performs a BFS on the family tree rooted at `self`.
-        
-        Args:
-            include_metaroot: whether to return `self` as well.
-        """
-        nodes = self._bfs()
-        if not include_metaroot:
-            return nodes[1:]
-        else:
-            return nodes
 
     def __repr__(self):
         return "MR(%s)" % self.roots
