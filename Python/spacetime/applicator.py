@@ -33,21 +33,13 @@ class Applicator:
         if self.Lambda_out.root.nodes != self.Lambda_in.root.nodes:
             raise NotImplementedError("This needs a difficult coupling!")
 
-        # Initialize the elem.psi_out field for Sigma.
-        # TODO: This assumes this filed is empty.
+    def sigma(self):
+        """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
+
+        # Initialize the element.Sigma_psi_out field.
         for psi_out in self.Lambda_out.project(0).bfs():
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out.append(psi_out.node)
-
-    def __del__(self):
-        # Reset element.psi_out field for Sigma.
-        # TODO: We really need a better way to reset these fields.
-        for psi_out in self.Lambda_out.project(0).bfs():
-            for elem in psi_out.node.support:
-                elem.Sigma_psi_out = []
-
-    def sigma(self):
-        """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
 
         # Sigma is actually an empty vector.
         sigma_root = DoubleNodeVector(nodes=self.Lambda_in.root.nodes, value=0)
@@ -69,13 +61,20 @@ class Applicator:
             ]
 
             # Collect all fiber(1, mu) for psi_out_mu that intersect with
-            # support of psi_in_labda_0, and put their union into Sigma.
-            for child in children:
-                for mu in child.Sigma_psi_out:
-                    # TODO: Does a lot of double work.
-                    psi_in_labda_0.union(self.Lambda_out.fiber(1, mu))
+            # support of psi_in_labda_0, use set to deduplicate.
+            mu_out = set(mu for child in children
+                         for mu in child.Sigma_psi_out)
+
+            # Put their union into sigma.
+            for mu in mu_out:
+                psi_in_labda_0.union(self.Lambda_out.fiber(1, mu))
 
         sigma.compute_fibers()
+
+        # Reset element.psi_out field for futher usage.
+        for psi_out in self.Lambda_out.project(0).bfs():
+            for elem in psi_out.node.support:
+                elem.Sigma_psi_out = []
         return sigma
 
     def theta(self):
@@ -89,13 +88,13 @@ class Applicator:
 
         # Loop over the space axis.
         for psi_in_labda_1 in theta.project(1).bfs():
-
             # Get the fiber of psi_in_labda in the original tree.
             fiber_labda_0 = self.Lambda_in.fiber(0, psi_in_labda_1)
 
             # Set the support of fn's in fiber_labda_0 to True.
-            for elem in fiber_labda_0.node.support:
-                elem.Theta_psi_in = True
+            for psi_in_labda_0 in fiber_labda_0.bfs():
+                for elem in psi_in_labda_0.node.support:
+                    elem.Theta_psi_in = True
 
             # Now add all nodes inside Lambda_out.project(0) that have
             # intersecting support with fiber_labda_0 (and lie on the same lvl)
@@ -104,12 +103,13 @@ class Applicator:
             # support with a labda_in, a node from fiber_labda_0.
             callback_filter = lambda psi_out_labda_0: any(
                 elem.Theta_psi_in for elem in psi_out_labda_0.node.support)
-            psi_in_labda_1.union(self.Labda_out.project(0),
+            psi_in_labda_1.union(self.Lambda_out.project(0),
                                  callback_filter=callback_filter)
 
             # Reset the support of fn's in fiber_labda_0.
-            for elem in fiber_labda_0.node.support:
-                elem.Theta_psi_in = True
+            for psi_in_labda_0 in fiber_labda_0.bfs():
+                for elem in psi_in_labda_0.node.support:
+                    elem.Theta_psi_in = False
 
         theta.compute_fibers()
         return theta
