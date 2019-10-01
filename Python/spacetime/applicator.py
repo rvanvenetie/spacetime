@@ -50,8 +50,8 @@ class Applicator:
         # This will copy all nodes in time and space into the tree, also the
         # ones without any subtree. This won't be a big issue, since either
         # coordinate will always be of type MetaRoot.
-        sigma_root.union(self.Lambda_in.project(0), i=0)
-        sigma_root.union(self.Lambda_out.project(1), i=1)
+        sigma.project(0).union(self.Lambda_in.project(0))
+        sigma.project(1).union(self.Lambda_out.project(1))
 
         for psi_in_labda_0 in sigma.project(0).bfs():
             # Get support of psi_in_labda_0 on level + 1.
@@ -67,7 +67,8 @@ class Applicator:
 
             # Put their union into sigma.
             for mu in mu_out:
-                psi_in_labda_0.union(self.Lambda_out.fiber(1, mu))
+                psi_in_labda_0.frozen_other_axis().union(
+                    self.Lambda_out.fiber(1, mu))
 
         sigma.compute_fibers()
 

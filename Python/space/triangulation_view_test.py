@@ -8,13 +8,13 @@ def test_vertex_subtree():
     elem_meta_root = T.elem_meta_root
     elem_meta_root.uniform_refine(6)
 
-    vertex_subtree = MetaRootView.from_metaroot(T.vertex_meta_root)
+    vertex_subtree = MetaRootView(T.vertex_meta_root)
     T_view = TriangulationView(vertex_subtree)
     assert len(T_view.elements) == 2
 
     # Create a subtree with only vertices lying below the diagonal.
-    vertex_subtree = MetaRootView.from_metaroot_deep(
-        T.vertex_meta_root,
+    vertex_subtree = MetaRootView(T.vertex_meta_root)
+    vertex_subtree.deep_refine(
         call_filter=lambda vertex: vertex.x + vertex.y <= 1)
     assert len(vertex_subtree.bfs()) < len(T.vertex_meta_root.bfs())
     T_view = TriangulationView(vertex_subtree)

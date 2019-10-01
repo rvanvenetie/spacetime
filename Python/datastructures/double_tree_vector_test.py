@@ -13,9 +13,9 @@ def test_double_tree_vector():
     triang.elem_meta_root.uniform_refine(2)
 
     # Create a hierarchical basis
-    hierarch_basis = MetaRootView.from_metaroot_deep(
-        metaroot=triang.vertex_meta_root,
-        node_view_cls=HierarchicalBasisFunction)
+    hierarch_basis = MetaRootView(metaroot=triang.vertex_meta_root,
+                                  node_view_cls=HierarchicalBasisFunction)
+    hierarch_basis.deep_refine()
 
     # Create time part.
     HaarBasis.metaroot_wavelet.uniform_refine(2)

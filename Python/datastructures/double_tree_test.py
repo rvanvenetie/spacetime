@@ -125,11 +125,22 @@ def test_project():
             assert tree.project(0).bfs() == meta_root_time.bfs()
             assert tree.project(1).bfs() == meta_root_space.bfs()
 
+            # Assert that the projection doesn't create new nodes
+            assert tree.project(0).dbl_node is tree.root
+            assert tree.project(1).dbl_node is tree.root
+
+            dbl_nodes = set(tree.bfs(include_meta_root=True))
+            for f_node in tree.project(0).bfs():
+                assert f_node.dbl_node in dbl_nodes
+            for f_node in tree.project(1).bfs():
+                assert f_node.dbl_node in dbl_nodes
+
 
 def test_fiber():
     def slow_fiber(i, mu):
         return [
-            node.nodes[i] for node in tree.bfs() if node.nodes[not i] is mu
+            node.nodes[i] for node in tree.bfs()
+            if node.nodes[not i] is mu.node
         ]
 
     for cls in [FakeHaarFunction, FakeOrthoFunction]:
@@ -146,10 +157,12 @@ def test_fiber():
                                    7,
                                    N=500),
         ]:
+            dbl_nodes = set(tree.bfs(include_meta_root=True))
             for i in [0, 1]:
-                for mu in tree.root.bfs(not i):
-                    assert tree.fiber(i, mu.nodes[not i]).bfs() == slow_fiber(
-                        i, mu.nodes[not i])
+                for mu in tree.project(not i).bfs():
+                    assert tree.fiber(i, mu).bfs() == slow_fiber(i, mu)
+                    for f_node in tree.fiber(i, mu).bfs():
+                        assert f_node.dbl_node in dbl_nodes
 
 
 def test_union():
@@ -164,12 +177,12 @@ def test_union():
         assert len(to_tree.bfs(include_meta_root=True)) == 1
 
         # Copy axis 0 into `to_tree`.
-        to_tree.root.union(from_tree.project(0), 0)
-        assert len(to_tree.bfs(i=0)) == len(meta_root_time.bfs())
+        to_tree.project(0).union(from_tree.project(0))
+        assert len(to_tree.project(0).bfs()) == len(meta_root_time.bfs())
 
         # Copy all subtrees in axis 1 into `to_tree`.
-        for item in to_tree.root.bfs(i=0, include_meta_root=True):
-            item.union(from_tree.fiber(1, item.nodes[0]), 1)
+        for item in to_tree.project(0).bfs(include_meta_root=True):
+            item.frozen_other_axis().union(from_tree.fiber(1, item))
         assert len(to_tree.bfs()) == len(from_tree.bfs())
 
         # Assert double-tree structure is copied as well.

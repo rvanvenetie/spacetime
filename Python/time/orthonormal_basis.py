@@ -172,13 +172,13 @@ class OrthonormalBasis(basis.Basis):
     mother_scalings[1].nbr = mother_scalings[0]
 
     # Create the root of the wavelet tree -- same as the mother scaling.
-    mother_wavelets = [
+    roots_wavelet = [
         OrthonormalWavelet((0, 0), single_scale=[(mother_scalings[0], 1)]),
         OrthonormalWavelet((0, 1), single_scale=[(mother_scalings[1], 1)])
     ]
 
     # Create the metaroots
-    metaroot_wavelet = MetaRoot(mother_wavelets)
+    metaroot_wavelet = MetaRoot(roots_wavelet)
     metaroot_scaling = MetaRoot(mother_scalings)
 
     def __init__(self):
