@@ -45,6 +45,21 @@ class NodeInterface(ABC):
     def is_leaf(self):
         return len(self.children) == 0
 
+    def _bfs(self):
+        """ Performs a BFS on the family tree rooted at `self`.
+        """
+        queue = deque([self])
+        nodes = []
+        while queue:
+            node = queue.popleft()
+            if node.marked: continue
+            nodes.append(node)
+            node.marked = True
+            queue.extend(node.children)
+        for node in nodes:
+            node.marked = False
+        return nodes
+
 
 class NodeAbstract(NodeInterface):
     """ Partial impl. of NodeInterface, using variables for the properties. """
@@ -77,13 +92,9 @@ class BinaryNodeAbstract(NodeAbstract):
         return len(self.children) == 2
 
 
-class MetaRoot(NodeAbstract):
-    """ Combines the roots of a multi-rooted family tree. """
+class MetaRootInterface(NodeInterface):
     def __init__(self, roots):
-        if not isinstance(roots, list):
-            roots = [roots]
-        super().__init__(children=roots)
-
+        """ Registers self as the parent of the roots. """
         # Register self as the parent of the roots. We are now Pater Familias.
         for root in roots:
             assert isinstance(root, NodeAbstract)
@@ -93,12 +104,38 @@ class MetaRoot(NodeAbstract):
     def is_full(self):
         return True
 
-    def refine(self):
+    @property
+    def roots(self):
+        """ The roots this MetaRoot is representing (simply the children). """
         return self.children
 
     @property
     def level(self):
         return -1
+
+    def bfs(self, include_metaroot=False):
+        """ Performs a BFS on the family tree rooted at `self`.
+        
+        Args:
+            include_metaroot: whether to return `self` as well.
+        """
+        nodes = self._bfs()
+        if not include_metaroot:
+            return nodes[1:]
+        else:
+            return nodes
+
+
+class MetaRoot(MetaRootInterface, NodeAbstract):
+    """ Combines the roots of a multi-rooted family tree. """
+    def __init__(self, roots):
+        if not isinstance(roots, list):
+            roots = [roots]
+        NodeAbstract.__init__(self, children=roots)
+        MetaRootInterface.__init__(self, roots=roots)
+
+    def refine(self):
+        return self.children
 
     def uniform_refine(self, max_level):
         """ Ensure that the tree contains up to max_level nodes. """
@@ -112,31 +149,6 @@ class MetaRoot(NodeAbstract):
             if node.level < max_level: queue.extend(node.refine())
         for node in nodes:
             node.marked = False
-        return nodes
-
-    @property
-    def roots(self):
-        """ The roots this MetaRoot is representing (simply the children). """
-        return self.children
-
-    def bfs(self, include_metaroot=False):
-        """ Performs a BFS on the family tree rooted at `self`.
-        
-        Args:
-            include_metaroot: whether to return `self` as well.
-        """
-        queue = deque([self])
-        nodes = []
-        while queue:
-            node = queue.popleft()
-            if node.marked: continue
-            nodes.append(node)
-            node.marked = True
-            queue.extend(node.children)
-        for node in nodes:
-            node.marked = False
-        if not include_metaroot:
-            return nodes[1:]
         return nodes
 
     def __repr__(self):

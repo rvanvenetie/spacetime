@@ -1,24 +1,19 @@
+from abc import ABC, abstractmethod
 from collections import deque
 
-from .tree import MetaRoot, NodeAbstract, NodeInterface
+from .tree import MetaRoot, MetaRootInterface, NodeAbstract, NodeInterface
 
 
-class NodeView(NodeAbstract):
+class NodeViewInterface(NodeInterface):
     """ This defines a `view` or `subtree` of an existing underlying tree. """
-    __slots__ = ['node']
 
-    def __init__(self, node, parents=None, children=None):
-        """ Initializes this node `view`.
-        
-        Args:
-          node: the real underlying node we are associated with.
-          parents: the parents of this node view object.
-          children: the children of this node view object.
-        """
-        assert isinstance(node, NodeInterface)
-        super().__init__(parents=parents, children=children)
-        self.node = node
+    # Abstract methods.
+    @property
+    @abstractmethod
+    def node(self):
+        pass
 
+    # Default implementations of a NodeView interface.
     @property
     def level(self):
         return self.node.level
@@ -79,42 +74,50 @@ class NodeView(NodeAbstract):
 
         return self.children
 
-    def copy_data_from(self, other):
-        """ Copies the appropriate fields from `other` into `self`. """
-        assert type(self) == type(other)
-
-    def __repr__(self):
-        return "NV_%s" % self.node
-
-
-class MetaRootView(MetaRoot):
-    def __init__(self, roots):
-        if not isinstance(roots, list):
-            roots = [roots]
-        assert all(isinstance(root, NodeView) for root in roots)
-        super().__init__(roots=roots)
-
-    @classmethod
-    def from_metaroot(cls, metaroot, node_view_cls=NodeView):
-        """ Initializes a MetaRootView by shallow-copying a MetaRoot. """
-        if isinstance(metaroot, MetaRootView):
-            # On a MetaRootView, create NodeViews of underlying non-view nodes.
-            return cls([node_view_cls(node=rt.node) for rt in metaroot.roots])
-        else:
-            # On a non-view MetaRoot, create NodeViews of the roots themselves.
-            return cls([node_view_cls(node=rt) for rt in metaroot.roots])
-
-    @classmethod
-    def from_metaroot_deep(cls,
-                           metaroot,
-                           node_view_cls=NodeView,
-                           call_filter=None,
-                           call_postprocess=None):
-        """ Creates a MetaRootView by deep-copying a MetaRoot with callback.
+    def _union(self, other, call_postprocess=None):
+        """ Deep-copies the node view tree rooted at `other` into self.
 
         Args:
-          metaroot: Metaroot of the underlying tree.
-          node_view_cls: The class of the nodeview objects to be constructed.
+          other: Root of the other node view tree that we whish to union. We
+                 must have self.node == other.node.
+          call_postprocess: This call will be invoked for every pair
+              of nodeview objects. First arg will hold a ref to this tree,
+              second arg will hold a ref to the second tree.
+        """
+        if call_postprocess is None: call_postprocess = lambda _, __: None
+        assert isinstance(other, NodeViewInterface)
+        assert self.node == other.node
+        queue = deque([(self, other)])
+        my_nodes = []
+        while queue:
+            my_node, other_node = queue.popleft()
+            assert type(my_node) == type(other_node)
+            assert my_node.node == other_node.node
+            if my_node.marked: continue
+
+            call_postprocess(my_node, other_node)
+            my_node.marked = True
+            my_nodes.append(my_node)
+
+            my_node.refine(children=[c.node for c in other_node.children])
+            assert len(my_node.children) >= len(other_node.children)
+
+            # Only put children that other_node has as well into the queue.
+            for my_child in my_node.children:
+                for other_child in other_node.children:
+                    if my_child.node is other_child.node:
+                        queue.append((my_child, other_child))
+
+        # Reset mark field.
+        for my_node in my_nodes:
+            my_node.marked = False
+
+        return self
+
+    def _deep_refine(self, call_filter=None, call_postprocess=None):
+        """ Deep-refines `self` by recursively refining the tree view. 
+
+        Args:
           call_filter: This call determines whether a given node in the 
               argument should be inside the subtree.
           call_postprocess: This call will be invoked with a freshly
@@ -122,10 +125,12 @@ class MetaRootView(MetaRoot):
         """
         if call_filter is None: call_filter = lambda _: True
         if call_postprocess is None: call_postprocess = lambda _: None
-        meta_root_view = cls.from_metaroot(metaroot,
-                                           node_view_cls=node_view_cls)
         nodes = []
-        queue = deque(meta_root_view.roots)
+        if isinstance(self, MetaRootInterface):
+            queue = deque(self.children)
+        else:
+            queue = deque([self])
+
         while queue:
             node = queue.popleft()
             if node.marked: continue
@@ -136,48 +141,72 @@ class MetaRootView(MetaRoot):
                 queue.extend(node.refine(children=[child]))
         for node in nodes:
             node.marked = False
-        return meta_root_view
+
+    def __repr__(self):
+        return "NV_%s" % self.node
+
+
+class NodeView(NodeViewInterface, NodeAbstract):
+    """ This defines a `view` or `subtree` of an existing underlying tree. """
+    __slots__ = ['node']
+
+    def __init__(self, node, parents=None, children=None):
+        """ Initializes this node `view`.
+        
+        Args:
+          node: the real underlying node we are associated with.
+          parents: the parents of this node view object.
+          children: the children of this node view object.
+        """
+        assert isinstance(node, NodeInterface)
+        super().__init__(parents=parents, children=children)
+        self.node = node
+
+    def copy_data_from(self, other):
+        """ Copies the appropriate fields from `other` into `self`. """
+        assert type(self) == type(other)
+
+
+class MetaRootView(MetaRootInterface, NodeView):
+    def __init__(self, metaroot, node_view_cls=NodeView):
+        if isinstance(metaroot, MetaRootView):
+            metaroot = metaroot.node
+        assert isinstance(metaroot, MetaRoot)
+        assert issubclass(node_view_cls, NodeView)
+
+        # Create a nodeview object for the roots.
+        roots = [node_view_cls(node=rt) for rt in metaroot.roots]
+
+        # Initialize the underlying objects.
+        NodeView.__init__(self, node=metaroot, children=roots)
+        MetaRootInterface.__init__(self, roots=roots)
+
+    def union(self, other, call_postprocess=None):
+        """ Deep-copies the MetaRootView tree rooted at `other` into self. """
+        return self._union(other, call_postprocess)
 
     def deep_copy(self):
         """ Deep-copies `self` into a new NodeView tree. """
         def callback(new_node, my_node):
             return new_node.copy_data_from(my_node)
 
-        new_metaroot = self.__class__.from_metaroot(
-            self, node_view_cls=self.roots[0].__class__)
-        return new_metaroot.union(self, callback=callback)
+        new_metaroot = self.__class__(self,
+                                      node_view_cls=self.roots[0].__class__)
+        return new_metaroot.union(self, call_postprocess=callback)
 
-    def union(self, other, callback):
-        assert isinstance(other, MetaRootView)
-        assert len(self.roots) == len(other.roots)
-        queue = deque(zip(self.roots, other.roots))
-        nodes = []
-        while queue:
-            my_node, other_node = queue.popleft()
-            assert type(my_node) == type(other_node)
-            assert my_node.node == other_node.node
-            if my_node.marked: continue
+    def deep_refine(self, call_filter=None, call_postprocess=None):
+        """ Deep-refines `self` by recursively refining the tree view. """
+        self._deep_refine(call_filter, call_postprocess)
 
-            callback(my_node, other_node)
-            my_node.marked = True
-            nodes.append(my_node)
-            my_node.refine(children=[c.node for c in other_node.children])
-            assert len(my_node.children) >= len(other_node.children)
-
-            # Hidden "quadratic" loop, RIP..
-            for other_child in other_node.children:
-                for my_child in my_node.children:
-                    if other_child.node is my_child.node:
-                        queue.append((my_child, other_child))
-        for node in nodes:
-            node.marked = False
-        return self
+    def uniform_refine(self, max_level):
+        self._deep_refine(call_filter=lambda n: n.level <= max_level)
 
     def __iadd__(self, other):
         def callback(my_node, other_node):
-            my_node += other_node
+            if not isinstance(my_node, MetaRootInterface):
+                my_node += other_node
 
-        return self.union(other, callback=callback)
+        return self.union(other, call_postprocess=callback)
 
     def __imul__(self, x):
         assert isinstance(x, (int, float, complex)) and not isinstance(x, bool)
