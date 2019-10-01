@@ -28,19 +28,9 @@ class DebugDoubleNode(DoubleNode):
 
 def full_tensor_double_tree(meta_root_time, meta_root_space, max_levels=None):
     """ Makes a full grid doubletree from the given single trees. """
-    double_root = DebugDoubleNode((meta_root_time, meta_root_space))
-    queue = deque()
-    queue.append(double_root)
-    while queue:
-        double_node = queue.popleft()
-        for i in [0, 1]:
-            if max_levels and double_node.nodes[i].level >= max_levels[i]:
-                continue
-            if double_node.is_full(i): continue
-            children = double_node.refine(i)
-            queue.extend(children)
-
-    return DoubleTree(double_root)
+    return DoubleTree.full_tensor(meta_root_time,
+                                  meta_root_space,
+                                  dbl_node_cls=DebugDoubleNode)
 
 
 def uniform_full_grid(time_level, space_level, node_class=FakeHaarFunction):
