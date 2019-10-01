@@ -93,6 +93,14 @@ class BinaryNodeAbstract(NodeAbstract):
 
 
 class MetaRootInterface(NodeInterface):
+    def __init__(self, roots):
+        """ Registers self as the parent of the roots. """
+        # Register self as the parent of the roots. We are now Pater Familias.
+        for root in roots:
+            assert isinstance(root, NodeAbstract)
+            assert not root.parents
+            root.parents = [self]
+
     def is_full(self):
         return True
 
@@ -123,13 +131,8 @@ class MetaRoot(MetaRootInterface, NodeAbstract):
     def __init__(self, roots):
         if not isinstance(roots, list):
             roots = [roots]
-        super().__init__(children=roots)
-
-        # Register self as the parent of the roots. We are now Pater Familias.
-        for root in roots:
-            assert isinstance(root, NodeAbstract)
-            assert not root.parents
-            root.parents = [self]
+        NodeAbstract.__init__(self, children=roots)
+        MetaRootInterface.__init__(self, roots=roots)
 
     def refine(self):
         return self.children

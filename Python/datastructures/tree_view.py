@@ -175,12 +175,7 @@ class MetaRootView(MetaRootInterface, NodeView):
 
         # Initialize the underlying objects.
         NodeView.__init__(self, node=metaroot, children=roots)
-        MetaRootInterface.__init__(self)
-
-        # Register self as the parent of the roots.
-        for root in roots:
-            assert not root.parents
-            root.parents = [self]
+        MetaRootInterface.__init__(self, roots=roots)
 
     def union(self, other, call_postprocess=None):
         """ Deep-copies the MetaRootView tree rooted at `other` into self. """
