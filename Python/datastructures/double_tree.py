@@ -115,13 +115,6 @@ class DoubleNode:
 
         return self.children[i]
 
-    def coarsen(self):
-        """ Removes `self' from the double tree. """
-        assert self.is_leaf()
-        for i in [0, 1]:
-            for parent in self.parents[i]:
-                parent.children[i].remove(self)
-
     def __repr__(self):
         return "{} x {}".format(self.nodes[0], self.nodes[1])
 
