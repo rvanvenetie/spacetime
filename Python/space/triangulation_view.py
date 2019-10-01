@@ -28,8 +28,8 @@ class TriangulationView:
     def __init__(self, vertex_view):
         """ Initializer given a vertex (sub)tree. """
         if not isinstance(vertex_view, MetaRootView):
-            vertex_view = MetaRootView.from_metaroot_deep(
-                vertex_view, node_view_cls=NodeView)
+            vertex_view = MetaRootView(vertex_view, node_view_cls=NodeView)
+            vertex_view.deep_refine()
 
         # Store the vertex_view with its vertices.
         self.vertex_view = vertex_view
@@ -55,9 +55,9 @@ class TriangulationView:
             ]
 
         # Now create the associated element tree.
-        self.elem_meta_root_view = MetaRootView.from_metaroot_deep(
-            elem_meta_root,
-            node_view_cls=ElementView,
+        self.elem_meta_root_view = MetaRootView(elem_meta_root,
+                                                node_view_cls=ElementView)
+        self.elem_meta_root_view.deep_refine(
             call_filter=newest_vertex_in_tree_view,
             call_postprocess=store_vertices_element_view)
 

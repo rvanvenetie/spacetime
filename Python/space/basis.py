@@ -1,6 +1,6 @@
 from ..datastructures.function import FunctionInterface
 from ..datastructures.tree import MetaRoot
-from ..datastructures.tree_view import NodeView, MetaRootView
+from ..datastructures.tree_view import MetaRootView, NodeView
 
 
 class HierarchicalBasisFunction(FunctionInterface, NodeView):
@@ -24,8 +24,5 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
     @staticmethod
     def from_triangulation(triangulation):
         """ Creates a hierarchical basis function tree from the given triang. """
-        function_roots = [
-            HierarchicalBasisFunction(vertex)
-            for vertex in triangulation.vertex_meta_root.roots
-        ]
-        return MetaRootView(function_roots)
+        return MetaRootView(triangulation.vertex_meta_root,
+                            HierarchicalBasisFunction)

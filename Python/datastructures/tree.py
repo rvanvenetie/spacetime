@@ -45,6 +45,21 @@ class NodeInterface(ABC):
     def is_leaf(self):
         return len(self.children) == 0
 
+    def _bfs(self):
+        """ Performs a BFS on the family tree rooted at `self`.
+        """
+        queue = deque([self])
+        nodes = []
+        while queue:
+            node = queue.popleft()
+            if node.marked: continue
+            nodes.append(node)
+            node.marked = True
+            queue.extend(node.children)
+        for node in nodes:
+            node.marked = False
+        return nodes
+
 
 class NodeAbstract(NodeInterface):
     """ Partial impl. of NodeInterface, using variables for the properties. """
@@ -125,19 +140,11 @@ class MetaRoot(NodeAbstract):
         Args:
             include_metaroot: whether to return `self` as well.
         """
-        queue = deque([self])
-        nodes = []
-        while queue:
-            node = queue.popleft()
-            if node.marked: continue
-            nodes.append(node)
-            node.marked = True
-            queue.extend(node.children)
-        for node in nodes:
-            node.marked = False
+        nodes = self._bfs()
         if not include_metaroot:
             return nodes[1:]
-        return nodes
+        else:
+            return nodes
 
     def __repr__(self):
         return "MR(%s)" % self.roots
