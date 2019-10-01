@@ -91,6 +91,12 @@ def test_sigma_combinations():
                 sparse_tensor_double_tree(*roots, L_out[0])
             ]
             for (Lambda_in, Lambda_out) in product(Lambdas_in, Lambdas_out):
+                #                print('Lambda_in:\ttypes=({},{})\tdofs={}'.format(
+                #                    Lambda_in.root.nodes[0], Lambda_in.root.nodes[1],
+                #                    len(Lambda_in.bfs())))
+                #                print('Lambda_out:\ttypes=({},{})\tdofs={}'.format(
+                #                    Lambda_out.root.nodes[0], Lambda_out.root.nodes[1],
+                #                    len(Lambda_out.bfs())))
                 applicator = FakeApplicator(Lambda_in, Lambda_out)
                 sigma = applicator.sigma()
                 for node in sigma.bfs():

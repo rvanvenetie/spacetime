@@ -33,18 +33,18 @@ class Applicator:
         if self.Lambda_out.root.nodes != self.Lambda_in.root.nodes:
             raise NotImplementedError("This needs a difficult coupling!")
 
-        # Reset element.psi_out field in preparation for Sigma.
-        # This does not work when Lambda_in and Lambda_out have different bases.
-        # TODO: We really need a better way to reset these fields.
-        for psi_out in self.Lambda_in.project(0).bfs():
-            for elem in psi_out.node.support:
-                elem.Sigma_psi_out = []
-                for child in elem.children:
-                    child.Sigma_psi_out = []
-
+        # Initialize the elem.psi_out field for Sigma.
+        # TODO: This assumes this filed is empty.
         for psi_out in self.Lambda_out.project(0).bfs():
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out.append(psi_out.node)
+
+    def __del__(self):
+        # Reset element.psi_out field for Sigma.
+        # TODO: We really need a better way to reset these fields.
+        for psi_out in self.Lambda_out.project(0).bfs():
+            for elem in psi_out.node.support:
+                elem.Sigma_psi_out = []
 
     def sigma(self):
         """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
@@ -69,9 +69,10 @@ class Applicator:
             ]
 
             # Collect all fiber(1, mu) for psi_out_mu that intersect with
-            # support of psi_in_labda_0, and put their union into sigma.
+            # support of psi_in_labda_0, and put their union into Sigma.
             for child in children:
                 for mu in child.Sigma_psi_out:
+                    # TODO: Does a lot of double work.
                     psi_in_labda_0.union(self.Lambda_out.fiber(1, mu))
 
         sigma.compute_fibers()
@@ -82,24 +83,33 @@ class Applicator:
         theta_root = DoubleNodeVector(nodes=self.Lambda_in.root.nodes, value=0)
         theta = DoubleTree(theta_root, frozen_dbl_cls=FrozenDoubleNodeVector)
 
+        # Load the metaroot axes.
+        theta.root.union(self.Lambda_out.project(0), i=0)
         theta.root.union(self.Lambda_in.project(1), i=1)
-        empty_labdas = []
+
+        # Loop over the space axis.
         for psi_in_labda_1 in theta.project(1).bfs():
-            is_empty = True
-            for psi_out_mu in self.Lambda_out.project(0).bfs():
-                # This field does not exist.
-                if any(elem.Theta_gamma for elem in psi_out_mu.support):
-                    is_empty = False
-                    # This operation does not exist.
-                    psi_in_labda_1.insert_node(psi_out_mu)
-            if is_empty:
-                empty_labdas.append(psi_in_labda_1)
 
-        for psi_in_labda_1 in reversed(empty_labdas):
-            psi_in_labda_1.coarsen()
+            # Get the fiber of psi_in_labda in the original tree.
+            fiber_labda_0 = self.Lambda_in.fiber(0, psi_in_labda_1)
 
-        for psi_in_labda in theta.bfs():
-            assert psi_in_labda.is_full()
+            # Set the support of fn's in fiber_labda_0 to True.
+            for elem in fiber_labda_0.node.support:
+                elem.Theta_psi_in = True
+
+            # Now add all nodes inside Lambda_out.project(0) that have
+            # intersecting support with fiber_labda_0 (and lie on the same lvl)
+            # This works by using a callback that returns whether labda_out,
+            # a node from the in the Labda_out.project(0) tree, has intersecting
+            # support with a labda_in, a node from fiber_labda_0.
+            callback_filter = lambda psi_out_labda_0: any(
+                elem.Theta_psi_in for elem in psi_out_labda_0.node.support)
+            psi_in_labda_1.union(self.Labda_out.project(0),
+                                 callback_filter=callback_filter)
+
+            # Reset the support of fn's in fiber_labda_0.
+            for elem in fiber_labda_0.node.support:
+                elem.Theta_psi_in = True
 
         theta.compute_fibers()
         return theta
