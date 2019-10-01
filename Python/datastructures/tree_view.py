@@ -126,7 +126,11 @@ class NodeViewInterface(NodeInterface):
         if call_filter is None: call_filter = lambda _: True
         if call_postprocess is None: call_postprocess = lambda _: None
         nodes = []
-        queue = deque(self.children)
+        if isinstance(self, MetaRootInterface):
+            queue = deque(self.children)
+        else:
+            queue = deque([self])
+
         while queue:
             node = queue.popleft()
             if node.marked: continue
