@@ -255,4 +255,4 @@ def test_applicator_tensor_haar_mass():
 
         # Calculate the result by plain old matvec, and compare!
         real_vec_out = mat2d.dot(tr_vec_in)
-        assert np.allclose(real_vec_out - tr_vec_out, 0)
+        assert np.allclose(real_vec_out, tr_vec_out)

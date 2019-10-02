@@ -29,8 +29,8 @@ class Applicator(object):
             for nv in vec_out.bfs():
                 nv.value = nv.node.coeff[1]
         else:
-            for psi in self.vec_out:
-                psi.value = psi.coeff[1]
+            for psi in self.Lambda_out:
+                vec_out[psi] = psi.coeff[1]
         return vec_out
 
     def _initialize(self, vec_in, vec_out):
