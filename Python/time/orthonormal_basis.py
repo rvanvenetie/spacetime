@@ -1,6 +1,7 @@
 import numpy as np
 
-import basis
+from . import basis
+from ..datastructures.tree import MetaRoot
 
 sq3 = np.sqrt(3)
 
@@ -22,10 +23,9 @@ class DiscLinearScaling(basis.Scaling):
 
     The field Element.phi_disc_lin object is also ordered by labda: cons, lin.
     """
-
-    def __init__(self, labda, parents, support):
+    def __init__(self, labda, support, parents=None):
         assert len(support) == 1
-        super().__init__(labda, parents, support)
+        super().__init__(labda, support=support, parents=parents)
         self.children = []
         self.nbr = None  # Store a reference to the `neighbour` on this element.
         self.pw_constant = labda[1] % 2 == 0  # Store type of this function.
@@ -39,30 +39,25 @@ class DiscLinearScaling(basis.Scaling):
             support[0].phi_disc_lin[1] = self
 
     def refine(self):
-        if self.children: return self.children
-        if not self.pw_constant: return self.nbr.refine()
-        self.support[0].bisect()
-        l, n = self.labda
-        parents = [self, self.nbr]
-        child_left_cons = DiscLinearScaling((l + 1, 2 * n), parents,
-                                            [self.support[0].children[0]])
-        child_left_lin = DiscLinearScaling((l + 1, 2 * n + 1), parents,
-                                           [self.support[0].children[0]])
-        child_right_cons = DiscLinearScaling((l + 1, 2 * n + 2), parents,
-                                             [self.support[0].children[1]])
-        child_right_lin = DiscLinearScaling((l + 1, 2 * n + 3), parents,
-                                            [self.support[0].children[1]])
+        if not self.children:
+            if not self.pw_constant: return self.nbr.refine()
+            self.support[0].refine()
+            l, n = self.labda
+            P = [self, self.nbr]
+            child_elts = self.support[0].children
+            self.children = [
+                DiscLinearScaling((l + 1, 2 * n + 0), [child_elts[0]], P),
+                DiscLinearScaling((l + 1, 2 * n + 1), [child_elts[0]], P),
+                DiscLinearScaling((l + 1, 2 * n + 2), [child_elts[1]], P),
+                DiscLinearScaling((l + 1, 2 * n + 3), [child_elts[1]], P)
+            ]
+            self.nbr.children = self.children
 
-        self.children = [
-            child_left_cons, child_left_lin, child_right_cons, child_right_lin
-        ]
-        self.nbr.children = self.children
-
-        # Update neighbouring relations.
-        child_left_cons.nbr = child_left_lin
-        child_left_lin.nbr = child_left_cons
-        child_right_cons.nbr = child_right_lin
-        child_right_lin.nbr = child_right_cons
+            # Update neighbouring relations.
+            self.children[0].nbr = self.children[1]
+            self.children[1].nbr = self.children[0]
+            self.children[2].nbr = self.children[3]
+            self.children[3].nbr = self.children[2]
         return self.children
 
     def prolongate(self):
@@ -83,6 +78,9 @@ class DiscLinearScaling(basis.Scaling):
         else:
             return [(self.parents[1], 1 / 2)]
 
+    def is_full(self):
+        return len(self.children) == 4
+
     @staticmethod
     def eval_mother(constant, x, deriv):
         if not deriv:
@@ -100,52 +98,88 @@ class DiscLinearScaling(basis.Scaling):
 
 
 class OrthonormalWavelet(basis.Wavelet):
-    def __init__(self, labda, parents, single_scale):
-        super().__init__(labda, parents, single_scale)
+    def __init__(self, labda, single_scale, parents=None):
+        super().__init__(labda, single_scale=single_scale, parents=parents)
+
+    def _nbr(self):
+        """ Finds the `neighbour` of this wavelet, i.e. its twin brother. """
+        _, n = self.labda
+        nbr_indices = [1, 0, 3, 2]
+        nbr = self.parents[0].children[nbr_indices[n % 4]]
+        assert self.support == nbr.support
+        assert self.labda != nbr.labda
+        return nbr
 
     def refine(self):
-        if self.children: return self.children
-        l, n = self.labda
-        s = 2**(l / 2)  # scaling
-        for i in range(2):
-            if n % 2 == 0:
+        if not self.children and self.level == 0:
+            mother_scalings_children = self.single_scale[0][0].refine()
+            # Find all other wavelets on level 0 -- copy of scaling functions.
+            parents = self.parents[0].children
+            assert len(parents) == 2
+
+            children = [
+                OrthonormalWavelet(
+                    (1, 0),
+                    single_scale=zip(
+                        mother_scalings_children,
+                        (-1 / 2, -sq3 * 1 / 2, 1 / 2, -sq3 * 1 / 2)),
+                    parents=parents),
+                OrthonormalWavelet(
+                    (1, 1),
+                    single_scale=[(mother_scalings_children[1], -1),
+                                  (mother_scalings_children[3], 1)],
+                    parents=parents)
+            ]
+            for parent in parents:
+                parent.children = children
+        elif not self.children and self.level > 0:
+            l, n = self.labda
+            nbr = self._nbr()
+            assert not nbr.children
+
+            # Only invoke on the wavelet of type 0.
+            if n % 2: return nbr.refine()
+
+            s = 2**(l / 2)  # scaling
+            for i in range(2):
                 phi = self.single_scale[2 * i][0]
-                phi.refine()
+                # Create child of type 0.
+                single_scale = zip(phi.refine(),
+                                   (-s / 2, -sq3 * s / 2, s / 2, -sq3 * s / 2))
                 self.children.append(
-                    OrthonormalWavelet(
-                        (l + 1, 2 * (n + i)), self,
-                        zip(phi.children,
-                            (-s / 2, -sq3 * s / 2, s / 2, -sq3 * s / 2))))
-            else:
-                phi = self.single_scale[i][0]
-                phi.refine()
+                    OrthonormalWavelet((l + 1, 2 * (n + i)), single_scale,
+                                       [self, nbr]))
+                # Create child of type 1.
+                single_scale = [(phi.children[1], -s), (phi.children[3], s)]
                 self.children.append(
-                    OrthonormalWavelet((l + 1, 2 * (n + i) - 1), self,
-                                       [(phi.children[1], -s),
-                                        (phi.children[3], s)]))
+                    OrthonormalWavelet((l + 1, 2 * (n + i) + 1), single_scale,
+                                       [self, nbr]))
+            nbr.children = self.children
+        return self.children
+
+    def is_full(self):
+        if self.level == 0: return len(self.children) == 2
+        else: return len(self.children) == 4
 
 
 class OrthonormalBasis(basis.Basis):
-    # Create static mother scaling function.
+    # Create mother scaling functions; roots of scaling tree.
     mother_scalings = [
-        DiscLinearScaling((0, 0), None, [basis.mother_element]),
-        DiscLinearScaling((0, 1), None, [basis.mother_element])
+        DiscLinearScaling((0, 0), [basis.mother_element]),
+        DiscLinearScaling((0, 1), [basis.mother_element])
     ]
     mother_scalings[0].nbr = mother_scalings[1]
     mother_scalings[1].nbr = mother_scalings[0]
-    mother_scalings[0].refine()
-    mother_scalings[1].refine()
-    assert (len(mother_scalings[0].children) == 4)
-    assert (len(mother_scalings[1].children) == 4)
 
-    # Create static mother wavelet function.
-    mother_wavelets = [
-        OrthonormalWavelet((1, 0), None,
-                           zip(mother_scalings[0].children,
-                               (-1 / 2, -sq3 * 1 / 2, 1 / 2, -sq3 * 1 / 2))),
-        OrthonormalWavelet((1, 1), None, [(mother_scalings[1].children[1], -1),
-                                          (mother_scalings[0].children[3], 1)])
+    # Create the root of the wavelet tree -- same as the mother scaling.
+    roots_wavelet = [
+        OrthonormalWavelet((0, 0), single_scale=[(mother_scalings[0], 1)]),
+        OrthonormalWavelet((0, 1), single_scale=[(mother_scalings[1], 1)])
     ]
+
+    # Create the metaroots
+    metaroot_wavelet = MetaRoot(roots_wavelet)
+    metaroot_scaling = MetaRoot(mother_scalings)
 
     def __init__(self):
         pass

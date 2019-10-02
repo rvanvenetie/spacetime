@@ -1,19 +1,28 @@
+from collections import OrderedDict
 from fractions import Fraction
 
-from linear_operator import LinearOperator
+from ..datastructures.function import FunctionInterface
+from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
+from ..datastructures.tree_view import NodeView
+from .linear_operator import LinearOperator
 
 
-class Element:
+class Element1D(BinaryNodeAbstract):
     """ Represents an element (interval) as result of dyadic refinement.
 
-    The element (l, n) represents an interval on level l given by: [2^(-l)*n, 2^(-l)*(n+1)].
+    The element (l, n) is an interval on level l given by: [2^-l*n, 2^-l*(n+1)].
     """
+    __slots__ = [
+        'level', 'left_node_idx', 'phi_disc_const', 'phi_disc_lin',
+        'phi_cont_lin', 'Lambda_in', 'Lambda_out', 'Pi_in', 'Pi_out'
+    ]
 
-    def __init__(self, level, node_index, parent):
+    def __init__(self, level, left_node_idx, parent=None):
+        super().__init__(parent=parent, children=None)
+        if parent: assert parent.level + 1 == level
+
         self.level = level
-        self.node_index = node_index
-        self.parent = parent
-        self.children = []
+        self.left_node_idx = left_node_idx
 
         # Create variables to register non-zero scaling functions.
         # The ordering of functions inside these lists is important.
@@ -22,54 +31,67 @@ class Element:
         self.phi_disc_lin = [None, None]
         self.phi_cont_lin = [None, None]
 
-        # Add some extra variables necessary for applicator.
+        # Add some extra variables necessary for time applicator.
         # TODO: Is this the right place?
         self.Lambda_in = False
         self.Lambda_out = False
         self.Pi_in = False
         self.Pi_out = False
 
-    def bisect(self):
-        if self.children: return
-        child_left = self.__class__(self.level + 1, self.node_index * 2, self)
-        child_right = self.__class__(self.level + 1, self.node_index * 2 + 1,
-                                     self)
-        self.children = [child_left, child_right]
+        # Add some extra variables the spacetime applicator
+        #TODO: Is this the right place?
+        self.Sigma_psi_out = []
+        self.Theta_psi_in = False
+
+    def refine(self):
+        if not self.children:
+            child_left = Element1D(self.level + 1, self.left_node_idx * 2,
+                                   self)
+            child_right = Element1D(self.level + 1, self.left_node_idx * 2 + 1,
+                                    self)
+            self.children = [child_left, child_right]
+        return self.children
 
     @property
     def interval(self):
         h = Fraction(1, 2**self.level)
-        return (h * self.node_index, h * (self.node_index + 1))
+        return (h * self.left_node_idx, h * (self.left_node_idx + 1))
 
     def __repr__(self):
-        return 'Element({}, {})'.format(self.level, self.node_index)
+        return 'Element1D({}, {})'.format(self.level, self.left_node_idx)
 
 
-class Function:
-    """ This is a base class for an object represention a basis function.  """
+class CoefficientFunction1D(NodeAbstract, FunctionInterface):
+    """ This is a base represention of a basis function with coefficients. """
+    __slots__ = ['support']
 
-    def __init__(self, labda):
+    def __init__(self, labda, support, parents=None):
+        super().__init__(parents=parents, children=None)
         self.labda = labda
+        self.support = support  # Support is a list of Element1D's.
 
         # TODO: This should be removed, or neatly integrated.
         self.reset_coeff()
+
+    @property
+    def level(self):
+        return self.labda[0]
+
+    @property
+    def index(self):
+        return self.labda[1]
 
     def reset_coeff(self):
         """ Resets the coefficients stored in this function object. """
         self.coeff = [0] * 3
 
-    def eval(self, x, deriv=False):
-        pass
-
     def __repr__(self):
         return "{}({}, {})".format(self.__class__.__name__, *self.labda)
 
 
-class Scaling(Function):
-    def __init__(self, labda, parents, support):
-        super().__init__(labda)
-        self.parents = parents
-        self.support = support  # Support is a list.
+class Scaling(CoefficientFunction1D):
+    def __init__(self, labda, support, parents=None):
+        super().__init__(labda=labda, support=support, parents=parents)
         self.multi_scale = []  # Transpose of the wavelet to multiscale.
 
     def prolongate(self):
@@ -81,17 +103,20 @@ class Scaling(Function):
         pass
 
 
-class Wavelet(Function):
-    def __init__(self, labda, parents, single_scale):
-        super().__init__(labda)
-        self.parents = parents
+class Wavelet(CoefficientFunction1D):
+    def __init__(self, labda, single_scale, parents=None):
+        super().__init__(labda, support=[], parents=parents)
+
+        assert single_scale
         self.single_scale = list(single_scale)
-        self.children = []
-        self.support = []
+        support = []
         for phi, coeff in self.single_scale:
-            self.support.extend(phi.support)
+            support.extend(phi.support)
             # Register this wavelet in the corresponding phi.
             phi.multi_scale.append((self, coeff))
+
+        # Deduplicate the support while keeping the ordering intact.
+        self.support = list(OrderedDict.fromkeys(support))
 
     def eval(self, x, deriv=False):
         result = 0
@@ -102,7 +127,6 @@ class Wavelet(Function):
 
 class MultiscaleFunctions:
     """ Immutable set of multiscale functions.  """
-
     def __init__(self, functions):
         self.functions = functions
         self.maximum_level = max([fn.labda[0] for fn in functions])
@@ -157,17 +181,11 @@ class Basis:
         basis = cls()
 
         # Start refining all wavelets. Copy the mother_wavelets list.
-        Lambda = [] + basis.mother_wavelets
-        Lambda_l = Lambda
-        for _ in range(max_level - 1):
-            Lambda_new = []
-            for psi in Lambda_l:
-                psi.refine()
-                Lambda_new.extend(psi.children)
-            Lambda_l = Lambda_new
-            Lambda.extend(Lambda_l)
-
-        Lambda = basis.mother_scalings + Lambda
+        basis.metaroot_wavelet.uniform_refine(max_level)
+        Lambda = [
+            psi for psi in basis.metaroot_wavelet.bfs()
+            if psi.level <= max_level
+        ]
         return basis, MultiscaleFunctions(Lambda)
 
     @classmethod
@@ -175,14 +193,22 @@ class Basis:
         assert max_level >= 1
         basis = cls()
 
-        n_wavelets = len(basis.mother_wavelets)
-        Lambda = basis.mother_scalings + basis.mother_wavelets
+        # Ensure all wavelets are available.
+        basis.metaroot_wavelet.uniform_refine(1)
+
+        # Find all wavelets up to level 1.
+        Lambda = [
+            psi for psi in basis.metaroot_wavelet.bfs() if psi.level <= 1
+        ]
+        n_wavelets = len([psi for psi in Lambda if psi.level == 1])
         for _ in range(max_level - 1):
-            parents = list(Lambda[-n_wavelets:])
-            for parent in parents:
-                parent.refine()
-                #TODO: This assumes the left child is always 0
-                Lambda.append(parent.children[0])
+            # Get the left-most parent
+            parent = Lambda[-n_wavelets]
+
+            # Assume that its children are all wavelets in the corner.
+            parent.refine()
+            assert len(parent.children) >= n_wavelets
+            Lambda.extend(parent.children[:n_wavelets])
 
         return basis, MultiscaleFunctions(Lambda)
 
@@ -191,29 +217,38 @@ class Basis:
         assert max_level >= 1
         basis = cls()
 
-        n_wavelets = len(basis.mother_wavelets)
+        # Ensure all wavelets are available.
+        basis.metaroot_wavelet.uniform_refine(1)
 
-        # Make a copy of the mother_wavelets list.
-        Lambda = [] + basis.mother_wavelets
+        # Find all wavelets at level 1.
+        mother_wavelets = [
+            psi for psi in basis.metaroot_wavelet.bfs() if psi.level == 1
+        ]
+        Lambda = mother_wavelets.copy()
+        n_wavelets = len(mother_wavelets)
 
         # First add all the wavelets near the origin
-        # TODO: assumets the left child is 0
         for _ in range(max_level - 1):
-            parents = list(Lambda[-n_wavelets:])
-            for parent in parents:
-                parent.refine()
-                Lambda.append(parent.children[0])
+            # Get the left-most parent
+            parent = Lambda[-n_wavelets]
+
+            # Assume that its children are all wavelets in the corner.
+            parent.refine()
+            assert len(parent.children) >= n_wavelets
+            Lambda.extend(parent.children[:n_wavelets])
 
         # Now add all the wavelets near the endpoint.
         # TODO: dirty hacks involved here
-        Lambda = Lambda[n_wavelets:] + basis.mother_wavelets
+        Lambda = Lambda[n_wavelets:] + mother_wavelets
         for _ in range(max_level - 1):
-            parents = list(Lambda[-n_wavelets:])
-            for parent in parents:
-                parent.refine()
-                Lambda.append(parent.children[-1])
+            # Get rightmost parent
+            parent = Lambda[-1]
+            # Assume that its children are all wavelets in the corner.
+            parent.refine()
+            assert len(parent.children) >= n_wavelets
+            Lambda.extend(parent.children[-n_wavelets:])
 
-        Lambda = basis.mother_scalings + Lambda
+        Lambda = basis.metaroot_wavelet.children + Lambda
         return basis, MultiscaleFunctions(Lambda)
 
     @property
@@ -238,4 +273,5 @@ class Basis:
 
 
 # Initializes a mother_element to be used for all bases.
-mother_element = Element(0, 0, None)
+mother_element = Element1D(0, 0, None)
+element_meta_root = MetaRoot(mother_element)

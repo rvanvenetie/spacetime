@@ -1,4 +1,4 @@
-import applicator_inplace
-from applicator_test import *
+from . import applicator_inplace, applicator_test
+from .applicator_test import *
 
-Applicator_class = applicator_inplace.Applicator
+applicator_test.Applicator_class = applicator_inplace.Applicator

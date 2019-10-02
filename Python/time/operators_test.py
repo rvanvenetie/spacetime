@@ -3,18 +3,18 @@ from collections import defaultdict
 import numpy as np
 from pytest import approx
 
-import operators
-from haar_basis import HaarBasis
-from linear_operator_test import check_linop_transpose
-from orthonormal_basis import OrthonormalBasis
-from sparse_vector import SparseVector
-from three_point_basis import ThreePointBasis
+from . import operators
+from .haar_basis import HaarBasis
+from .linear_operator_test import check_linop_transpose
+from .orthonormal_basis import OrthonormalBasis
+from .sparse_vector import SparseVector
+from .three_point_basis import ThreePointBasis
 
 
 def test_haar_scaling_mass():
     """ Test that the singlescale Haar mass matrix is indeed diagonal. """
     basis, Lambda = HaarBasis.uniform_basis(max_level=5)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     mass = operators.mass(basis)
     for l in range(1, 5):
         indices = Delta.on_level(l)
@@ -23,14 +23,14 @@ def test_haar_scaling_mass():
         for _ in range(100):
             d = SparseVector(indices, np.random.rand(2**l))
             res = mass.matvec(d, set(indices), indices)
-            assert np.allclose(
-                d.asarray(indices), 2.0**l * res.asarray(indices))
+            assert np.allclose(d.asarray(indices),
+                               2.0**l * res.asarray(indices))
 
 
 def test_ortho_scaling_mass():
     """ Test that the ortho scaling mass matrix is indeed diagonal. """
     basis, Lambda = OrthonormalBasis.uniform_basis(max_level=5)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     mass = operators.mass(basis)
     for l in range(1, 5):
         indices = Delta.on_level(l)
@@ -39,14 +39,14 @@ def test_ortho_scaling_mass():
         for _ in range(100):
             d = SparseVector(indices, np.random.rand(2**(l + 1)))
             res = mass.matvec(d, set(indices), indices)
-            assert np.allclose(
-                d.asarray(indices), 2.0**l * res.asarray(indices))
+            assert np.allclose(d.asarray(indices),
+                               2.0**l * res.asarray(indices))
 
 
 def test_three_point_scaling_mass():
     """ Test the three point_scaling mass. """
     basis, Lambda = ThreePointBasis.uniform_basis(max_level=5)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     mass = operators.mass(basis)
     for l in range(1, 5):
         indices = Delta.on_level(l)
@@ -66,10 +66,10 @@ def test_three_point_scaling_mass():
 def test_haar_three_scaling_mass():
     uml = 5
     basis_haar, Lambda_haar = HaarBasis.uniform_basis(uml)
-    Delta_haar = Lambda_haar.single_scale_indices()
+    Delta_haar = Lambda_haar.single_scale_functions()
 
     basis_three, Lambda_three = ThreePointBasis.uniform_basis(uml)
-    Delta_three = Lambda_three.single_scale_indices()
+    Delta_three = Lambda_three.single_scale_functions()
 
     mass_haar_three = operators.mass(basis_haar, basis_three)
     mass_three_haar = operators.mass(basis_three, basis_haar)

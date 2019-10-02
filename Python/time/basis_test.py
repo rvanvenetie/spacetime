@@ -4,24 +4,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pytest import approx
 
-from basis import Scaling, Wavelet
-from haar_basis import HaarBasis
-from linear_operator_test import check_linop_transpose
-from orthonormal_basis import OrthonormalBasis
-from three_point_basis import ThreePointBasis
+from ..datastructures.tree import NodeInterface
+from .basis import Scaling, Wavelet
+from .haar_basis import HaarBasis
+from .linear_operator_test import check_linop_transpose
+from .orthonormal_basis import OrthonormalBasis
+from .three_point_basis import ThreePointBasis
 
 
 def test_haar_mother_functions():
     basis = HaarBasis()
+    assert len(basis.metaroot_scaling.roots) == 1
+    assert len(basis.metaroot_wavelet.roots) == 1
+    mother_scaling = basis.metaroot_scaling.roots[0]
 
-    assert basis.mother_scaling.labda == (0, 0)
-    assert basis.mother_scaling.eval(0.25) == 1.0
-    assert basis.mother_scaling.eval(0.85) == 1.0
+    assert mother_scaling.labda == (0, 0)
+    assert mother_scaling.eval(0.25) == 1.0
+    assert mother_scaling.eval(0.85) == 1.0
 
-    assert basis.mother_wavelet.labda == (1, 0)
-    assert basis.mother_wavelet.eval(0.25) == 1.0
-    assert basis.mother_wavelet.eval(0.85) == -1.0
-    assert basis.mother_wavelet.single_scale == [
+    basis.metaroot_wavelet.roots[0].refine()
+    assert len(basis.metaroot_wavelet.roots[0].children) == 1
+    mother_wavelet = basis.metaroot_wavelet.roots[0].children[0]
+
+    assert mother_wavelet.labda == (1, 0)
+    assert mother_wavelet.eval(0.25) == 1.0
+    assert mother_wavelet.eval(0.85) == -1.0
+    assert mother_wavelet.single_scale == [
         (basis.mother_scaling.children[0], 1),
         (basis.mother_scaling.children[1], -1)
     ]
@@ -30,7 +38,7 @@ def test_haar_mother_functions():
 def test_haar_uniform_refinement():
     ml = 5
     basis, Lambda = HaarBasis.uniform_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
 
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2**(l - 1)
@@ -49,7 +57,7 @@ def test_haar_uniform_refinement():
 def test_haar_local_refinement():
     ml = 8
     basis, Lambda = HaarBasis.origin_refined_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
 
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 1
@@ -62,14 +70,22 @@ def test_ortho_uniform_refinement():
     sq3 = np.sqrt(3)
     ml = 5
     basis, Lambda = OrthonormalBasis.uniform_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2**l
         assert len(Delta.per_level[l]) == 2**(l + 1)
         h = Fraction(1, 2**l)
+        h_supp = Fraction(1, 2**(l - 1))
         for psi in Lambda.per_level[l]:
+            assert len(psi.parents) == 2
+            assert len(psi.children) in [0, 4]
+            for i in range(len(psi.children) - 1):
+                assert psi.children[i].labda[1] + 1 == psi.children[i +
+                                                                    1].labda[1]
             psi_l, psi_n = psi.labda
             assert psi_l == l
+            assert psi.support[0].interval[0] == h_supp * (psi_n // 2)
+            assert psi.support[-1].interval[1] == h_supp * (psi_n // 2 + 1)
             if psi_n % 2 == 1:
                 assert psi.eval(2 * h * (psi_n // 2) + 1e-8) == approx(
                     sq3 * 2**((l - 1) / 2))
@@ -91,7 +107,7 @@ def test_ortho_uniform_refinement():
 def test_ortho_local_refinement():
     ml = 8
     basis, Lambda = OrthonormalBasis.origin_refined_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2
         assert len(Delta.per_level[l]) == 4
@@ -99,9 +115,9 @@ def test_ortho_local_refinement():
 
 
 def test_3pt_uniform_refinement():
-    ml = 5
+    ml = 7
     basis, Lambda = ThreePointBasis.uniform_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2**(l - 1)
         assert len(Delta.per_level[l]) == 2**l + 1
@@ -110,29 +126,49 @@ def test_3pt_uniform_refinement():
             psi_l, psi_n = psi.labda
             assert psi_l == l
             assert psi.eval(h * (2 * psi_n + 1)) == 2**(l / 2)
-            if psi_n > 0: assert psi.eval(h * (2 * psi_n)) == 0.5 * -2**(l / 2)
+            if psi_n > 0:
+                assert psi.eval(h * (2 * psi_n)) == 0.5 * -2**(l / 2)
+                assert psi.support[0].interval[0] == h * (2 * psi_n - 1)
             if psi_n < 2**(l - 1) - 1:
                 assert psi.eval(h * (2 * psi_n + 2)) == 0.5 * -2**(l / 2)
-            if psi_n == 0: assert psi.eval(0) == -2**(l / 2)
+                assert psi.support[-1].interval[1] == h * (2 * psi_n + 3)
+            if psi_n == 0:
+                assert psi.support[0].interval[0] == h * (2 * psi_n)
+                assert psi.eval(0) == -2**(l / 2)
+            if psi_n == 2**(l - 1) - 1:
+                assert psi.support[-1].interval[1] == h * (2 * psi_n + 2)
+                assert psi.eval(1) == -2**(l / 2)
 
 
 def test_3pt_local_refinement():
     ml = 8
     basis, Lambda = ThreePointBasis.origin_refined_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 1
         assert len(Delta.per_level[l]) == 3
         assert Lambda.per_level[l][0].labda == (l, 0)
 
     basis, Lambda = ThreePointBasis.end_points_refined_basis(ml)
-    Delta = Lambda.single_scale_indices()
+    Delta = Lambda.single_scale_functions()
     for l in range(2, ml + 1):
         assert len(Lambda.per_level[l]) == 2
         assert len(Delta.per_level[l]) <= 6
         assert {psi.labda
-                for psi in Lambda.per_level[l]} == {(l, 0), (l,
-                                                             2**(l - 1) - 1)}
+                for psi in Lambda.per_level[l]} == {(l, 0),
+                                                    (l, 2**(l - 1) - 1)}
+
+
+def test_all_subclasses():
+    for basis, Lambda in [
+            HaarBasis.uniform_basis(3),
+            OrthonormalBasis.uniform_basis(3),
+            ThreePointBasis.uniform_basis(3)
+    ]:
+        assert all(isinstance(psi, NodeInterface) for psi in Lambda)
+        assert all(
+            isinstance(elem, NodeInterface) for psi in Lambda
+            for elem in psi.support)
 
 
 def test_basis_PQ():
@@ -151,7 +187,7 @@ def test_basis_PQ():
             ThreePointBasis.origin_refined_basis(oml),
             ThreePointBasis.end_points_refined_basis(oml),
     ]:
-        Delta = Lambda.single_scale_indices()
+        Delta = Lambda.single_scale_functions()
         ml = Lambda.maximum_level
         print('Print testing PQ for {} with {} levels.'.format(
             basis.__class__.__name__, ml))
@@ -206,7 +242,7 @@ def test_basis_PQ_matrix():
             ThreePointBasis.origin_refined_basis(oml),
             ThreePointBasis.end_points_refined_basis(oml),
     ]:
-        Delta = Lambda.single_scale_indices()
+        Delta = Lambda.single_scale_functions()
         ml = Lambda.maximum_level
         for l in range(1, ml):
             print('test PQ on level {} for {}'.format(
