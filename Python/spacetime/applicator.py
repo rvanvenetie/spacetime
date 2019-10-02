@@ -126,7 +126,8 @@ class Applicator:
         assert all(n1.nodes == n2.nodes
                    for n1, n2 in zip(vec_out.bfs(), self.Lambda_out.bfs()))
 
-        # Assert that the output vector is empty
+        # Assert that the output vector is empty.
+        assert isinstance(vec_in.root, DoubleNodeVector)
         assert isinstance(vec_out.root, DoubleNodeVector)
         assert all(db_node.value == 0
                    for db_node in vec_out.bfs(include_meta_root=True))
