@@ -5,30 +5,20 @@ from ..datastructures.double_tree_vector import (DoubleNodeVector,
 
 class Applicator:
     """ Class that implements a tensor product operator. """
-    def __init__(self,
-                 basis_in,
-                 Lambda_in,
-                 applicator_time,
-                 applicator_space,
-                 basis_out=None,
-                 Lambda_out=None):
+    def __init__(self, Lambda_in, Lambda_out, applicator_time,
+                 applicator_space):
         """ Initialize the applicator.
 
         Arguments:
-            basis_in: A tensor-basis input.
             Lambda_in: A double tree index set input corresponding to the input.
+            Lambda_out: The double tree index set corresponding to the output.
             applicator_time: The applicator to be applied to the time axis.
             applicator_space: The applicator to be applied on the space axis.
-            basis_out: A tensor-basis output.
-            Lambda_out: The double tree index set corresponding to the output.
         """
-        self.basis_in = basis_in
         self.Lambda_in = Lambda_in
+        self.Lambda_out = Lambda_out
         self.applicator_time = applicator_time
         self.applicator_space = applicator_space
-
-        self.basis_out = basis_out if basis_out else basis_in
-        self.Lambda_out = Lambda_out if Lambda_out else Lambda_in
 
     def sigma(self):
         """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """

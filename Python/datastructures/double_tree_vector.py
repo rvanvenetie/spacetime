@@ -17,3 +17,11 @@ class FrozenDoubleNodeVector(FrozenDoubleNode):
     @property
     def value(self):
         return self.dbl_node.value
+
+    @value.setter
+    def value(self, other):
+        self.dbl_node.value = other
+
+    def items(self):
+        # TODO: This should be removed. Right now, just for compatibility!
+        return [(f_node.node, f_node.value) for f_node in self.bfs()]

@@ -9,7 +9,6 @@ class SparseVector(collections.abc.Mapping):
 
     The representation is a dict mapping from an index to the coefficient.
     """
-
     def __init__(self, index_set, values=None):
         """ Initialize the vector.
 

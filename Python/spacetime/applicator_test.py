@@ -3,6 +3,7 @@ from itertools import product
 from pprint import pprint
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from ..datastructures.double_tree import DoubleTree
 from ..datastructures.double_tree_test import (corner_index_tree,
@@ -15,7 +16,9 @@ from ..datastructures.function_test import FakeHaarFunction
 from ..datastructures.tree_view import MetaRootView
 from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
+from ..time.applicator_inplace import Applicator as Applicator1D
 from ..time.haar_basis import HaarBasis
+from ..time.operators import mass
 from ..time.three_point_basis import ThreePointBasis
 from .applicator import Applicator
 
@@ -40,9 +43,11 @@ class FakeApplicator(Applicator):
             for labda in vec_out.bfs():
                 labda.dbl_node.value = 1
 
-    def __init__(self, Lambda_in, Lambda_out=None):
-        super().__init__(None, Lambda_in, self.FakeSingleApplicator('t'),
-                         self.FakeSingleApplicator('x'), None, Lambda_out)
+    def __init__(self, Lambda_in, Lambda_out):
+        super().__init__(Lambda_in=Lambda_in,
+                         Lambda_out=Lambda_out,
+                         applicator_time=self.FakeSingleApplicator('t'),
+                         applicator_space=self.FakeSingleApplicator('x'))
 
 
 class FakeHaarFunctionExt(FakeHaarFunction):
@@ -196,3 +201,58 @@ def test_applicator_real():
 
     applicator.apply(vec_in, vec_out)
     assert all(d_node.value == 1 for d_node in vec_out.bfs())
+
+
+def test_applicator_tensor_haar_mass():
+    basis = HaarBasis()
+    basis.metaroot_wavelet.uniform_refine(3)
+
+    # Create Lambda_in/out and initialize the applicator.
+    Lambda_in = DoubleTree.full_tensor(basis.metaroot_wavelet,
+                                       basis.metaroot_wavelet)
+    Lambda_out = Lambda_in
+    applicator_time = Applicator1D(mass(basis), basis_in=basis)
+    applicator_space = Applicator1D(mass(basis), basis_in=basis)
+    applicator = Applicator(Lambda_in, Lambda_out, applicator_time,
+                            applicator_space)
+
+    # First, calculate real matrix that corresponds to applicator.
+    mat1d = np.diag([
+        1 if psi.level == 0 else 2**(1 - psi.level)
+        for psi in Lambda_in.project(0).bfs()
+    ])
+    mat2d = np.kron(mat1d, mat1d)
+
+    def transform_dt_vector_to_np_vector(dt_vector):
+        return np.array([
+            psi_1.value for psi_0 in dt_vector.project(0).bfs()
+            for psi_1 in psi_0.frozen_other_axis().bfs()
+        ])
+
+    # Test and apply 20 random vectors.
+    for _ in range(20):
+        # Initialze double tree vectors.
+        vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                     frozen_dbl_cls=FrozenDoubleNodeVector)
+        vec_out = Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                       frozen_dbl_cls=FrozenDoubleNodeVector)
+
+        assert len(vec_in.bfs()) == len(Lambda_in.bfs())
+        assert all(n1.nodes == n2.nodes
+                   for n1, n2 in zip(vec_in.bfs(), Lambda_in.bfs()))
+
+        # Initialize the input vector with random numbers.
+        for db_node in vec_in.bfs():
+            assert db_node.value == 0
+            db_node.value = np.random.rand()
+
+        # Calculate the output.
+        applicator.apply(vec_in, vec_out)
+
+        # Transform the input/output vector to the mat2d coordinate format.
+        tr_vec_in = transform_dt_vector_to_np_vector(vec_in)
+        tr_vec_out = transform_dt_vector_to_np_vector(vec_out)
+
+        # Calculate the result by plain old matvec, and compare!
+        real_vec_out = mat2d.dot(tr_vec_in)
+        assert np.allclose(real_vec_out - tr_vec_out, 0)
