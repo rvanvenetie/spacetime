@@ -188,3 +188,24 @@ def test_union():
         # Assert double-tree structure is copied as well.
         assert to_tree.root.children[0][0].children[1][0] == \
                to_tree.root.children[1][0].children[0][0]
+
+
+def test_deep_copy():
+    for cls in [FakeHaarFunction, FakeOrthoFunction]:
+        for tree in [
+                full_tensor_double_tree(corner_index_tree(4, 't', 0, cls),
+                                        corner_index_tree(4, 'x', 1, cls)),
+                sparse_tensor_double_tree(corner_index_tree(4, 't', 0, cls),
+                                          corner_index_tree(4, 'x', 1, cls),
+                                          8),
+                sparse_tensor_double_tree(corner_index_tree(4, 't', 0, cls),
+                                          uniform_index_tree(4, 'x', cls), 8),
+                random_double_tree(uniform_index_tree(4, 't', cls),
+                                   uniform_index_tree(4, 'x', cls),
+                                   7,
+                                   N=500),
+        ]:
+            tree_copy = tree.deep_copy()
+            assert len(tree_copy.bfs()) == len(tree.bfs())
+            assert all(n1.nodes == n2.nodes
+                       for n1, n2 in zip(tree_copy.bfs(), tree.bfs()))

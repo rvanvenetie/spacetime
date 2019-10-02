@@ -31,12 +31,17 @@ class Element1D(BinaryNodeAbstract):
         self.phi_disc_lin = [None, None]
         self.phi_cont_lin = [None, None]
 
-        # Add some extra variables necessary for applicator.
+        # Add some extra variables necessary for time applicator.
         # TODO: Is this the right place?
         self.Lambda_in = False
         self.Lambda_out = False
         self.Pi_in = False
         self.Pi_out = False
+
+        # Add some extra variables the spacetime applicator
+        #TODO: Is this the right place?
+        self.Sigma_psi_out = []
+        self.Theta_psi_in = False
 
     def refine(self):
         if not self.children:

@@ -46,3 +46,11 @@ def test_double_tree_vector():
     for labda in dt_root.project(1).bfs():
         fiber = dt_root.fiber(0, labda)
         assert all(f_node.value == 1 for f_node in fiber.bfs())
+
+    def call_copy_value(new_node, old_node):
+        new_node.value = old_node.value
+
+    dt_copy = dt_root.deep_copy(call_postprocess=call_copy_value)
+    assert len(dt_copy.bfs()) == len(dt_root.bfs())
+    for db_node in dt_copy.bfs():
+        assert db_node.value == 1

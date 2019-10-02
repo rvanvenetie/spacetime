@@ -158,7 +158,8 @@ class OrthonormalWavelet(basis.Wavelet):
         return self.children
 
     def is_full(self):
-        return len(self.children) == 4
+        if self.level == 0: return len(self.children) == 2
+        else: return len(self.children) == 4
 
 
 class OrthonormalBasis(basis.Basis):
