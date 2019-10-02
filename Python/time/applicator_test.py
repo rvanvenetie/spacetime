@@ -28,8 +28,7 @@ def test_haar_multiscale_mass():
     ]:
         for l in range(1, 6):
             Lambda_l = Lambda.until_level(l)
-            applicator = Applicator_class(basis, operators.mass(basis),
-                                          Lambda_l)
+            applicator = Applicator_class(operators.mass(basis), basis)
             for _ in range(10):
                 np_vec = np.random.rand(len(Lambda_l))
                 vec = SparseVector(Lambda_l, np_vec)
@@ -47,8 +46,7 @@ def test_orthonormal_multiscale_mass():
     ]:
         for l in range(1, 6):
             Lambda_l = Lambda.until_level(l)
-            applicator = Applicator_class(basis, operators.mass(basis),
-                                          Lambda_l)
+            applicator = Applicator_class(operators.mass(basis), basis)
             for _ in range(10):
                 np_vec = np.random.rand(len(Lambda_l))
                 vec = SparseVector(Lambda_l, np_vec)
@@ -85,11 +83,11 @@ def test_multiscale_operator_quadrature_lin_comb():
                                                     Lambda_in.maximum_level))
         print('\tLambda_out:\tdofs={}\tml={}'.format(len(Lambda_out.functions),
                                                      Lambda_out.maximum_level))
-        applicator = Applicator_class(basis_in, operator, Lambda_in, basis_out,
-                                      Lambda_out)
+        applicator = Applicator_class(operator, basis_in, basis_out)
         for _ in range(3):
             vec_in = SparseVector(Lambda_in, np.random.rand(len(Lambda_in)))
-            vec_out = applicator.apply(vec_in)
+            vec_out = SparseVector(Lambda_out, np.zeros(len(Lambda_out)))
+            applicator.apply(vec_in, vec_out)
 
             # Define function that evaluates lin. comb. Psi_Lambda_in
             def psi_vec_in_eval(x, deriv):
@@ -140,11 +138,16 @@ def test_apply_upp_low_vs_full():
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
         operator = operators.mass(basis_in, basis_out)
-        applicator = Applicator_class(basis_in, operator, Lambda_in, basis_out,
-                                      Lambda_out)
+        applicator = Applicator_class(operator, basis_in, basis_out)
         for _ in range(10):
-            c = SparseVector(Lambda_in, np.random.rand(len(Lambda_in)))
-            res_full_op = applicator.apply(c)
-            res_upp_low = applicator.apply_upp(c) + applicator.apply_low(c)
+            vec_in = SparseVector(Lambda_in, np.random.rand(len(Lambda_in)))
+            res_full_op = SparseVector(Lambda_out, np.zeros(len(Lambda_out)))
+            vec_upp_out = SparseVector(Lambda_out, np.zeros(len(Lambda_out)))
+            vec_low_out = SparseVector(Lambda_out, np.zeros(len(Lambda_out)))
+
+            applicator.apply(vec_in, res_full_op)
+            applicator.apply_upp(vec_in, vec_upp_out)
+            applicator.apply_low(vec_in, vec_low_out)
+            res_upp_low = vec_upp_out + vec_low_out
             assert np.allclose(res_full_op.asarray(Lambda_in),
                                res_upp_low.asarray(Lambda_in))

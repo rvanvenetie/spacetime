@@ -9,7 +9,6 @@ class SparseVector(collections.abc.Mapping):
 
     The representation is a dict mapping from an index to the coefficient.
     """
-
     def __init__(self, index_set, values=None):
         """ Initialize the vector.
 
@@ -71,3 +70,6 @@ class SparseVector(collections.abc.Mapping):
             return np.array([self[k] for k in keys_ordering])
         else:
             return np.array([self[k] for k in self.keys()])
+
+    def deep_copy(self):
+        return SparseVector(self.vector.copy())

@@ -1,4 +1,5 @@
-from .basis import mother_element
+from ..datastructures.tree_view import NodeViewInterface
+from .basis import MultiscaleFunctions, mother_element
 from .sparse_vector import SparseVector
 
 
@@ -10,31 +11,33 @@ class Applicator(object):
     for some (tough to read) C++ code that implements the same operators in
     a probably more optimized fashion.
     """
-    def __init__(self,
-                 basis_in,
-                 singlescale_operator,
-                 Lambda_in=None,
-                 basis_out=None,
-                 Lambda_out=None):
+    def __init__(self, singlescale_operator, basis_in, basis_out=None):
         """ Initialize the applicator.
 
         Arguments:
-            basis_in: A Basis object.
             singlescale_operator: LinearOperator from basis_in to basis_out.
-            Lambda_in: multiscale indices to apply the multiscale operator on
-                (default: the full set of indices of basis_in).
+            basis_in: A Basis object.
             basis_out: A Basis object (default: basis_in).
-            Lambda_out: multiscale indices to compute application on
-                (default: value of Lambda_in)
         """
+        self.operator = singlescale_operator
         self.basis_in = basis_in
         self.basis_out = basis_out if basis_out else basis_in
-        self.operator = singlescale_operator
-        self.Lambda_in = Lambda_in if Lambda_in else basis_in.indices
-        self.Lambda_out = Lambda_out if Lambda_out else self.Lambda_in
 
-    def _initialize(self, vec):
+    def _copy_result_into_vec_out(self, vec_out):
+        # TODO: This is a legacy function. Should be removed.
+        if isinstance(vec_out, NodeViewInterface):
+            for nv in vec_out.bfs():
+                nv.value = nv.node.coeff[1]
+        else:
+            for psi in self.vec_out:
+                psi.value = psi.coeff[1]
+        return vec_out
+
+    def _initialize(self, vec_in, vec_out):
         """ Helper function to initialize fields in datastructures. """
+
+        self.Lambda_in = MultiscaleFunctions(vec_in)
+        self.Lambda_out = MultiscaleFunctions(vec_out)
 
         # Reset the output vector.
         for psi in self.Lambda_out:
@@ -42,7 +45,7 @@ class Applicator(object):
 
         # First, store the vector inside the wavelet.
         # TODO: This should be removed.
-        for psi, value in vec.items():
+        for psi, value in vec_in.items():
             psi.reset_coeff()
             psi.coeff[0] = value
 
@@ -69,7 +72,7 @@ class Applicator(object):
             for elem in list(psi.support):
                 elem.Lambda_out = True
 
-    def apply(self, vec):
+    def apply(self, vec_in, vec_out=None):
         """ Apply the multiscale operator.
 
         Arguments:
@@ -78,15 +81,16 @@ class Applicator(object):
         Returns:
             self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
-        self._initialize(vec)
+        if vec_out is None: vec_out = SparseVector({psi: 0 for psi in vec_in})
+        self._initialize(vec_in, vec_out)
 
         # Apply the recursive method.
         self._apply_recur(l=0, Pi_in=[], Pi_out=[])
 
         # Copy data back from basis into a vector.
-        return SparseVector({psi: psi.coeff[1] for psi in self.Lambda_out})
+        return self._copy_result_into_vec_out(vec_out)
 
-    def apply_upp(self, vec):
+    def apply_upp(self, vec_in, vec_out=None):
         """ Apply the upper part of the multiscale operator.
 
         Arguments:
@@ -95,13 +99,13 @@ class Applicator(object):
         Returns:
             Upper part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
-        self._initialize(vec)
+        if vec_out is None: vec_out = SparseVector({psi: 0 for psi in vec_in})
+        self._initialize(vec_in, vec_out)
 
         self._apply_upp_recur(l=0, Pi_in=[], Pi_out=[])
+        return self._copy_result_into_vec_out(vec_out)
 
-        return SparseVector({psi: psi.coeff[1] for psi in self.Lambda_out})
-
-    def apply_low(self, vec):
+    def apply_low(self, vec_in, vec_out=None):
         """ Apply the lower part of the multiscale operator.
 
         Arguments:
@@ -110,10 +114,11 @@ class Applicator(object):
         Returns:
             Lower part of self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
-        self._initialize(vec)
+        if vec_out is None: vec_out = SparseVector({psi: 0 for psi in vec_in})
+        self._initialize(vec_in, vec_out)
 
         self._apply_low_recur(l=0, Pi_in=[])
-        return SparseVector({psi: psi.coeff[1] for psi in self.Lambda_out})
+        return self._copy_result_into_vec_out(vec_out)
 
     #  Private methods from here on out.
     def _construct_Pi_out(self, Pi_out):
