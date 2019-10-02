@@ -176,12 +176,12 @@ class FrozenDoubleNode(NodeViewInterface):
         ]
 
     # Implement some extra methods.
-    def union(self, other, call_filter=None):
+    def union(self, other, call_filter=None, call_postprocess=None):
         """ Deep-copies the singletree rooted at `other` into self. """
 
         # Only possible if self and other are frozen in the same axis.
         assert self.i == other.i
-        return self._union(other, call_filter)
+        return self._union(other, call_filter, call_postprocess)
 
     def deep_refine(self, call_filter=None, call_postprocess=None):
         return self._deep_refine(call_filter, call_postprocess)
@@ -297,6 +297,30 @@ class DoubleTree:
         for d_node in d_nodes:
             d_node.marked = False
         self.compute_fibers()
+
+    def deep_copy(self,
+                  dbl_node_cls=None,
+                  frozen_dbl_cls=None,
+                  call_postprocess=None):
+        """ Copies the current doubletree. """
+        if dbl_node_cls is None: dbl_node_cls = self.root.__class__
+        if frozen_dbl_cls is None: frozen_dbl_cls = self.frozen_dbl_cls
+        double_root = dbl_node_cls(self.root.nodes)
+        double_tree = DoubleTree(double_root, frozen_dbl_cls=frozen_dbl_cls)
+        double_tree.project(0).union(self.project(0),
+                                     call_postprocess=call_postprocess)
+
+        for new_node_0, my_node_0 in zip(
+                double_tree.project(0).bfs(include_meta_root=True),
+                self.project(0).bfs(include_meta_root=True)):
+
+            # We are walking over axis 0, and union'ing in axis 1.
+            new_node_1 = new_node_0.frozen_other_axis()
+            my_node_1 = my_node_0.frozen_other_axis()
+            new_node_1.union(my_node_1, call_postprocess=call_postprocess)
+
+        double_tree.compute_fibers()
+        return double_tree
 
     @staticmethod
     def full_tensor(meta_root_time,

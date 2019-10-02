@@ -119,10 +119,10 @@ class Applicator:
     def apply(self, vec_in, vec_out):
         """ Apply the tensor product applicator to the given vector. """
         # Assert that vec_in and vec_out are defined on Lambda_in and Lambda_out
-        assert [d_node.nodes for d_node in vec_in.bfs()
-                ] == [d_node.nodes for d_node in self.Lambda_in.bfs()]
-        assert [d_node.nodes for d_node in vec_out.bfs()
-                ] == [d_node.nodes for d_node in self.Lambda_out.bfs()]
+        assert all(n1.nodes == n2.nodes
+                   for n1, n2 in zip(vec_in.bfs(), self.Lambda_in.bfs()))
+        assert all(n1.nodes == n2.nodes
+                   for n1, n2 in zip(vec_out.bfs(), self.Lambda_out.bfs()))
 
         # Assert that the output vector is empty
         assert isinstance(vec_out.root, DoubleNodeVector)

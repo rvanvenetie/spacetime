@@ -16,6 +16,7 @@ from ..datastructures.tree_view import MetaRootView
 from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..time.haar_basis import HaarBasis
+from ..time.three_point_basis import ThreePointBasis
 from .applicator import Applicator
 
 
@@ -159,26 +160,33 @@ def test_applicator_real():
                                   node_view_cls=HierarchicalBasisFunction)
     hierarch_basis.deep_refine()
 
-    # Create time part.
+    # Create time part for Lambda_in.
     HaarBasis.metaroot_wavelet.uniform_refine(2)
 
-    # Create a DoubleTree input and output vector
-    vec_in = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
-                                    hierarch_basis,
-                                    dbl_node_cls=DoubleNodeVector,
-                                    frozen_dbl_cls=FrozenDoubleNodeVector)
+    # Create time part for Lambda_out.
+    ThreePointBasis.metaroot_wavelet.uniform_refine(3)
 
-    vec_out = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
-                                     hierarch_basis,
-                                     dbl_node_cls=DoubleNodeVector,
-                                     frozen_dbl_cls=FrozenDoubleNodeVector)
+    # Create Lambda_in/out and initialize the applicator.
+    Lambda_in = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
+                                       hierarch_basis)
+    Lambda_out = DoubleTree.full_tensor(ThreePointBasis.metaroot_wavelet,
+                                        hierarch_basis)
+    applicator = FakeApplicator(Lambda_in, Lambda_out)
+
+    # Now create an vec_in and vec_out.
+    vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                 frozen_dbl_cls=FrozenDoubleNodeVector)
+    vec_out = Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                   frozen_dbl_cls=FrozenDoubleNodeVector)
+
+    assert len(vec_in.bfs()) == len(Lambda_in.bfs())
+    assert all(n1.nodes == n2.nodes
+               for n1, n2 in zip(vec_in.bfs(), Lambda_in.bfs()))
 
     # Initialize the input vector with ones.
     for db_node in vec_in.bfs():
+        assert db_node.value == 0
         db_node.value = 1
 
-    # Create and apply a fake applicator.
-    applicator = FakeApplicator(vec_in, vec_out)
     applicator.apply(vec_in, vec_out)
-
     assert all(d_node.value == 1 for d_node in vec_out.bfs())
