@@ -136,25 +136,25 @@ class Applicator:
         sigma = self.sigma()
         assert isinstance(sigma.root, DoubleNodeVector)
         for psi_in_labda in sigma.project(0).bfs():
-            vec_fiber_in = vec_in.fiber(1, psi_in_labda)
-            vec_fiber_out = sigma.fiber(1, psi_in_labda)
-            self.applicator_space.apply(vec_fiber_in, vec_fiber_out)
+            fiber_in = vec_in.fiber(1, psi_in_labda)
+            fiber_out = sigma.fiber(1, psi_in_labda)
+            self.applicator_space.apply(fiber_in, fiber_out)
 
         # Calculate R_Lambda(L_0 x Id)I_Sigma
         for psi_out_labda in vec_out.project(1).bfs():
-            vec_fiber_in = sigma.fiber(0, psi_out_labda)
-            vec_fiber_out = vec_out.fiber(0, psi_out_labda)
-            self.applicator_time.apply_low(vec_fiber_in, vec_fiber_out)
+            fiber_in = sigma.fiber(0, psi_out_labda)
+            fiber_out = vec_out.fiber(0, psi_out_labda)
+            self.applicator_time.apply_low(fiber_in, fiber_out)
 
         # Calculate R_Theta(U_1 x Id)I_Lambda
         theta = self.theta()
         for psi_out_labda in theta.project(1).bfs():
-            vec_fiber_in = vec_in.fiber(0, psi_out_labda)
-            vec_fiber_out = theta.fiber(0, psi_out_labda)
-            self.applicator_time.apply_upp(vec_fiber_in, vec_fiber_out)
+            fiber_in = vec_in.fiber(0, psi_out_labda)
+            fiber_out = theta.fiber(0, psi_out_labda)
+            self.applicator_time.apply_upp(fiber_in, fiber_out)
 
         # Calculate R_Lambda(id x A2)I_Theta
         for psi_out_labda in vec_out.project(0).bfs():
-            vec_fiber_in = theta.fiber(1, psi_out_labda)
-            vec_fiber_out = vec_out.fiber(1, psi_out_labda)
-            self.applicator_space.apply(vec_fiber_in, vec_fiber_out)
+            fiber_in = theta.fiber(1, psi_out_labda)
+            fiber_out = vec_out.fiber(1, psi_out_labda)
+            self.applicator_space.apply(fiber_in, fiber_out)
