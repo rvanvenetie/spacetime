@@ -150,7 +150,8 @@ class FrozenDoubleNode(NodeViewInterface):
 
     # Implement the NodeInterface methods.
     def refine(self, children=None):
-        return self.dbl_node.refine(self.i, children)
+        dbl_nodes = self.dbl_node.refine(self.i, children=children)
+        return [self.__class__(child, self.i) for child in dbl_nodes]
 
     @property
     def marked(self):
@@ -175,12 +176,15 @@ class FrozenDoubleNode(NodeViewInterface):
         ]
 
     # Implement some extra methods.
-    def union(self, other):
+    def union(self, other, call_filter=None):
         """ Deep-copies the singletree rooted at `other` into self. """
 
         # Only possible if self and other are frozen in the same axis.
         assert self.i == other.i
-        return self._union(other)
+        return self._union(other, call_filter)
+
+    def deep_refine(self, call_filter=None, call_postprocess=None):
+        return self._deep_refine(call_filter, call_postprocess)
 
     def frozen_other_axis(self):
         """ Helper function to get the `self` frozen in the other axis. """
@@ -208,6 +212,7 @@ class FrozenDoubleNode(NodeViewInterface):
 
 class DoubleTree:
     def __init__(self, root, frozen_dbl_cls=FrozenDoubleNode):
+        if isinstance(root, tuple): root = DoubleNode(root)
         assert all(
             isinstance(root.nodes[i], MetaRootInterface) for i in [0, 1])
         assert issubclass(frozen_dbl_cls, FrozenDoubleNode)
@@ -265,6 +270,34 @@ class DoubleTree:
 
         return nodes
 
+    def deep_refine(self, call_filter=None, call_postprocess=None):
+        """ Deep-refines `self` by recursively refining the double tree view. 
+
+        Args:
+          call_filter: This call determines whether a given double node 
+            should be inside the subtree.
+          call_postprocess: This call will be invoked with a freshly
+              created doublenode object. Can be used to load data, etc.
+        """
+        if call_filter is None: call_filter = lambda _: True
+        if call_postprocess is None: call_postprocess = lambda _: None
+        d_nodes = []
+        queue = deque([self.root])
+        while queue:
+            d_node = queue.popleft()
+            if d_node.marked: continue
+            d_nodes.append(d_node)
+            call_postprocess(d_node)
+            d_node.marked = True
+            for i in [0, 1]:
+                for child in d_node.nodes[i].children:
+                    if call_filter(_pair(i, child, d_node.nodes[not i])):
+                        d_node.refine(i, children=[child])
+                queue.extend(d_node.children[i])
+        for d_node in d_nodes:
+            d_node.marked = False
+        self.compute_fibers()
+
     @staticmethod
     def full_tensor(meta_root_time,
                     meta_root_space,
@@ -273,15 +306,10 @@ class DoubleTree:
                     frozen_dbl_cls=FrozenDoubleNode):
         """ Makes a full grid doubletree from the given single trees. """
         double_root = dbl_node_cls((meta_root_time, meta_root_space))
-        queue = deque()
-        queue.append(double_root)
-        while queue:
-            double_node = queue.popleft()
-            for i in [0, 1]:
-                if max_levels and double_node.nodes[i].level >= max_levels[i]:
-                    continue
-                if double_node.is_full(i): continue
-                children = double_node.refine(i)
-                queue.extend(children)
-
-        return DoubleTree(double_root, frozen_dbl_cls=frozen_dbl_cls)
+        double_tree = DoubleTree(double_root, frozen_dbl_cls=frozen_dbl_cls)
+        call_filter = None
+        if max_levels:
+            call_filter = lambda n: n[0] <= max_levels[0] and n[
+                1] <= max_levels[1]
+        double_tree.deep_refine(call_filter=call_filter)
+        return double_tree

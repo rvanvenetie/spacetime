@@ -1,5 +1,6 @@
 from collections import defaultdict
 from itertools import product
+from pprint import pprint
 
 import matplotlib.pyplot as plt
 
@@ -26,17 +27,17 @@ class FakeApplicator(Applicator):
         def apply(self, vec_in, vec_out):
             """ This simply sets all output values to 1. """
             for labda in vec_out.bfs():
-                vec_out.dbl_node.value = 1
+                labda.dbl_node.value = 1
 
         def apply_low(self, vec_in, vec_out):
             """ This simply sets all output values to 1. """
             for labda in vec_out.bfs():
-                vec_out.dbl_node.value = 1
+                labda.dbl_node.value = 1
 
         def apply_upp(self, vec_in, vec_out):
             """ This simply sets all output values to 1. """
             for labda in vec_out.bfs():
-                vec_out.dbl_node.value = 1
+                labda.dbl_node.value = 1
 
     def __init__(self, Lambda_in, Lambda_out=None):
         super().__init__(None, Lambda_in, self.FakeSingleApplicator('t'),
@@ -48,6 +49,7 @@ class FakeHaarFunctionExt(FakeHaarFunction):
     def __init__(self, labda, f_type, parents=None, children=None):
         super().__init__(labda, f_type, parents, children)
         self.Sigma_psi_out = []
+        self.Theta_psi_in = False
 
     @property
     def support(self):
@@ -64,6 +66,54 @@ def test_small_sigma():
     sigma = applicator.sigma()
     assert [n.nodes[0].labda for n in sigma.bfs()] == [(0, 0), (0, 0), (0, 0)]
     assert [n.nodes[1].labda for n in sigma.bfs()] == [(0, 0), (1, 0), (1, 1)]
+
+
+def test_theta_full_tensor():
+    HaarBasis.metaroot_wavelet.uniform_refine(4)
+    Lambda_in = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
+                                       HaarBasis.metaroot_wavelet)
+    Lambda_out = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
+                                        HaarBasis.metaroot_wavelet)
+    applicator = FakeApplicator(Lambda_in, Lambda_out)
+    theta = applicator.theta()
+    assert [d_node.nodes for d_node in theta.bfs()
+            ] == [d_node.nodes for d_node in Lambda_in.bfs()]
+
+
+def test_theta_small():
+    HaarBasis.metaroot_wavelet.uniform_refine(3)
+    Lambda_in = DoubleTree(
+        (HaarBasis.metaroot_wavelet, HaarBasis.metaroot_wavelet))
+    Lambda_out = DoubleTree(
+        (HaarBasis.metaroot_wavelet, HaarBasis.metaroot_wavelet))
+
+    # Define the maximum levels
+    lvls = (3, 1)
+
+    # Refine Lambda_in in time towards the origin
+    Lambda_in.deep_refine(
+        call_filter=lambda d_node: d_node[0].level <= lvls[0] and d_node[1].
+        level <= lvls[1] and (d_node[0].level < 1 or d_node[0].labda[1] == 0))
+
+    # Refine Lambda_out in time towards the end of the interval
+    Lambda_out.deep_refine(call_filter=lambda d_node: d_node[0].level <= lvls[
+        0] and d_node[1].level <= lvls[1] and (d_node[0].level < 1 or d_node[
+            0].labda[1] == 2**(d_node[0].labda[0] - 1) - 1))
+
+    assert len(Lambda_in.bfs()) == len(Lambda_out.bfs())
+    applicator = FakeApplicator(Lambda_in, Lambda_out)
+    theta = applicator.theta()
+
+    assert [d.node for d in theta.project(1).bfs()
+            ] == [d.node for d in Lambda_in.project(1).bfs()]
+
+    assert set(
+        (n.nodes[0].labda, n.nodes[1].labda) for n in theta.bfs()) == set([
+            ((0, 0), (0, 0)),
+            ((0, 0), (1, 0)),
+            ((1, 0), (0, 0)),
+            ((1, 0), (1, 0)),
+        ])
 
 
 def test_sigma_combinations():
@@ -91,12 +141,6 @@ def test_sigma_combinations():
                 sparse_tensor_double_tree(*roots, L_out[0])
             ]
             for (Lambda_in, Lambda_out) in product(Lambdas_in, Lambdas_out):
-                #                print('Lambda_in:\ttypes=({},{})\tdofs={}'.format(
-                #                    Lambda_in.root.nodes[0], Lambda_in.root.nodes[1],
-                #                    len(Lambda_in.bfs())))
-                #                print('Lambda_out:\ttypes=({},{})\tdofs={}'.format(
-                #                    Lambda_out.root.nodes[0], Lambda_out.root.nodes[1],
-                #                    len(Lambda_out.bfs())))
                 applicator = FakeApplicator(Lambda_in, Lambda_out)
                 sigma = applicator.sigma()
                 for node in sigma.bfs():
@@ -111,9 +155,9 @@ def test_applicator_real():
     triang.elem_meta_root.uniform_refine(2)
 
     # Create a hierarchical basis
-    hierarch_basis = MetaRootView.from_metaroot_deep(
-        metaroot=triang.vertex_meta_root,
-        node_view_cls=HierarchicalBasisFunction)
+    hierarch_basis = MetaRootView(metaroot=triang.vertex_meta_root,
+                                  node_view_cls=HierarchicalBasisFunction)
+    hierarch_basis.deep_refine()
 
     # Create time part.
     HaarBasis.metaroot_wavelet.uniform_refine(2)
@@ -136,3 +180,5 @@ def test_applicator_real():
     # Create and apply a fake applicator.
     applicator = FakeApplicator(vec_in, vec_out)
     applicator.apply(vec_in, vec_out)
+
+    assert all(d_node.value == 1 for d_node in vec_out.bfs())

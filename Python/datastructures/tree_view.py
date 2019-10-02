@@ -74,16 +74,19 @@ class NodeViewInterface(NodeInterface):
 
         return self.children
 
-    def _union(self, other, call_postprocess=None):
+    def _union(self, other, call_filter=None, call_postprocess=None):
         """ Deep-copies the node view tree rooted at `other` into self.
 
         Args:
           other: Root of the other node view tree that we whish to union. We
                  must have self.node == other.node.
+          call_filter: This call determines whether a given node of the 
+              other tree should be inside this subtree.
           call_postprocess: This call will be invoked for every pair
               of nodeview objects. First arg will hold a ref to this tree,
               second arg will hold a ref to the second tree.
         """
+        if call_filter is None: call_filter = lambda _: True
         if call_postprocess is None: call_postprocess = lambda _, __: None
         assert isinstance(other, NodeViewInterface)
         assert self.node == other.node
@@ -91,7 +94,7 @@ class NodeViewInterface(NodeInterface):
         my_nodes = []
         while queue:
             my_node, other_node = queue.popleft()
-            assert type(my_node) == type(other_node)
+            assert isinstance(my_node, other_node.__class__)
             assert my_node.node == other_node.node
             if my_node.marked: continue
 
@@ -99,12 +102,18 @@ class NodeViewInterface(NodeInterface):
             my_node.marked = True
             my_nodes.append(my_node)
 
-            my_node.refine(children=[c.node for c in other_node.children])
-            assert len(my_node.children) >= len(other_node.children)
+            # Filter out children of other_node.
+            other_children_filtered = [
+                c for c in other_node.children if call_filter(c.node)
+            ]
+
+            # Refine my node according to the filtered children.
+            my_node.refine(children=[c.node for c in other_children_filtered])
+            assert len(my_node.children) >= len(other_children_filtered)
 
             # Only put children that other_node has as well into the queue.
             for my_child in my_node.children:
-                for other_child in other_node.children:
+                for other_child in other_children_filtered:
                     if my_child.node is other_child.node:
                         queue.append((my_child, other_child))
 
@@ -138,7 +147,8 @@ class NodeViewInterface(NodeInterface):
             call_postprocess(node)
             node.marked = True
             for child in filter(call_filter, node.node.children):
-                queue.extend(node.refine(children=[child]))
+                node.refine(children=[child])
+            queue.extend(node.children)
         for node in nodes:
             node.marked = False
 
@@ -181,9 +191,11 @@ class MetaRootView(MetaRootInterface, NodeView):
         NodeView.__init__(self, node=metaroot, children=roots)
         MetaRootInterface.__init__(self, roots=roots)
 
-    def union(self, other, call_postprocess=None):
+    def union(self, other, call_filter=None, call_postprocess=None):
         """ Deep-copies the MetaRootView tree rooted at `other` into self. """
-        return self._union(other, call_postprocess)
+        return self._union(other,
+                           call_filter=call_filter,
+                           call_postprocess=call_postprocess)
 
     def deep_copy(self):
         """ Deep-copies `self` into a new NodeView tree. """

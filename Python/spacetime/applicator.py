@@ -30,9 +30,6 @@ class Applicator:
         self.basis_out = basis_out if basis_out else basis_in
         self.Lambda_out = Lambda_out if Lambda_out else Lambda_in
 
-        if self.Lambda_out.root.nodes != self.Lambda_in.root.nodes:
-            raise NotImplementedError("This needs a difficult coupling!")
-
     def sigma(self):
         """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
 
@@ -42,7 +39,9 @@ class Applicator:
                 elem.Sigma_psi_out.append(psi_out.node)
 
         # Sigma is actually an empty vector.
-        sigma_root = DoubleNodeVector(nodes=self.Lambda_in.root.nodes, value=0)
+        sigma_root = DoubleNodeVector(nodes=(self.Lambda_in.root.nodes[0],
+                                             self.Lambda_out.root.nodes[1]),
+                                      value=0)
         sigma = DoubleTree(sigma_root, frozen_dbl_cls=FrozenDoubleNodeVector)
 
         # Insert the `time single tree` x `space meta root` and
@@ -80,12 +79,14 @@ class Applicator:
 
     def theta(self):
         # Theta is actually an empty vector.
-        theta_root = DoubleNodeVector(nodes=self.Lambda_in.root.nodes, value=0)
+        theta_root = DoubleNodeVector(nodes=(self.Lambda_out.root.nodes[0],
+                                             self.Lambda_in.root.nodes[1]),
+                                      value=0)
         theta = DoubleTree(theta_root, frozen_dbl_cls=FrozenDoubleNodeVector)
 
         # Load the metaroot axes.
-        theta.root.union(self.Lambda_out.project(0), i=0)
-        theta.root.union(self.Lambda_in.project(1), i=1)
+        theta.project(0).union(self.Lambda_out.project(0))
+        theta.project(1).union(self.Lambda_in.project(1))
 
         # Loop over the space axis.
         for psi_in_labda_1 in theta.project(1).bfs():
@@ -102,10 +103,10 @@ class Applicator:
             # This works by using a callback that returns whether labda_out,
             # a node from the in the Labda_out.project(0) tree, has intersecting
             # support with a labda_in, a node from fiber_labda_0.
-            callback_filter = lambda psi_out_labda_0: any(
-                elem.Theta_psi_in for elem in psi_out_labda_0.node.support)
-            psi_in_labda_1.union(self.Lambda_out.project(0),
-                                 callback_filter=callback_filter)
+            call_filter = lambda psi_out_labda_0: any(
+                elem.Theta_psi_in for elem in psi_out_labda_0.support)
+            psi_in_labda_1.frozen_other_axis().union(
+                self.Lambda_out.project(0), call_filter=call_filter)
 
             # Reset the support of fn's in fiber_labda_0.
             for psi_in_labda_0 in fiber_labda_0.bfs():
@@ -117,6 +118,11 @@ class Applicator:
 
     def apply(self, vec_in, vec_out):
         """ Apply the tensor product applicator to the given vector. """
+        # Assert that vec_in and vec_out are defined on Lambda_in and Lambda_out
+        assert [d_node.nodes for d_node in vec_in.bfs()
+                ] == [d_node.nodes for d_node in self.Lambda_in.bfs()]
+        assert [d_node.nodes for d_node in vec_out.bfs()
+                ] == [d_node.nodes for d_node in self.Lambda_out.bfs()]
 
         # Assert that the output vector is empty
         assert isinstance(vec_out.root, DoubleNodeVector)
@@ -132,23 +138,20 @@ class Applicator:
             self.applicator_space.apply(fiber_in, fiber_out)
 
         # Calculate R_Lambda(L_0 x Id)I_Sigma
-        for psi_out_labda in self.Lambda_out.project(1).bfs():
+        for psi_out_labda in vec_out.project(1).bfs():
             fiber_in = sigma.fiber(0, psi_out_labda)
-            fiber_out = self.Lambda_out.fiber(0, psi_out_labda)
+            fiber_out = vec_out.fiber(0, psi_out_labda)
             self.applicator_time.apply_low(fiber_in, fiber_out)
 
         # Calculate R_Theta(U_1 x Id)I_Lambda
-        v = []
         theta = self.theta()
-        for psi_out_labda in theta.project(1):
-            fiber_in = self.Lambda_in.fiber(0, psi_out_labda)
+        for psi_out_labda in theta.project(1).bfs():
+            fiber_in = vec_in.fiber(0, psi_out_labda)
             fiber_out = theta.fiber(0, psi_out_labda)
-            v += self.applicator_time.apply_upp(vec, fiber_in, fiber_out)
+            self.applicator_time.apply_upp(fiber_in, fiber_out)
 
         # Calculate R_Lambda(id x A2)I_Theta
-        for psi_out_labda in self.Lambda_out.project(0):
+        for psi_out_labda in vec_out.project(0).bfs():
             fiber_in = theta.fiber(1, psi_out_labda)
-            fiber_out = self.Lambda_out.fiber(1, psi_out_labda)
-            w += self.applicator_space.apply(v, fiber_in, fiber_out)
-
-        return w
+            fiber_out = vec_out.fiber(1, psi_out_labda)
+            self.applicator_space.apply(fiber_in, fiber_out)
