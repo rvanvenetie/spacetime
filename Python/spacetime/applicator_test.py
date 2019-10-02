@@ -215,23 +215,6 @@ def test_applicator_tensor_haar_mass():
     applicator_space = Applicator1D(mass(basis), basis_in=basis)
     applicator = Applicator(Lambda_in, Lambda_out, applicator_time,
                             applicator_space)
-    # Now create an vec_in and vec_out.
-    vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                 frozen_dbl_cls=FrozenDoubleNodeVector)
-    vec_out = Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                   frozen_dbl_cls=FrozenDoubleNodeVector)
-
-    assert len(vec_in.bfs()) == len(Lambda_in.bfs())
-    assert all(n1.nodes == n2.nodes
-               for n1, n2 in zip(vec_in.bfs(), Lambda_in.bfs()))
-
-    # Initialize the input vector with ones.
-    for db_node in vec_in.bfs():
-        assert db_node.value == 0
-        db_node.value = 1
-
-    # Calculate the output.
-    applicator.apply(vec_in, vec_out)
 
     # First, calculate real matrix that corresponds to applicator.
     mat1d = np.diag([
@@ -240,15 +223,36 @@ def test_applicator_tensor_haar_mass():
     ])
     mat2d = np.kron(mat1d, mat1d)
 
-    # Transform the input vector and output vector to the mat2d coordinate format.
-    tr_vec_in = np.array([
-        psi_1.value for psi_0 in vec_in.project(0).bfs()
-        for psi_1 in psi_0.frozen_other_axis().bfs()
-    ])
-    tr_vec_out = np.array([
-        psi_1.value for psi_0 in vec_out.project(0).bfs()
-        for psi_1 in psi_0.frozen_other_axis().bfs()
-    ])
+    def transform_dt_vector_to_np_vector(dt_vector):
+        return np.array([
+            psi_1.value for psi_0 in dt_vector.project(0).bfs()
+            for psi_1 in psi_0.frozen_other_axis().bfs()
+        ])
 
-    real_vec_out = mat2d.dot(tr_vec_in)
-    assert np.allclose(real_vec_out - tr_vec_out, 0)
+    # Test and apply 20 random vectors.
+    for _ in range(20):
+        # Initialze double tree vectors.
+        vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                     frozen_dbl_cls=FrozenDoubleNodeVector)
+        vec_out = Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                       frozen_dbl_cls=FrozenDoubleNodeVector)
+
+        assert len(vec_in.bfs()) == len(Lambda_in.bfs())
+        assert all(n1.nodes == n2.nodes
+                   for n1, n2 in zip(vec_in.bfs(), Lambda_in.bfs()))
+
+        # Initialize the input vector with random numbers.
+        for db_node in vec_in.bfs():
+            assert db_node.value == 0
+            db_node.value = np.random.rand()
+
+        # Calculate the output.
+        applicator.apply(vec_in, vec_out)
+
+        # Transform the input/output vector to the mat2d coordinate format.
+        tr_vec_in = transform_dt_vector_to_np_vector(vec_in)
+        tr_vec_out = transform_dt_vector_to_np_vector(vec_out)
+
+        # Calculate the result by plain old matvec, and compare!
+        real_vec_out = mat2d.dot(tr_vec_in)
+        assert np.allclose(real_vec_out - tr_vec_out, 0)

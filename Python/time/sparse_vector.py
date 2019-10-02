@@ -70,6 +70,3 @@ class SparseVector(collections.abc.Mapping):
             return np.array([self[k] for k in keys_ordering])
         else:
             return np.array([self[k] for k in self.keys()])
-
-    def deep_copy(self):
-        return SparseVector(self.vector.copy())
