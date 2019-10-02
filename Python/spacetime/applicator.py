@@ -71,7 +71,7 @@ class Applicator:
 
         sigma.compute_fibers()
 
-        # Reset element.psi_out field for futher usage.
+        # Reset element.psi_out field for further usage.
         for psi_out in self.Lambda_out.project(0).bfs():
             for elem in psi_out.node.support:
                 elem.Sigma_psi_out = []

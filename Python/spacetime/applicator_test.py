@@ -91,12 +91,17 @@ def test_theta_small():
     # Define the maximum levels
     lvls = (3, 1)
 
-    # Refine Lambda_in in time towards the origin
+    # Refine Lambda_in in time towards the origin, while maintining the
+    # maximum levels defined in lvls.
+    #
+    # This *magic* command creates a doubletree, with in the time axis a time
+    # tree that is refined towards the origin, and fully tensored with a space
+    # tree that is refined upto lvl[1].
     Lambda_in.deep_refine(
         call_filter=lambda d_node: d_node[0].level <= lvls[0] and d_node[1].
         level <= lvls[1] and (d_node[0].level < 1 or d_node[0].labda[1] == 0))
 
-    # Refine Lambda_out in time towards the end of the interval
+    # Same as Lambda_in but now refined towards the end of the unit interval.
     Lambda_out.deep_refine(call_filter=lambda d_node: d_node[0].level <= lvls[
         0] and d_node[1].level <= lvls[1] and (d_node[0].level < 1 or d_node[
             0].labda[1] == 2**(d_node[0].labda[0] - 1) - 1))
@@ -171,6 +176,7 @@ def test_applicator_real():
                                        hierarch_basis)
     Lambda_out = DoubleTree.full_tensor(ThreePointBasis.metaroot_wavelet,
                                         hierarch_basis)
+    assert len(Lambda_in.bfs()) != len(Lambda_out.bfs())
     applicator = FakeApplicator(Lambda_in, Lambda_out)
 
     # Now create an vec_in and vec_out.
