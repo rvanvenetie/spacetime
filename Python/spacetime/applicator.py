@@ -103,8 +103,10 @@ class Applicator:
             # This works by using a callback that returns whether labda_out,
             # a node from the in the Labda_out.project(0) tree, has intersecting
             # support with a labda_in, a node from fiber_labda_0.
-            call_filter = lambda psi_out_labda_0: any(
-                elem.Theta_psi_in for elem in psi_out_labda_0.support)
+            def call_filter(psi_out_labda_0):
+                return any(elem.Theta_psi_in
+                           for elem in psi_out_labda_0.support)
+
             psi_in_labda_1.frozen_other_axis().union(
                 self.Lambda_out.project(0), call_filter=call_filter)
 
