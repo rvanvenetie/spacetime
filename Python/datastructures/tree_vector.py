@@ -30,10 +30,7 @@ class NodeVector(NodeView):
         return 'NV_{}: {}'.format(self.node, self.value)
 
 
-class MetaRootVector(MetaRootView):
-    def __init__(self, metaroot, node_view_cls=NodeVector):
-        super().__init__(metaroot=metaroot, node_view_cls=node_view_cls)
-
+class RootVectorInterface:
     def to_array(self):
         """ Flattens the tree vector into a simple numpy vector. """
         nodes = self.bfs()
@@ -49,3 +46,5 @@ class MetaRootVector(MetaRootView):
         for idx, node in enumerate(nodes):
             node.value = array[idx]
         return self
+
+class MetaRootVectorInterface(RootVectorInterface, MetaRootView):
