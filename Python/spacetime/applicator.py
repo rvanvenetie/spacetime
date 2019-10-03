@@ -1,5 +1,3 @@
-from pprint import pprint
-
 from ..datastructures.double_tree import DoubleTree
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  FrozenDoubleNodeVector)
