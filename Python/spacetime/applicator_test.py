@@ -73,10 +73,8 @@ class ApplicatorFullSigmaTheta(Applicator):
                          applicator_space)
 
     def sigma(self):
-        sigma_root = DoubleNodeVector(nodes=(self.Lambda_in.root.nodes[0],
-                                             self.Lambda_out.root.nodes[1]),
-                                      value=0)
-        sigma = DoubleTree(sigma_root, frozen_dbl_cls=FrozenDoubleNodeVector)
+        sigma = DoubleTreeVector(
+            (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
         sigma.project(0).union(self.Lambda_in.project(0))
         sigma.project(1).union(self.Lambda_out.project(1))
 
@@ -87,10 +85,8 @@ class ApplicatorFullSigmaTheta(Applicator):
         return sigma
 
     def theta(self):
-        theta_root = DoubleNodeVector(nodes=(self.Lambda_out.root.nodes[0],
-                                             self.Lambda_in.root.nodes[1]),
-                                      value=0)
-        theta = DoubleTree(theta_root, frozen_dbl_cls=FrozenDoubleNodeVector)
+        theta = DoubleTreeVector(
+            (self.Lambda_out.root.nodes[0], self.Lambda_in.root.nodes[1]))
         theta.project(0).union(self.Lambda_out.project(0))
         theta.project(1).union(self.Lambda_in.project(1))
         for psi_in_labda_1 in theta.project(1).bfs():
@@ -169,8 +165,8 @@ def test_sigma_combinations():
     """ I have very little intuition for what Sigma does, exactly, so I just
     made a bunch of weird combinations of Lambda_in and Lambda_out, made Sigma,
     and hoped that everything is all-right. """
-    for (L_in, L_out) in product(product(range(0, 5), range(0, 5)),
-                                 product(range(0, 5), range(0, 5))):
+    for (L_in, L_out) in product(product(range(0, 3), range(0, 3)),
+                                 product(range(0, 3), range(0, 3))):
         Lmax = max(L_in[0], L_out[0]), max(L_in[1], L_out[1])
         for roots in product([
                 uniform_index_tree(
@@ -224,9 +220,9 @@ def test_applicator_real():
 
     # Now create an vec_in and vec_out.
     vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                 dt_tree_cls=DoubleTreeVector)
+                                 dbl_tree_cls=DoubleTreeVector)
     vec_out = Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                   dt_tree_cls=DoubleTreeVector)
+                                   dbl_tree_cls=DoubleTreeVector)
 
     assert len(vec_in.bfs()) == len(Lambda_in.bfs())
     assert all(n1.nodes == n2.nodes
@@ -266,7 +262,7 @@ def test_applicator_tensor_haar_mass():
         for _ in range(20):
             # Initialze double tree vectors.
             vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                         dt_tree_cls=DoubleTreeVector)
+                                         dbl_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -295,7 +291,6 @@ def test_applicator_full_tensor_time():
     for basis in bases:
         basis.metaroot_wavelet.uniform_refine(8)
     for basis_time, basis_space in product(bases, bases):
-        basis.metaroot_wavelet.uniform_refine(8)
         print('\nTesting for basis_time={}, basis_space={}'.format(
             basis_time.__class__.__name__, basis_space.__class__.__name__))
         l_in = [3, 5]
@@ -332,7 +327,7 @@ def test_applicator_full_tensor_time():
         for _ in range(10):
             # Initialze double tree vectors.
             vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                         dt_tree_cls=DoubleTreeVector)
+                                         dbl_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -408,7 +403,7 @@ def test_applicator_different_out():
         for _ in range(10):
             # Initialze double tree vectors.
             vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                         dt_tree_cls=DoubleTreeVector)
+                                         dbl_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -428,3 +423,53 @@ def test_applicator_different_out():
             # Calculate the result by plain old matvec, and compare!
             real_vec_out = mat2d.dot(tr_vec_in)
             assert np.allclose(real_vec_out, tr_vec_out)
+
+
+def test_applicator_sparse_grid_time():
+    """ Takes a combination of wavelets on the time. """
+    bases = [HaarBasis(), OrthonormalBasis(), ThreePointBasis()]
+    for basis in bases:
+        basis.metaroot_wavelet.uniform_refine(5)
+    for basis_time, basis_space in product(bases, bases):
+        print('\nTesting for basis_time={}, basis_space={}'.format(
+            basis_time.__class__.__name__, basis_space.__class__.__name__))
+        l_in = 3
+        l_out = 4
+
+        # Create Lambda_in/out and initialize the applicator.
+        Lambda_in = DoubleTree(
+            (basis_time.metaroot_wavelet, basis_space.metaroot_wavelet))
+        Lambda_in.sparse_refine(l_in)
+        print('\tLambda_in is a sparse grid tree upto level {} with dofs {}'.
+              format(l_in, len(Lambda_in.bfs())))
+        Lambda_out = DoubleTree(
+            (basis_time.metaroot_wavelet, basis_space.metaroot_wavelet))
+        Lambda_out.sparse_refine(l_out)
+        print(
+            '\tLambda_out is a sparse grid tree upto level {} with dofs {}'.
+            format(l_out, len(Lambda_out.bfs())))
+
+        # Create 1D applicators
+        applicator_time = Applicator1D(mass(basis_time), basis_in=basis_time)
+        applicator_space = Applicator1D(mass(basis_space),
+                                        basis_in=basis_space)
+        applicator = Applicator(Lambda_in, Lambda_out, applicator_time,
+                                applicator_space)
+
+        # Create another applicator with theta/sigma being full trees.
+        applicator_ts = ApplicatorFullSigmaTheta(Lambda_in, Lambda_out,
+                                                 applicator_time,
+                                                 applicator_space)
+
+        # Test and apply 10 random vectors.
+        for _ in range(10):
+            # Init double tree vector with random values.
+            vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                         dbl_tree_cls=DoubleTreeVector)
+            for db_node in vec_in.bfs():
+                db_node.value = np.random.rand()
+
+            # Calculate the output with both applicators and compare.
+            vec_out = applicator.apply(vec_in)
+            vec_out_ts = applicator_ts.apply(vec_in)
+            assert np.allclose(vec_out.to_array(), vec_out_ts.to_array())

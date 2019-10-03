@@ -300,13 +300,13 @@ class DoubleTree:
 
     def deep_copy(self,
                   dbl_node_cls=None,
-                  dt_tree_cls=None,
+                  dbl_tree_cls=None,
                   call_postprocess=None):
         """ Copies the current doubletree. """
         if dbl_node_cls is None: dbl_node_cls = self.root.__class__
-        if dt_tree_cls is None: dt_tree_cls = self.__class__
+        if dbl_tree_cls is None: dbl_tree_cls = self.__class__
         double_root = dbl_node_cls(self.root.nodes)
-        double_tree = dt_tree_cls(double_root)
+        double_tree = dbl_tree_cls(double_root)
         double_tree.project(0).union(self.project(0),
                                      call_postprocess=call_postprocess)
 
@@ -331,6 +331,11 @@ class DoubleTree:
             call_filter = lambda n: n[0].level <= max_levels[0] and n[
                 1].level <= max_levels[1]
         self.deep_refine(call_filter=call_filter)
+
+    def sparse_refine(self, max_level):
+        """ Refines this double tree to a sparse grid doubletree. """
+        self.deep_refine(
+            call_filter=lambda n: n[0].level + n[1].level <= max_level)
 
     @classmethod
     def full_tensor(cls,
