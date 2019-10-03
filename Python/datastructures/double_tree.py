@@ -180,7 +180,7 @@ class FrozenDoubleNode(NodeViewInterface):
         """ Deep-copies the singletree rooted at `other` into self. """
 
         # Only possible if self and other are frozen in the same axis.
-        assert self.i == other.i
+        if isinstance(other, FrozenDoubleNode): assert self.i == other.i
         return self._union(other, call_filter, call_postprocess)
 
     def deep_refine(self, call_filter=None, call_postprocess=None):

@@ -94,7 +94,6 @@ class NodeViewInterface(NodeInterface):
         my_nodes = []
         while queue:
             my_node, other_node = queue.popleft()
-            assert isinstance(my_node, other_node.__class__)
             assert my_node.node == other_node.node
             if my_node.marked: continue
 

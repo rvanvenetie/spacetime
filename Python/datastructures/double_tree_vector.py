@@ -33,6 +33,18 @@ class FrozenDoubleNodeVector(FrozenDoubleNode):
         # TODO: This should be removed. Right now, just for compatibility!
         return [(f_node.node, f_node.value) for f_node in self.bfs()]
 
+    def to_array(self):
+        """ Flattens the tree vector rooted here into a simple numpy vector. """
+        return np.array([node.value for node in self.bfs()])
+
+    def from_array(self, array):
+        """ Loads the values from the array in BFS-order into the treevector. """
+        nodes = self.bfs()
+        assert len(nodes) == len(array)
+        for idx, node in enumerate(nodes):
+            node.value = array[idx]
+        return self
+
 
 class DoubleTreeVector(DoubleTree):
     def __init__(self, root, frozen_dbl_cls=FrozenDoubleNodeVector):

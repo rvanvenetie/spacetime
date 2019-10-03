@@ -15,12 +15,14 @@ from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  FrozenDoubleNodeVector)
 from ..datastructures.function_test import FakeHaarFunction
 from ..datastructures.tree_view import MetaRootView
+from ..space.applicator import Applicator as Applicator2D
 from ..space.basis import HierarchicalBasisFunction
+from ..space.operators import MassOperator as Mass2D
 from ..space.triangulation import InitialTriangulation
 from ..time.applicator_inplace import Applicator as Applicator1D
 from ..time.applicator_test import applicator_to_matrix
 from ..time.haar_basis import HaarBasis
-from ..time.operators import mass
+from ..time.operators import mass as Mass1D
 from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointBasis
 from .applicator import Applicator
@@ -197,32 +199,38 @@ def test_sigma_combinations():
 def test_applicator_real():
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    triang.elem_meta_root.uniform_refine(2)
+    hierarch_basis = triang.vertex_meta_root
+    hierarch_basis.uniform_refine(5)
 
-    # Create a hierarchical basis
-    hierarch_basis = MetaRootView(metaroot=triang.vertex_meta_root,
-                                  node_view_cls=HierarchicalBasisFunction)
-    hierarch_basis.deep_refine()
+    # Create space applicator
+    applicator_space = Applicator2D(Mass2D())
 
-    # Create time part for Lambda_in.
-    HaarBasis.metaroot_wavelet.uniform_refine(2)
+    # Create time part for Lambda_in/Lambda_out
+    basis_in = HaarBasis()
+    basis_out = ThreePointBasis()
+    basis_in.metaroot_wavelet.uniform_refine(3)
+    basis_out.metaroot_wavelet.uniform_refine(5)
 
-    # Create time part for Lambda_out.
-    ThreePointBasis.metaroot_wavelet.uniform_refine(3)
+    # Create time applicator
+    applicator_time = Applicator1D(Mass1D(basis_in, basis_out),
+                                   basis_in=basis_in,
+                                   basis_out=basis_out)
 
-    # Create Lambda_in/out and initialize the applicator.
-    Lambda_in = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
-                                       hierarch_basis)
-    Lambda_out = DoubleTree.full_tensor(ThreePointBasis.metaroot_wavelet,
-                                        hierarch_basis)
+    # Create Lambda_in as sparse tree
+    Lambda_in = DoubleTree((basis_in.metaroot_wavelet, hierarch_basis))
+    Lambda_in.uniform_refine(5)
+
+    # Create Lambda_out as full tree.
+    Lambda_out = DoubleTree((ThreePointBasis.metaroot_wavelet, hierarch_basis))
+    Lambda_out.sparse_refine(4)
     assert len(Lambda_in.bfs()) != len(Lambda_out.bfs())
-    applicator = FakeApplicator(Lambda_in, Lambda_out)
+
+    applicator = Applicator(Lambda_in, Lambda_out, applicator_time,
+                            applicator_space)
 
     # Now create an vec_in and vec_out.
     vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
                                  dbl_tree_cls=DoubleTreeVector)
-    vec_out = Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                   dbl_tree_cls=DoubleTreeVector)
 
     assert len(vec_in.bfs()) == len(Lambda_in.bfs())
     assert all(n1.nodes == n2.nodes
@@ -234,10 +242,9 @@ def test_applicator_real():
         db_node.value = 1
 
     vec_out = applicator.apply(vec_in)
-    assert all(d_node.value == 2 for d_node in vec_out.bfs())
 
 
-def test_applicator_tensor_haar_mass():
+def test_applicator_tensor_haar_Mass1D():
     basis = HaarBasis()
     basis.metaroot_wavelet.uniform_refine(6)
     for l in range(1, 5):
@@ -246,8 +253,8 @@ def test_applicator_tensor_haar_mass():
             (HaarBasis.metaroot_wavelet, HaarBasis.metaroot_wavelet))
         Lambda_in.uniform_refine(l)
         Lambda_out = Lambda_in
-        applicator_time = Applicator1D(mass(basis), basis_in=basis)
-        applicator_space = Applicator1D(mass(basis), basis_in=basis)
+        applicator_time = Applicator1D(Mass1D(basis), basis_in=basis)
+        applicator_space = Applicator1D(Mass1D(basis), basis_in=basis)
         applicator = Applicator(Lambda_in, Lambda_out, applicator_time,
                                 applicator_space)
 
@@ -309,8 +316,8 @@ def test_applicator_full_tensor_time():
             l_out, len(Lambda_out.bfs())))
 
         # Create 1D applicators
-        applicator_time = Applicator1D(mass(basis_time), basis_in=basis_time)
-        applicator_space = Applicator1D(mass(basis_space),
+        applicator_time = Applicator1D(Mass1D(basis_time), basis_in=basis_time)
+        applicator_space = Applicator1D(Mass1D(basis_space),
                                         basis_in=basis_space)
         applicator = Applicator(Lambda_in, Lambda_out, applicator_time,
                                 applicator_space)
@@ -382,10 +389,11 @@ def test_applicator_different_out():
             l_out, len(Lambda_out.bfs())))
 
         # Create 1D applicators
-        applicator_time = Applicator1D(mass(basis_time_in, basis_time_out),
+        applicator_time = Applicator1D(Mass1D(basis_time_in, basis_time_out),
                                        basis_in=basis_time_in,
                                        basis_out=basis_time_out)
-        applicator_space = Applicator1D(mass(basis_space_in, basis_space_out),
+        applicator_space = Applicator1D(Mass1D(basis_space_in,
+                                               basis_space_out),
                                         basis_in=basis_space_in,
                                         basis_out=basis_space_out)
         applicator = Applicator(Lambda_in, Lambda_out, applicator_time,
@@ -449,8 +457,8 @@ def test_applicator_sparse_grid_time():
               format(l_out, len(Lambda_out.bfs())))
 
         # Create 1D applicators
-        applicator_time = Applicator1D(mass(basis_time), basis_in=basis_time)
-        applicator_space = Applicator1D(mass(basis_space),
+        applicator_time = Applicator1D(Mass1D(basis_time), basis_in=basis_time)
+        applicator_space = Applicator1D(Mass1D(basis_space),
                                         basis_in=basis_space)
         applicator = Applicator(Lambda_in, Lambda_out, applicator_time,
                                 applicator_space)
