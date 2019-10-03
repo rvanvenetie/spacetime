@@ -60,7 +60,7 @@ def test_operators():
 
 def test_mass_non_symmetric():
     T = InitialTriangulation.unit_square()
-    T.elem_meta_root.uniform_refine(2)
+    T.elem_meta_root.uniform_refine(5)
     op = MassOperator()
     applicator = Applicator(op)
 
@@ -74,5 +74,4 @@ def test_mass_non_symmetric():
 
     # Matrix
     mat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
-
     assert np.sum(mat) >= 1
