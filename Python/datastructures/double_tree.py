@@ -300,13 +300,13 @@ class DoubleTree:
 
     def deep_copy(self,
                   dbl_node_cls=None,
-                  frozen_dbl_cls=None,
+                  dbl_tree_cls=None,
                   call_postprocess=None):
         """ Copies the current doubletree. """
         if dbl_node_cls is None: dbl_node_cls = self.root.__class__
-        if frozen_dbl_cls is None: frozen_dbl_cls = self.frozen_dbl_cls
+        if dbl_tree_cls is None: dbl_tree_cls = self.__class__
         double_root = dbl_node_cls(self.root.nodes)
-        double_tree = DoubleTree(double_root, frozen_dbl_cls=frozen_dbl_cls)
+        double_tree = dbl_tree_cls(double_root)
         double_tree.project(0).union(self.project(0),
                                      call_postprocess=call_postprocess)
 
@@ -322,18 +322,30 @@ class DoubleTree:
         double_tree.compute_fibers()
         return double_tree
 
-    @staticmethod
-    def full_tensor(meta_root_time,
+    def uniform_refine(self, max_levels=None):
+        """ Uniformly refine this double tree. """
+        call_filter = None
+        if isinstance(max_levels, int):
+            max_levels = (max_levels, max_levels)
+        if max_levels:
+            call_filter = lambda n: n[0].level <= max_levels[0] and n[
+                1].level <= max_levels[1]
+        self.deep_refine(call_filter=call_filter)
+
+    def sparse_refine(self, max_level):
+        """ Refines this double tree to a sparse grid doubletree. """
+        self.deep_refine(
+            call_filter=lambda n: n[0].level + n[1].level <= max_level)
+
+    @classmethod
+    def full_tensor(cls,
+                    meta_root_time,
                     meta_root_space,
                     max_levels=None,
                     dbl_node_cls=DoubleNode,
                     frozen_dbl_cls=FrozenDoubleNode):
         """ Makes a full grid doubletree from the given single trees. """
         double_root = dbl_node_cls((meta_root_time, meta_root_space))
-        double_tree = DoubleTree(double_root, frozen_dbl_cls=frozen_dbl_cls)
-        call_filter = None
-        if max_levels:
-            call_filter = lambda n: n[0] <= max_levels[0] and n[
-                1] <= max_levels[1]
-        double_tree.deep_refine(call_filter=call_filter)
+        double_tree = cls(double_root, frozen_dbl_cls=frozen_dbl_cls)
+        double_tree.uniform_refine(max_levels)
         return double_tree

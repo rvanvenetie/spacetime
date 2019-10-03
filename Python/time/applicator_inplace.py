@@ -36,6 +36,9 @@ class Applicator(object):
     def _initialize(self, vec_in, vec_out):
         """ Helper function to initialize fields in datastructures. """
 
+        for psi, value in vec_out.items():
+            assert value == 0
+
         self.Lambda_in = MultiscaleFunctions(vec_in)
         self.Lambda_out = MultiscaleFunctions(vec_out)
 
@@ -259,6 +262,7 @@ class Applicator(object):
                                              read=1,
                                              write=1)
             self._apply_low_recur(l + 1, Pi_bar_in)
-
             for phi in Pi_bar_in:
+                phi.reset_coeff()
+            for phi in Pi_B_bar_out:
                 phi.reset_coeff()

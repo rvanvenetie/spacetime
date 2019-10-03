@@ -1,5 +1,5 @@
-from ..datastructures.double_tree import DoubleTree
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
+                                                 DoubleTreeVector,
                                                  FrozenDoubleNodeVector)
 
 
@@ -29,10 +29,8 @@ class Applicator:
                 elem.Sigma_psi_out.append(psi_out.node)
 
         # Sigma is actually an empty vector.
-        sigma_root = DoubleNodeVector(nodes=(self.Lambda_in.root.nodes[0],
-                                             self.Lambda_out.root.nodes[1]),
-                                      value=0)
-        sigma = DoubleTree(sigma_root, frozen_dbl_cls=FrozenDoubleNodeVector)
+        sigma = DoubleTreeVector(
+            (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
 
         # Insert the `time single tree` x `space meta root` and
         # the `time meta root` x `space single tree` into Sigma.
@@ -69,10 +67,8 @@ class Applicator:
 
     def theta(self):
         # Theta is actually an empty vector.
-        theta_root = DoubleNodeVector(nodes=(self.Lambda_out.root.nodes[0],
-                                             self.Lambda_in.root.nodes[1]),
-                                      value=0)
-        theta = DoubleTree(theta_root, frozen_dbl_cls=FrozenDoubleNodeVector)
+        theta = DoubleTreeVector(
+            (self.Lambda_out.root.nodes[0], self.Lambda_in.root.nodes[1]))
 
         # Load the metaroot axes.
         theta.project(0).union(self.Lambda_out.project(0))
@@ -108,43 +104,48 @@ class Applicator:
         theta.compute_fibers()
         return theta
 
-    def apply(self, vec_in, vec_out):
+    def apply(self, vec):
         """ Apply the tensor product applicator to the given vector. """
-        # Assert that vec_in and vec_out are defined on Lambda_in and Lambda_out
+        # Assert that vec is defined on Lambda_in
         assert all(n1.nodes == n2.nodes
-                   for n1, n2 in zip(vec_in.bfs(), self.Lambda_in.bfs()))
-        assert all(n1.nodes == n2.nodes
-                   for n1, n2 in zip(vec_out.bfs(), self.Lambda_out.bfs()))
+                   for n1, n2 in zip(vec.bfs(), self.Lambda_in.bfs()))
 
-        # Assert that the output vector is empty.
-        assert isinstance(vec_in.root, DoubleNodeVector)
-        assert isinstance(vec_out.root, DoubleNodeVector)
-        assert all(db_node.value == 0
-                   for db_node in vec_out.bfs(include_meta_root=True))
+        # Shortcut for clarity.
+        vec_in = vec
+
+        # Create two empty out vectors for the L and U part.
+        vec_out_low = self.Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                                dbl_tree_cls=DoubleTreeVector)
+        vec_out_upp = self.Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                                dbl_tree_cls=DoubleTreeVector)
 
         # Calculate R_sigma(Id x A_1)I_Lambda
         sigma = self.sigma()
-        assert isinstance(sigma.root, DoubleNodeVector)
         for psi_in_labda in sigma.project(0).bfs():
             fiber_in = vec_in.fiber(1, psi_in_labda)
             fiber_out = sigma.fiber(1, psi_in_labda)
             self.applicator_space.apply(fiber_in, fiber_out)
 
         # Calculate R_Lambda(L_0 x Id)I_Sigma
-        for psi_out_labda in vec_out.project(1).bfs():
+        for psi_out_labda in vec_out_low.project(1).bfs():
             fiber_in = sigma.fiber(0, psi_out_labda)
-            fiber_out = vec_out.fiber(0, psi_out_labda)
+            fiber_out = vec_out_low.fiber(0, psi_out_labda)
             self.applicator_time.apply_low(fiber_in, fiber_out)
 
         # Calculate R_Theta(U_1 x Id)I_Lambda
         theta = self.theta()
-        for psi_out_labda in theta.project(1).bfs():
-            fiber_in = vec_in.fiber(0, psi_out_labda)
-            fiber_out = theta.fiber(0, psi_out_labda)
+        for psi_in_labda in theta.project(1).bfs():
+            fiber_in = vec_in.fiber(0, psi_in_labda)
+            fiber_out = theta.fiber(0, psi_in_labda)
             self.applicator_time.apply_upp(fiber_in, fiber_out)
 
         # Calculate R_Lambda(id x A2)I_Theta
-        for psi_out_labda in vec_out.project(0).bfs():
+        for psi_out_labda in vec_out_upp.project(0).bfs():
             fiber_in = theta.fiber(1, psi_out_labda)
-            fiber_out = vec_out.fiber(1, psi_out_labda)
+            fiber_out = vec_out_upp.fiber(1, psi_out_labda)
             self.applicator_space.apply(fiber_in, fiber_out)
+
+        # Sum and return the results.
+        vec_out = vec_out_low
+        vec_out += vec_out_upp
+        return vec_out

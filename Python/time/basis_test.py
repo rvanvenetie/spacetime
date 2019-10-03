@@ -5,7 +5,7 @@ import numpy as np
 from pytest import approx
 
 from ..datastructures.tree import NodeInterface
-from .basis import Scaling, Wavelet
+from .basis import MultiscaleFunctions, Scaling, Wavelet
 from .haar_basis import HaarBasis
 from .linear_operator_test import check_linop_transpose
 from .orthonormal_basis import OrthonormalBasis
@@ -37,8 +37,9 @@ def test_haar_mother_functions():
 
 def test_haar_uniform_refinement():
     ml = 5
-    basis, Lambda = HaarBasis.uniform_basis(ml)
-    Delta = Lambda.single_scale_functions()
+    HaarBasis.metaroot_wavelet.uniform_refine(5)
+    Lambda = MultiscaleFunctions(HaarBasis.metaroot_wavelet)
+    Delta = MultiscaleFunctions(HaarBasis.metaroot_scaling)
 
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2**(l - 1)
@@ -69,8 +70,9 @@ def test_haar_local_refinement():
 def test_ortho_uniform_refinement():
     sq3 = np.sqrt(3)
     ml = 5
-    basis, Lambda = OrthonormalBasis.uniform_basis(ml)
-    Delta = Lambda.single_scale_functions()
+    OrthonormalBasis.metaroot_wavelet.uniform_refine(ml)
+    Lambda = MultiscaleFunctions(OrthonormalBasis.metaroot_wavelet)
+    Delta = MultiscaleFunctions(OrthonormalBasis.metaroot_scaling)
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2**l
         assert len(Delta.per_level[l]) == 2**(l + 1)
@@ -116,8 +118,9 @@ def test_ortho_local_refinement():
 
 def test_3pt_uniform_refinement():
     ml = 7
-    basis, Lambda = ThreePointBasis.uniform_basis(ml)
-    Delta = Lambda.single_scale_functions()
+    ThreePointBasis.metaroot_wavelet.uniform_refine(ml)
+    Lambda = MultiscaleFunctions(ThreePointBasis.metaroot_wavelet)
+    Delta = MultiscaleFunctions(ThreePointBasis.metaroot_scaling)
     for l in range(1, ml + 1):
         assert len(Lambda.per_level[l]) == 2**(l - 1)
         assert len(Delta.per_level[l]) == 2**l + 1
