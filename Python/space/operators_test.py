@@ -3,9 +3,14 @@ from numpy.linalg import norm
 from scipy.sparse.linalg import cg
 
 from ..datastructures.tree_view import MetaRootView, NodeView
-from .operators import Operators
+from .operators import MassOperator, Operator, StiffnessOperator
 from .triangulation import InitialTriangulation, to_matplotlib_triangulation
 from .triangulation_view import TriangulationView
+
+
+class FakeOperator(Operator):
+    def apply_SS(self, v):
+        pass
 
 
 def test_transformation():
@@ -21,7 +26,7 @@ def test_transformation():
 
     # Create a view of the vertices.
     T_view = TriangulationView(T.vertex_meta_root)
-    operators = Operators(T_view)
+    operators = FakeOperator(T_view)
     v = np.array([0, 0, 0, 1, 0, 0, 0, 0], dtype=float)
     w = np.array([0, 0, 0, 1, 0.5, 0.5, 0.5, 0.75], dtype=float)
     w2 = operators.apply_T(v)
@@ -66,25 +71,25 @@ def test_galerkin(plot=False):
     # Create a view of the vertices.
     T_view = TriangulationView(T.vertex_meta_root)
     ones = np.ones(len(T_view.vertices), dtype=float)
-    operators = Operators(T_view)
-    rhs = operators.apply_T_transpose(operators.apply_SS_mass(ones))
+    mass_op = MassOperator(T_view)
+    rhs = mass_op.apply_T_transpose(mass_op.apply_SS(ones))
 
     for i in range(9):
         T.elem_meta_root.uniform_refine(i)
         T_view = TriangulationView(T.vertex_meta_root)
-        operators = Operators(T_view)
+        mass_op.triang = T_view
         ones = np.ones(len(T_view.vertices), dtype=float)
-        new_rhs = operators.apply_T_transpose(operators.apply_SS_mass(ones))
+        new_rhs = mass_op.apply_T_transpose(mass_op.apply_SS(ones))
         # Test that the first V elements of the right-hand side coincide -- we
         # have a hierarchic basis after all.
         assert norm(rhs - rhs[:rhs.shape[0]]) < 1e-10
         rhs = new_rhs
 
-    rhs = operators.apply_boundary_restriction(rhs)
-    stiff = operators.as_boundary_restricted_linear_operator(
-        operators.apply_HB_stiffness)
-    sol_HB, _ = cg(stiff, rhs, atol=0, tol=1e-8)
-    sol_SS = operators.apply_T(sol_HB)
+    rhs = mass_op.apply_boundary_restriction(rhs)
+    stiff_op = StiffnessOperator(T_view)
+    stiff_op_scipy = stiff_op.as_boundary_restricted_linear_operator()
+    sol_HB, _ = cg(stiff_op_scipy, rhs, atol=0, tol=1e-8)
+    sol_SS = stiff_op.apply_T(sol_HB)
 
     assert np.abs(sol_SS[4] - 0.2946854131260553) < 1e-3  # solution in (0, 0).
     for i in [9, 10, 11, 12]:

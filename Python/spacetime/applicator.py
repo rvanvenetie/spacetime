@@ -1,5 +1,5 @@
-from ..datastructures.double_tree import DoubleTree
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
+                                                 DoubleTreeVector,
                                                  FrozenDoubleNodeVector)
 
 
@@ -29,10 +29,8 @@ class Applicator:
                 elem.Sigma_psi_out.append(psi_out.node)
 
         # Sigma is actually an empty vector.
-        sigma_root = DoubleNodeVector(nodes=(self.Lambda_in.root.nodes[0],
-                                             self.Lambda_out.root.nodes[1]),
-                                      value=0)
-        sigma = DoubleTree(sigma_root, frozen_dbl_cls=FrozenDoubleNodeVector)
+        sigma = DoubleTreeVector(
+            (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
 
         # Insert the `time single tree` x `space meta root` and
         # the `time meta root` x `space single tree` into Sigma.
@@ -69,10 +67,8 @@ class Applicator:
 
     def theta(self):
         # Theta is actually an empty vector.
-        theta_root = DoubleNodeVector(nodes=(self.Lambda_out.root.nodes[0],
-                                             self.Lambda_in.root.nodes[1]),
-                                      value=0)
-        theta = DoubleTree(theta_root, frozen_dbl_cls=FrozenDoubleNodeVector)
+        theta = DoubleTreeVector(
+            (self.Lambda_out.root.nodes[0], self.Lambda_in.root.nodes[1]))
 
         # Load the metaroot axes.
         theta.project(0).union(self.Lambda_out.project(0))
@@ -118,12 +114,10 @@ class Applicator:
         vec_in = vec
 
         # Create two empty out vectors for the L and U part.
-        vec_out_low = self.Lambda_out.deep_copy(
-            dbl_node_cls=DoubleNodeVector,
-            frozen_dbl_cls=FrozenDoubleNodeVector)
-        vec_out_upp = self.Lambda_out.deep_copy(
-            dbl_node_cls=DoubleNodeVector,
-            frozen_dbl_cls=FrozenDoubleNodeVector)
+        vec_out_low = self.Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                                dbl_tree_cls=DoubleTreeVector)
+        vec_out_upp = self.Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                                dbl_tree_cls=DoubleTreeVector)
 
         # Calculate R_sigma(Id x A_1)I_Lambda
         sigma = self.sigma()
