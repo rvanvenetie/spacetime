@@ -17,6 +17,7 @@ class DoubleNodeVector(DoubleNode):
     def __iadd__(self, other):
         assert isinstance(other, DoubleNodeVector)
         self.value += other.value
+        return self
 
 
 class FrozenDoubleNodeVector(FrozenDoubleNode):
