@@ -1,4 +1,6 @@
-from .double_tree import DoubleNode, FrozenDoubleNode
+import numpy as np
+
+from .double_tree import DoubleNode, DoubleTree, FrozenDoubleNode
 
 
 class DoubleNodeVector(DoubleNode):
@@ -29,3 +31,24 @@ class FrozenDoubleNodeVector(FrozenDoubleNode):
     def items(self):
         # TODO: This should be removed. Right now, just for compatibility!
         return [(f_node.node, f_node.value) for f_node in self.bfs()]
+
+
+class DoubleTreeVector(DoubleTree):
+    def __init__(self, root, frozen_dbl_cls=FrozenDoubleNodeVector):
+        if isinstance(root, tuple): root = DoubleNodeVector(root)
+        super().__init__(root=root, frozen_dbl_cls=frozen_dbl_cls)
+
+    def to_array(self):
+        """ Transforms a double tree vector to a numpy vector.  """
+        return np.array([
+            psi_1.value for psi_0 in self.project(0).bfs()
+            for psi_1 in psi_0.frozen_other_axis().bfs()
+        ])
+
+    def from_array(self, array):
+        """ Loads the values from an numpy array into this double vector. """
+        i = 0
+        for psi_0 in self.project(0).bfs():
+            for psi_1 in psi_0.frozen_other_axis().bfs():
+                psi_1.value = array[i]
+                i += 1

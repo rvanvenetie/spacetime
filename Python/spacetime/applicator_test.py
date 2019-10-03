@@ -11,6 +11,7 @@ from ..datastructures.double_tree_test import (corner_index_tree,
                                                sparse_tensor_double_tree,
                                                uniform_index_tree)
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
+                                                 DoubleTreeVector,
                                                  FrozenDoubleNodeVector)
 from ..datastructures.function_test import FakeHaarFunction
 from ..datastructures.tree_view import MetaRootView
@@ -64,7 +65,8 @@ class FakeHaarFunctionExt(FakeHaarFunction):
         return [self]
 
 
-class MockApplicator(Applicator):
+class ApplicatorFullSigmaTheta(Applicator):
+    """ Applicator which replaces Sigma and Theta by full-grid doubletrees. """
     def __init__(self, Lambda_in, Lambda_out, applicator_time,
                  applicator_space):
         super().__init__(Lambda_in, Lambda_out, applicator_time,
@@ -222,9 +224,9 @@ def test_applicator_real():
 
     # Now create an vec_in and vec_out.
     vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                 frozen_dbl_cls=FrozenDoubleNodeVector)
+                                 dt_tree_cls=DoubleTreeVector)
     vec_out = Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                   frozen_dbl_cls=FrozenDoubleNodeVector)
+                                   dt_tree_cls=DoubleTreeVector)
 
     assert len(vec_in.bfs()) == len(Lambda_in.bfs())
     assert all(n1.nodes == n2.nodes
@@ -260,17 +262,11 @@ def test_applicator_tensor_haar_mass():
         ])
         mat2d = np.kron(mat1d, mat1d)
 
-        def transform_dt_vector_to_np_vector(dt_vector):
-            return np.array([
-                psi_1.value for psi_0 in dt_vector.project(0).bfs()
-                for psi_1 in psi_0.frozen_other_axis().bfs()
-            ])
-
         # Test and apply 20 random vectors.
         for _ in range(20):
             # Initialze double tree vectors.
             vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                         frozen_dbl_cls=FrozenDoubleNodeVector)
+                                         dt_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -285,8 +281,8 @@ def test_applicator_tensor_haar_mass():
             vec_out = applicator.apply(vec_in)
 
             # Transform the input/output vector to the mat2d coordinate format.
-            tr_vec_in = transform_dt_vector_to_np_vector(vec_in)
-            tr_vec_out = transform_dt_vector_to_np_vector(vec_out)
+            tr_vec_in = vec_in.to_array()
+            tr_vec_out = vec_out.to_array()
 
             # Calculate the result by plain old matvec, and compare!
             real_vec_out = mat2d.dot(tr_vec_in)
@@ -332,17 +328,11 @@ def test_applicator_full_tensor_time():
                                          Lambda_out.project(1))
         mat2d = np.kron(mat_time, mat_space)
 
-        def transform_dt_vector_to_np_vector(dt_vector):
-            return np.array([
-                psi_1.value for psi_0 in dt_vector.project(0).bfs()
-                for psi_1 in psi_0.frozen_other_axis().bfs()
-            ])
-
         # Test and apply 10 random vectors.
         for _ in range(10):
             # Initialze double tree vectors.
             vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                         frozen_dbl_cls=FrozenDoubleNodeVector)
+                                         dt_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -356,8 +346,8 @@ def test_applicator_full_tensor_time():
             vec_out = applicator.apply(vec_in)
 
             # Transform the input/output vector to the mat2d coordinate format.
-            tr_vec_in = transform_dt_vector_to_np_vector(vec_in)
-            tr_vec_out = transform_dt_vector_to_np_vector(vec_out)
+            tr_vec_in = vec_in.to_array()
+            tr_vec_out = vec_out.to_array()
 
             # Calculate the result by plain old matvec, and compare!
             real_vec_out = mat2d.dot(tr_vec_in)
@@ -403,8 +393,8 @@ def test_applicator_different_out():
         applicator_space = Applicator1D(mass(basis_space_in, basis_space_out),
                                         basis_in=basis_space_in,
                                         basis_out=basis_space_out)
-        applicator = MockApplicator(Lambda_in, Lambda_out, applicator_time,
-                                    applicator_space)
+        applicator = Applicator(Lambda_in, Lambda_out, applicator_time,
+                                applicator_space)
 
         # First, calculate real matrix that corresponds to applicator.
         mat_time = applicator_to_matrix(applicator_time, Lambda_in.project(0),
@@ -414,17 +404,11 @@ def test_applicator_different_out():
                                          Lambda_out.project(1))
         mat2d = np.kron(mat_time, mat_space)
 
-        def transform_dt_vector_to_np_vector(dt_vector):
-            return np.array([
-                psi_1.value for psi_0 in dt_vector.project(0).bfs()
-                for psi_1 in psi_0.frozen_other_axis().bfs()
-            ])
-
         # Test and apply 10 random vectors.
         for _ in range(10):
             # Initialze double tree vectors.
             vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                         frozen_dbl_cls=FrozenDoubleNodeVector)
+                                         dt_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -438,8 +422,8 @@ def test_applicator_different_out():
             vec_out = applicator.apply(vec_in)
 
             # Transform the input/output vector to the mat2d coordinate format.
-            tr_vec_in = transform_dt_vector_to_np_vector(vec_in)
-            tr_vec_out = transform_dt_vector_to_np_vector(vec_out)
+            tr_vec_in = vec_in.to_array()
+            tr_vec_out = vec_out.to_array()
 
             # Calculate the result by plain old matvec, and compare!
             real_vec_out = mat2d.dot(tr_vec_in)

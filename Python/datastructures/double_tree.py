@@ -300,13 +300,13 @@ class DoubleTree:
 
     def deep_copy(self,
                   dbl_node_cls=None,
-                  frozen_dbl_cls=None,
+                  dt_tree_cls=None,
                   call_postprocess=None):
         """ Copies the current doubletree. """
         if dbl_node_cls is None: dbl_node_cls = self.root.__class__
-        if frozen_dbl_cls is None: frozen_dbl_cls = self.frozen_dbl_cls
+        if dt_tree_cls is None: dt_tree_cls = self.__class__
         double_root = dbl_node_cls(self.root.nodes)
-        double_tree = DoubleTree(double_root, frozen_dbl_cls=frozen_dbl_cls)
+        double_tree = dt_tree_cls(double_root)
         double_tree.project(0).union(self.project(0),
                                      call_postprocess=call_postprocess)
 
@@ -332,22 +332,26 @@ class DoubleTree:
                 1].level <= max_levels[1]
         self.deep_refine(call_filter=call_filter)
 
-    @staticmethod
-    def full_tensor(meta_root_time,
+    @classmethod
+    def full_tensor(cls,
+                    meta_root_time,
                     meta_root_space,
                     max_levels=None,
                     dbl_node_cls=DoubleNode,
                     frozen_dbl_cls=FrozenDoubleNode):
         """ Makes a full grid doubletree from the given single trees. """
         double_root = dbl_node_cls((meta_root_time, meta_root_space))
-        double_tree = DoubleTree(double_root, frozen_dbl_cls=frozen_dbl_cls)
+        double_tree = cls(double_root, frozen_dbl_cls=frozen_dbl_cls)
         double_tree.uniform_refine(max_levels)
         return double_tree
 
     def __iadd__(self, other):
         """ Add two double trees, assuming they have the *same* structure. """
         assert isinstance(other, DoubleTree)
-        for my_node, other_node in zip(self.bfs(), other.bfs()):
+        my_nodes = self.bfs()
+        other_nodes = other.bfs()
+        assert len(my_nodes) == len(other_nodes)
+        for my_node, other_node in zip(my_nodes, other_nodes):
             assert my_node.nodes == other_node.nodes
             my_node += other_node
         return self
