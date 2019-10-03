@@ -445,9 +445,8 @@ def test_applicator_sparse_grid_time():
         Lambda_out = DoubleTree(
             (basis_time.metaroot_wavelet, basis_space.metaroot_wavelet))
         Lambda_out.sparse_refine(l_out)
-        print(
-            '\tLambda_out is a sparse grid tree upto level {} with dofs {}'.
-            format(l_out, len(Lambda_out.bfs())))
+        print('\tLambda_out is a sparse grid tree upto level {} with dofs {}'.
+              format(l_out, len(Lambda_out.bfs())))
 
         # Create 1D applicators
         applicator_time = Applicator1D(mass(basis_time), basis_in=basis_time)
