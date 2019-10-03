@@ -31,6 +31,11 @@ class ContLinearScaling(basis.Scaling):
             assert support[-1].phi_cont_lin[0] is None
             support[-1].phi_cont_lin[0] = self
 
+    def _update_children(self):
+        """ Updates the children variable. Invoke after refining. """
+        self.children = list(
+            filter(None, [self.child_left, self.child_mid, self.child_right]))
+
     def refine(self):
         raise TypeError("Regular refinement of ContLinearScaling impossible!")
 
@@ -51,6 +56,7 @@ class ContLinearScaling(basis.Scaling):
         # Create element.
         child = ContLinearScaling((l + 1, 2 * n), child_support, [self])
         self.child_mid = child
+        self._update_children()
 
         # Update nbrs.
         if self.child_left:
@@ -83,6 +89,8 @@ class ContLinearScaling(basis.Scaling):
         )
         phi_left.child_right = child
         phi_right.child_left = child
+        phi_left._update_children()
+        phi_right._update_children()
 
         # Update nbrs.
         if phi_left.child_mid:

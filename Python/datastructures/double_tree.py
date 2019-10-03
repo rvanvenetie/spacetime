@@ -322,6 +322,16 @@ class DoubleTree:
         double_tree.compute_fibers()
         return double_tree
 
+    def uniform_refine(self, max_levels=None):
+        """ Uniformly refine this double tree. """
+        call_filter = None
+        if isinstance(max_levels, int):
+            max_levels = (max_levels, max_levels)
+        if max_levels:
+            call_filter = lambda n: n[0].level <= max_levels[0] and n[
+                1].level <= max_levels[1]
+        self.deep_refine(call_filter=call_filter)
+
     @staticmethod
     def full_tensor(meta_root_time,
                     meta_root_space,
@@ -331,9 +341,5 @@ class DoubleTree:
         """ Makes a full grid doubletree from the given single trees. """
         double_root = dbl_node_cls((meta_root_time, meta_root_space))
         double_tree = DoubleTree(double_root, frozen_dbl_cls=frozen_dbl_cls)
-        call_filter = None
-        if max_levels:
-            call_filter = lambda n: n[0] <= max_levels[0] and n[
-                1] <= max_levels[1]
-        double_tree.deep_refine(call_filter=call_filter)
+        double_tree.uniform_refine(max_levels)
         return double_tree

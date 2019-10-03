@@ -5,6 +5,8 @@ from pytest import approx
 from scipy.integrate import quad
 
 from . import applicator, operators
+from ..datastructures.tree_view import NodeViewInterface
+from .basis import MultiscaleFunctions
 from .haar_basis import HaarBasis
 from .orthonormal_basis import OrthonormalBasis
 from .sparse_vector import SparseVector
@@ -14,6 +16,25 @@ np.random.seed(0)
 np.set_printoptions(linewidth=10000, precision=3)
 
 Applicator_class = applicator.Applicator
+
+
+def applicator_to_matrix(applicator, Lambda_in, Lambda_out):
+    if isinstance(Lambda_in, NodeViewInterface):
+        Lambda_in = [nv.node for nv in Lambda_in.bfs()]
+    if isinstance(Lambda_out, NodeViewInterface):
+        Lambda_out = [nv.node for nv in Lambda_out.bfs()]
+
+    n, m = len(Lambda_out), len(Lambda_in)
+    result = np.zeros((n, m))
+    for i, psi in enumerate(Lambda_in):
+        vec_in = SparseVector(Lambda_in, np.zeros(m))
+        vec_in[psi] = 1.0
+
+        vec_out = SparseVector(Lambda_out, np.zeros(n))
+        applicator.apply(vec_in, vec_out)
+        for j, phi in enumerate(Lambda_out):
+            result[j, i] = vec_out[phi]
+    return result
 
 
 def support_to_interval(elems):
@@ -53,6 +74,35 @@ def test_orthonormal_multiscale_mass():
                 res = applicator.apply(vec)
                 for psi, val in vec.items():
                     assert val == approx(res[psi])
+
+
+def test_haar_3pt_mass():
+    basis_in = HaarBasis()
+    basis_out = ThreePointBasis()
+
+    basis_in.metaroot_wavelet.uniform_refine(1)
+    basis_out.metaroot_wavelet.uniform_refine(1)
+
+    # Get a subset of all wavelets.
+    Lambda_in = MultiscaleFunctions(
+        [psi for psi in basis_in.metaroot_wavelet.bfs() if psi.level <= 1])
+    Lambda_out = MultiscaleFunctions(
+        [psi for psi in basis_out.metaroot_wavelet.bfs() if psi.level <= 1])
+
+    applicator = Applicator_class(operators.mass(basis_in, basis_out),
+                                  basis_in, basis_out)
+    real_mat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
+    for _ in range(2):
+        vec_in = SparseVector(Lambda_in, np.zeros(len(Lambda_in)))
+        vec_in[Lambda_in.functions[0]] = 1.0
+        vec_in[Lambda_in.functions[1]] = 0
+        vec_out = SparseVector(Lambda_out, np.zeros(len(Lambda_out)))
+        applicator.apply_low(vec_in, vec_out)
+        assert vec_out[Lambda_out.functions[0]] == 0
+        assert vec_out[Lambda_out.functions[1]] == 0
+        applicator.apply_upp(vec_in, vec_out)
+        assert vec_out[Lambda_out.functions[0]] == 0.5
+        assert vec_out[Lambda_out.functions[1]] == 0.5
 
 
 def test_multiscale_operator_quadrature_lin_comb():
@@ -145,9 +195,9 @@ def test_apply_upp_low_vs_full():
             vec_upp_out = SparseVector(Lambda_out, np.zeros(len(Lambda_out)))
             vec_low_out = SparseVector(Lambda_out, np.zeros(len(Lambda_out)))
 
-            applicator.apply(vec_in, res_full_op)
-            applicator.apply_upp(vec_in, vec_upp_out)
             applicator.apply_low(vec_in, vec_low_out)
+            applicator.apply_upp(vec_in, vec_upp_out)
+            applicator.apply(vec_in, res_full_op)
             res_upp_low = vec_upp_out + vec_low_out
             assert np.allclose(res_full_op.asarray(Lambda_in),
                                res_upp_low.asarray(Lambda_in))

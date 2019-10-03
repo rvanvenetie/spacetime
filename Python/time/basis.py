@@ -2,9 +2,11 @@ from collections import OrderedDict
 from fractions import Fraction
 
 from ..datastructures.function import FunctionInterface
-from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
+from ..datastructures.tree import (BinaryNodeAbstract, MetaRoot,
+                                   MetaRootInterface, NodeAbstract)
 from ..datastructures.tree_view import NodeViewInterface
 from .linear_operator import LinearOperator
+from .sparse_vector import SparseVector
 
 
 class Element1D(BinaryNodeAbstract):
@@ -128,8 +130,12 @@ class Wavelet(CoefficientFunction1D):
 class MultiscaleFunctions:
     """ Immutable set of multiscale functions.  """
     def __init__(self, functions):
+        if isinstance(functions, MetaRootInterface):
+            functions = [nv for nv in functions.bfs()]
         if isinstance(functions, NodeViewInterface):
             functions = [nv.node for nv in functions.bfs()]
+        if isinstance(functions, SparseVector):
+            functions = list(functions)
         self.functions = functions
         self.maximum_level = max([-1] + [fn.level for fn in functions])
         self.per_level = [[] for _ in range(self.maximum_level + 1)]

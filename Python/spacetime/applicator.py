@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from ..datastructures.double_tree import DoubleTree
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  FrozenDoubleNodeVector)
@@ -122,29 +124,42 @@ class Applicator:
         assert all(db_node.value == 0
                    for db_node in vec_out.bfs(include_meta_root=True))
 
+        # Create two empty out vectors for the L and U part.
+        vec_out_low = self.Lambda_out.deep_copy(
+            dbl_node_cls=DoubleNodeVector,
+            frozen_dbl_cls=FrozenDoubleNodeVector)
+        vec_out_upp = self.Lambda_out.deep_copy(
+            dbl_node_cls=DoubleNodeVector,
+            frozen_dbl_cls=FrozenDoubleNodeVector)
+
         # Calculate R_sigma(Id x A_1)I_Lambda
         sigma = self.sigma()
-        assert isinstance(sigma.root, DoubleNodeVector)
         for psi_in_labda in sigma.project(0).bfs():
             fiber_in = vec_in.fiber(1, psi_in_labda)
             fiber_out = sigma.fiber(1, psi_in_labda)
             self.applicator_space.apply(fiber_in, fiber_out)
 
         # Calculate R_Lambda(L_0 x Id)I_Sigma
-        for psi_out_labda in vec_out.project(1).bfs():
+        for psi_out_labda in vec_out_low.project(1).bfs():
             fiber_in = sigma.fiber(0, psi_out_labda)
-            fiber_out = vec_out.fiber(0, psi_out_labda)
+            fiber_out = vec_out_low.fiber(0, psi_out_labda)
             self.applicator_time.apply_low(fiber_in, fiber_out)
 
         # Calculate R_Theta(U_1 x Id)I_Lambda
         theta = self.theta()
-        for psi_out_labda in theta.project(1).bfs():
-            fiber_in = vec_in.fiber(0, psi_out_labda)
-            fiber_out = theta.fiber(0, psi_out_labda)
+        for psi_in_labda in theta.project(1).bfs():
+            fiber_in = vec_in.fiber(0, psi_in_labda)
+            fiber_out = theta.fiber(0, psi_in_labda)
             self.applicator_time.apply_upp(fiber_in, fiber_out)
 
         # Calculate R_Lambda(id x A2)I_Theta
-        for psi_out_labda in vec_out.project(0).bfs():
+        for psi_out_labda in vec_out_upp.project(0).bfs():
             fiber_in = theta.fiber(1, psi_out_labda)
-            fiber_out = vec_out.fiber(1, psi_out_labda)
+            fiber_out = vec_out_upp.fiber(1, psi_out_labda)
             self.applicator_space.apply(fiber_in, fiber_out)
+
+        # Sum the results.
+        for n1, n2 in zip(vec_out.bfs(), vec_out_low.bfs()):
+            n1.value = n2.value
+        for n1, n2 in zip(vec_out.bfs(), vec_out_upp.bfs()):
+            n1.value += n2.value
