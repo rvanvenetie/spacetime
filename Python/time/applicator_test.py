@@ -80,14 +80,14 @@ def test_haar_3pt_mass():
     basis_in = HaarBasis()
     basis_out = ThreePointBasis()
 
-    basis_in.metaroot_wavelet.uniform_refine(1)
-    basis_out.metaroot_wavelet.uniform_refine(1)
+    basis_in.metaroot_wavelet.uniform_refine(3)
+    basis_out.metaroot_wavelet.uniform_refine(4)
 
     # Get a subset of all wavelets.
     Lambda_in = MultiscaleFunctions(
-        [psi for psi in basis_in.metaroot_wavelet.bfs() if psi.level <= 1])
+        [psi for psi in basis_in.metaroot_wavelet.bfs() if psi.level <= 2])
     Lambda_out = MultiscaleFunctions(
-        [psi for psi in basis_out.metaroot_wavelet.bfs() if psi.level <= 1])
+        [psi for psi in basis_out.metaroot_wavelet.bfs() if psi.level <= 3])
 
     applicator = Applicator_class(operators.mass(basis_in, basis_out),
                                   basis_in, basis_out)

@@ -236,7 +236,7 @@ def test_applicator_real():
         db_node.value = 1
 
     applicator.apply(vec_in, vec_out)
-    assert all(d_node.value == 1 for d_node in vec_out.bfs())
+    assert all(d_node.value == 2 for d_node in vec_out.bfs())
 
 
 def test_applicator_tensor_haar_mass():
