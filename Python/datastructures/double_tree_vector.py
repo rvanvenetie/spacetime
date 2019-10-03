@@ -12,6 +12,10 @@ class DoubleNodeVector(DoubleNode):
     def __repr__(self):
         return '({} x {}): {}'.format(self.nodes[0], self.nodes[1], self.value)
 
+    def __iadd__(self, other):
+        assert isinstance(other, DoubleNodeVector)
+        self.value += other.value
+
 
 class FrozenDoubleNodeVector(FrozenDoubleNode):
     @property

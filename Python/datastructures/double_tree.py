@@ -343,3 +343,11 @@ class DoubleTree:
         double_tree = DoubleTree(double_root, frozen_dbl_cls=frozen_dbl_cls)
         double_tree.uniform_refine(max_levels)
         return double_tree
+
+    def __iadd__(self, other):
+        """ Add two double trees, assuming they have the *same* structure. """
+        assert isinstance(other, DoubleTree)
+        for my_node, other_node in zip(self.bfs(), other.bfs()):
+            assert my_node.nodes == other_node.nodes
+            my_node += other_node
+        return self

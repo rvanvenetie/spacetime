@@ -108,19 +108,14 @@ class Applicator:
         theta.compute_fibers()
         return theta
 
-    def apply(self, vec_in, vec_out):
+    def apply(self, vec):
         """ Apply the tensor product applicator to the given vector. """
-        # Assert that vec_in and vec_out are defined on Lambda_in and Lambda_out
+        # Assert that vec is defined on Lambda_in
         assert all(n1.nodes == n2.nodes
-                   for n1, n2 in zip(vec_in.bfs(), self.Lambda_in.bfs()))
-        assert all(n1.nodes == n2.nodes
-                   for n1, n2 in zip(vec_out.bfs(), self.Lambda_out.bfs()))
+                   for n1, n2 in zip(vec.bfs(), self.Lambda_in.bfs()))
 
-        # Assert that the output vector is empty.
-        assert isinstance(vec_in.root, DoubleNodeVector)
-        assert isinstance(vec_out.root, DoubleNodeVector)
-        assert all(db_node.value == 0
-                   for db_node in vec_out.bfs(include_meta_root=True))
+        # Shortcut for clarity.
+        vec_in = vec
 
         # Create two empty out vectors for the L and U part.
         vec_out_low = self.Lambda_out.deep_copy(
@@ -156,8 +151,7 @@ class Applicator:
             fiber_out = vec_out_upp.fiber(1, psi_out_labda)
             self.applicator_space.apply(fiber_in, fiber_out)
 
-        # Sum the results.
-        for n1, n2 in zip(vec_out.bfs(), vec_out_low.bfs()):
-            n1.value = n2.value
-        for n1, n2 in zip(vec_out.bfs(), vec_out_upp.bfs()):
-            n1.value += n2.value
+        # Sum and return the results.
+        vec_out = vec_out_low
+        vec_out += vec_out_upp
+        return vec_out

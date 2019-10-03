@@ -235,7 +235,7 @@ def test_applicator_real():
         assert db_node.value == 0
         db_node.value = 1
 
-    applicator.apply(vec_in, vec_out)
+    vec_out = applicator.apply(vec_in)
     assert all(d_node.value == 2 for d_node in vec_out.bfs())
 
 
@@ -271,9 +271,6 @@ def test_applicator_tensor_haar_mass():
             # Initialze double tree vectors.
             vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
                                          frozen_dbl_cls=FrozenDoubleNodeVector)
-            vec_out = Lambda_out.deep_copy(
-                dbl_node_cls=DoubleNodeVector,
-                frozen_dbl_cls=FrozenDoubleNodeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -285,7 +282,7 @@ def test_applicator_tensor_haar_mass():
                 db_node.value = np.random.rand()
 
             # Calculate the output.
-            applicator.apply(vec_in, vec_out)
+            vec_out = applicator.apply(vec_in)
 
             # Transform the input/output vector to the mat2d coordinate format.
             tr_vec_in = transform_dt_vector_to_np_vector(vec_in)
@@ -346,9 +343,6 @@ def test_applicator_full_tensor_time():
             # Initialze double tree vectors.
             vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
                                          frozen_dbl_cls=FrozenDoubleNodeVector)
-            vec_out = Lambda_out.deep_copy(
-                dbl_node_cls=DoubleNodeVector,
-                frozen_dbl_cls=FrozenDoubleNodeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -359,7 +353,7 @@ def test_applicator_full_tensor_time():
                 db_node.value = np.random.rand()
 
             # Calculate the output.
-            applicator.apply(vec_in, vec_out)
+            vec_out = applicator.apply(vec_in)
 
             # Transform the input/output vector to the mat2d coordinate format.
             tr_vec_in = transform_dt_vector_to_np_vector(vec_in)
@@ -431,9 +425,6 @@ def test_applicator_different_out():
             # Initialze double tree vectors.
             vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
                                          frozen_dbl_cls=FrozenDoubleNodeVector)
-            vec_out = Lambda_out.deep_copy(
-                dbl_node_cls=DoubleNodeVector,
-                frozen_dbl_cls=FrozenDoubleNodeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -444,7 +435,7 @@ def test_applicator_different_out():
                 db_node.value = np.random.rand()
 
             # Calculate the output.
-            applicator.apply(vec_in, vec_out)
+            vec_out = applicator.apply(vec_in)
 
             # Transform the input/output vector to the mat2d coordinate format.
             tr_vec_in = transform_dt_vector_to_np_vector(vec_in)
