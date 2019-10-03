@@ -51,6 +51,7 @@ def test_double_tree_vector():
 
     # Check that the to_array is correct.
     np_vec = dt_root.to_array()
+    assert len(np_vec) == len(dt_root.bfs())
     assert all(val == 1 for val in np_vec)
 
     # Check that from_array also works.
