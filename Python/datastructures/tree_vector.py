@@ -1,7 +1,7 @@
 import numpy as np
 
 from .tree import NodeInterface
-from .tree_view import MetaRootView, NodeView
+from .tree_view import MetaRootInterface, MetaRootView, NodeView
 
 
 class NodeVector(NodeView):
@@ -10,10 +10,6 @@ class NodeVector(NodeView):
         assert isinstance(node, NodeInterface)
         super().__init__(node, parents=parents, children=children)
         self.value = value
-
-    def copy_data_from(self, other):
-        super().copy_data_from(other)
-        self.value = other.value
 
     def __iadd__(self, other):
         """ Shallow `add` operator. """
@@ -28,6 +24,12 @@ class NodeVector(NodeView):
 
     def __repr__(self):
         return 'NV_{}: {}'.format(self.node, self.value)
+
+
+def _copy_data_from(my_node, other_node):
+    """  Helper copy function. """
+    if not isinstance(my_node, MetaRootInterface):
+        my_node.value = other_node.value
 
 
 class MetaRootVector(MetaRootView):
@@ -49,3 +51,11 @@ class MetaRootVector(MetaRootView):
         for idx, node in enumerate(nodes):
             node.value = array[idx]
         return self
+
+    def deep_copy(self,
+                  nv_cls=None,
+                  mv_cls=None,
+                  call_postprocess=_copy_data_from):
+        return super().deep_copy(nv_cls=nv_cls,
+                                 mv_cls=mv_cls,
+                                 call_postprocess=call_postprocess)
