@@ -20,6 +20,10 @@ def test_vector_add():
 
         # Make a copy, assert the values are close.
         vec_copy = vec.deep_copy()
+        print(vec.__class__)
+        print(vec.roots[0].__class__)
+        print(vec_copy.__class__)
+        print(vec_copy.roots[0].__class__)
         assert np.allclose([a.value for a in vec.bfs()],
                            [b.value for b in vec_copy.bfs()])
 

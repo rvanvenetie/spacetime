@@ -1,5 +1,6 @@
 from ..datastructures.tree import MetaRoot
-from ..datastructures.tree_view import MetaRootView, NodeView
+from ..datastructures.tree_view import (MetaRootView, NodeView,
+                                        NodeViewInterface)
 
 
 class ElementView(NodeView):
@@ -27,7 +28,10 @@ class TriangulationView:
     """
     def __init__(self, vertex_view):
         """ Initializer given a vertex (sub)tree. """
-        if not isinstance(vertex_view, MetaRootView):
+        # Ensure that vertex_view is the root.
+        assert not vertex_view.parents
+
+        if not isinstance(vertex_view, NodeViewInterface):
             vertex_view = MetaRootView(vertex_view, node_view_cls=NodeView)
             vertex_view.deep_refine()
 
@@ -36,7 +40,7 @@ class TriangulationView:
         self.vertices = vertex_view.bfs()
 
         # Extract the original element root.
-        elem_meta_root = vertex_view.roots[0].node.patch[0].parent
+        elem_meta_root = vertex_view.children[0].node.patch[0].parent
         assert isinstance(elem_meta_root, MetaRoot)
 
         # Mark all necessary vertices -- uses the mark field inside vertex.
