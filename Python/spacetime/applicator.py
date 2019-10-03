@@ -1,9 +1,6 @@
-import matplotlib.pyplot as plt
-
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  DoubleTreeVector,
                                                  FrozenDoubleNodeVector)
-from ..plotters.double_tree_plotter import DoubleTreePlotter
 
 
 class Applicator:

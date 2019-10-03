@@ -1,7 +1,6 @@
 import numpy as np
 
 from .double_tree import DoubleNode, DoubleTree, FrozenDoubleNode
-from .tree_vector import MetaRootVector
 
 
 class DoubleNodeVector(DoubleNode):
