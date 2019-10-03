@@ -156,8 +156,6 @@ class Applicator:
             fiber_out = vec_out_upp.fiber(1, psi_out_labda)
             self.applicator_space.apply(fiber_in, fiber_out)
 
-        print(vec_out_low.bfs())
-        print(vec_out_upp.bfs())
         # Sum the results.
         for n1, n2 in zip(vec_out.bfs(), vec_out_low.bfs()):
             n1.value = n2.value
