@@ -8,11 +8,6 @@ from .triangulation import InitialTriangulation, to_matplotlib_triangulation
 from .triangulation_view import TriangulationView
 
 
-class FakeOperator(Operator):
-    def apply_SS(self, v):
-        pass
-
-
 def test_transformation():
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.bfs()[0].refine()
@@ -26,7 +21,7 @@ def test_transformation():
 
     # Create a view of the vertices.
     T_view = TriangulationView(T.vertex_meta_root)
-    operators = FakeOperator(T_view)
+    operators = Operator(T_view)
     v = np.array([0, 0, 0, 1, 0, 0, 0, 0], dtype=float)
     w = np.array([0, 0, 0, 1, 0.5, 0.5, 0.5, 0.75], dtype=float)
     w2 = operators.apply_T(v)
