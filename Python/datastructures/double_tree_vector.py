@@ -52,3 +52,14 @@ class DoubleTreeVector(DoubleTree):
             for psi_1 in psi_0.frozen_other_axis().bfs():
                 psi_1.value = array[i]
                 i += 1
+
+    def __iadd__(self, other):
+        """ Add two double trees, assuming they have the *same* structure. """
+        assert isinstance(other, DoubleTreeVector)
+        my_nodes = self.bfs()
+        other_nodes = other.bfs()
+        assert len(my_nodes) == len(other_nodes)
+        for my_node, other_node in zip(my_nodes, other_nodes):
+            assert my_node.nodes == other_node.nodes
+            my_node += other_node
+        return self
