@@ -158,7 +158,8 @@ def test_multiscale_operator_quadrature_lin_comb():
                                 (oru, oru), (oro, oro), (oru, oro), (oru, ore),
                                 (tpu, tpu), (tpo, tpo), (tpu, tpo), (tpu, tpe),
                                 (tpo, tpe), (hbu, tpe), (tpu, hbe), (hbu, tpu),
-                                (hbu, tpe), (tpo, hbe)]:
+                                (hbu, tpe), (tpo, hbe), (tpe, ore),
+                                (ore, tpo)]:
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
         operator = operators.mass(basis_in, basis_out)
@@ -219,7 +220,8 @@ def test_apply_upp_low_vs_full():
                                 (oru, oru), (oro, oro), (oru, oro), (oru, ore),
                                 (tpu, tpu), (tpo, tpo), (tpu, tpo), (tpu, tpe),
                                 (tpo, tpe), (hbu, tpe), (tpu, hbe), (hbu, tpu),
-                                (hbu, tpe), (tpo, hbe)]:
+                                (hbu, tpe), (tpo, hbe), (tpe, ore),
+                                (ore, tpo)]:
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
         operator = operators.mass(basis_in, basis_out)
