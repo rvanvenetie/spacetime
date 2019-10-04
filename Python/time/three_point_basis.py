@@ -10,7 +10,7 @@ class ContLinearScaling(basis.Scaling):
     The fields `self.nbr_x` correspond to the neighbour on the left/right.
     The fields `self.child_x` correspond to the children on the left/mid/right.
 
-    The field Element.phi_disc_lin object is ordered by labda, i.e. left, right.
+    The field Element.phi_cont_lin object is ordered by labda, i.e. left, right.
     """
     def __init__(self, labda, support, parents=None):
         super().__init__(labda, support=support, parents=parents)

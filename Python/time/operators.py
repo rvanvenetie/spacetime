@@ -1,7 +1,11 @@
+import numpy as np
+
 from .haar_basis import DiscConstScaling, HaarBasis
 from .linear_operator import LinearOperator
 from .orthonormal_basis import DiscLinearScaling, OrthonormalBasis
 from .three_point_basis import ContLinearScaling, ThreePointBasis
+
+sq3 = np.sqrt(3)
 
 
 def _mass_haar_in_haar_out(phi_in):
@@ -60,6 +64,37 @@ def _mass_three_in_haar_out(phi_in):
     return result
 
 
+def _mass_three_in_ortho_out(phi_in):
+    """ The scaling mass matrix for three in, ortho out. """
+    assert isinstance(phi_in, ContLinearScaling)
+    l, n = phi_in.labda
+    result = []
+    if n > 0:
+        elem = phi_in.support[0]
+        result.append((elem.phi_disc_lin[0], 2**-(l + 1)))
+        result.append((elem.phi_disc_lin[1], 2**-(l + 1) / sq3))
+    if n < 2**l:
+        elem = phi_in.support[-1]
+        result.append((elem.phi_disc_lin[0], 2**-(l + 1)))
+        result.append((elem.phi_disc_lin[1], -2**-(l + 1) / sq3))
+    return result
+
+
+def _mass_ortho_in_three_out(phi_in):
+    """ The scaling mass matrix for ortho in, three out. """
+    assert isinstance(phi_in, DiscLinearScaling)
+    l, n = phi_in.labda
+    elem = phi_in.support[0]
+    assert elem.phi_cont_lin[0] and elem.phi_cont_lin[1]
+
+    if phi_in.pw_constant:
+        return [(elem.phi_cont_lin[0], 2**-(l + 1)),
+                (elem.phi_cont_lin[1], 2**-(l + 1))]
+    else:
+        return [(elem.phi_disc_lin[0], -2**-(l + 1) / sq3),
+                (elem.phi_disc_lin[1], 2**-(l + 1) / sq3)]
+
+
 def mass(basis_in, basis_out=None):
     """ Returns the _scaling_ mass matrix corresponding to the given bases. """
     if basis_out is None:
@@ -76,9 +111,17 @@ def mass(basis_in, basis_out=None):
     elif isinstance(basis_in, HaarBasis) and isinstance(
             basis_out, ThreePointBasis):
         return LinearOperator(_mass_three_in_haar_out, _mass_haar_in_three_out)
+    elif isinstance(basis_in, OrthonormalBasis) and isinstance(
+            basis_out, ThreePointBasis):
+        return LinearOperator(_mass_three_in_ortho_out,
+                              _mass_ortho_in_three_out)
     elif isinstance(basis_in, ThreePointBasis) and isinstance(
             basis_out, HaarBasis):
         return LinearOperator(_mass_haar_in_three_out, _mass_three_in_haar_out)
+    elif isinstance(basis_in, ThreePointBasis) and isinstance(
+            basis_out, OrthonormalBasis):
+        return LinearOperator(_mass_ortho_in_three_out,
+                              _mass_three_in_ortho_out)
     else:
         raise TypeError(
             'Mass operator for ({}, {}) is not implemented (yet).'.format(

@@ -117,8 +117,8 @@ def test_multiscale_mass_quadrature():
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
     for basis_in, basis_out in [(hbu, hbu), (hbo, hbo), (hbu, hbo), (oru, oru),
                                 (oro, oro), (oru, oro), (tpu, tpu), (tpo, tpo),
-                                (tpu, tpo), (hbu, tpu), (tpo, hbu),
-                                (hbo, tpu)]:
+                                (tpu, tpo), (hbu, tpu), (tpo, hbu), (hbo, tpu),
+                                (oro, tpo), (tpo, oro), (hbo, tpu)]:
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
         operator = operators.mass(basis_in, basis_out)
