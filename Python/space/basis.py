@@ -25,11 +25,11 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
         for elem in self.support:
             bary = elem.to_barycentric_coordinates(x)
             # Check if this triangle contains the point.
-            if all(bary >= 0) and bary[0] + bary[1] <= 1:
+            if all(bary >= 0):
                 v_index = elem.vertices.index(self.node)
                 if not deriv: return bary[v_index]
                 else:
-                    edge_opposite = elem.vertices[v_index - 1].as_array(
+                    edge_opposite = elem.vertices[(v_index - 1) % 3].as_array(
                     ) - elem.vertices[(v_index + 1) % 3].as_array()
                     normal = np.array([-edge_opposite[1], edge_opposite[0]])
                     return -normal / (2 * elem.area)
