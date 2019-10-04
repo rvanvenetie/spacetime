@@ -63,8 +63,6 @@ def test_operators():
 def test_mass_quad_non_symmetric():
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(5)
-    op = MassOperator()
-    applicator = Applicator(op)
 
     # Create a vector with only vertices lying below the diagonal upto lvl 4
     Lambda_below = MetaRootView(T.vertex_meta_root)
@@ -78,30 +76,34 @@ def test_mass_quad_non_symmetric():
 
     assert len(Lambda_below.bfs()) < len(Lambda_above.bfs())
 
-    for Lambda_in, Lambda_out in [(Lambda_below, Lambda_below),
-                                  (Lambda_below, Lambda_above),
-                                  (Lambda_above, Lambda_below)]:
+    for op, deriv in [(MassOperator(), False), (StiffnessOperator(), True)]:
+        applicator = Applicator(op)
 
-        # Matrix
-        mat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
+        for Lambda_in, Lambda_out in [(Lambda_below, Lambda_below),
+                                      (Lambda_below, Lambda_above),
+                                      (Lambda_above, Lambda_below)]:
 
-        # Compare with quadrature
-        quad_scheme = quadpy.triangle.seven_point()
-        for i, v_psi in enumerate(Lambda_in.bfs()):
-            psi = HierarchicalBasisFunction(v_psi.node)
-            for j, v_phi in enumerate(Lambda_out.bfs()):
-                phi = HierarchicalBasisFunction(v_phi.node)
-                support = psi.support if psi.level > phi.level else phi.support
-                real_ip = 0
-                for elem in support:
-                    triangle = np.array(
-                        [elem.vertices[i].as_array() for i in range(3)])
+            # Matrix
+            mat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
 
-                    def func(x):
-                        return np.array([
-                            psi.eval(x[:, i]) * phi.eval(x[:, i])
-                            for i in range(x.shape[1])
-                        ])
+            # Compare with quadrature
+            quad_scheme = quadpy.triangle.newton_cotes_open(0 if deriv else 2)
+            for i, v_psi in enumerate(Lambda_in.bfs()):
+                psi = HierarchicalBasisFunction(v_psi.node)
+                for j, v_phi in enumerate(Lambda_out.bfs()):
+                    phi = HierarchicalBasisFunction(v_phi.node)
+                    support = psi.support if psi.level > phi.level else phi.support
+                    real_ip = 0
+                    for elem in support:
+                        triangle = np.array(
+                            [elem.vertices[i].as_array() for i in range(3)])
 
-                    real_ip += quad_scheme.integrate(func, triangle)
-                assert np.allclose(real_ip, mat[j, i])
+                        def func(x):
+                            return np.array([
+                                np.dot(psi.eval(x[:, i], deriv),
+                                       phi.eval(x[:, i], deriv))
+                                for i in range(x.shape[1])
+                            ])
+
+                        real_ip += quad_scheme.integrate(func, triangle)
+                    assert np.allclose(real_ip, mat[j, i])
