@@ -133,3 +133,21 @@ def test_vertex_tree_refinement():
 def test_refined_tree():
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(5)
+
+
+def test_element_barycentric():
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(4)
+    for elem in T.elem_meta_root.bfs():
+        for _ in range(10):
+            # Random point.
+            p = np.random.rand(2)
+
+            # Convert to barycentric coordinates.
+            u, v, w = elem.to_barycentric_coordinates(p)
+
+            # Convert barycentric back to normal
+            q = u * elem.vertices[0].as_array() + v * elem.vertices[
+                1].as_array() + w * elem.vertices[2].as_array()
+
+            assert np.allclose(p, q)

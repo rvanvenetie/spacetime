@@ -47,9 +47,12 @@ class Applicator:
         # Apply for these enlarged vectors.
         self.apply(vec_in_new, vec_out_new)
 
-        # Now copy only specific parts back into vec_out.
+        # Now copy only specific parts back into vec_out, mark these nodes.
+        for nv in vec_out_nodes:
+            nv.node.marked = True
         vec_out.union(vec_out_new,
-                      call_filter=lambda _: False,
+                      call_filter=lambda v: v.marked,
                       call_postprocess=call_copy)
-
+        for nv in vec_out_nodes:
+            nv.node.marked = False
         return vec_out

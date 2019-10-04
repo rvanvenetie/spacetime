@@ -171,10 +171,6 @@ class NodeView(NodeViewInterface, NodeAbstract):
         super().__init__(parents=parents, children=children)
         self.node = node
 
-    def copy_data_from(self, other):
-        """ Copies the appropriate fields from `other` into `self`. """
-        assert type(self) == type(other)
-
 
 class MetaRootView(MetaRootInterface, NodeView):
     def __init__(self, metaroot, node_view_cls=NodeView):
@@ -196,14 +192,12 @@ class MetaRootView(MetaRootInterface, NodeView):
                            call_filter=call_filter,
                            call_postprocess=call_postprocess)
 
-    def deep_copy(self):
+    def deep_copy(self, nv_cls=None, mv_cls=None, call_postprocess=None):
         """ Deep-copies `self` into a new NodeView tree. """
-        def callback(new_node, my_node):
-            return new_node.copy_data_from(my_node)
-
-        new_metaroot = self.__class__(self,
-                                      node_view_cls=self.roots[0].__class__)
-        return new_metaroot.union(self, call_postprocess=callback)
+        if nv_cls is None: nv_cls = self.roots[0].__class__
+        if mv_cls is None: mv_cls = self.__class__
+        new_metaroot = mv_cls(self, node_view_cls=nv_cls)
+        return new_metaroot.union(self, call_postprocess=call_postprocess)
 
     def deep_refine(self, call_filter=None, call_postprocess=None):
         """ Deep-refines `self` by recursively refining the tree view. """
