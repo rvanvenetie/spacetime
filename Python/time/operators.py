@@ -91,8 +91,8 @@ def _mass_ortho_in_three_out(phi_in):
         return [(elem.phi_cont_lin[0], 2**-(l + 1)),
                 (elem.phi_cont_lin[1], 2**-(l + 1))]
     else:
-        return [(elem.phi_disc_lin[0], -2**-(l + 1) / sq3),
-                (elem.phi_disc_lin[1], 2**-(l + 1) / sq3)]
+        return [(elem.phi_cont_lin[0], -2**-(l + 1) / sq3),
+                (elem.phi_cont_lin[1], 2**-(l + 1) / sq3)]
 
 
 def mass(basis_in, basis_out=None):
