@@ -66,15 +66,17 @@ def test_mass_quad_non_symmetric():
     op = MassOperator()
     applicator = Applicator(op)
 
-    # Create a vector with only vertices lying below the diagonal
+    # Create a vector with only vertices lying below the diagonal upto lvl 4
     Lambda_below = MetaRootView(T.vertex_meta_root)
-    Lambda_below.deep_refine(
-        call_filter=lambda vertex: vertex.x + vertex.y <= 1)
+    Lambda_below.deep_refine(call_filter=lambda vertex: vertex.level <= 4 and
+                             vertex.x + vertex.y <= 1)
 
-    # Create an out vector with only vertices lying above the diagonal
+    # Create an out vector with only vertices lying above the diagonal.
     Lambda_above = MetaRootVector(T.vertex_meta_root)
     Lambda_above.deep_refine(
         call_filter=lambda vertex: vertex.x + vertex.y >= 1)
+
+    assert len(Lambda_below.bfs()) < len(Lambda_above.bfs())
 
     for Lambda_in, Lambda_out in [(Lambda_below, Lambda_above),
                                   (Lambda_above, Lambda_below)]:
