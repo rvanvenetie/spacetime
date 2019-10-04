@@ -1,3 +1,5 @@
+import numpy as np
+
 from .basis import HierarchicalBasisFunction
 from .triangulation import InitialTriangulation
 
@@ -54,3 +56,29 @@ def test_refine_hierarchical_basis():
         f.node.refine()
         leaves.update(f.refine())
         assert len(basis_meta_root.bfs()) == len(T.vertex_meta_root.bfs())
+
+
+def test_eval_basis():
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(6)
+    basis = HierarchicalBasisFunction.from_triangulation(T)
+    basis.deep_refine()
+    for phi in basis.bfs():
+        assert phi.eval([-1, -1]) == 0
+        assert phi.eval([-1, 0]) == 0
+        for elem in phi.support:
+            verts = [elem.vertices[i].as_array() for i in range(3)]
+            v_eval = [phi.eval(verts[i]) for i in range(3)]
+            assert np.allclose(sum(v_eval), 1.0)
+            for i in range(3):
+                if elem.vertices[i] == phi.node:
+                    assert v_eval[i] == 1.0
+                else:
+                    assert v_eval[i] == 0.0
+            # Take random combiniation of vertices
+            alpha = np.random.rand(3)
+            alpha /= sum(alpha)
+            p = alpha[0] * verts[0] + alpha[1] * verts[1] + alpha[2] * verts[2]
+            phi_eval = phi.eval(p)
+            v_index = elem.vertices.index(phi.node)
+            assert np.allclose(phi_eval, alpha[v_index])
