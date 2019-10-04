@@ -78,7 +78,8 @@ def test_mass_quad_non_symmetric():
 
     assert len(Lambda_below.bfs()) < len(Lambda_above.bfs())
 
-    for Lambda_in, Lambda_out in [(Lambda_below, Lambda_above),
+    for Lambda_in, Lambda_out in [(Lambda_below, Lambda_below),
+                                  (Lambda_below, Lambda_above),
                                   (Lambda_above, Lambda_below)]:
 
         # Matrix
