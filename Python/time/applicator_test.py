@@ -105,6 +105,41 @@ def test_haar_3pt_mass():
         assert vec_out[Lambda_out.functions[1]] == 0.5
 
 
+def test_multiscale_mass_quadrature():
+    """ Test that the multiscale matrix equals that found with quadrature. """
+    uml = 5
+    oml = 15
+    hbu = HaarBasis.uniform_basis(max_level=uml)
+    hbo = HaarBasis.origin_refined_basis(max_level=oml)
+    oru = OrthonormalBasis.uniform_basis(max_level=uml)
+    oro = OrthonormalBasis.origin_refined_basis(max_level=oml)
+    tpu = ThreePointBasis.uniform_basis(max_level=uml)
+    tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
+    for basis_in, basis_out in [(hbu, hbu), (hbo, hbo), (hbu, hbo), (oru, oru),
+                                (oro, oro), (oru, oro), (tpu, tpu), (tpo, tpo),
+                                (tpu, tpo), (hbu, tpu), (tpo, hbu),
+                                (hbo, tpu)]:
+        basis_in, Lambda_in = basis_in
+        basis_out, Lambda_out = basis_out
+        operator = operators.mass(basis_in, basis_out)
+        print('Calculating results for: basis_in={}\tbasis_out={}'.format(
+            basis_in.__class__.__name__, basis_out.__class__.__name__))
+        applicator = Applicator_class(operator, basis_in, basis_out)
+        resmat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
+        truemat = np.zeros([len(Lambda_out), len(Lambda_in)])
+        for j, psi in enumerate(Lambda_in):
+            supp_psi = support_to_interval(psi.support)
+            for i, mu in enumerate(Lambda_out):
+                supp_mu = support_to_interval(mu.support)
+                true_val = quad(
+                    lambda x: psi.eval(x) * mu.eval(x),
+                    max(supp_mu[0], supp_psi[0]),
+                    min(supp_mu[1], supp_psi[1]),
+                )[0]
+                truemat[i, j] = true_val
+        assert np.allclose(resmat, truemat)
+
+
 def test_multiscale_operator_quadrature_lin_comb():
     """ Test that the multiscale matrix equals that found with quadrature. """
     uml = 4
