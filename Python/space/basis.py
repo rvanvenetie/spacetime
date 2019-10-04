@@ -24,7 +24,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
         for elem in self.support:
             bary = elem.to_barycentric_coordinates(x)
             # Check if this triangle contains the point.
-            if bary[0] >= 0 and bary[1] >= 0 and bary[0] + bary[1] <= 1:
+            if all(bary >= 0) and bary[0] + bary[1] <= 1:
                 return bary[elem.vertices.index(self.node)]
         return 0
 

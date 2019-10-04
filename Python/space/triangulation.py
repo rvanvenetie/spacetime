@@ -129,7 +129,7 @@ class Element2D(BinaryNodeAbstract):
         v = (d11 * d20 - d01 * d21) / denom
         w = (d00 * d21 - d01 * d20) / denom
 
-        return 1 - v - w, v, w
+        return np.array([1 - v - w, v, w])
 
     def __repr__(self):
         return 'Element2D({}, {})'.format(self.level, self.vertices)
