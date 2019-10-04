@@ -67,18 +67,14 @@ def test_eval_basis():
         assert phi.eval([-1, -1]) == 0
         assert phi.eval([-1, 0]) == 0
         for elem in phi.support:
-            verts = [elem.vertices[i].as_array() for i in range(3)]
+            verts = np.array([elem.vertices[i].as_array() for i in range(3)])
             v_eval = [phi.eval(verts[i]) for i in range(3)]
             assert np.allclose(sum(v_eval), 1.0)
-            for i in range(3):
-                if elem.vertices[i] == phi.node:
-                    assert v_eval[i] == 1.0
-                else:
-                    assert v_eval[i] == 0.0
-            # Take random combiniation of vertices
+            assert np.allclose(v_eval, np.array(elem.vertices) == phi.node)
+            # Take random combination of vertices.
             alpha = np.random.rand(3)
             alpha /= sum(alpha)
-            p = alpha[0] * verts[0] + alpha[1] * verts[1] + alpha[2] * verts[2]
+            p = alpha.dot(verts)
             phi_eval = phi.eval(p)
             v_index = elem.vertices.index(phi.node)
             assert np.allclose(phi_eval, alpha[v_index])
