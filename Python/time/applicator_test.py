@@ -1,3 +1,4 @@
+import itertools
 from fractions import Fraction
 
 import numpy as np
@@ -107,18 +108,19 @@ def test_haar_3pt_mass():
 
 def test_multiscale_mass_quadrature():
     """ Test that the multiscale matrix equals that found with quadrature. """
-    uml = 5
-    oml = 15
+    uml = 4
+    oml = 11
     hbu = HaarBasis.uniform_basis(max_level=uml)
     hbo = HaarBasis.origin_refined_basis(max_level=oml)
+    hbe = HaarBasis.end_points_refined_basis(max_level=oml)
     oru = OrthonormalBasis.uniform_basis(max_level=uml)
     oro = OrthonormalBasis.origin_refined_basis(max_level=oml)
+    ore = OrthonormalBasis.end_points_refined_basis(max_level=oml)
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
-    for basis_in, basis_out in [(hbu, hbu), (hbo, hbo), (hbu, hbo), (oru, oru),
-                                (oro, oro), (oru, oro), (tpu, tpu), (tpo, tpo),
-                                (tpu, tpo), (hbu, tpu), (tpo, hbu), (hbo, tpu),
-                                (oro, tpo), (tpo, oro), (hbo, tpu)]:
+    tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
+    for basis_in, basis_out in itertools.product(
+        [hbu, hbo, hbe, oru, oro, ore, tpu, tpo, tpe], repeat=2):
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
         operator = operators.mass(basis_in, basis_out)
