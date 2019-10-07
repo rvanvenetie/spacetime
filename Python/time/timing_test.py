@@ -5,12 +5,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from . import applicator
-from . import applicator_inplace
-from . import operators
+from . import applicator, operators
 from .applicator import Applicator
-from .three_point_basis import ThreePointBasis
 from .sparse_vector import SparseVector
+from .three_point_basis import ThreePointBasis
 
 
 def plot_results(results):
@@ -47,19 +45,6 @@ def test_comparison_implementations():
             apply_time = time.time() - start
             results['ThreePoint_tree']['N'].append(N)
             results['ThreePoint_tree']['apply_time'].append(apply_time)
-
-            basis_obj_tree_inplace, Lambda_tree_inplace = ThreePointBasis.uniform_basis(
-                max_level=level)
-            applicator_tree_inplace = applicator_inplace.Applicator(
-                basis_obj_tree_inplace, operators.mass(basis_obj_tree),
-                Lambda_tree_inplace)
-            N = len(Lambda_tree_inplace)
-            vec = SparseVector(Lambda_tree_inplace, np.random.rand(N))
-            start = time.time()
-            res = applicator_tree_inplace.apply(vec)
-            apply_time = time.time() - start
-            results['ThreePoint_tree_inplace']['N'].append(N)
-            results['ThreePoint_tree_inplace']['apply_time'].append(apply_time)
             print(results)
         return results
     except KeyboardInterrupt:
