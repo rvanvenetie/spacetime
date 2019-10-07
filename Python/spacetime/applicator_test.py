@@ -19,7 +19,7 @@ from ..space.applicator import Applicator as Applicator2D
 from ..space.basis import HierarchicalBasisFunction
 from ..space.operators import MassOperator as Mass2D
 from ..space.triangulation import InitialTriangulation
-from ..time.applicator_inplace import Applicator as Applicator1D
+from ..time.applicator import Applicator as Applicator1D
 from ..time.applicator_test import applicator_to_matrix
 from ..time.haar_basis import HaarBasis
 from ..time.operators import mass as Mass1D

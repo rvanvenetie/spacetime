@@ -5,8 +5,9 @@ import numpy as np
 from pytest import approx
 from scipy.integrate import quad
 
-from . import applicator, operators
+from . import operators
 from ..datastructures.tree_view import NodeViewInterface
+from .applicator import Applicator
 from .basis import MultiscaleFunctions
 from .haar_basis import HaarBasis
 from .orthonormal_basis import OrthonormalBasis
@@ -15,8 +16,6 @@ from .three_point_basis import ThreePointBasis
 
 np.random.seed(0)
 np.set_printoptions(linewidth=10000, precision=3)
-
-Applicator_class = applicator.Applicator
 
 
 def applicator_to_matrix(applicator, Lambda_in, Lambda_out):
@@ -50,7 +49,7 @@ def test_haar_multiscale_mass():
     ]:
         for l in range(1, 6):
             Lambda_l = Lambda.until_level(l)
-            applicator = Applicator_class(operators.mass(basis), basis)
+            applicator = Applicator(operators.mass(basis), basis)
             for _ in range(10):
                 np_vec = np.random.rand(len(Lambda_l))
                 vec = SparseVector(Lambda_l, np_vec)
@@ -68,7 +67,7 @@ def test_orthonormal_multiscale_mass():
     ]:
         for l in range(1, 6):
             Lambda_l = Lambda.until_level(l)
-            applicator = Applicator_class(operators.mass(basis), basis)
+            applicator = Applicator(operators.mass(basis), basis)
             for _ in range(10):
                 np_vec = np.random.rand(len(Lambda_l))
                 vec = SparseVector(Lambda_l, np_vec)
@@ -90,8 +89,8 @@ def test_haar_3pt_mass():
     Lambda_out = MultiscaleFunctions(
         [psi for psi in basis_out.metaroot_wavelet.bfs() if psi.level <= 3])
 
-    applicator = Applicator_class(operators.mass(basis_in, basis_out),
-                                  basis_in, basis_out)
+    applicator = Applicator(operators.mass(basis_in, basis_out), basis_in,
+                            basis_out)
     real_mat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
     for _ in range(2):
         vec_in = SparseVector(Lambda_in, np.zeros(len(Lambda_in)))
@@ -126,7 +125,7 @@ def test_multiscale_mass_quadrature():
         operator = operators.mass(basis_in, basis_out)
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
-        applicator = Applicator_class(operator, basis_in, basis_out)
+        applicator = Applicator(operator, basis_in, basis_out)
         resmat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
         truemat = np.zeros([len(Lambda_out), len(Lambda_in)])
         for j, psi in enumerate(Lambda_in):
@@ -155,7 +154,7 @@ def test_multiscale_trace():
         operator = operators.trace(basis_in, basis_out)
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
-        applicator = Applicator_class(operator, basis_in, basis_out)
+        applicator = Applicator(operator, basis_in, basis_out)
         resmat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
         truemat = np.zeros([len(Lambda_out), len(Lambda_in)])
         for j, psi in enumerate(Lambda_in):
@@ -193,7 +192,7 @@ def test_multiscale_operator_quadrature_lin_comb():
                                                     Lambda_in.maximum_level))
         print('\tLambda_out:\tdofs={}\tml={}'.format(len(Lambda_out.functions),
                                                      Lambda_out.maximum_level))
-        applicator = Applicator_class(operator, basis_in, basis_out)
+        applicator = Applicator(operator, basis_in, basis_out)
         for _ in range(3):
             vec_in = SparseVector(Lambda_in, np.random.rand(len(Lambda_in)))
             vec_out = SparseVector(Lambda_out, np.zeros(len(Lambda_out)))
@@ -249,7 +248,7 @@ def test_apply_upp_low_vs_full():
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
         operator = operators.mass(basis_in, basis_out)
-        applicator = Applicator_class(operator, basis_in, basis_out)
+        applicator = Applicator(operator, basis_in, basis_out)
         for _ in range(10):
             vec_in = SparseVector(Lambda_in, np.random.rand(len(Lambda_in)))
             res_full_op = SparseVector(Lambda_out, np.zeros(len(Lambda_out)))
