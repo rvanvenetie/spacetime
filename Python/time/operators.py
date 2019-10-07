@@ -196,14 +196,66 @@ def trace(basis_in, basis_out=None):
         if isinstance(basis_out, ThreePointBasis):
             return LinearOperator(_trace_three_in_three_out,
                                   _trace_three_in_three_out)
-        elif isinstance(basis_out, OrthonormalBasis):
+        if isinstance(basis_out, OrthonormalBasis):
             return LinearOperator(_trace_ortho_in_three_out,
                                   _trace_three_in_ortho_out)
-    elif isinstance(basis_in, OrthonormalBasis):
+    if isinstance(basis_in, OrthonormalBasis):
         if isinstance(basis_out, ThreePointBasis):
             return LinearOperator(_trace_three_in_ortho_out,
                                   _trace_ortho_in_three_out)
+    raise TypeError(
+        'Trace operator for ({}, {}) is not implemented (yet).'.format(
+            basis_in.__class__.__name__, basis_out.__class__.__name__))
+
+
+def _transport_grad_three_in_three_out(phi_in):
+    """ The scaling transport matrix for threepoint in, threepoint out. """
+    assert isinstance(phi_in, ContLinearScaling)
+    result = []
+    l, n = phi_in.labda
+    if n > 0 and n < 2**l:
+        return [(phi_in.nbr_left, 0.5), (phi_in.nbr_right, -0.5)]
+    if n == 0:
+        return [(phi_in, -0.5), (phi_in.nbr_right, -0.5)]
+    if n == 2**l:
+        return [(phi_in.nbr_left, 0.5), (phi_in, 0.5)]
+
+
+def _transport_grad_three_in_ortho_out(phi_in):
+    """ The scaling transport matrix for grad three in, orthonormal out. """
+    assert isinstance(phi_in, ContLinearScaling)
+    l, n = phi_in.labda
+    result = []
+    if n > 0:
+        elem = phi_in.support[0]
+        result.append((elem.phi_disc_lin[0], 1))
+    if n < 2**l:
+        elem = phi_in.support[-1]
+        result.append((elem.phi_disc_lin[0], -1))
+    return result
+
+
+def _transport_ortho_in_grad_three_out(phi_in):
+    """ The scaling transport matrix for orthonormal in, grad three out. """
+    assert isinstance(phi_in, DiscLinearScaling)
+    l, n = phi_in.labda
+    elem = phi_in.support[0]
+    if phi_in.pw_constant:
+        return [(elem.phi_cont_lin[0], -1), (elem.phi_cont_lin[1], 1)]
+    else:
+        return []
+
+
+def transport(basis_in, basis_out):
+    """ The transport matrix <d_t phi, psi>. """
+    if isinstance(basis_in, ThreePointBasis) and isinstance(
+            basis_out, ThreePointBasis):
+        return LinearOperator(_transport_grad_three_in_three_out)
+    elif isinstance(basis_in, OrthonormalBasis) and isinstance(
+            basis_out, ThreePointBasis):
+        return LinearOperator(_transport_grad_three_in_ortho_out,
+                              _transport_ortho_in_grad_three_out)
     else:
         raise TypeError(
-            'Trace operator for ({}, {}) is not implemented (yet).'.format(
+            'Transport operator for ({}, {}) is not implemented (yet).'.format(
                 basis_in.__class__.__name__, basis_out.__class__.__name__))

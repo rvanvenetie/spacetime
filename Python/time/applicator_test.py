@@ -141,6 +141,38 @@ def test_multiscale_mass_quadrature():
         assert np.allclose(resmat, truemat)
 
 
+def test_multiscale_transport_quadrature():
+    """ Test that the multiscale matrix equals that found with quadrature. """
+    uml = 4
+    oml = 11
+    oru = OrthonormalBasis.uniform_basis(max_level=uml)
+    oro = OrthonormalBasis.origin_refined_basis(max_level=oml)
+    ore = OrthonormalBasis.end_points_refined_basis(max_level=oml)
+    tpu = ThreePointBasis.uniform_basis(max_level=uml)
+    tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
+    tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
+    for basis_in, basis_out in itertools.product(
+        [oru, oro, ore, tpu, tpo, tpe], [tpu, tpo, tpe]):
+        basis_in, Lambda_in = basis_in
+        basis_out, Lambda_out = basis_out
+        operator = operators.transport(basis_in, basis_out)
+        print('Calculating results for: basis_in={}\tbasis_out={}'.format(
+            basis_in.__class__.__name__, basis_out.__class__.__name__))
+        applicator = Applicator(operator, basis_in, basis_out)
+        resmat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
+        truemat = np.zeros([len(Lambda_out), len(Lambda_in)])
+        for j, psi_in in enumerate(Lambda_in):
+            supp_in = support_to_interval(psi_in.support)
+            for i, psi_out in enumerate(Lambda_out):
+                supp_out = support_to_interval(psi_out.support)
+                true_val = quad(
+                    lambda x: psi_in.eval(x) * psi_out.eval(x, deriv=True),
+                    max(supp_in[0], supp_out[0]),
+                    min(supp_in[1], supp_out[1]),
+                )[0]
+                assert np.allclose(resmat[i, j], true_val)
+
+
 def test_multiscale_trace():
     """ Test that the multiscale matrix equals that found with evaluation. """
     oru = OrthonormalBasis.uniform_basis(max_level=5)
