@@ -1,4 +1,5 @@
 from collections import defaultdict
+import itertools
 
 import numpy as np
 from pytest import approx
@@ -91,3 +92,35 @@ def test_haar_three_scaling_mass():
                     res_test[phi_three] += val * 1 / 2 * 2**-l
             for phi_three, val in res.items():
                 assert res_test[phi_three] == approx(val)
+
+
+def test_threepoint_trace():
+    oru = OrthonormalBasis.uniform_basis(max_level=5)
+    oro = OrthonormalBasis.origin_refined_basis(max_level=12)
+    tpu = ThreePointBasis.uniform_basis(max_level=5)
+    tpo = ThreePointBasis.origin_refined_basis(max_level=12)
+    for (basis_in, Lambda_in), (basis_out, Lambda_out) in \
+            list(itertools.product([tpu, tpo], [tpu, tpo])) \
+          + list(itertools.product([tpu, tpo], [oru, oro])) \
+          + list(itertools.product([oru, oro], [tpu, tpo])):
+        print('Calculating results for: basis_in={}\tbasis_out={}'.format(
+            basis_in.__class__.__name__, basis_out.__class__.__name__))
+        print('\tLambda_in:\tdofs={}\tml={}'.format(len(Lambda_in.functions),
+                                                    Lambda_in.maximum_level))
+        print('\tLambda_out:\tdofs={}\tml={}'.format(len(Lambda_out.functions),
+                                                     Lambda_out.maximum_level))
+        Delta_in = Lambda_in.single_scale_functions()
+        Delta_out = Lambda_out.single_scale_functions()
+        trace = operators.trace(basis_in, basis_out)
+        for l in range(
+                min(Lambda_in.maximum_level, Lambda_out.maximum_level) + 1):
+            ind_in = Delta_in.on_level(l)
+            ind_out = Delta_out.on_level(l)
+            check_linop_transpose(trace, set(ind_in), set(ind_out))
+            for _ in range(3):
+                vec_in = SparseVector(ind_in, np.random.rand(len(ind_in)))
+                vec_out = trace.matvec(vec_in, set(ind_in), set(ind_out))
+                for psi_out in ind_out:
+                    expected_out = sum(vec_in[psi_in] * psi_in.eval(0) *
+                                       psi_out.eval(0) for psi_in in ind_in)
+                    assert np.isclose(vec_out[psi_out], expected_out)
