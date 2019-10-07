@@ -143,7 +143,7 @@ def test_multiscale_mass_quadrature():
 
 
 def test_multiscale_trace():
-    """ Test that the multiscale matrix equals that found with quadrature. """
+    """ Test that the multiscale matrix equals that found with evaluation. """
     oru = OrthonormalBasis.uniform_basis(max_level=5)
     oro = OrthonormalBasis.origin_refined_basis(max_level=12)
     tpu = ThreePointBasis.uniform_basis(max_level=5)
@@ -159,9 +159,7 @@ def test_multiscale_trace():
         resmat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
         truemat = np.zeros([len(Lambda_out), len(Lambda_in)])
         for j, psi in enumerate(Lambda_in):
-            supp_psi = support_to_interval(psi.support)
             for i, mu in enumerate(Lambda_out):
-                supp_mu = support_to_interval(mu.support)
                 truemat[i, j] = psi.eval(0) * mu.eval(0)
         assert np.allclose(resmat, truemat)
 
@@ -230,8 +228,8 @@ def test_multiscale_operator_quadrature_lin_comb():
 
 def test_apply_upp_low_vs_full():
     """ Test that apply_upp() + apply_low() == apply(). """
-    uml = 6
-    oml = 15
+    uml = 4
+    oml = 11
     hbu = HaarBasis.uniform_basis(max_level=uml)
     hbo = HaarBasis.origin_refined_basis(max_level=oml)
     hbe = HaarBasis.end_points_refined_basis(max_level=oml)
