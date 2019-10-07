@@ -84,7 +84,7 @@ class DiscLinearScaling(basis.Scaling):
     @staticmethod
     def eval_mother(constant, x, deriv):
         if not deriv:
-            if constant: return (0 <= x) & (x < 1)
+            if constant: return 1.0 * ((0 <= x) & (x < 1))
             else: return sq3 * (2 * x - 1) * ((0 <= x) & (x < 1))
         else:
             if constant: return 0 * ((0 <= x) & (x < 1))

@@ -102,16 +102,23 @@ def test_threepoint_trace():
     for (b_in, L_in), (b_out, L_out) in list(product([tpu, tpo], [tpu, tpo])) \
                                       + list(product([tpu, tpo], [oru, oro])) \
                                       + list(product([oru, oro], [tpu, tpo])):
+        print('Calculating results for: basis_in={}\tbasis_out={}'.format(
+            b_in.__class__.__name__, b_out.__class__.__name__))
+        print('\tLambda_in:\tdofs={}\tml={}'.format(len(L_in.functions),
+                                                    L_in.maximum_level))
+        print('\tLambda_out:\tdofs={}\tml={}'.format(len(L_out.functions),
+                                                     L_out.maximum_level))
         Delta_in = L_in.single_scale_functions()
         Delta_out = L_out.single_scale_functions()
         trace = operators.trace(b_in, b_out)
         for l in range(min(L_in.maximum_level, L_out.maximum_level) + 1):
             ind_in = Delta_in.on_level(l)
             ind_out = Delta_out.on_level(l)
-            for _ in range(100):
+            check_linop_transpose(trace, set(ind_in), set(ind_out))
+            for _ in range(3):
                 vec_in = SparseVector(ind_in, np.random.rand(len(ind_in)))
-                vec_out = trace.matvec(vec_in, set(ind_in), ind_in)
-                expected_out = [
-                    vec_in[i] if i.labda[1] == 0 else 0.0 for i in ind_out
-                ]
-                assert np.allclose(vec_out.asarray(ind_out), expected_out)
+                vec_out = trace.matvec(vec_in, set(ind_in), set(ind_out))
+                for psi_out in ind_out:
+                    expected_out = sum(vec_in[psi_in] * psi_in.eval(0) *
+                                       psi_out.eval(0) for psi_in in ind_in)
+                    assert np.isclose(vec_out[psi_out], expected_out)
