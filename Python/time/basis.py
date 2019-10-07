@@ -85,7 +85,7 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
 
     def reset_coeff(self):
         """ Resets the coefficients stored in this function object. """
-        self.coeff = [0] * 3
+        self.coeff = [0, 0]
 
     def __repr__(self):
         return "{}({}, {})".format(self.__class__.__name__, *self.labda)
