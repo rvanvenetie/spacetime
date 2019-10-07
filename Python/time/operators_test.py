@@ -1,4 +1,5 @@
 from collections import defaultdict
+from itertools import product
 
 import numpy as np
 from pytest import approx
@@ -94,13 +95,23 @@ def test_haar_three_scaling_mass():
 
 
 def test_threepoint_trace():
-    basis, Lambda = ThreePointBasis.uniform_basis(max_level=5)
-    Delta = Lambda.single_scale_functions()
-    trace = operators.trace(basis)
-    for l in range(6):
-        indices = Delta.on_level(l)
-        for _ in range(100):
-            d = SparseVector(indices, np.random.rand(len(indices)))
-            res = trace.matvec(d, set(indices), indices)
-            out = [d[i] if i.labda[1] == 0 else 0.0 for i in indices]
-            assert np.allclose(res.asarray(indices), out)
+    oru = OrthonormalBasis.uniform_basis(max_level=5)
+    oro = OrthonormalBasis.origin_refined_basis(max_level=12)
+    tpu = ThreePointBasis.uniform_basis(max_level=5)
+    tpo = ThreePointBasis.origin_refined_basis(max_level=12)
+    for (b_in, L_in), (b_out, L_out) in list(product([tpu, tpo], [tpu, tpo])) \
+                                      + list(product([tpu, tpo], [oru, oro])) \
+                                      + list(product([oru, oro], [tpu, tpo])):
+        Delta_in = L_in.single_scale_functions()
+        Delta_out = L_out.single_scale_functions()
+        trace = operators.trace(b_in, b_out)
+        for l in range(min(L_in.maximum_level, L_out.maximum_level) + 1):
+            ind_in = Delta_in.on_level(l)
+            ind_out = Delta_out.on_level(l)
+            for _ in range(100):
+                vec_in = SparseVector(ind_in, np.random.rand(len(ind_in)))
+                vec_out = trace.matvec(vec_in, set(ind_in), ind_in)
+                expected_out = [
+                    vec_in[i] if i.labda[1] == 0 else 0.0 for i in ind_out
+                ]
+                assert np.allclose(vec_out.asarray(ind_out), expected_out)

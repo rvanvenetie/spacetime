@@ -86,9 +86,29 @@ def mass(basis_in, basis_out=None):
 
 
 def _trace_three_in_three_out(phi_in):
+    """ The scaling trace matrix for threepoint in, threepoint out. """
+    assert isinstance(phi_in, ContLinearScaling)
     l, n = phi_in.labda
     if n > 0: return []
     return [(phi_in, 1.0)]
+
+
+def _trace_three_in_ortho_out(phi_in):
+    """ The scaling trace matrix for threepoint in, orthonormal out. """
+    assert isinstance(phi_in, ContLinearScaling)
+    l, n = phi_in.labda
+    if n > 0: return []
+    elem = phi_in.support[0]
+    return [(elem.phi_disc_lin[0], 1.0)]
+
+
+def _trace_ortho_in_three_out(phi_in):
+    """ The scaling trace matrix for orthonormal in, threepoint out. """
+    assert isinstance(phi_in, DiscLinearScaling)
+    l, n = phi_in.labda
+    if n > 0: return []
+    elem = phi_in.support[0]
+    return [(elem.phi_cont_lin[0], 1.0)]
 
 
 def trace(basis_in, basis_out=None):
@@ -96,6 +116,19 @@ def trace(basis_in, basis_out=None):
     if basis_out is None:
         basis_out = basis_in
 
-    assert isinstance(basis_in, ThreePointBasis) \
-       and isinstance(basis_out, ThreePointBasis)
-    return LinearOperator(_trace_three_in_three_out, _trace_three_in_three_out)
+    if isinstance(basis_in, ThreePointBasis) and isinstance(
+            basis_out, ThreePointBasis):
+        return LinearOperator(_trace_three_in_three_out,
+                              _trace_three_in_three_out)
+    elif isinstance(basis_in, ThreePointBasis) and isinstance(
+            basis_out, OrthonormalBasis):
+        return LinearOperator(_trace_three_in_ortho_out,
+                              _trace_ortho_in_three_out)
+    elif isinstance(basis_in, OrthonormalBasis) and isinstance(
+            basis_out, ThreePointBasis):
+        return LinearOperator(_trace_ortho_in_three_out,
+                              _trace_three_in_ortho_out)
+    else:
+        raise TypeError(
+            'Trace operator for ({}, {}) is not implemented (yet).'.format(
+                basis_in.__class__.__name__, basis_out.__class__.__name__))
