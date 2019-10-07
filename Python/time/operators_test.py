@@ -91,3 +91,16 @@ def test_haar_three_scaling_mass():
                     res_test[phi_three] += val * 1 / 2 * 2**-l
             for phi_three, val in res.items():
                 assert res_test[phi_three] == approx(val)
+
+
+def test_threepoint_trace():
+    basis, Lambda = ThreePointBasis.uniform_basis(max_level=5)
+    Delta = Lambda.single_scale_functions()
+    trace = operators.trace(basis)
+    for l in range(6):
+        indices = Delta.on_level(l)
+        for _ in range(100):
+            d = SparseVector(indices, np.random.rand(len(indices)))
+            res = trace.matvec(d, set(indices), indices)
+            out = [d[i] if i.labda[1] == 0 else 0.0 for i in indices]
+            assert np.allclose(res.asarray(indices), out)

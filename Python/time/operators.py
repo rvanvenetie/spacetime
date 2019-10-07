@@ -83,3 +83,19 @@ def mass(basis_in, basis_out=None):
         raise TypeError(
             'Mass operator for ({}, {}) is not implemented (yet).'.format(
                 basis_in.__class__.__name__, basis_out.__class__.__name__))
+
+
+def _trace_three_in_three_out(phi_in):
+    l, n = phi_in.labda
+    if n > 0: return []
+    return [(phi_in, 1.0)]
+
+
+def trace(basis_in, basis_out=None):
+    """ The trace matrix <gamma_0 phi, gamma_0 psi> = phi(0) psi(0). """
+    if basis_out is None:
+        basis_out = basis_in
+
+    assert isinstance(basis_in, ThreePointBasis) \
+       and isinstance(basis_out, ThreePointBasis)
+    return LinearOperator(_trace_three_in_three_out, _trace_three_in_three_out)
