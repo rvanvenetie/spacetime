@@ -28,20 +28,16 @@ class Applicator(object):
     def _initialize(self, vec_in, vec_out):
         """ Helper function to initialize fields in datastructures. """
 
+        # Sanity check that we start with an empty vector
         for psi, value in vec_out.items():
             assert value == 0
 
         self.Lambda_in = MultiscaleFunctions(vec_in)
         self.Lambda_out = MultiscaleFunctions(vec_out)
 
-        # Reset the output vector.
-        for psi in self.Lambda_out:
-            psi.reset_coeff()
-
-        # First, store the vector inside the wavelet.
-        # TODO: This should be removed.
+        # Store the vector inside the wavelet tree.
         for psi, value in vec_in.items():
-            psi.reset_coeff()
+            assert psi.coeff[0] == 0
             psi.coeff[0] = value
 
         # Last, update the fields inside the elements.
@@ -67,14 +63,19 @@ class Applicator(object):
             for psi in self.Lambda_out:
                 vec_out[psi] = psi.coeff[1]
 
-        # First, delete the used fields in the Element
+        # Delete the used fields in the Element
         for psi in self.Lambda_in:
             for elem in psi.support:
                 elem.Lambda_in = False
-
         for psi in self.Lambda_out:
             for elem in psi.support:
                 elem.Lambda_out = False
+
+        # Delete the used fields in the input/output vector
+        for psi in self.Lambda_out:
+            psi.reset_coeff()
+        for psi in self.Lambda_in:
+            psi.reset_coeff()
 
     def apply(self, vec_in, vec_out=None):
         """ Apply the multiscale operator.
