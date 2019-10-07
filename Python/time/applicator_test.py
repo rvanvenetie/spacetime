@@ -18,25 +18,6 @@ np.random.seed(0)
 np.set_printoptions(linewidth=10000, precision=3)
 
 
-def applicator_to_matrix(applicator, Lambda_in, Lambda_out):
-    if isinstance(Lambda_in, NodeViewInterface):
-        Lambda_in = [nv.node for nv in Lambda_in.bfs()]
-    if isinstance(Lambda_out, NodeViewInterface):
-        Lambda_out = [nv.node for nv in Lambda_out.bfs()]
-
-    n, m = len(Lambda_out), len(Lambda_in)
-    result = np.zeros((n, m))
-    for i, psi in enumerate(Lambda_in):
-        vec_in = SparseVector(Lambda_in, np.zeros(m))
-        vec_in[psi] = 1.0
-
-        vec_out = SparseVector(Lambda_out, np.zeros(n))
-        applicator.apply(vec_in, vec_out)
-        for j, phi in enumerate(Lambda_out):
-            result[j, i] = vec_out[phi]
-    return result
-
-
 def support_to_interval(elems):
     return (elems[0].interval[0], elems[-1].interval[-1])
 
@@ -91,7 +72,7 @@ def test_haar_3pt_mass():
 
     applicator = Applicator(operators.mass(basis_in, basis_out), basis_in,
                             basis_out)
-    real_mat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
+    real_mat = applicator.to_matrix(Lambda_in, Lambda_out)
     for _ in range(2):
         vec_in = SparseVector(Lambda_in, np.zeros(len(Lambda_in)))
         vec_in[Lambda_in.functions[0]] = 1.0
@@ -126,7 +107,7 @@ def test_multiscale_mass_quadrature():
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
         applicator = Applicator(operator, basis_in, basis_out)
-        resmat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
+        resmat = applicator.to_matrix(Lambda_in, Lambda_out)
         truemat = np.zeros([len(Lambda_out), len(Lambda_in)])
         for j, psi in enumerate(Lambda_in):
             supp_psi = support_to_interval(psi.support)
@@ -155,7 +136,7 @@ def test_multiscale_trace():
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
         applicator = Applicator(operator, basis_in, basis_out)
-        resmat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
+        resmat = applicator.to_matrix(Lambda_in, Lambda_out)
         truemat = np.zeros([len(Lambda_out), len(Lambda_in)])
         for j, psi in enumerate(Lambda_in):
             for i, mu in enumerate(Lambda_out):

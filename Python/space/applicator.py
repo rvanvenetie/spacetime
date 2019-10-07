@@ -1,6 +1,6 @@
-from pprint import pprint
+import numpy as np
 
-from ..datastructures.tree_vector import MetaRootVector
+from ..datastructures.tree_vector import MetaRootVector, NodeVector
 from ..datastructures.tree_view import MetaRootInterface
 from .triangulation_view import TriangulationView
 
@@ -56,3 +56,28 @@ class Applicator:
         for nv in vec_out_nodes:
             nv.node.marked = False
         return vec_out
+
+    def to_matrix(self, Lambda_in, Lambda_out):
+        """ Returns the dense matrix. Debug function. O(n^2). """
+        nodes_in = Lambda_in.bfs()
+        nodes_out = Lambda_out.bfs()
+
+        n, m = len(nodes_out), len(nodes_in)
+        result = np.zeros((n, m))
+        for i, psi in enumerate(nodes_in):
+            # Create vector with a 1 for psi
+            vec_in = Lambda_in.deep_copy(nv_cls=NodeVector,
+                                         mv_cls=MetaRootVector)
+            for n in vec_in.bfs():
+                if n.node == psi.node:
+                    n.value = 1
+                    break
+            assert sum(n.value for n in vec_in.bfs()) == 1
+
+            vec_out = Lambda_out.deep_copy(nv_cls=NodeVector,
+                                           mv_cls=MetaRootVector)
+            assert sum(n.value for n in vec_out.bfs()) == 0
+            self.apply(vec_in, vec_out)
+            for j, phi in enumerate(vec_out.bfs()):
+                result[j, i] = phi.value
+        return result

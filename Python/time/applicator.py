@@ -1,3 +1,5 @@
+import numpy as np
+
 from ..datastructures.tree_view import NodeViewInterface
 from .basis import MultiscaleFunctions, mother_element
 from .sparse_vector import SparseVector
@@ -266,3 +268,22 @@ class Applicator(object):
                 phi.reset_coeff()
             for phi in Pi_B_bar_out:
                 phi.reset_coeff()
+
+    def to_matrix(self, Lambda_in, Lambda_out):
+        """ Returns the dense matrix. Debug function. O(n^2). """
+        if isinstance(Lambda_in, NodeViewInterface):
+            Lambda_in = [nv.node for nv in Lambda_in.bfs()]
+        if isinstance(Lambda_out, NodeViewInterface):
+            Lambda_out = [nv.node for nv in Lambda_out.bfs()]
+
+        n, m = len(Lambda_out), len(Lambda_in)
+        result = np.zeros((n, m))
+        for i, psi in enumerate(Lambda_in):
+            vec_in = SparseVector(Lambda_in, np.zeros(m))
+            vec_in[psi] = 1.0
+
+            vec_out = SparseVector(Lambda_out, np.zeros(n))
+            self.apply(vec_in, vec_out)
+            for j, phi in enumerate(Lambda_out):
+                result[j, i] = vec_out[phi]
+        return result

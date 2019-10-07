@@ -186,6 +186,13 @@ class FrozenDoubleNode(NodeViewInterface):
     def deep_refine(self, call_filter=None, call_postprocess=None):
         return self._deep_refine(call_filter, call_postprocess)
 
+    def deep_copy(self, nv_cls=None, mv_cls=None, call_postprocess=None):
+        """ Deep-copies `self` into a new NodeView tree. """
+        if nv_cls is None: nv_cls = self.roots[0].__class__
+        if mv_cls is None: mv_cls = self.__class__
+        new_metaroot = mv_cls(self.node, node_view_cls=nv_cls)
+        return new_metaroot.union(self, call_postprocess=call_postprocess)
+
     def frozen_other_axis(self):
         """ Helper function to get the `self` frozen in the other axis. """
         return self.__class__(self.dbl_node, not self.i)
