@@ -28,14 +28,15 @@ def generate_y_delta(x_delta):
                 if not mu.marked: mu.marked = []
                 mu.marked.append(x_labda_0.frozen_other_axis())
 
-    # Now we use this data first to create the time metaroot axis.
+    # First, we use this data to create the time metaroot axis.
     y_delta.project(0).deep_refine(call_filter=lambda mu: mu.marked)
 
-    # Now we union the mu's with the right space trees.
+    # Then, we union the output wavelets with the right space trees.
     for y_labda_0 in y_delta.project(0).bfs():
         assert y_labda_0.node.marked
         for space_tree in y_labda_0.node.marked:
             y_labda_0.frozen_other_axis().union(space_tree)
+
         # Remove the marks.
         y_labda_0.node.marked = False
 

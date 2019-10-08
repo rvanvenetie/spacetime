@@ -101,6 +101,10 @@ class OrthonormalWavelet(basis.Wavelet):
     def __init__(self, labda, single_scale, parents=None):
         super().__init__(labda, single_scale=single_scale, parents=parents)
 
+        for elem in self.support:
+            assert elem.psi_ortho[self.index % 2] is None
+            elem.psi_ortho[self.index % 2] = self
+
     def _nbr(self):
         """ Finds the `neighbour` of this wavelet, i.e. its twin brother. """
         _, n = self.labda
