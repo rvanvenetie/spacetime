@@ -18,9 +18,9 @@ from ..datastructures.tree_view import MetaRootView
 from ..space.applicator import Applicator as Applicator2D
 from ..space.basis import HierarchicalBasisFunction
 from ..space.operators import MassOperator as Mass2D
+from ..space.operators import StiffnessOperator as Stiff2D
 from ..space.triangulation import InitialTriangulation
 from ..time.applicator import Applicator as Applicator1D
-from ..time.applicator_test import applicator_to_matrix
 from ..time.haar_basis import HaarBasis
 from ..time.operators import mass as Mass1D
 from ..time.orthonormal_basis import OrthonormalBasis
@@ -323,11 +323,10 @@ def test_applicator_full_tensor_time():
                                 applicator_space)
 
         # First, calculate real matrix that corresponds to applicator.
-        mat_time = applicator_to_matrix(applicator_time, Lambda_in.project(0),
-                                        Lambda_out.project(0))
-        mat_space = applicator_to_matrix(applicator_space,
-                                         Lambda_in.project(1),
-                                         Lambda_out.project(1))
+        mat_time = applicator_time.to_matrix(Lambda_in.project(0),
+                                             Lambda_out.project(0))
+        mat_space = applicator_space.to_matrix(Lambda_in.project(1),
+                                               Lambda_out.project(1))
         mat2d = np.kron(mat_time, mat_space)
 
         # Test and apply 10 random vectors.
@@ -348,6 +347,76 @@ def test_applicator_full_tensor_time():
             vec_out = applicator.apply(vec_in)
 
             # Transform the input/output vector to the mat2d coordinate format.
+            tr_vec_in = vec_in.to_array()
+            tr_vec_out = vec_out.to_array()
+
+            # Calculate the result by plain old matvec, and compare!
+            real_vec_out = mat2d.dot(tr_vec_in)
+            assert np.allclose(real_vec_out, tr_vec_out)
+
+
+def test_applicator_full_tensor_spacetime_quad():
+    """ Takes a combination of wavelets on the time against space. """
+    bases = [HaarBasis(), OrthonormalBasis(), ThreePointBasis()]
+    for basis in bases:
+        basis.metaroot_wavelet.uniform_refine(8)
+
+    triang = InitialTriangulation.unit_square()
+    hierarch_basis = triang.vertex_meta_root
+    hierarch_basis.uniform_refine(6)
+
+    for basis_time_in, basis_time_out, op_space, l_in, l_out in product(
+            bases, bases, [Mass2D(), Stiff2D()], [(5, 4), (4, 5)], [(4, 5),
+                                                                    (2, 6)]):
+        print(
+            '\nTesting for basis_time_in={}, basis_time_out={}, op_space={}, l_in={}, l_out={}'
+            .format(basis_time_in.__class__.__name__,
+                    basis_time_out.__class__.__name__,
+                    op_space.__class__.__name__, l_in, l_out))
+
+        # Create Lambda_in/out and initialize the applicator.
+        Lambda_in = DoubleTree(
+            (basis_time_in.metaroot_wavelet, hierarch_basis))
+        Lambda_in.uniform_refine(l_in)
+        print('\tLambda_in is tree upto levels {} with dofs {}'.format(
+            l_in, len(Lambda_in.bfs())))
+        Lambda_out = DoubleTree(
+            (basis_time_out.metaroot_wavelet, hierarch_basis))
+        Lambda_out.uniform_refine(l_out)
+        print('\tLambda_out is tree upto levels {} with dofs {}'.format(
+            l_out, len(Lambda_out.bfs())))
+
+        # Create 1D applicators
+        applicator_time = Applicator1D(Mass1D(basis_time_in, basis_time_out),
+                                       basis_in=basis_time_in,
+                                       basis_out=basis_time_out)
+        applicator_space = Applicator2D(op_space)
+        applicator = Applicator(Lambda_in, Lambda_out, applicator_time,
+                                applicator_space)
+
+        # First, calculate real matrix that corresponds to applicator.
+        mat_time = applicator_time.to_matrix(Lambda_in.project(0),
+                                             Lambda_out.project(0))
+        mat_space = applicator_space.to_matrix(Lambda_in.project(1),
+                                               Lambda_out.project(1))
+        mat2d = np.kron(mat_time, mat_space)
+
+        # Test and apply 10 random vectors.
+        for _ in range(10):
+            # Initialze double tree vectors.
+            vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
+                                         dbl_tree_cls=DoubleTreeVector)
+
+            assert len(vec_in.bfs()) == len(Lambda_in.bfs())
+            assert all(n1.nodes == n2.nodes
+                       for n1, n2 in zip(vec_in.bfs(), Lambda_in.bfs()))
+
+            # Initialize the unit input vector.
+            for db_node in vec_in.bfs():
+                db_node.value = np.random.rand()
+
+            # Calculate the output and convert to the mat2d coordinate format.
+            vec_out = applicator.apply(vec_in)
             tr_vec_in = vec_in.to_array()
             tr_vec_out = vec_out.to_array()
 
@@ -400,11 +469,10 @@ def test_applicator_different_out():
                                 applicator_space)
 
         # First, calculate real matrix that corresponds to applicator.
-        mat_time = applicator_to_matrix(applicator_time, Lambda_in.project(0),
-                                        Lambda_out.project(0))
-        mat_space = applicator_to_matrix(applicator_space,
-                                         Lambda_in.project(1),
-                                         Lambda_out.project(1))
+        mat_time = applicator_time.to_matrix(Lambda_in.project(0),
+                                             Lambda_out.project(0))
+        mat_space = applicator_space.to_matrix(Lambda_in.project(1),
+                                               Lambda_out.project(1))
         mat2d = np.kron(mat_time, mat_space)
 
         # Test and apply 10 random vectors.

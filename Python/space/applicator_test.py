@@ -3,37 +3,13 @@ import random
 import numpy as np
 import quadpy
 
-from ..datastructures.tree_vector import MetaRootVector, NodeVector
+from ..datastructures.tree_vector import MetaRootVector
 from ..datastructures.tree_view import MetaRootView
 from .applicator import Applicator
 from .basis import HierarchicalBasisFunction
 from .operators import MassOperator, StiffnessOperator
 from .triangulation import InitialTriangulation
 from .triangulation_view import TriangulationView
-
-
-def applicator_to_matrix(applicator, Lambda_in, Lambda_out):
-    nodes_in = Lambda_in.bfs()
-    nodes_out = Lambda_out.bfs()
-
-    n, m = len(nodes_out), len(nodes_in)
-    result = np.zeros((n, m))
-    for i, psi in enumerate(nodes_in):
-        # Create vector with a 1 for psi
-        vec_in = Lambda_in.deep_copy(nv_cls=NodeVector, mv_cls=MetaRootVector)
-        for n in vec_in.bfs():
-            if n.node == psi.node:
-                n.value = 1
-                break
-        assert sum(n.value for n in vec_in.bfs()) == 1
-
-        vec_out = Lambda_out.deep_copy(nv_cls=NodeVector,
-                                       mv_cls=MetaRootVector)
-        assert sum(n.value for n in vec_out.bfs()) == 0
-        applicator.apply(vec_in, vec_out)
-        for j, phi in enumerate(vec_out.bfs()):
-            result[j, i] = phi.value
-    return result
 
 
 def test_operators():
@@ -84,7 +60,7 @@ def test_mass_quad_non_symmetric():
                                       (Lambda_above, Lambda_below)]:
 
             # Matrix
-            mat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
+            mat = applicator.to_matrix(Lambda_in, Lambda_out)
 
             # Compare with quadrature
             quad_scheme = quadpy.triangle.newton_cotes_open(0 if deriv else 2)
