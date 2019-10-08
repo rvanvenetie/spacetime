@@ -25,57 +25,57 @@ class Applicator(object):
         self.basis_in = basis_in
         self.basis_out = basis_out if basis_out else basis_in
 
-    def _copy_result_into_vec_out(self, vec_out):
-        # TODO: This is a legacy function. Should be removed.
-        if isinstance(vec_out, NodeViewInterface):
-            for nv in vec_out.bfs():
-                nv.value = nv.node.coeff[1]
-        else:
-            for psi in self.Lambda_out:
-                vec_out[psi] = psi.coeff[1]
-        return vec_out
-
     def _initialize(self, vec_in, vec_out):
         """ Helper function to initialize fields in datastructures. """
 
+        # Sanity check that we start with an empty vector
         for psi, value in vec_out.items():
             assert value == 0
 
         self.Lambda_in = MultiscaleFunctions(vec_in)
         self.Lambda_out = MultiscaleFunctions(vec_out)
 
-        # Reset the output vector.
-        for psi in self.Lambda_out:
-            psi.reset_coeff()
-
-        # First, store the vector inside the wavelet.
-        # TODO: This should be removed.
+        # Store the vector inside the wavelet tree.
         for psi, value in vec_in.items():
-            psi.reset_coeff()
+            assert psi.coeff[0] == 0
             psi.coeff[0] = value
-
-        # Second, reset data inside the `elements`.
-        # TODO: This is non-linear, fix this.
-        def reset(elem):
-            """ Reset the variables! :-) """
-            elem.Lambda_in = False
-            elem.Lambda_out = False
-            elem.Pi_in = False
-            elem.Pi_out = False
-            for child in elem.children:
-                reset(child)
-
-        # Recursively resets all elements.
-        reset(mother_element)
 
         # Last, update the fields inside the elements.
         for psi in self.Lambda_in:
-            for elem in list(psi.support):
+            for elem in psi.support:
                 elem.Lambda_in = True
 
         for psi in self.Lambda_out:
-            for elem in list(psi.support):
+            for elem in psi.support:
                 elem.Lambda_out = True
+
+    def _finalize(self, vec_in, vec_out):
+        """ Helper function to finalize the results. 
+
+        This also copies the data from the single trees into vec_out. """
+
+        # Copy result into vec_out
+        if isinstance(vec_out, NodeViewInterface):
+            for nv in vec_out.bfs():
+                nv.value = nv.node.coeff[1]
+        else:
+            # TODO: This should be removed
+            for psi in self.Lambda_out:
+                vec_out[psi] = psi.coeff[1]
+
+        # Delete the used fields in the Element
+        for psi in self.Lambda_in:
+            for elem in psi.support:
+                elem.Lambda_in = False
+        for psi in self.Lambda_out:
+            for elem in psi.support:
+                elem.Lambda_out = False
+
+        # Delete the used fields in the input/output vector
+        for psi in self.Lambda_out:
+            psi.reset_coeff()
+        for psi in self.Lambda_in:
+            psi.reset_coeff()
 
     def apply(self, vec_in, vec_out=None):
         """ Apply the multiscale operator.
@@ -92,8 +92,9 @@ class Applicator(object):
         # Apply the recursive method.
         self._apply_recur(l=0, Pi_in=[], Pi_out=[])
 
-        # Copy data back from basis into a vector.
-        return self._copy_result_into_vec_out(vec_out)
+        # Copy data back from basis into a vector, and reset variables.
+        self._finalize(vec_in, vec_out)
+        return vec_out
 
     def apply_upp(self, vec_in, vec_out=None):
         """ Apply the upper part of the multiscale operator.
@@ -108,7 +109,9 @@ class Applicator(object):
         self._initialize(vec_in, vec_out)
 
         self._apply_upp_recur(l=0, Pi_in=[], Pi_out=[])
-        return self._copy_result_into_vec_out(vec_out)
+
+        self._finalize(vec_in, vec_out)
+        return vec_out
 
     def apply_low(self, vec_in, vec_out=None):
         """ Apply the lower part of the multiscale operator.
@@ -123,7 +126,9 @@ class Applicator(object):
         self._initialize(vec_in, vec_out)
 
         self._apply_low_recur(l=0, Pi_in=[])
-        return self._copy_result_into_vec_out(vec_out)
+
+        self._finalize(vec_in, vec_out)
+        return vec_out
 
     #  Private methods from here on out.
     def _construct_Pi_out(self, Pi_out):
@@ -171,7 +176,6 @@ class Applicator(object):
                 Pi_A_in.append(phi)
 
         # Unset all the Pi_B_out boys.
-        # TODO: Might not be neccessary.
         for phi in Pi_B_out:
             for elem in phi.support:
                 elem.Pi_out = False

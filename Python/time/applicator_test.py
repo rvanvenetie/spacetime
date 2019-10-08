@@ -203,7 +203,7 @@ def test_multiscale_operator_quadrature_lin_comb():
                                 supp_psi_out[1],
                                 points=points)[0]
 
-                assert np.allclose(true_val, vec_out[psi_out], rtol=1e-4)
+                assert np.allclose(true_val, vec_out[psi_out], rtol=1e-3)
 
 
 def test_apply_upp_low_vs_full():
