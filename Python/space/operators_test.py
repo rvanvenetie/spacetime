@@ -2,7 +2,7 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.sparse.linalg import cg
 
-from ..datastructures.tree_view import MetaRootView, NodeView
+from ..datastructures.tree_view import NodeView, TreeView
 from .operators import MassOperator, Operator, StiffnessOperator
 from .triangulation import InitialTriangulation, to_matplotlib_triangulation
 from .triangulation_view import TriangulationView

@@ -46,8 +46,7 @@ class NodeInterface(ABC):
         return len(self.children) == 0
 
     def _bfs(self):
-        """ Performs a BFS on the family tree rooted at `self`.
-        """
+        """ Performs a BFS on the family tree rooted at `self`.  """
         queue = deque([self])
         nodes = []
         while queue:

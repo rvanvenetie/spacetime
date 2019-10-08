@@ -3,8 +3,8 @@ import random
 import numpy as np
 import quadpy
 
-from ..datastructures.tree_vector import MetaRootVector
-from ..datastructures.tree_view import MetaRootView
+from ..datastructures.tree_vector import TreeVector
+from ..datastructures.tree_view import TreeView
 from .applicator import Applicator
 from .basis import HierarchicalBasisFunction
 from .operators import MassOperator, StiffnessOperator
@@ -19,13 +19,13 @@ def test_operators():
         applicator = Applicator(op)
         for ml in range(5):
             # Create some (sub)vector on the vertices.
-            vec_in = MetaRootVector(T.vertex_meta_root)
+            vec_in = TreeVector(T.vertex_meta_root)
             vec_in.uniform_refine(ml)
             assert len(vec_in.bfs()) < len(T.vertex_meta_root.bfs())
             for vertex in vec_in.bfs():
                 vertex.value = random.random()
 
-            vec_out = MetaRootVector(T.vertex_meta_root)
+            vec_out = TreeVector(T.vertex_meta_root)
             vec_out.uniform_refine(max_level=ml)
             applicator.apply(vec_in, vec_out)
 
@@ -41,12 +41,12 @@ def test_mass_quad_non_symmetric():
     T.elem_meta_root.uniform_refine(5)
 
     # Create a vector with only vertices lying below the diagonal upto lvl 4
-    Lambda_below = MetaRootView(T.vertex_meta_root)
+    Lambda_below = TreeView(T.vertex_meta_root)
     Lambda_below.deep_refine(call_filter=lambda vertex: vertex.level <= 4 and
                              vertex.x + vertex.y <= 1)
 
     # Create an out vector with only vertices lying above the diagonal.
-    Lambda_above = MetaRootVector(T.vertex_meta_root)
+    Lambda_above = TreeVector(T.vertex_meta_root)
     Lambda_above.deep_refine(
         call_filter=lambda vertex: vertex.x + vertex.y >= 1)
 

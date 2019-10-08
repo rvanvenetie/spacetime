@@ -1,9 +1,8 @@
-from ..datastructures.double_tree import DoubleTree
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  DoubleTreeVector,
                                                  FrozenDoubleNodeVector)
-from ..datastructures.tree_view import MetaRootView
-from ..space.basis import HierarchicalBasisFunction
+from ..datastructures.double_tree_view import DoubleTree
+from ..datastructures.tree_view import TreeView
 from ..space.triangulation import InitialTriangulation
 from ..time.haar_basis import HaarBasis
 
@@ -14,25 +13,25 @@ def test_double_tree_vector():
     triang.elem_meta_root.uniform_refine(2)
 
     # Create a hierarchical basis
-    hierarch_basis = MetaRootView(metaroot=triang.vertex_meta_root,
-                                  node_view_cls=HierarchicalBasisFunction)
+    hierarch_basis = TreeView(triang.vertex_meta_root)
     hierarch_basis.deep_refine()
 
     # Create time part.
     HaarBasis.metaroot_wavelet.uniform_refine(2)
 
     # Create a DoubleTree Vector
-    dt_root = DoubleTreeVector.full_tensor(
+    dt_root = DoubleTreeVector.from_metaroots(
         HaarBasis.metaroot_wavelet,
-        hierarch_basis,
+        triang.vertex_meta_root,
         dbl_node_cls=DoubleNodeVector,
         frozen_dbl_cls=FrozenDoubleNodeVector)
+    dt_root.uniform_refine()
 
     # Assert that main axis correspond to trees we've put in.
     assert [f_node.node for f_node in dt_root.project(0).bfs()
             ] == HaarBasis.metaroot_wavelet.bfs()
-    assert [f_node.node
-            for f_node in dt_root.project(1).bfs()] == hierarch_basis.bfs()
+    assert [f_node.node for f_node in dt_root.project(1).bfs()
+            ] == triang.vertex_meta_root.bfs()
 
     # Initialize the vector ones.
     for db_node in dt_root.bfs():

@@ -4,8 +4,8 @@ import numpy as np
 
 from ..space.triangulation import InitialTriangulation
 from .tree_test import corner_index_tree, uniform_index_tree
-from .tree_vector import MetaRootVector, NodeVector
-from .tree_view import MetaRootView, NodeView
+from .tree_vector import NodeVector, TreeVector
+from .tree_view import NodeView, TreeView
 
 
 def test_vector_add():
@@ -13,7 +13,7 @@ def test_vector_add():
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(4)
     for metaroot in [T.elem_meta_root, T.vertex_meta_root]:
-        vec = MetaRootVector(metaroot)
+        vec = TreeVector(metaroot)
         vec.uniform_refine(max_level=5)
         for node in vec.bfs():
             node.value = random.random()
@@ -36,7 +36,7 @@ def test_vector_add():
                            [a.value for a in vec.bfs()])
 
         # Create a unit vector on a coarser grid.
-        vec2 = MetaRootVector(metaroot)
+        vec2 = TreeVector(metaroot)
         vec2.uniform_refine(max_level=2)
         for node in vec2.bfs():
             node.value = 1.0

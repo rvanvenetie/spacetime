@@ -1,6 +1,5 @@
-from ..datastructures.tree import MetaRoot
-from ..datastructures.tree_view import (MetaRootView, NodeView,
-                                        NodeViewInterface)
+from ..datastructures.tree import MetaRoot, MetaRootInterface
+from ..datastructures.tree_view import NodeView, NodeViewInterface, TreeView
 
 
 class ElementView(NodeView):
@@ -28,19 +27,20 @@ class TriangulationView:
     """
     def __init__(self, vertex_view):
         """ Initializer given a vertex (sub)tree. """
-        # Ensure that vertex_view is the root.
-        assert not vertex_view.parents
-
-        if not isinstance(vertex_view, NodeViewInterface):
-            vertex_view = MetaRootView(vertex_view, node_view_cls=NodeView)
+        if not isinstance(vertex_view, TreeView):
+            vertex_view = TreeView(vertex_view)
             vertex_view.deep_refine()
+
+        assert isinstance(vertex_view, TreeView)
 
         # Store the vertex_view with its vertices.
         self.vertex_view = vertex_view
         self.vertices = vertex_view.bfs()
 
+        assert self.vertices
+
         # Extract the original element root.
-        elem_meta_root = vertex_view.children[0].node.patch[0].parent
+        elem_meta_root = vertex_view.root.children[0][0].node.patch[0].parent
         assert isinstance(elem_meta_root, MetaRoot)
 
         # Mark all necessary vertices -- uses the mark field inside vertex.
@@ -54,13 +54,13 @@ class TriangulationView:
 
         def store_vertices_element_view(elem_view):
             """ Stores the vertex view indices inside the element_view object. """
-            elem_view.vertices_view_idx = [
-                v.marked for v in elem_view.node.vertices
-            ]
+            if not isinstance(elem_view.node, MetaRootInterface):
+                elem_view.vertices_view_idx = [
+                    v.marked for v in elem_view.node.vertices
+                ]
 
         # Now create the associated element tree.
-        self.elem_meta_root_view = MetaRootView(elem_meta_root,
-                                                node_view_cls=ElementView)
+        self.elem_meta_root_view = TreeView(ElementView([elem_meta_root]))
         self.elem_meta_root_view.deep_refine(
             call_filter=newest_vertex_in_tree_view,
             call_postprocess=store_vertices_element_view)
@@ -74,7 +74,7 @@ class TriangulationView:
             vertex = self.vertices[elem.newest_vertex()]
             if elem.level == 0 or vertex.marked: continue
             vertex.marked = True
-            self.history.append((elem.newest_vertex(), elem.parents[0]))
+            self.history.append((elem.newest_vertex(), elem.parents[0][0]))
 
         # Undo marking.
         for vertex in self.vertices:
