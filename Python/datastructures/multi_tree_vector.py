@@ -41,7 +41,7 @@ class MultiNodeVector(MultiNodeVectorInterface, MultiNodeView):
 class MultiTreeVector(MultiTree):
     def to_array(self):
         """ Transforms a double tree vector to a numpy vector.  """
-        return np.array([node.value for node in self.bfs()])
+        return np.array([node.value for node in self.bfs()], dtype=float)
 
     def from_array(self, array):
         """ Loads the values from the array in BFS-order into the multi treevector. """

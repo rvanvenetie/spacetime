@@ -114,10 +114,10 @@ class Applicator:
         vec_in = vec
 
         # Create two empty out vectors for the L and U part.
-        vec_out_low = self.Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                                dbl_tree_cls=DoubleTreeVector)
-        vec_out_upp = self.Lambda_out.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                                dbl_tree_cls=DoubleTreeVector)
+        vec_out_low = self.Lambda_out.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                                mlt_tree_cls=DoubleTreeVector)
+        vec_out_upp = self.Lambda_out.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                                mlt_tree_cls=DoubleTreeVector)
 
         # Calculate R_sigma(Id x A_1)I_Lambda
         sigma = self.sigma()

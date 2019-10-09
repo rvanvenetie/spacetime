@@ -28,23 +28,22 @@ class TriangulationView:
     def __init__(self, vertex_view):
         """ Initializer given a vertex (sub)tree. """
         if not isinstance(vertex_view, TreeView):
-            vertex_view = TreeView(vertex_view)
-            vertex_view.deep_refine()
-
-        assert isinstance(vertex_view, TreeView)
+            self.vertex_view = TreeView(vertex_view)
+            self.vertex_view.union(vertex_view)
+        else:
+            self.vertex_view = vertex_view
 
         # Store the vertex_view with its vertices.
-        self.vertex_view = vertex_view
-        self.vertices = vertex_view.bfs()
-
-        assert self.vertices
+        self.vertices = self.vertex_view.bfs()
 
         # Extract the original element root.
-        elem_meta_root = vertex_view.root.children[0][0].node.patch[0].parent
+        elem_meta_root = self.vertex_view.root.children[0][0].node.patch[
+            0].parent
         assert isinstance(elem_meta_root, MetaRoot)
 
         # Mark all necessary vertices -- uses the mark field inside vertex.
         for idx, vertex in enumerate(self.vertices):
+            assert not isinstance(vertex.node, MetaRoot)
             vertex.node.marked = idx
 
         # Two helper functions used inside the element tree generation..
@@ -74,6 +73,7 @@ class TriangulationView:
             vertex = self.vertices[elem.newest_vertex()]
             if elem.level == 0 or vertex.marked: continue
             vertex.marked = True
+            assert len(elem.parents) == 1 and len(elem.parents[0]) == 1
             self.history.append((elem.newest_vertex(), elem.parents[0][0]))
 
         # Undo marking.

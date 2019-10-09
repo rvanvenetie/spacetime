@@ -29,16 +29,25 @@ class Applicator(object):
         """ Helper function to initialize fields in datastructures. """
 
         # Sanity check that we start with an empty vector
-        for psi, value in vec_out.items():
-            assert value == 0
+        if isinstance(vec_out, NodeViewInterface):
+            for nv in vec_out.bfs():
+                assert nv.value == 0
+        else:
+            for psi, value in vec_out.items():
+                assert value == 0
 
         self.Lambda_in = MultiscaleFunctions(vec_in)
         self.Lambda_out = MultiscaleFunctions(vec_out)
 
         # Store the vector inside the wavelet tree.
-        for psi, value in vec_in.items():
-            assert psi.coeff[0] == 0
-            psi.coeff[0] = value
+        if isinstance(vec_in, NodeViewInterface):
+            for nv in vec_in.bfs():
+                assert nv.node.coeff[0] == 0
+                nv.node.coeff[0] = nv.value
+        else:
+            for psi, value in vec_in.items():
+                assert psi.coeff[0] == 0
+                psi.coeff[0] = value
 
         # Last, update the fields inside the elements.
         for psi in self.Lambda_in:

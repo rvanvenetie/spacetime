@@ -5,16 +5,15 @@ from pprint import pprint
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..datastructures.double_tree import DoubleTree
-from ..datastructures.double_tree_test import (corner_index_tree,
-                                               full_tensor_double_tree,
-                                               sparse_tensor_double_tree,
-                                               uniform_index_tree)
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  DoubleTreeVector,
                                                  FrozenDoubleNodeVector)
+from ..datastructures.double_tree_view import DoubleTree
+from ..datastructures.double_tree_view_test import (corner_index_tree,
+                                                    full_tensor_double_tree,
+                                                    sparse_tensor_double_tree,
+                                                    uniform_index_tree)
 from ..datastructures.function_test import FakeHaarFunction
-from ..datastructures.tree_view import MetaRootView
 from ..space.applicator import Applicator as Applicator2D
 from ..space.basis import HierarchicalBasisFunction
 from ..space.operators import MassOperator as Mass2D
@@ -112,10 +111,13 @@ def test_small_sigma():
 
 def test_theta_full_tensor():
     HaarBasis.metaroot_wavelet.uniform_refine(4)
-    Lambda_in = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
-                                       HaarBasis.metaroot_wavelet)
-    Lambda_out = DoubleTree.full_tensor(HaarBasis.metaroot_wavelet,
-                                        HaarBasis.metaroot_wavelet)
+    Lambda_in = DoubleTree(
+        (HaarBasis.metaroot_wavelet, HaarBasis.metaroot_wavelet))
+    Lambda_in.deep_refine()
+    Lambda_out = DoubleTree(
+        (HaarBasis.metaroot_wavelet, HaarBasis.metaroot_wavelet))
+    Lambda_out.deep_refine()
+
     applicator = FakeApplicator(Lambda_in, Lambda_out)
     theta = applicator.theta()
     assert [d_node.nodes for d_node in theta.bfs()
@@ -229,8 +231,8 @@ def test_applicator_real():
                             applicator_space)
 
     # Now create an vec_in and vec_out.
-    vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                 dbl_tree_cls=DoubleTreeVector)
+    vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                 mlt_tree_cls=DoubleTreeVector)
 
     assert len(vec_in.bfs()) == len(Lambda_in.bfs())
     assert all(n1.nodes == n2.nodes
@@ -268,8 +270,8 @@ def test_applicator_tensor_haar_Mass1D():
         # Test and apply 20 random vectors.
         for _ in range(20):
             # Initialze double tree vectors.
-            vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                         dbl_tree_cls=DoubleTreeVector)
+            vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                         mlt_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -332,8 +334,8 @@ def test_applicator_full_tensor_time():
         # Test and apply 10 random vectors.
         for _ in range(10):
             # Initialze double tree vectors.
-            vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                         dbl_tree_cls=DoubleTreeVector)
+            vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                         mlt_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -404,8 +406,8 @@ def test_applicator_full_tensor_spacetime_quad():
         # Test and apply 10 random vectors.
         for _ in range(10):
             # Initialze double tree vectors.
-            vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                         dbl_tree_cls=DoubleTreeVector)
+            vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                         mlt_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -478,8 +480,8 @@ def test_applicator_different_out():
         # Test and apply 10 random vectors.
         for _ in range(10):
             # Initialze double tree vectors.
-            vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                         dbl_tree_cls=DoubleTreeVector)
+            vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                         mlt_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -539,8 +541,8 @@ def test_applicator_sparse_grid_time():
         # Test and apply 10 random vectors.
         for _ in range(10):
             # Init double tree vector with random values.
-            vec_in = Lambda_in.deep_copy(dbl_node_cls=DoubleNodeVector,
-                                         dbl_tree_cls=DoubleTreeVector)
+            vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                         mlt_tree_cls=DoubleTreeVector)
             for db_node in vec_in.bfs():
                 db_node.value = np.random.rand()
 

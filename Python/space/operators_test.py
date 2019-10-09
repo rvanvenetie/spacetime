@@ -20,7 +20,9 @@ def test_transformation():
     assert len([elem for elem in elements if elem.is_leaf()]) == 8
 
     # Create a view of the vertices.
-    T_view = TriangulationView(T.vertex_meta_root)
+    vertex_view = TreeView(T.vertex_meta_root)
+    vertex_view.deep_refine()
+    T_view = TriangulationView(vertex_view)
     operators = Operator(T_view)
     v = np.array([0, 0, 0, 1, 0, 0, 0, 0], dtype=float)
     w = np.array([0, 0, 0, 1, 0.5, 0.5, 0.5, 0.75], dtype=float)
@@ -63,15 +65,18 @@ def test_galerkin(plot=False):
     vertices = [[-1, -1], [1, 1], [1, -1], [-1, 1]]
     elements = [[0, 2, 3], [1, 3, 2]]
     T = InitialTriangulation(vertices, elements)
+    vertex_view = TreeView(T.vertex_meta_root)
+    vertex_view.deep_refine()
     # Create a view of the vertices.
-    T_view = TriangulationView(T.vertex_meta_root)
+    T_view = TriangulationView(vertex_view)
     ones = np.ones(len(T_view.vertices), dtype=float)
     mass_op = MassOperator(T_view)
     rhs = mass_op.apply_T_transpose(mass_op.apply_SS(ones))
 
     for i in range(9):
         T.elem_meta_root.uniform_refine(i)
-        T_view = TriangulationView(T.vertex_meta_root)
+        vertex_view.deep_refine()
+        T_view = TriangulationView(vertex_view)
         mass_op.triang = T_view
         ones = np.ones(len(T_view.vertices), dtype=float)
         new_rhs = mass_op.apply_T_transpose(mass_op.apply_SS(ones))

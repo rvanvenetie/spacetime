@@ -53,7 +53,8 @@ class MultiNodeViewInterface(NodeInterface):
 
     def _sparse_refine(self, max_level):
         """ Refines this multi tree to a sparse grid multitree. """
-        self._deep_refine(call_filter=lambda n: n.level <= max_level)
+        self._deep_refine(call_filter=lambda n: sum(
+            n[i].level for i in range(self.dim)) <= max_level)
 
     def _uniform_refine(self, max_levels=None):
         """ Uniformly refine the multi tree rooted at `self`. """
@@ -88,6 +89,9 @@ class MultiNodeViewInterface(NodeInterface):
         if call_filter is None: call_filter = lambda _: True
 
         for child_i in children:
+            # If this child does not exist in underlying tree, we can stop.
+            if child_i not in self.nodes[i].children: continue
+
             child_nodes = _replace(i, self.nodes, child_i)
 
             # Skip if this child has already exists, or if we don't pass the filter.
@@ -139,7 +143,7 @@ class MultiNodeViewInterface(NodeInterface):
         for parent_j in self.parents[j]:
             parent_j.refine(i, children=[nodes[i]], make_conforming=True)
 
-        return self._find_brother(nodes, j, i)
+        return self._find_brother(nodes, j, i, make_conforming=False)
 
     def _union(self, other, call_filter=None, call_postprocess=None):
         """ Deep-copies the node view tree rooted at `other` into self.
@@ -280,3 +284,11 @@ class MultiTree:
         multi_root._union(self.root, call_postprocess=call_postprocess)
         multi_tree = mlt_tree_cls(multi_root)
         return multi_tree
+
+    def union(self, other, call_filter=None, call_postprocess=None):
+        if isinstance(other, MultiTree):
+            other = other.root
+        self.root._union(other,
+                         call_filter=call_filter,
+                         call_postprocess=call_postprocess)
+        return self

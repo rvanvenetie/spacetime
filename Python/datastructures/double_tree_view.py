@@ -3,6 +3,7 @@ from collections import defaultdict, deque
 
 from .multi_tree_view import MultiNodeView, MultiNodeViewInterface, MultiTree
 from .tree import MetaRootInterface
+from .tree_view import NodeViewInterface
 
 
 class DoubleNodeView(MultiNodeView):
@@ -10,13 +11,12 @@ class DoubleNodeView(MultiNodeView):
     dim = 2
 
 
-class FrozenDoubleNodeView(MultiNodeViewInterface):
+class FrozenDoubleNodeView(NodeViewInterface):
     """ A double node that is frozen in a single coordinate.
     
     The resulting object acts like a single node in the other coordinate.
     """
     # This should be a lightweight class.
-    dim = 1
     __slots__ = ['dbl_node', 'i']
 
     def __init__(self, dbl_node, i):
@@ -80,17 +80,23 @@ class FrozenDoubleNodeView(MultiNodeViewInterface):
 
         # Only possible if self and other are frozen in the same axis.
         if isinstance(other, FrozenDoubleNodeView): assert self.i == other.i
+        if isinstance(other, MultiTree): other = other.root
+        if call_filter:
+            call_filter_tmp = call_filter
+            call_filter = lambda nodes: call_filter_tmp(nodes[0])
         return self._union(other, call_filter, call_postprocess)
 
     def _refine(self,
                 i,
                 children=None,
                 call_filter=None,
-                call_postprocess=None):
+                call_postprocess=None,
+                make_conforming=False):
         assert i == 0
         return self.dbl_node._refine(i=self.i,
                                      children=children,
-                                     call_filter=call_filter)
+                                     call_filter=call_filter,
+                                     make_conforming=make_conforming)
 
     def __repr__(self):
         return 'FN({}, {})'.format(self.i, self.node)
@@ -142,7 +148,7 @@ class DoubleTreeView(MultiTree):
         self.compute_fibers()
 
     def sparse_refine(self, max_level):
-        self.root.sparse_refine(max_level)
+        self.root._sparse_refine(max_level)
         self.compute_fibers()
 
     def deep_refine(self, call_filter=None, call_postprocess=None):

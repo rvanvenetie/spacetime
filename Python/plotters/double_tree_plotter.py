@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
 
-from ..datastructures.double_tree import DoubleTree
+from ..datastructures.double_tree_view import DoubleTree
 from .tree_plotter import TreePlotter
 
 
