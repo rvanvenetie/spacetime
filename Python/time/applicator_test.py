@@ -140,7 +140,7 @@ def test_multiscale_transport_quadrature():
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
         applicator = Applicator(operator, basis_in, basis_out)
-        resmat = applicator_to_matrix(applicator, Lambda_in, Lambda_out)
+        resmat = applicator.to_matrix(Lambda_in, Lambda_out)
         truemat = np.zeros([len(Lambda_out), len(Lambda_in)])
         for j, psi_in in enumerate(Lambda_in):
             supp_in = support_to_interval(psi_in.support)
