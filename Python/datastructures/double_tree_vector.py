@@ -21,9 +21,6 @@ class FrozenDoubleNodeVector(MultiNodeVectorInterface, FrozenDoubleNodeView):
 
     def to_array(self):
         """ Transforms a double tree vector to a numpy vector.  """
-        nodes = self.bfs()
-        result = np.array([node.value for node in nodes], dtype=float)
-        return result
         return np.array([node.value for node in self.bfs()], dtype=float)
 
     def from_array(self, array):
