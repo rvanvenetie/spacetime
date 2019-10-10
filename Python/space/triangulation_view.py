@@ -1,4 +1,4 @@
-from ..datastructures.tree import MetaRoot, MetaRootInterface
+from ..datastructures.tree import MetaRoot, MetaRoot
 from ..datastructures.tree_view import NodeView, NodeViewInterface, TreeView
 
 
@@ -53,7 +53,7 @@ class TriangulationView:
 
         def store_vertices_element_view(elem_view):
             """ Stores the vertex view indices inside the element_view object. """
-            if not isinstance(elem_view.node, MetaRootInterface):
+            if not isinstance(elem_view.node, MetaRoot):
                 elem_view.vertices_view_idx = [
                     v.marked for v in elem_view.node.vertices
                 ]

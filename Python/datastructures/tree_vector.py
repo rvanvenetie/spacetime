@@ -2,7 +2,7 @@ import numpy as np
 
 from .multi_tree_vector import (MultiNodeVector, MultiNodeVectorInterface,
                                 MultiTreeVector)
-from .tree import MetaRootInterface
+from .tree import MetaRoot
 from .tree_view import NodeView, NodeViewInterface, TreeView
 
 
@@ -13,7 +13,7 @@ class NodeVector(MultiNodeVector, NodeView):
 class TreeVector(MultiTreeVector, TreeView):
     def __init__(self, root):
         if not isinstance(root, NodeVector):
-            if isinstance(root, MetaRootInterface):
+            if isinstance(root, MetaRoot):
                 root = NodeVector([root])
             elif isinstance(root, NodeViewInterface):
                 root = NodeVector([root.node])

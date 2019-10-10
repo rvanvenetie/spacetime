@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 
 from .multi_tree_view import MultiNodeView, MultiNodeViewInterface, MultiTree
-from .tree import MetaRootInterface
+from .tree import MetaRoot
 
 
 class NodeViewInterface(MultiNodeViewInterface):
@@ -22,8 +22,8 @@ class NodeView(NodeViewInterface, MultiNodeView):
 
 class TreeView(MultiTree):
     def __init__(self, root):
-        assert isinstance(root, (NodeViewInterface, MetaRootInterface))
-        if isinstance(root, MetaRootInterface): root = NodeView([root])
+        assert isinstance(root, (NodeViewInterface, MetaRoot))
+        if isinstance(root, MetaRoot): root = NodeView([root])
         super().__init__(root=root)
 
     def deep_refine(self, call_filter=None, call_postprocess=None):

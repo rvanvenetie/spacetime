@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from operator import eq
 
-from .tree import MetaRootInterface, NodeInterface
+from .tree import MetaRoot, NodeInterface
 
 
 def _replace(i, items, item_i):
@@ -268,7 +268,7 @@ class MultiTree:
         if not include_meta_root:
             nodes = [
                 n for n in nodes if not any(
-                    isinstance(n.nodes[j], MetaRootInterface)
+                    isinstance(n.nodes[j], MetaRoot)
                     for j in range(self.root.dim))
             ]
         return nodes

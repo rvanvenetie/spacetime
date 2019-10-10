@@ -1,7 +1,7 @@
 import numpy as np
 
 from ..datastructures.tree_vector import NodeVector, TreeVector
-from ..datastructures.tree_view import MetaRootInterface
+from ..datastructures.tree_view import MetaRoot
 from .triangulation_view import TriangulationView
 
 
@@ -31,7 +31,7 @@ class Applicator:
         # This is the case where vec_in != vec_out.
         # We can handle this by enlarging vec_in and vec_out.
         def call_copy(my_node, other_node):
-            if not isinstance(other_node, MetaRootInterface):
+            if not isinstance(other_node, MetaRoot):
                 my_node.value = other_node.value
 
         # If that's not the case, create an enlarged vec_in.

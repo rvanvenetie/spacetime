@@ -2,7 +2,7 @@ import itertools
 from collections import defaultdict, deque
 
 from .multi_tree_view import MultiNodeView, MultiNodeViewInterface, MultiTree
-from .tree import MetaRootInterface
+from .tree import MetaRoot
 from .tree_view import NodeViewInterface
 
 
@@ -66,7 +66,7 @@ class FrozenDoubleNodeView(NodeViewInterface):
 
     def bfs(self, include_meta_root=False):
         nodes = self._bfs()
-        if not include_meta_root and isinstance(self.node, MetaRootInterface):
+        if not include_meta_root and isinstance(self.node, MetaRoot):
             return nodes[1:]
         else:
             return nodes
@@ -114,8 +114,7 @@ class FrozenDoubleNodeView(NodeViewInterface):
 class DoubleTreeView(MultiTree):
     def __init__(self, root, frozen_dbl_cls=FrozenDoubleNodeView):
         if isinstance(root, (tuple, list)): root = DoubleNode(root)
-        assert all(
-            isinstance(root.nodes[i], MetaRootInterface) for i in [0, 1])
+        assert all(isinstance(root.nodes[i], MetaRoot) for i in [0, 1])
         assert issubclass(frozen_dbl_cls, FrozenDoubleNodeView)
         super().__init__(root=root)
         self.root = root
@@ -170,8 +169,8 @@ class DoubleTreeView(MultiTree):
                        dbl_node_cls=DoubleNodeView,
                        frozen_dbl_cls=FrozenDoubleNodeView):
         """ Makes a full grid doubletree from the given single trees. """
-        assert isinstance(meta_root_time, MetaRootInterface) and isinstance(
-            meta_root_space, MetaRootInterface)
+        assert isinstance(meta_root_time, MetaRoot) and isinstance(
+            meta_root_space, MetaRoot)
         double_root = dbl_node_cls((meta_root_time, meta_root_space))
         double_tree = cls(double_root, frozen_dbl_cls=frozen_dbl_cls)
         return double_tree
