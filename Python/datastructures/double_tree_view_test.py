@@ -195,8 +195,8 @@ def test_union():
 def test_deep_copy():
     for cls in [FakeHaarFunction, FakeOrthoFunction]:
         for tree in [
-                full_tensor_double_tree(corner_index_tree(2, 't', 0, cls),
-                                        corner_index_tree(2, 'x', 1, cls)),
+                full_tensor_double_tree(corner_index_tree(4, 't', 0, cls),
+                                        corner_index_tree(4, 'x', 1, cls)),
                 sparse_tensor_double_tree(corner_index_tree(4, 't', 0, cls),
                                           corner_index_tree(4, 'x', 1, cls),
                                           8),
