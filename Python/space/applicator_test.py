@@ -38,19 +38,19 @@ def test_operators():
 
 def test_mass_quad_non_symmetric():
     T = InitialTriangulation.unit_square()
-    T.elem_meta_root.uniform_refine(2)
+    T.elem_meta_root.uniform_refine(5)
 
     # Create a vector with only vertices lying below the diagonal upto lvl 4
     Lambda_below = TreeView(T.vertex_meta_root)
     Lambda_below.deep_refine(call_filter=lambda vertex: vertex.level <= 4 and
-                             vertex.x + vertex.y <= 2)
+                             vertex.x + vertex.y <= 1)
 
     # Create an out vector with only vertices lying above the diagonal.
     Lambda_above = TreeVector(T.vertex_meta_root)
     Lambda_above.deep_refine(
-        call_filter=lambda vertex: vertex.x + vertex.y >= 0)
+        call_filter=lambda vertex: vertex.x + vertex.y >= 1)
 
-    #assert len(Lambda_below.bfs()) < len(Lambda_above.bfs())
+    assert len(Lambda_below.bfs()) < len(Lambda_above.bfs())
 
     for op, deriv in [(MassOperator(), False), (StiffnessOperator(), True)]:
         applicator = Applicator(op)
@@ -82,5 +82,4 @@ def test_mass_quad_non_symmetric():
                             ])
 
                         real_ip += quad_scheme.integrate(func, triangle)
-
                     assert np.allclose(real_ip, mat[j, i])

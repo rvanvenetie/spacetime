@@ -82,11 +82,15 @@ class MultiNodeViewInterface(NodeInterface):
           children: If set, the list of children to create. If none, refine
                     all children that exist in the underlying tree.
           call_filter: This function can be used to filter children. It is 
-            called with the multi-node that is to be created.
+            called with the multi-node that is to be created. 
         """
         if self.is_full(i): return self.children[i]
         if children is None: children = self.nodes[i].children
-        if call_filter is None: call_filter = lambda _: True
+        if call_filter is None:
+            call_filter = lambda _: True
+        elif self.dim == 1:
+            call_filter_tmp = call_filter
+            call_filter = lambda nodes: call_filter_tmp(nodes[0])
 
         for child_i in children:
             # If this child does not exist in underlying tree, we can stop.
@@ -286,9 +290,16 @@ class MultiTree:
         return multi_tree
 
     def union(self, other, call_filter=None, call_postprocess=None):
-        if isinstance(other, MultiTree):
-            other = other.root
+        if isinstance(other, MultiTree): other = other.root
         self.root._union(other,
                          call_filter=call_filter,
                          call_postprocess=call_postprocess)
         return self
+
+    def deep_refine(self, call_filter=None, call_postprocess=None):
+        """ Deep-refines `self` by recursively refining the tree view. """
+        self.root._deep_refine(call_filter, call_postprocess)
+        return self
+
+    def uniform_refine(self, max_levels):
+        self.root._uniform_refine(max_levels)

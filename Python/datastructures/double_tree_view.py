@@ -81,9 +81,6 @@ class FrozenDoubleNodeView(NodeViewInterface):
         # Only possible if self and other are frozen in the same axis.
         if isinstance(other, FrozenDoubleNodeView): assert self.i == other.i
         if isinstance(other, MultiTree): other = other.root
-        if call_filter:
-            call_filter_tmp = call_filter
-            call_filter = lambda nodes: call_filter_tmp(nodes[0])
         return self._union(other, call_filter, call_postprocess)
 
     def _refine(self,
@@ -93,6 +90,9 @@ class FrozenDoubleNodeView(NodeViewInterface):
                 call_postprocess=None,
                 make_conforming=False):
         assert i == 0
+        if call_filter:
+            call_filter_tmp = call_filter
+            call_filter = lambda nodes: call_filter_tmp(nodes[self.i])
         return self.dbl_node._refine(i=self.i,
                                      children=children,
                                      call_filter=call_filter,

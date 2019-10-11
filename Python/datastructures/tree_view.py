@@ -26,12 +26,10 @@ class TreeView(MultiTree):
         if isinstance(root, MetaRoot): root = NodeView([root])
         super().__init__(root=root)
 
-    def deep_refine(self, call_filter=None, call_postprocess=None):
-        """ Deep-refines `self` by recursively refining the tree view. """
-        if call_filter:
-            call_filter_tmp = call_filter
-            call_filter = lambda nodes: call_filter_tmp(nodes[0])
-        self.root._deep_refine(call_filter, call_postprocess)
-
-    def uniform_refine(self, max_level):
-        self.root._uniform_refine(max_level)
+    def uniform_refine(self, max_level=None):
+        """ Uniformly refine the multi tree rooted at `self`. """
+        if max_level is None:
+            call_filter = None
+        else:
+            call_filter = lambda n: n.level <= max_level
+        self.root._deep_refine(call_filter=call_filter)
