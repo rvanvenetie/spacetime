@@ -99,9 +99,8 @@ class MultiNodeViewInterface(NodeInterface):
             child_nodes = _replace(i, self.nodes, child_i)
 
             # Skip if this child has already exists, or if we don't pass the filter.
-            if child_nodes in (
-                    n.nodes
-                    for n in self.children[i]) or not call_filter(child_nodes):
+            if child_nodes in (n.nodes for n in self.children[i]) \
+                    or not call_filter(child_nodes):
                 continue
 
             # Ensure all the parents of the to be created child exist.
@@ -213,10 +212,10 @@ class MultiNodeViewInterface(NodeInterface):
             call_postprocess(my_node)
             my_node.marked = True
             for i in range(self.dim):
-                my_node._refine(i,
-                                call_filter=call_filter,
-                                make_conforming=True)
-                queue.extend(my_node.children[i])
+                queue.extend(
+                    my_node._refine(i,
+                                    call_filter=call_filter,
+                                    make_conforming=True))
 
         for my_node in my_nodes:
             my_node.marked = False
