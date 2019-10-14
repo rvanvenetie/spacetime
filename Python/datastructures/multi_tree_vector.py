@@ -6,7 +6,7 @@ from .multi_tree_view import MultiNodeView, MultiNodeViewInterface, MultiTree
 
 
 class MultiNodeVectorInterface(MultiNodeViewInterface):
-    """ Extends the multinode interfac a value. """
+    """ Extends the multinode interface with a value. """
     @property
     @abstractmethod
     def value(self):

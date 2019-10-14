@@ -98,7 +98,7 @@ class MultiNodeViewInterface(NodeInterface):
 
             child_nodes = _replace(i, self.nodes, child_i)
 
-            # Skip if this child has already exists, or if we don't pass the filter.
+            # Skip if this child already exists, or if the filter doesn't pass.
             if child_nodes in (n.nodes for n in self.children[i]) \
                     or not call_filter(child_nodes):
                 continue

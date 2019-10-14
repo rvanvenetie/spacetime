@@ -1,4 +1,4 @@
-from ..datastructures.tree import MetaRoot, MetaRoot
+from ..datastructures.tree import MetaRoot
 from ..datastructures.tree_view import NodeView, NodeViewInterface, TreeView
 
 
@@ -27,7 +27,7 @@ class TriangulationView:
     """
     def __init__(self, vertex_view):
         """ Initializer given a vertex (sub)tree. """
-        if not isinstance(vertex_view, TreeView):
+        if isinstance(vertex_view, NodeViewInterface):
             self.vertex_view = TreeView(vertex_view)
             self.vertex_view.union(vertex_view)
         else:
