@@ -25,13 +25,6 @@ class FrozenDoubleNodeView(NodeViewInterface):
         self.dbl_node = dbl_node
         self.i = i
 
-    # Overwrite default refine behaviour.
-    def refine(self, children=None, call_filter=None):
-        dbl_nodes = self._refine(i=0,
-                                 children=children,
-                                 call_filter=call_filter)
-        return [self.__class__(child, self.i) for child in dbl_nodes]
-
     # Implement some abstract methods necessary.
     @property
     def nodes(self):
@@ -87,16 +80,17 @@ class FrozenDoubleNodeView(NodeViewInterface):
                 i,
                 children=None,
                 call_filter=None,
-                call_postprocess=None,
                 make_conforming=False):
+        """ Overwrite default call_filter behaviour for frozen tree views. """
         assert i == 0
         if call_filter:
             call_filter_tmp = call_filter
             call_filter = lambda nodes: call_filter_tmp(nodes[self.i])
-        return self.dbl_node._refine(i=self.i,
-                                     children=children,
-                                     call_filter=call_filter,
-                                     make_conforming=make_conforming)
+        self.dbl_node._refine(i=self.i,
+                              children=children,
+                              call_filter=call_filter,
+                              make_conforming=make_conforming)
+        return self.children[0]
 
     def __repr__(self):
         return 'FN({}, {})'.format(self.i, self.node)

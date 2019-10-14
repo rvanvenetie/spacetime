@@ -13,6 +13,21 @@ class NodeViewInterface(MultiNodeViewInterface):
     def node(self):
         return self.nodes[0]
 
+    def _refine(self,
+                i,
+                children=None,
+                call_filter=None,
+                make_conforming=False):
+        """ Overwrite default call_filter behaviour for single tree views. """
+        assert i == 0
+        if call_filter:
+            call_filter_tmp = call_filter
+            call_filter = lambda nodes: call_filter_tmp(nodes[0])
+        return super()._refine(i=0,
+                               children=children,
+                               call_filter=call_filter,
+                               make_conforming=make_conforming)
+
 
 class NodeView(NodeViewInterface, MultiNodeView):
     def __init__(self, nodes, parents=None, children=None):

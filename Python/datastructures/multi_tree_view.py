@@ -45,11 +45,22 @@ class MultiNodeViewInterface(NodeInterface):
                children=None,
                call_filter=None,
                make_conforming=False):
-        if i is None and self.dim == 1: i = 0
-        return self._refine(i=i,
-                            children=children,
-                            call_filter=call_filter,
-                            make_conforming=make_conforming)
+        """ Convenience wrapper for refine. """
+        if i is None:
+            # Concatenate all lists.
+            return sum([
+                self._refine(i=i,
+                             children=children,
+                             call_filter=call_filter,
+                             make_conforming=make_conforming)
+                for i in range(self.dim)
+            ], [])
+        else:
+            assert 0 <= i <= self.dim
+            return self._refine(i=i,
+                                children=children,
+                                call_filter=call_filter,
+                                make_conforming=make_conforming)
 
     def _sparse_refine(self, max_level):
         """ Refines this multi tree to a sparse grid multitree. """
@@ -86,11 +97,7 @@ class MultiNodeViewInterface(NodeInterface):
         """
         if self.is_full(i): return self.children[i]
         if children is None: children = self.nodes[i].children
-        if call_filter is None:
-            call_filter = lambda _: True
-        elif self.dim == 1:
-            call_filter_tmp = call_filter
-            call_filter = lambda nodes: call_filter_tmp(nodes[0])
+        if call_filter is None: call_filter = lambda _: True
 
         for child_i in children:
             # If this child does not exist in underlying tree, we can stop.
@@ -146,6 +153,7 @@ class MultiNodeViewInterface(NodeInterface):
         for parent_j in self.parents[j]:
             parent_j.refine(i, children=[nodes[i]], make_conforming=True)
 
+        # Recursive call.
         return self._find_brother(nodes, j, i, make_conforming=False)
 
     def _union(self, other, call_filter=None, call_postprocess=None):
@@ -160,7 +168,6 @@ class MultiNodeViewInterface(NodeInterface):
               of nodeview objects. First arg will hold a ref to this tree,
               second arg will hold a ref to the second tree.
         """
-        if call_filter is None: call_filter = lambda _: True
         if call_postprocess is None: call_postprocess = lambda _, __: None
         assert isinstance(other, MultiNodeViewInterface)
         assert self.nodes == other.nodes and self.dim == other.dim
@@ -201,7 +208,6 @@ class MultiNodeViewInterface(NodeInterface):
           call_postprocess: This call will be invoked with a freshly
               created multinode object. Can be used to load data, etc.
         """
-        if call_filter is None: call_filter = lambda _: True
         if call_postprocess is None: call_postprocess = lambda _: None
         my_nodes = []
         queue = deque([self])
@@ -213,7 +219,7 @@ class MultiNodeViewInterface(NodeInterface):
             my_node.marked = True
             for i in range(self.dim):
                 queue.extend(
-                    my_node._refine(i,
+                    my_node._refine(i=i,
                                     call_filter=call_filter,
                                     make_conforming=True))
 
@@ -299,6 +305,3 @@ class MultiTree:
         """ Deep-refines `self` by recursively refining the tree view. """
         self.root._deep_refine(call_filter, call_postprocess)
         return self
-
-    def uniform_refine(self, max_levels):
-        self.root._uniform_refine(max_levels)
