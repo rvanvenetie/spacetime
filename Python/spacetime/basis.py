@@ -40,4 +40,6 @@ def generate_y_delta(x_delta):
         # Remove the marks.
         y_labda_0.node.marked = False
 
+    y_delta.compute_fibers()
+
     return y_delta

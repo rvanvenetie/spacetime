@@ -132,8 +132,8 @@ def test_multiscale_transport_quadrature():
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
     tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
-    for basis_in, basis_out in itertools.product(
-        [oru, oro, ore, tpu, tpo, tpe], [tpu, tpo, tpe]):
+    for basis_in, basis_out in itertools.product([tpu, tpo, tpe],
+                                                 [oru, oro, ore]):
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
         operator = operators.transport(basis_in, basis_out)
@@ -147,7 +147,7 @@ def test_multiscale_transport_quadrature():
             for i, psi_out in enumerate(Lambda_out):
                 supp_out = support_to_interval(psi_out.support)
                 true_val = quad(
-                    lambda x: psi_in.eval(x) * psi_out.eval(x, deriv=True),
+                    lambda x: psi_in.eval(x, deriv=True) * psi_out.eval(x),
                     max(supp_in[0], supp_out[0]),
                     min(supp_in[1], supp_out[1]),
                 )[0]
@@ -161,7 +161,8 @@ def test_multiscale_trace():
     tpu = ThreePointBasis.uniform_basis(max_level=5)
     tpo = ThreePointBasis.origin_refined_basis(max_level=12)
     for (basis_in, Lambda_in), (basis_out, Lambda_out) in \
-            list(itertools.product([tpu, tpo], [tpu, tpo])) \
+            list(itertools.product([oro, oru], [oro, oru])) \
+          + list(itertools.product([tpu, tpo], [tpu, tpo])) \
           + list(itertools.product([tpu, tpo], [oru, oro])) \
           + list(itertools.product([oru, oro], [tpu, tpo])):
         operator = operators.trace(basis_in, basis_out)
