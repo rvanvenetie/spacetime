@@ -33,6 +33,11 @@ class Element1D(BinaryNodeAbstract):
         self.phi_disc_lin = [None, None]
         self.phi_cont_lin = [None, None]
 
+        # Create variables to register non-zero wavelet functions.
+        # The ordering of functions inside these lists is important.
+        # TODO: Is this the right place?
+        self.psi_ortho = [None, None]
+
         # Add some extra variables necessary for time applicator.
         # TODO: Is this the right place?
         self.Lambda_in = False
@@ -44,6 +49,23 @@ class Element1D(BinaryNodeAbstract):
         #TODO: Is this the right place?
         self.Sigma_psi_out = []
         self.Theta_psi_in = False
+
+    def _refine_psi_orthonormal(self):
+        """ Ensures that Orthonormal wavelets are all set for this element.
+        
+        This requires that the mother element has valid references.
+        """
+        if not all(self.psi_ortho):
+            assert self.level > 0
+
+            # Recursively find/create the wavelets of the parents.
+            parent_ortho = self.parent._refine_psi_orthonormal()
+
+            # Refine the parent wavelets, so this element gets its children.
+            parent_ortho[0].refine()
+            assert all(self.psi_ortho)
+
+        return self.psi_ortho
 
     def refine(self):
         if not self.children:
