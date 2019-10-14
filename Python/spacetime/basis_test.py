@@ -1,4 +1,4 @@
-from ..datastructures.double_tree import DoubleTree
+from ..datastructures.double_tree_view import DoubleTree
 from ..space.triangulation import InitialTriangulation
 from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointBasis

@@ -1,4 +1,4 @@
-from ..datastructures.double_tree import DoubleTree
+from ..datastructures.double_tree_view import DoubleTree
 from ..space.triangulation import Vertex
 from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointWavelet
@@ -29,7 +29,7 @@ def generate_y_delta(x_delta):
                 mu.marked.append(x_labda_0.frozen_other_axis())
 
     # First, we use this data to create the time metaroot axis.
-    y_delta.project(0).deep_refine(call_filter=lambda mu: mu.marked)
+    y_delta.project(0)._deep_refine(call_filter=lambda mu: mu.marked)
 
     # Then, we union the output wavelets with the right space trees.
     for y_labda_0 in y_delta.project(0).bfs():
