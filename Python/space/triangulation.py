@@ -3,7 +3,6 @@ import itertools
 import numpy as np
 
 from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
-from ..datastructures.tree_view import MetaRootView, NodeView
 
 
 class Vertex(NodeAbstract):

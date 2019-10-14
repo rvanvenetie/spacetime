@@ -15,7 +15,7 @@ class Operator:
     def apply(self, v):
         """ Application of the operator the hierarchical basis. """
         assert self.triang
-        return self.apply_HB(v)
+        return self.apply_HB(v.astype(float))
 
     def apply_HB(self, v):
         """ Application of the operator the hierarchical basis. 

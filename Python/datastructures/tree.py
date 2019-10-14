@@ -46,8 +46,7 @@ class NodeInterface(ABC):
         return len(self.children) == 0
 
     def _bfs(self):
-        """ Performs a BFS on the family tree rooted at `self`.
-        """
+        """ Performs a BFS on the family tree rooted at `self`.  """
         queue = deque([self])
         nodes = []
         while queue:
@@ -92,14 +91,20 @@ class BinaryNodeAbstract(NodeAbstract):
         return len(self.children) == 2
 
 
-class MetaRootInterface(NodeInterface):
+class MetaRoot(NodeAbstract):
+    """ Combines the roots of a multi-rooted family tree. """
     def __init__(self, roots):
-        """ Registers self as the parent of the roots. """
+        if not isinstance(roots, list):
+            roots = [roots]
+        super().__init__(children=roots)
         # Register self as the parent of the roots. We are now Pater Familias.
         for root in roots:
             assert isinstance(root, NodeAbstract)
             assert not root.parents
             root.parents = [self]
+
+    def refine(self):
+        return self.children
 
     def is_full(self):
         return True
@@ -124,18 +129,6 @@ class MetaRootInterface(NodeInterface):
             return nodes[1:]
         else:
             return nodes
-
-
-class MetaRoot(MetaRootInterface, NodeAbstract):
-    """ Combines the roots of a multi-rooted family tree. """
-    def __init__(self, roots):
-        if not isinstance(roots, list):
-            roots = [roots]
-        NodeAbstract.__init__(self, children=roots)
-        MetaRootInterface.__init__(self, roots=roots)
-
-    def refine(self):
-        return self.children
 
     def uniform_refine(self, max_level):
         """ Ensure that the tree contains up to max_level nodes. """

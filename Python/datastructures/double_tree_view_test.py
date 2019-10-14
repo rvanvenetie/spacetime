@@ -4,7 +4,7 @@ from pprint import pprint
 
 import pytest
 
-from .double_tree import DoubleNode, DoubleTree
+from .double_tree_view import DoubleNode, DoubleTree
 from .function_test import FakeHaarFunction, FakeOrthoFunction
 from .tree import MetaRoot
 from .tree_test import corner_index_tree, uniform_index_tree
@@ -28,9 +28,11 @@ class DebugDoubleNode(DoubleNode):
 
 def full_tensor_double_tree(meta_root_time, meta_root_space, max_levels=None):
     """ Makes a full grid doubletree from the given single trees. """
-    return DoubleTree.full_tensor(meta_root_time,
-                                  meta_root_space,
-                                  dbl_node_cls=DebugDoubleNode)
+    dt_tree = DoubleTree.from_metaroots(meta_root_time,
+                                        meta_root_space,
+                                        dbl_node_cls=DebugDoubleNode)
+    dt_tree.uniform_refine(max_levels)
+    return dt_tree
 
 
 def uniform_full_grid(time_level, space_level, node_class=FakeHaarFunction):

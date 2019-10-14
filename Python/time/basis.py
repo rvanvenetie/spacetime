@@ -2,8 +2,8 @@ from collections import OrderedDict
 from fractions import Fraction
 
 from ..datastructures.function import FunctionInterface
-from ..datastructures.tree import (BinaryNodeAbstract, MetaRoot,
-                                   MetaRootInterface, NodeAbstract)
+from ..datastructures.tree import (BinaryNodeAbstract, MetaRoot, MetaRoot,
+                                   NodeAbstract)
 from ..datastructures.tree_view import NodeViewInterface
 from .linear_operator import LinearOperator
 from .sparse_vector import SparseVector
@@ -152,7 +152,7 @@ class Wavelet(CoefficientFunction1D):
 class MultiscaleFunctions:
     """ Immutable set of multiscale functions.  """
     def __init__(self, functions):
-        if isinstance(functions, MetaRootInterface):
+        if isinstance(functions, MetaRoot):
             functions = [nv for nv in functions.bfs()]
         if isinstance(functions, NodeViewInterface):
             functions = [nv.node for nv in functions.bfs()]
