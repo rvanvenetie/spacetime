@@ -2,6 +2,7 @@ from collections import OrderedDict
 from fractions import Fraction
 import numpy as np
 import quadpy
+from functools import lru_cache
 
 from ..datastructures.function import FunctionInterface
 from ..datastructures.tree import (BinaryNodeAbstract, MetaRoot, MetaRoot,
@@ -9,6 +10,11 @@ from ..datastructures.tree import (BinaryNodeAbstract, MetaRoot, MetaRoot,
 from ..datastructures.tree_view import NodeViewInterface
 from .linear_operator import LinearOperator
 from .sparse_vector import SparseVector
+
+
+@lru_cache(maxsize=10)
+def _get_quadrature_scheme(order):
+    return quadpy.line_segment.gauss_patterson(order)
 
 
 class Element1D(BinaryNodeAbstract):
@@ -111,9 +117,7 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
         """ Resets the coefficients stored in this function object. """
         self.coeff = [0, 0]
 
-    def L2_inner(self, g, deriv=False, order=4):
-        quad_scheme = quadpy.line_segment.gauss_patterson(order)
-
+    def inner_quad(self, g, deriv=False, order=4):
         def func(t):
             return np.array([
                 np.dot(self.eval(t[i], deriv), g(t[i]))
@@ -123,7 +127,7 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
         result = 0.0
         for elem in self.support:
             interval = list(map(float, elem.interval))
-            result += quad_scheme.integrate(func, interval)
+            result += _get_quadrature_scheme(order).integrate(func, interval)
         return result
 
     def __repr__(self):

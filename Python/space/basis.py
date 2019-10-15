@@ -1,9 +1,15 @@
 import numpy as np
 import quadpy
+from functools import lru_cache
 
 from ..datastructures.function import FunctionInterface
 from ..datastructures.tree import MetaRoot
 from ..datastructures.tree_view import NodeView, TreeView
+
+
+@lru_cache(maxsize=10)
+def _get_quadrature_scheme(order):
+    return quadpy.line_segment.gauss_patterson(order)
 
 
 class HierarchicalBasisFunction(FunctionInterface, NodeView):
@@ -28,9 +34,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
         if not deriv: return 0
         else: return np.zeros(2)
 
-    def L2_inner(self, g, deriv=False, order=4):
-        quad_scheme = quadpy.triangle.newton_cotes_open(order)
-
+    def inner_quad(self, g, deriv=False, order=4):
         def func(x):
             return np.array([
                 np.dot(self.eval(x[:, i], deriv), g(*x[:, i]))
@@ -41,7 +45,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
         for elem in self.support:
             triangle = np.array(
                 [elem.vertices[i].as_array() for i in range(3)])
-            result += quad_scheme.integrate(func, triangle)
+            result += _get_quadrature_scheme(order).integrate(func, triangle)
         return result
 
     @staticmethod

@@ -20,6 +20,6 @@ class FunctionInterface(ABC):
         raise NotImplemented('The eval function is not (yet) implemented')
 
     @abstractmethod
-    def L2_inner(self, g, order=4):
-        """ Computes the L2-inner product with `g`. """
+    def inner_quad(self, g, order=4):
+        """ Computes the inner product with `g` using quadrature. """
         pass

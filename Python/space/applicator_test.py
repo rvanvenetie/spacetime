@@ -68,6 +68,6 @@ def test_mass_quad_non_symmetric():
                     phi = HierarchicalBasisFunction(v_phi.node)
                     f, g = (psi, phi) if psi.level > phi.level else (phi, psi)
                     assert np.isclose(
-                        f.L2_inner(lambda x: g.eval(x, deriv),
-                                   deriv=deriv,
-                                   order=0 if deriv else 2), mat[j, i])
+                        f.inner_quad(lambda x: g.eval(x, deriv),
+                                     deriv=deriv,
+                                     order=0 if deriv else 2), mat[j, i])

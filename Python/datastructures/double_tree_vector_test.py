@@ -95,8 +95,8 @@ def test_initialize_quadrature():
     # Initialize the vector ones.
     for db_node in dt_root.bfs():
         db_node.value = sum(
-            db_node.nodes[0].L2_quad(g1) *
-            HierarchicalBasisFunction(db_node.nodes[1]).L2_quad(g2, order=6)
+            db_node.nodes[0].inner_quad(g1) *
+            HierarchicalBasisFunction(db_node.nodes[1]).inner_quad(g2, order=6)
             for (g1, g2) in g)
     for db_node in dt_root.bfs():
         print(db_node)
