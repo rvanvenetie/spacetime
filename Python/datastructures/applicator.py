@@ -97,6 +97,26 @@ class ScalarApplicator(ApplicatorInterface):
         return ScalarApplicator(self.applicator.transpose(), self.scalar)
 
 
+class ComposeApplicator(ApplicatorInterface):
+    """ Composes multiple applicators. """
+    def __init__(self, applicators):
+        """ Initializes this applicator composed of the given applicators.
+
+        First applicators[0] is applied, then applicators[1], etc.. """
+        assert isinstance(applicators, (tuple, list))
+        for i in range(len(applicators) - 1):
+            assert applicators[i].Lambda_out == applicators[i].Lambad_in
+
+        super().__init__(Lamba_in=applicators[0].Lambda_in,
+                         Lambda_out=applicators[-1].Lambda_out)
+
+    def apply(self, v):
+        res = v
+        for applicator in self.applicators:
+            res = applicator.apply(res)
+        return res
+
+
 class BlockApplicator(ApplicatorInterface):
     """ Constructs an applicator for the product space Z_0 x Z_1. """
     def __init__(self, applicators):

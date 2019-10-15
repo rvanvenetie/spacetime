@@ -63,7 +63,7 @@ def test_sparse_tensor_heat():
 
     # Create X^\delta
     X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space))
-    X_delta.sparse_refine(2)
+    X_delta.sparse_refine(3)
 
     # Create heat equation obkect
     heat_eq = HeatEquation(X_delta=X_delta)
@@ -77,7 +77,7 @@ def test_sparse_tensor_heat():
     assert np.allclose(tree_matvec.to_array(), array_matvec)
 
     # Now actually solve this beast!
-    sol, info = heat_eq.solve(rhs)
+    sol, num_iters = heat_eq.solve(rhs)
 
     # Check the error..
     res_tree = heat_eq.mat.apply(sol)
