@@ -1,5 +1,5 @@
-from collections import defaultdict
 import itertools
+from collections import defaultdict
 
 import numpy as np
 from pytest import approx
@@ -99,10 +99,10 @@ def test_threepoint_trace():
     oro = OrthonormalBasis.origin_refined_basis(max_level=12)
     tpu = ThreePointBasis.uniform_basis(max_level=5)
     tpo = ThreePointBasis.origin_refined_basis(max_level=12)
-    for (basis_in, Lambda_in), (basis_out, Lambda_out) in \
-            list(itertools.product([tpu, tpo], [tpu, tpo])) \
-          + list(itertools.product([tpu, tpo], [oru, oro])) \
-          + list(itertools.product([oru, oro], [tpu, tpo])):
+    for (basis_in,
+         Lambda_in), (basis_out,
+                      Lambda_out) in itertools.product([oru, oro, tpu, tpo],
+                                                       repeat=2):
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
         print('\tLambda_in:\tdofs={}\tml={}'.format(len(Lambda_in.functions),
