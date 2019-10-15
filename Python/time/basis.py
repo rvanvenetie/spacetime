@@ -14,7 +14,8 @@ from .sparse_vector import SparseVector
 
 @lru_cache(maxsize=10)
 def _get_quadrature_scheme(order):
-    return quadpy.line_segment.gauss_patterson(order)
+    # degree == 2 * order - 1.
+    return quadpy.line_segment.gauss_legendre(int((order + 2) / 2))
 
 
 class Element1D(BinaryNodeAbstract):

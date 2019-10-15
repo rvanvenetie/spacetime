@@ -63,23 +63,12 @@ def test_mass_quad_non_symmetric():
             mat = applicator.to_matrix(Lambda_in, Lambda_out)
 
             # Compare with quadrature
-            quad_scheme = quadpy.triangle.newton_cotes_open(0 if deriv else 2)
             for i, v_psi in enumerate(Lambda_in.bfs()):
                 psi = HierarchicalBasisFunction(v_psi.node)
                 for j, v_phi in enumerate(Lambda_out.bfs()):
                     phi = HierarchicalBasisFunction(v_phi.node)
-                    support = psi.support if psi.level > phi.level else phi.support
-                    real_ip = 0
-                    for elem in support:
-                        triangle = np.array(
-                            [elem.vertices[i].as_array() for i in range(3)])
-
-                        def func(x):
-                            return np.array([
-                                np.dot(psi.eval(x[:, i], deriv),
-                                       phi.eval(x[:, i], deriv))
-                                for i in range(x.shape[1])
-                            ])
-
-                        real_ip += quad_scheme.integrate(func, triangle)
+                    f, g = (psi, phi) if psi.level > phi.level else (phi, psi)
+                    real_ip = f.inner_quad(lambda x: g.eval(x, deriv=deriv),
+                                           g_order=1,
+                                           deriv=deriv)
                     assert np.allclose(real_ip, mat[j, i])

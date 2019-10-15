@@ -9,7 +9,8 @@ from ..datastructures.tree_view import NodeView, TreeView
 
 @lru_cache(maxsize=10)
 def _get_quadrature_scheme(order):
-    return quadpy.line_segment.gauss_patterson(order)
+    # degree == 2 * order + 1.
+    return quadpy.nsimplex.grundmann_moeller(2, int(order / 2))
 
 
 class HierarchicalBasisFunction(FunctionInterface, NodeView):
