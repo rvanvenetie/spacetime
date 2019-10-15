@@ -67,7 +67,7 @@ class MultiNodeViewInterface(NodeInterface):
         self._deep_refine(call_filter=lambda n: sum(
             n[i].level for i in range(self.dim)) <= max_level)
 
-    def _uniform_refine(self, max_levels=None):
+    def _uniform_refine(self, max_levels=None, call_postprocess=None):
         """ Uniformly refine the multi tree rooted at `self`. """
         call_filter = None
         if isinstance(max_levels, int):
@@ -75,7 +75,8 @@ class MultiNodeViewInterface(NodeInterface):
         if max_levels:
             call_filter = lambda n: all(n[i].level <= max_levels[i]
                                         for i in range(self.dim))
-        self._deep_refine(call_filter=call_filter)
+        self._deep_refine(call_filter=call_filter,
+                          call_postprocess=call_postprocess)
 
     # Real implementations follow below.
     def _refine(self,

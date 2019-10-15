@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from ..datastructures.multi_tree_vector import BlockTreeVector
+
 
 class ApplicatorInterface(ABC):
     @abstractmethod
@@ -85,13 +87,14 @@ class BlockApplicator(ApplicatorInterface):
         Arguments:
             vec: (vec_0, vec_1) a block-vector on Z_0 x Z_1.
         """
+        assert isinstance(vec, BlockTreeVector)
         out_0 = self.applicators[0][0].apply(vec[0])
         out_0 += self.applicators[0][1].apply(vec[1])
 
         out_1 = self.applicators[1][0].apply(vec[0])
         out_1 += self.applicators[1][1].apply(vec[1])
 
-        return (out_0, out_1)
+        return BlockTreeVector((out_0, out_1))
 
     def transpose(self):
         return BlockApplicator([
