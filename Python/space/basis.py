@@ -35,9 +35,10 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
         else: return np.zeros(2)
 
     def inner_quad(self, g, deriv=False, order=4):
+        """ Computes <g, self> or <g, grad self> by quadrature. """
         def func(x):
             return np.array([
-                np.dot(self.eval(x[:, i], deriv), g(*x[:, i]))
+                np.dot(self.eval(x[:, i], deriv), g(x[:, i]))
                 for i in range(x.shape[1])
             ])
 

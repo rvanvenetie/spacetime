@@ -66,8 +66,18 @@ def test_mass_quad_non_symmetric():
                 psi = HierarchicalBasisFunction(v_psi.node)
                 for j, v_phi in enumerate(Lambda_out.bfs()):
                     phi = HierarchicalBasisFunction(v_phi.node)
-                    f, g = (psi, phi) if psi.level > phi.level else (phi, psi)
-                    assert np.isclose(
-                        f.inner_quad(lambda x: g.eval(x, deriv),
-                                     deriv=deriv,
-                                     order=0 if deriv else 2), mat[j, i])
+                    support = psi.support if psi.level > phi.level else phi.support
+                    real_ip = 0
+                    for elem in support:
+                        triangle = np.array(
+                            [elem.vertices[i].as_array() for i in range(3)])
+
+                        def func(x):
+                            return np.array([
+                                np.dot(psi.eval(x[:, i], deriv),
+                                       phi.eval(x[:, i], deriv))
+                                for i in range(x.shape[1])
+                            ])
+
+                        real_ip += quad_scheme.integrate(func, triangle)
+                    assert np.allclose(real_ip, mat[j, i])

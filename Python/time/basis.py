@@ -118,6 +118,7 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
         self.coeff = [0, 0]
 
     def inner_quad(self, g, deriv=False, order=4):
+        """ Computes <g, self> or <g, d/dt self> by quadrature. """
         def func(t):
             return np.array([
                 np.dot(self.eval(t[i], deriv), g(t[i]))

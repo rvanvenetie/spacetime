@@ -19,7 +19,7 @@ class FunctionInterface(ABC):
         """ Evaluates this function at the given coordinate. """
         raise NotImplemented('The eval function is not (yet) implemented')
 
-    @abstractmethod
-    def inner_quad(self, g, order=4):
-        """ Computes the inner product with `g` using quadrature. """
-        pass
+    def inner_quad(self, g, deriv=False, order=4):
+        """ Computes <g, self> or <g, grad self> by quadrature. """
+        raise NotImplemented(
+            'The inner_quad function is not (yet) implemented')
