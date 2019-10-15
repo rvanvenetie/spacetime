@@ -1,5 +1,11 @@
+import scipy
+
 from .. import space, time
-from ..datastructures.applicator import BlockApplicator
+from ..datastructures.applicator import (BlockApplicator,
+                                         LinearOperatorApplicator)
+from ..datastructures.double_tree_vector import (DoubleNodeVector,
+                                                 DoubleTreeVector)
+from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..space import applicator
 from ..space import operators as s_operators
 from ..spacetime.applicator import Applicator
@@ -64,5 +70,23 @@ class HeatEquation:
         self.mat = BlockApplicator([[self.A_s, self.B],
                                     [self.BT, self.m_gamma]])
 
+        # Also turn this block applicator into a linear operator.
+        self.linop = LinearOperatorApplicator(applicator=self.mat,
+                                              input_vec=self.create_vector())
+
+    def create_vector(self, call_postprocess=None):
+        return BlockTreeVector((
+            self.Y_delta.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                   mlt_tree_cls=DoubleTreeVector,
+                                   call_postprocess=call_postprocess),
+            self.X_delta.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                   mlt_tree_cls=DoubleTreeVector,
+                                   call_postprocess=call_postprocess),
+        ))
+
     def solve(self, rhs):
-        pass
+        result_array, info = scipy.sparse.linalg.minres(
+            self.linop, rhs.to_array())
+        result_vec = self.create_vector()
+        result_vec.from_array(result_array)
+        return result_vec, info

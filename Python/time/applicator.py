@@ -22,6 +22,7 @@ class Applicator(ApplicatorInterface):
             basis_in: A Basis object.
             basis_out: A Basis object (default: basis_in).
         """
+        super().__init__()
         self.operator = singlescale_operator
         self.basis_in = basis_in
         self.basis_out = basis_out if basis_out else basis_in

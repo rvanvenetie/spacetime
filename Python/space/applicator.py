@@ -14,6 +14,7 @@ class Applicator(ApplicatorInterface):
         Arguments:
             singlescale_operator: an instance of operators.Operator.
         """
+        super().__init__()
         self.operator = singlescale_operator
 
     def apply(self, vec_in, vec_out):
