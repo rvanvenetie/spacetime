@@ -1,6 +1,7 @@
 import random
 
 import numpy as np
+import quadpy
 
 from ..datastructures.tree_vector import TreeVector
 from ..datastructures.tree_view import TreeView
@@ -62,6 +63,7 @@ def test_mass_quad_non_symmetric():
             mat = applicator.to_matrix(Lambda_in, Lambda_out)
 
             # Compare with quadrature
+            quad_scheme = quadpy.triangle.newton_cotes_open(0 if deriv else 2)
             for i, v_psi in enumerate(Lambda_in.bfs()):
                 psi = HierarchicalBasisFunction(v_psi.node)
                 for j, v_phi in enumerate(Lambda_out.bfs()):
