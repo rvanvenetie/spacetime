@@ -6,6 +6,7 @@ from ..datastructures.applicator import BlockApplicator
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  DoubleTreeVector)
 from ..datastructures.double_tree_view import DoubleTree
+from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..space.triangulation import InitialTriangulation
 from ..spacetime.applicator import Applicator
 from ..spacetime.basis import generate_y_delta
@@ -24,7 +25,7 @@ def random_rhs(heat_eq):
     rhs_x = heat_eq.X_delta.deep_copy(mlt_node_cls=DoubleNodeVector,
                                       mlt_tree_cls=DoubleTreeVector,
                                       call_postprocess=call_random_fill)
-    return (rhs_y, rhs_x)
+    return BlockTreeVector((rhs_y, rhs_x))
 
 
 def test_full_tensor_heat():

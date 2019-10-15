@@ -75,3 +75,27 @@ class MultiTreeVector(MultiTree):
         for node in self.bfs():
             node.value *= x
         return self
+
+
+class BlockTreeVector:
+    def __init__(self, vecs):
+        assert isinstance(vecs, (tuple, list))
+        assert all(isinstance(vec, MultiTreeVector) for vec in vecs)
+        self.vecs = vecs
+
+    def __iter__(self):
+        return iter(self.vecs)
+
+    def __getitem__(self, i):
+        return self.vecs[i]
+
+    def to_array(self):
+        return np.concatenate([vec.to_array() for vec in self.vecs])
+
+    def from_array(self, arr):
+        lengths = [len(vec.bfs()) for vec in self.vecs]
+        assert len(arr) == sum(lengths)
+        splitpoints = np.cumsum(lengths)
+        arrays = np.split(arr, splitpoints)
+        for i, vec in enumerate(self.vecs):
+            vec.from_array(arrays[i])

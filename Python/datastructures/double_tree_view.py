@@ -136,8 +136,9 @@ class DoubleTreeView(MultiTree):
         else:
             return self.fibers[i][mu]
 
-    def uniform_refine(self, max_levels=None):
-        self.root._uniform_refine(max_levels)
+    def uniform_refine(self, max_levels=None, call_postprocess=None):
+        self.root._uniform_refine(max_levels,
+                                  call_postprocess=call_postprocess)
         self.compute_fibers()
 
     def sparse_refine(self, max_level):
