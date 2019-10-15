@@ -94,11 +94,13 @@ class BlockApplicator(ApplicatorInterface):
         return (out_0, out_1)
 
     def transpose(self):
-        return BlockApplicator([[
-            self.applicators[0][0].transpose(),
-            self.applicators[1][0].transpose()
-        ],
-                                [
-                                    self.applicators[0][1].transpose(),
-                                    self.applicators[1][1].transpose()
-                                ]])
+        return BlockApplicator([
+            [
+                self.applicators[0][0].transpose(),
+                self.applicators[1][0].transpose()
+            ],
+            [
+                self.applicators[0][1].transpose(),
+                self.applicators[1][1].transpose()
+            ],
+        ])
