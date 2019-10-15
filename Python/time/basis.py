@@ -125,10 +125,11 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
                 for i in range(t.shape[0])
             ])
 
+        scheme = _get_quadrature_scheme(order)
         result = 0.0
         for elem in self.support:
             interval = list(map(float, elem.interval))
-            result += _get_quadrature_scheme(order).integrate(func, interval)
+            result += scheme.integrate(func, interval)
         return result
 
     def __repr__(self):

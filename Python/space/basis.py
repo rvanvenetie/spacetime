@@ -42,11 +42,12 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
                 for i in range(x.shape[1])
             ])
 
+        scheme = _get_quadrature_scheme(order)
         result = 0.0
         for elem in self.support:
             triangle = np.array(
                 [elem.vertices[i].as_array() for i in range(3)])
-            result += _get_quadrature_scheme(order).integrate(func, triangle)
+            result += scheme.integrate(func, triangle)
         return result
 
     @staticmethod
