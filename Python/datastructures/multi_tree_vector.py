@@ -17,15 +17,6 @@ class MultiNodeVectorInterface(MultiNodeViewInterface):
     def value(self, value):
         pass
 
-    def _deep_sum(self, other):
-        assert isinstance(other, MultiNodeVectorInterface)
-
-        def call_sum(my_node, other_node):
-            my_node.value += other_node.value
-
-        self._union(other, call_postprocess=call_sum)
-        return self
-
     def __repr__(self):
         return '{}: {}'.format(super().__repr__(), self.value)
 
@@ -67,7 +58,21 @@ class MultiTreeVector(MultiTree):
     def __iadd__(self, other):
         """ Add two double trees. """
         assert isinstance(other, MultiTreeVector)
-        self.root._deep_sum(other.root)
+
+        def call_add(my_node, other_node):
+            my_node.value += other_node.value
+
+        self.root._union(other.root, call_postprocess=call_add)
+        return self
+
+    def __isub__(self, other):
+        """ Subtract a double tree. """
+        assert isinstance(other, MultiTreeVector)
+
+        def call_sub(my_node, other_node):
+            my_node.value -= other_node.value
+
+        self.root._union(other.root, call_postprocess=call_sub)
         return self
 
     def __imul__(self, x):
@@ -89,6 +94,16 @@ class BlockTreeVector:
     def __getitem__(self, i):
         return self.vecs[i]
 
+    def __isub__(self, other):
+        for i, vec in enumerate(self.vecs):
+            vec -= other[i]
+        return self
+
+    def __iadd__(self, other):
+        for i, vec in enumerate(self.vecs):
+            vec += other[i]
+        return self
+
     def to_array(self):
         return np.concatenate([vec.to_array() for vec in self.vecs])
 
@@ -99,3 +114,6 @@ class BlockTreeVector:
         arrays = np.split(arr, splitpoints)
         for i, vec in enumerate(self.vecs):
             vec.from_array(arrays[i])
+
+    def bfs(self):
+        return sum([vec.bfs() for vec in self.vecs], [])

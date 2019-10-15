@@ -16,8 +16,7 @@ class Applicator(ApplicatorInterface):
             applicator_time: The applicator to be applied to the time axis.
             applicator_space: The applicator to be applied on the space axis.
         """
-        self.Lambda_in = Lambda_in
-        self.Lambda_out = Lambda_out
+        super().__init__(Lambda_in=Lambda_in, Lambda_out=Lambda_out)
         self.applicator_time = applicator_time
         self.applicator_space = applicator_space
 

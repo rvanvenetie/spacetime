@@ -1,9 +1,31 @@
 from abc import ABC, abstractmethod
 
+import numpy as np
+import scipy
+
 from ..datastructures.multi_tree_vector import BlockTreeVector
 
 
 class ApplicatorInterface(ABC):
+    def __init__(self, Lambda_in=None, Lambda_out=None):
+        """ Initializes this applicator. 
+
+        Args:
+          Lambda_*: If set, these must be the indices of the in/output.
+        """
+        self.Lambda_in = Lambda_in
+        self.Lambda_out = Lambda_out
+
+    def shape(self):
+        result = [-1, -1]
+        if self.Lambda_out:
+            result[0] = len(self.Lambda_out.bfs())
+
+        if self.Lambda_in:
+            result[1] = len(self.Lambda_in.bfs())
+
+        return tuple(result)
+
     @abstractmethod
     def apply(self, vec_in, vec_out=None):
         """ Applies this bilinear form to the given input/output.
@@ -26,7 +48,7 @@ class ApplicatorInterface(ABC):
 
     def __neg__(self):
         """ Returns a negated operator. """
-        return ScalarApplicator(self, -1)
+        return ScalarApplicator(self, scalar=-1)
 
     def __add__(self, other):
         return SumApplicator(self, other)
@@ -37,6 +59,11 @@ class SumApplicator(ApplicatorInterface):
     def __init__(self, applicator_a, applicator_b):
         assert isinstance(applicator_a, ApplicatorInterface)
         assert isinstance(applicator_b, ApplicatorInterface)
+        assert applicator_a.Lambda_in == applicator_b.Lambda_in
+        assert applicator_a.Lambda_out == applicator_b.Lambda_out
+
+        super().__init__(Lambda_in=applicator_a.Lambda_in,
+                         Lambda_out=applicator_a.Lambda_out)
         self.applicator_a = applicator_a
         self.applicator_b = applicator_b
 
@@ -56,6 +83,8 @@ class ScalarApplicator(ApplicatorInterface):
         """ Initialize with the applicator whose output is to be negated. """
         assert isinstance(applicator, ApplicatorInterface)
         assert not isinstance(applicator, ScalarApplicator)
+        super().__init__(Lambda_in=applicator.Lambda_in,
+                         Lambda_out=applicator.Lambda_out)
         self.applicator = applicator
         self.scalar = scalar
 
@@ -66,6 +95,26 @@ class ScalarApplicator(ApplicatorInterface):
 
     def transpose(self):
         return ScalarApplicator(self.applicator.transpose(), self.scalar)
+
+
+class ComposeApplicator(ApplicatorInterface):
+    """ Composes multiple applicators. """
+    def __init__(self, applicators):
+        """ Initializes this applicator composed of the given applicators.
+
+        First applicators[0] is applied, then applicators[1], etc.. """
+        assert isinstance(applicators, (tuple, list))
+        for i in range(len(applicators) - 1):
+            assert applicators[i].Lambda_out == applicators[i].Lambad_in
+
+        super().__init__(Lamba_in=applicators[0].Lambda_in,
+                         Lambda_out=applicators[-1].Lambda_out)
+
+    def apply(self, v):
+        res = v
+        for applicator in self.applicators:
+            res = applicator.apply(res)
+        return res
 
 
 class BlockApplicator(ApplicatorInterface):
@@ -79,7 +128,27 @@ class BlockApplicator(ApplicatorInterface):
         """
         assert 2 == len(applicators) == len(applicators[0]) == len(
             applicators[1])
+        # Check that all inputs/outputs are correct
+        assert len({applicators[i][0].Lambda_in for i in range(2)}) == 1
+        assert len({applicators[i][1].Lambda_in for i in range(2)}) == 1
+        assert len({applicators[0][i].Lambda_out for i in range(2)}) == 1
+        assert len({applicators[1][i].Lambda_out for i in range(2)}) == 1
+
+        super().__init__(Lambda_in=(applicators[0][0].Lambda_in,
+                                    applicators[0][1].Lambda_in),
+                         Lambda_out=(applicators[0][0].Lambda_out,
+                                     applicators[1][0].Lambda_out))
         self.applicators = applicators
+
+    def shape(self):
+        result = [-1, -1]
+        if self.Lambda_out[0] and self.Lambda_out[1]:
+            result[0] = sum(len(l.bfs()) for l in self.Lambda_out)
+
+        if self.Lambda_in[0] and self.Lambda_in[1]:
+            result[1] = sum(len(l.bfs()) for l in self.Lambda_in)
+
+        return tuple(result)
 
     def apply(self, vec):
         """ Applies this block-bilinear form the given input vectors.
@@ -107,3 +176,23 @@ class BlockApplicator(ApplicatorInterface):
                 self.applicators[1][1].transpose()
             ],
         ])
+
+
+class LinearOperatorApplicator(scipy.sparse.linalg.LinearOperator):
+    def __init__(self, applicator, input_vec):
+        """ Creates a linear operator, given an applicator.
+        
+        Args:
+          applicator: the applicator this linear operator represents.
+          input_vec: an suitable datastructure for holding an input vector.
+        """
+        super().__init__(float, applicator.shape())
+        self.applicator = applicator
+        self.input_vec = input_vec
+
+    def _matvec(self, x):
+        self.input_vec.from_array(x)
+        return self.applicator.apply(self.input_vec).to_array()
+
+    def to_matrix(self):
+        return self.matmat(np.eye(self.shape[1]))

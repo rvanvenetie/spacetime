@@ -1,5 +1,11 @@
+import scipy
+
 from .. import space, time
-from ..datastructures.applicator import BlockApplicator
+from ..datastructures.applicator import (BlockApplicator,
+                                         LinearOperatorApplicator)
+from ..datastructures.double_tree_vector import (DoubleNodeVector,
+                                                 DoubleTreeVector)
+from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..space import applicator
 from ..space import operators as s_operators
 from ..spacetime.applicator import Applicator
@@ -12,12 +18,13 @@ from ..time.three_point_basis import ThreePointBasis
 
 class HeatEquation:
     """ Simple solution class. """
-    def __init__(self, X_delta, Y_delta=None):
+    def __init__(self, X_delta, Y_delta=None, dirichlet_boundary=True):
         if Y_delta is None:
             Y_delta = generate_y_delta(X_delta)
 
         self.X_delta = X_delta
         self.Y_delta = Y_delta
+        self.dirichlet_boundary = dirichlet_boundary
 
         print('HeatEquation with #(Y_delta, X_delta)=({}, {})'.format(
             len(X_delta.bfs()), len(Y_delta.bfs())))
@@ -34,7 +41,8 @@ class HeatEquation:
 
         def applicator_space(operator):
             """ Helper function to generate a space applicator. """
-            return space.applicator.Applicator(operator())
+            return space.applicator.Applicator(
+                operator(dirichlet_boundary=dirichlet_boundary))
 
         self.A_s = Applicator(
             Lambda_in=Y_delta,
@@ -64,5 +72,43 @@ class HeatEquation:
         self.mat = BlockApplicator([[self.A_s, self.B],
                                     [self.BT, self.m_gamma]])
 
+        # Also turn this block applicator into a linear operator.
+        self.linop = LinearOperatorApplicator(applicator=self.mat,
+                                              input_vec=self.create_vector())
+
+    @staticmethod
+    def enforce_dirichlet_boundary(vector):
+        """ This sets all the dofs belonging to dirichlet conditions to 0. """
+        for nv in vector.bfs():
+            if nv.nodes[1].on_domain_boundary:
+                nv.value = 0
+
+    def create_vector(self, call_postprocess=None):
+        result = BlockTreeVector((
+            self.Y_delta.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                   mlt_tree_cls=DoubleTreeVector,
+                                   call_postprocess=call_postprocess),
+            self.X_delta.deep_copy(mlt_node_cls=DoubleNodeVector,
+                                   mlt_tree_cls=DoubleTreeVector,
+                                   call_postprocess=call_postprocess),
+        ))
+        if self.dirichlet_boundary:
+            self.enforce_dirichlet_boundary(result)
+        return result
+
     def solve(self, rhs):
-        pass
+        num_iters = 0
+
+        def call_iterations(_):
+            nonlocal num_iters
+            num_iters += 1
+
+        rhs_array = rhs.to_array()
+
+        result_array, info = scipy.sparse.linalg.minres(
+            self.linop, b=rhs_array, x0=rhs_array, callback=call_iterations)
+        assert info == 0
+
+        result_vec = self.create_vector()
+        result_vec.from_array(result_array)
+        return result_vec, num_iters
