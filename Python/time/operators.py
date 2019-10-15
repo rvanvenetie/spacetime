@@ -247,7 +247,7 @@ def _transport_ortho_in_grad_three_out(phi_in):
 
 
 def transport(basis_in, basis_out):
-    """ The transport matrix <d_t phi, psi>, i.e. grad three is input. """
+    """ The transport matrix <psi_orth, d_t psi_3pt>, i.e. orth is output. """
     if isinstance(basis_in, ThreePointBasis) and isinstance(
             basis_out, OrthonormalBasis):
         return LinearOperator(_transport_ortho_in_grad_three_out,
