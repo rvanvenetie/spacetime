@@ -67,12 +67,12 @@ def test_eval_basis():
     basis = HierarchicalBasisFunction.from_triangulation(T)
     basis.deep_refine()
     for phi in basis.bfs():
-        assert np.allclose(phi.eval(np.array([[-1, 0], [-1, -1], [2, 2]]).T),
-                           0)
+        assert np.allclose(
+            phi.eval(np.array([[-1, 0], [-1, -1], [2, 2], [3, 3]]).T), 0)
         for elem in phi.support:
             verts = np.array([elem.vertices[i].as_array() for i in range(3)]).T
             v_eval = phi.eval(verts)
-            print(phi.node, verts, v_eval, np.sum(v_eval, axis=0))
+            print(verts, v_eval, np.sum(v_eval, axis=0))
             assert np.allclose(np.sum(v_eval, axis=0), 1.0)
             assert np.allclose(v_eval, np.array(elem.vertices) == phi.node)
             # Take random combination of vertices.
