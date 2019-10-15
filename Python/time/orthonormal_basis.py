@@ -23,6 +23,9 @@ class DiscLinearScaling(basis.Scaling):
 
     The field Element.phi_disc_lin object is also ordered by labda: cons, lin.
     """
+
+    order = 1
+
     def __init__(self, labda, support, parents=None):
         assert len(support) == 1
         super().__init__(labda, support=support, parents=parents)
@@ -98,6 +101,8 @@ class DiscLinearScaling(basis.Scaling):
 
 
 class OrthonormalWavelet(basis.Wavelet):
+    order = 1
+
     def __init__(self, labda, single_scale, parents=None):
         super().__init__(labda, single_scale=single_scale, parents=parents)
 
