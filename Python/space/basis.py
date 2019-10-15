@@ -26,9 +26,9 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
                 v_index = elem.vertices.index(self.node)
                 if not deriv: return bary[v_index]
                 else:
-                    opp_edge = elem.vertices[(v_index - 1) % 3].as_array() \
-                             - elem.vertices[(v_index + 1) % 3].as_array()
-                    normal = np.array([-opp_edge[1], opp_edge[0]])
+                    edge_opposite = elem.vertices[(v_index - 1) % 3].as_array(
+                    ) - elem.vertices[(v_index + 1) % 3].as_array()
+                    normal = np.array([-edge_opposite[1], edge_opposite[0]])
                     return -normal / (2 * elem.area)
 
         if not deriv: return 0
