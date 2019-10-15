@@ -114,3 +114,6 @@ class BlockTreeVector:
         arrays = np.split(arr, splitpoints)
         for i, vec in enumerate(self.vecs):
             vec.from_array(arrays[i])
+
+    def bfs(self):
+        return sum([vec.bfs() for vec in self.vecs], [])
