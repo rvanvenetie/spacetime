@@ -84,17 +84,47 @@ class HeatEquation:
                 nv.value = 0
 
     def create_vector(self, call_postprocess=None):
+        if isinstance(call_postprocess, tuple):
+            call_postprocess = (call_postprocess, call_postprocess)
+
         result = BlockTreeVector((
             self.Y_delta.deep_copy(mlt_node_cls=DoubleNodeVector,
                                    mlt_tree_cls=DoubleTreeVector,
-                                   call_postprocess=call_postprocess),
+                                   call_postprocess=call_postprocess[0]),
             self.X_delta.deep_copy(mlt_node_cls=DoubleNodeVector,
                                    mlt_tree_cls=DoubleTreeVector,
-                                   call_postprocess=call_postprocess),
+                                   call_postprocess=call_postprocess[1]),
         ))
         if self.dirichlet_boundary:
             self.enforce_dirichlet_boundary(result)
         return result
+
+    def calculate_rhs_vector(self, g, g_order, u0, u0_order):
+        """ Generates a rhs vector for the given rhs g and initial cond u_0 .
+
+        This assumes that g is given as a sum of seperable functions. 
+
+        Args:
+          g: the rhs of the heat equation. Given as list of tuples, 
+            where each tuple (f_t, f_xy) represents the tensor product f_tf_xy.
+          g_order: a tuple describing the time/space polynomial degree of g.
+          u0: a function of space that represents the initial condition.
+          u0_order: the degree of u0.
+        """
+        def call_quad_g(nv, _):
+            """ Helper function to do the quadrature for the rhs g. """
+            hbf = HierarchicalBasisFunction(nv.nodes[1])
+            nv.value = sum(nv.nodes[0].inner_quad(g0, g_order=g_order[0]) *
+                           hbf.inner_quad(g1, order=g_order[1])
+                           for g0, g1 in g)
+
+        def call_quad_u0(nv, _):
+            """ Helper function to do the quadrature for the rhs u0. """
+            hbf = HierarchicalBasisFunction(nv.nodes[1])
+            nv.value = nv.nodes[0].eval(0) * hbf.inner_quad(u0, order=u0_order)
+
+        return self.create_vector((call_quad_g, call_quad_u0))
+                                       call_postprocess=call_quad_g)
 
     def solve(self, rhs):
         num_iters = 0

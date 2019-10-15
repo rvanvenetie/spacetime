@@ -17,6 +17,23 @@ from ..time.three_point_basis import ThreePointBasis
 from .heat_equation import HeatEquation
 
 
+def example_rhs(heat_eq):
+    g = [(lambda t: 2 * t, \
+          lambda x: x[0] * x[1] * (x[0]**2 - 1) * (x[1]**2 - 1)),
+         (lambda t: -6 * (t**2 + 1), \
+          lambda x: x[0] * x[1] * (x[0]**2 + x[1]**2 - 2))]
+    g_order = (2, 6)
+
+    u0 = lambda x: (x[0] - 1) * x[0] * (x[0] + 1) * (x[1] - 1) * x[1] * (x[1] +
+                                                                         1)
+    u0_order = 6
+
+    return heat_eq.calculate_rhs_vector(g=g,
+                                        g_order=g_order,
+                                        u0=u0,
+                                        u0_order=u0_order)
+
+
 def random_rhs(heat_eq):
     # Create a (fake) tree for the rhs (X and Y) having random data.
     def call_random_fill(new_node, _):
@@ -75,6 +92,33 @@ def test_sparse_tensor_heat():
     # Now do the same trick, but using vectors.
     array_matvec = heat_eq.linop.matvec(rhs.to_array())
     assert np.allclose(tree_matvec.to_array(), array_matvec)
+
+    # Now actually solve this beast!
+    sol, num_iters = heat_eq.solve(rhs)
+
+    # Check the error..
+    res_tree = heat_eq.mat.apply(sol)
+    res_tree -= rhs
+    assert np.linalg.norm(res_tree.to_array()) < 1e-5
+
+
+def test_real_tensor_heat():
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    basis_space = triang.vertex_meta_root
+    basis_space.uniform_refine(6)
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(6)
+
+    # Create X^\delta
+    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space))
+    X_delta.sparse_refine(3)
+
+    # Create heat equation obkect
+    heat_eq = HeatEquation(X_delta=X_delta)
+    rhs = example_rhs(heat_eq)
 
     # Now actually solve this beast!
     sol, num_iters = heat_eq.solve(rhs)
