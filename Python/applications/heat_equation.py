@@ -24,7 +24,7 @@ class HeatEquation:
 
         self.X_delta = X_delta
         self.Y_delta = Y_delta
-        self.dirichlet_boundary = True
+        self.dirichlet_boundary = dirichlet_boundary
 
         print('HeatEquation with #(Y_delta, X_delta)=({}, {})'.format(
             len(X_delta.bfs()), len(Y_delta.bfs())))
