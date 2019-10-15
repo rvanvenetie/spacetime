@@ -4,6 +4,7 @@ from ..datastructures.double_tree_vector import (DoubleNodeVector,
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_view import TreeView
 from ..space.triangulation import InitialTriangulation
+from ..space.basis import HierarchicalBasisFunction
 from ..time.haar_basis import HaarBasis
 
 
@@ -68,3 +69,33 @@ def test_double_tree_vector():
     assert len(dt_copy.bfs()) == len(dt_root.bfs())
     for db_node in dt_copy.bfs():
         assert db_node.value == 1
+
+
+def test_initialize_quadrature():
+    # g is the RHS to u(t,x,y) = (t**2 + 1) (x-1) x (x+1) (y-1) y (y+1).
+    # so g(t,x,y) = 2xy(t(x^2-1)(y^2-1) - 3(t^2 + 1)(x^2 + y^2 - 2))
+    #             = 2t * xy(x^2-1)(y^2-1) - 6(t^2 + 1) * xy(x^2 + y^2 - 2).
+    g = [(lambda t: 2 * t, lambda x, y: x * y * (x**2 - 1) * (y**2 - 1)),
+         (lambda t: -6 * (t**2 + 1), lambda x, y: x * y * (x**2 + y**2 - 2))]
+    # Create time part.
+    HaarBasis.metaroot_wavelet.uniform_refine(2)
+
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.elem_meta_root.uniform_refine(2)
+
+    # Create a DoubleTree Vector
+    dt_root = DoubleTreeVector.from_metaroots(
+        HaarBasis.metaroot_wavelet,
+        triang.vertex_meta_root,
+        dbl_node_cls=DoubleNodeVector,
+        frozen_dbl_cls=FrozenDoubleNodeVector)
+    dt_root.uniform_refine()
+
+    # Initialize the vector ones.
+    for db_node in dt_root.bfs():
+        print([(g1(0), g2(1, 1)) for (g1, g2) in g])
+        db_node.value = sum(
+            db_node.nodes[0].L2_quad(g1) *
+            HierarchicalBasisFunction(db_node.nodes[1]).L2_quad(g2)
+            for (g1, g2) in g)

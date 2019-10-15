@@ -1,4 +1,5 @@
 import numpy as np
+import quadpy
 
 from ..datastructures.function import FunctionInterface
 from ..datastructures.tree import MetaRoot
@@ -26,6 +27,22 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
 
         if not deriv: return 0
         else: return np.zeros(2)
+
+    def L2_quad(self, g, deriv=False, order=4):
+        quad_scheme = quadpy.triangle.newton_cotes_open(order)
+
+        def func(x):
+            return np.array([
+                np.dot(self.eval(x[:, i], deriv), g(*x[:, i]))
+                for i in range(x.shape[1])
+            ])
+
+        result = 0.0
+        for elem in self.support:
+            triangle = np.array(
+                [elem.vertices[i].as_array() for i in range(3)])
+            result += quad_scheme.integrate(func, triangle)
+        return result
 
     @staticmethod
     def from_triangulation(triangulation):

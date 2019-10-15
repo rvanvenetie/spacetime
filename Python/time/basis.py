@@ -1,5 +1,7 @@
 from collections import OrderedDict
 from fractions import Fraction
+import numpy as np
+import quadpy
 
 from ..datastructures.function import FunctionInterface
 from ..datastructures.tree import (BinaryNodeAbstract, MetaRoot, MetaRoot,
@@ -108,6 +110,21 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
     def reset_coeff(self):
         """ Resets the coefficients stored in this function object. """
         self.coeff = [0, 0]
+
+    def L2_quad(self, g, deriv=False, order=4):
+        quad_scheme = quadpy.line_segment.gauss_patterson(order)
+
+        def func(t):
+            return np.array([
+                np.dot(self.eval(t[i], deriv), g(t[i]))
+                for i in range(t.shape[0])
+            ])
+
+        result = 0.0
+        for elem in self.support:
+            interval = list(map(float, elem.interval))
+            result += quad_scheme.integrate(func, interval)
+        return result
 
     def __repr__(self):
         return "{}({}, {})".format(self.__class__.__name__, *self.labda)

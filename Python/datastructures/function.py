@@ -18,3 +18,8 @@ class FunctionInterface(ABC):
     def eval(self, x, deriv=False):
         """ Evaluates this function at the given coordinate. """
         raise NotImplemented('The eval function is not (yet) implemented')
+
+    @abstractmethod
+    def L2_quad(self, g, order=4):
+        """ Computes the L2-inner product with `g`. """
+        pass
