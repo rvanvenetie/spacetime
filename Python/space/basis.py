@@ -13,6 +13,8 @@ def _get_quadrature_scheme(order):
 
 
 class HierarchicalBasisFunction(FunctionInterface, NodeView):
+    order = 1
+
     @property
     def support(self):
         return self.node.patch
@@ -34,7 +36,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
         if not deriv: return 0
         else: return np.zeros(2)
 
-    def inner_quad(self, g, deriv=False, order=4):
+    def inner_quad(self, g, g_order=2, deriv=False):
         """ Computes <g, self> or <g, grad self> by quadrature. """
         def func(x):
             return np.array([
@@ -42,7 +44,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
                 for i in range(x.shape[1])
             ])
 
-        scheme = _get_quadrature_scheme(order)
+        scheme = _get_quadrature_scheme(g_order + self.order)
         result = 0.0
         for elem in self.support:
             triangle = np.array(

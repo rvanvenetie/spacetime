@@ -117,7 +117,7 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
         """ Resets the coefficients stored in this function object. """
         self.coeff = [0, 0]
 
-    def inner_quad(self, g, deriv=False, order=4):
+    def inner_quad(self, g, g_order=2, deriv=False):
         """ Computes <g, self> or <g, d/dt self> by quadrature. """
         def func(t):
             return np.array([
@@ -125,7 +125,7 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
                 for i in range(t.shape[0])
             ])
 
-        scheme = _get_quadrature_scheme(order)
+        scheme = _get_quadrature_scheme(g_order + self.order)
         result = 0.0
         for elem in self.support:
             interval = list(map(float, elem.interval))

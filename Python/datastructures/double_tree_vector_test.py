@@ -98,10 +98,9 @@ def test_initialize_quadrature():
 
     # Initialize the vector.
     for db_node in dt_root.bfs():
-        db_node.value = sum(
-            db_node.nodes[0].inner_quad(g1) *
-            HierarchicalBasisFunction(db_node.nodes[1]).inner_quad(g2, order=6)
-            for (g1, g2) in g)
+        hbf = HierarchicalBasisFunction(db_node.nodes[1])
+        db_node.value = sum(db_node.nodes[0].inner_quad(g1, g_order=2) *
+                            hbf.inner_quad(g2, g_order=6) for (g1, g2) in g)
 
     for db_node in dt_root.bfs():
         assert np.isfinite(db_node.value)
