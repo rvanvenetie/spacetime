@@ -18,21 +18,22 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
         return self.node.patch
 
     def eval(self, x, deriv=False):
-        assert len(x) == 2
+        assert x.shape[0] == 2
+        result = np.zeros(x.shape) if deriv else np.zeros(x.shape[1])
         for elem in self.support:
             bary = elem.to_barycentric_coordinates(x)
             # Check if this triangle contains the point.
-            if all(bary >= 0):
-                v_index = elem.vertices.index(self.node)
-                if not deriv: return bary[v_index]
-                else:
-                    opp_edge = elem.vertices[(v_index - 1) % 3].as_array() \
-                             - elem.vertices[(v_index + 1) % 3].as_array()
-                    normal = np.array([-opp_edge[1], opp_edge[0]])
-                    return -normal / (2 * elem.area)
+            v_index = elem.vertices.index(self.node)
+            if not deriv:
+                result = result + bary[v_index, :] * np.all(bary >= 0, axis=0)
+            else:
+                opp_edge = elem.vertices[(v_index - 1) % 3].as_array() \
+                         - elem.vertices[(v_index + 1) % 3].as_array()
+                normal = np.array([-opp_edge[1], opp_edge[0]])
+                print(normal / (2 * elem.area), np.all(bary > 0, axis=0))
+                result -= normal / (2 * elem.area) * np.all(bary > 0, axis=0)
 
-        if not deriv: return 0
-        else: return np.zeros(2)
+        return result
 
     def inner_quad(self, g, deriv=False, order=4):
         """ Computes <g, self> or <g, grad self> by quadrature. """

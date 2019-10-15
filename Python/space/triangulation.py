@@ -110,25 +110,10 @@ class Element2D(BinaryNodeAbstract):
         return not len(self.children)
 
     def to_barycentric_coordinates(self, p):
-        """ Returns the barycentric coordinates for a point p. """
-
-        # https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
-        a, b, c = [self.vertices[i].as_array() for i in range(3)]
-        v0 = b - a
-        v1 = c - a
-        v2 = np.array(p) - a
-
-        d00 = np.dot(v0, v0)
-        d01 = np.dot(v0, v1)
-        d11 = np.dot(v1, v1)
-        d20 = np.dot(v2, v0)
-        d21 = np.dot(v2, v1)
-
-        denom = (d00 * d11 - d01 * d01)
-        v = (d11 * d20 - d01 * d21) / denom
-        w = (d00 * d21 - d01 * d20) / denom
-
-        return np.array([1 - v - w, v, w])
+        """ Returns the barycentric coordinates for a list of points p. """
+        V = np.ones((3, 3))
+        V[:2, :] = np.array([self.vertices[i].as_array() for i in range(3)]).T
+        return np.linalg.solve(V, np.vstack([p, np.ones(p.shape[1])]))
 
     def __repr__(self):
         return 'Element2D({}, {})'.format(self.level, self.vertices)

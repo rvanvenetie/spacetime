@@ -165,7 +165,7 @@ class Wavelet(CoefficientFunction1D):
         self.support = list(OrderedDict.fromkeys(support))
 
     def eval(self, x, deriv=False):
-        result = 0
+        result = np.zeros(x.shape)
         for phi, coeff_ss in self.single_scale:
             result += coeff_ss * phi.eval(x, deriv)
         return result

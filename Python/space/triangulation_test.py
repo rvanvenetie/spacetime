@@ -139,15 +139,13 @@ def test_element_barycentric():
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(4)
     for elem in T.elem_meta_root.bfs():
+        V = np.array([elem.vertices[i].as_array() for i in range(3)]).T
         for _ in range(10):
             # Random point.
-            p = np.random.rand(2)
+            p = np.random.rand(2, 1)
 
             # Convert to barycentric coordinates.
-            u, v, w = elem.to_barycentric_coordinates(p)
+            bary = elem.to_barycentric_coordinates(p)
 
             # Convert barycentric back to normal
-            q = u * elem.vertices[0].as_array() + v * elem.vertices[
-                1].as_array() + w * elem.vertices[2].as_array()
-
-            assert np.allclose(p, q)
+            assert np.allclose(V @ bary, p)
