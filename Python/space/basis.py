@@ -23,10 +23,8 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
             result = np.zeros(x.shape[1])
             for elem in self.support:
                 bary = elem.to_barycentric_coordinates(x)
-                v_index = elem.vertices.index(self.node)
-                print(v_index, bary, bary.T[v_index, :])
-                result = result + bary[v_index, :] * np.all(bary >= 0, axis=0)
-            print("result", result)
+                mask = np.all(bary >= 0, axis=0)
+                result[mask] = bary[elem.vertices.index(self.node), mask]
             return result
         else:
             return np.zeros(x.shape)
