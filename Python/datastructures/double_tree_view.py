@@ -1,5 +1,4 @@
 import itertools
-import traceback
 from collections import defaultdict, deque
 
 from .multi_tree_view import MultiNodeView, MultiNodeViewInterface, MultiTree
