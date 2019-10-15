@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+import numpy as np
 import scipy
 
 from ..datastructures.multi_tree_vector import BlockTreeVector
@@ -17,11 +18,11 @@ class ApplicatorInterface(ABC):
 
     def shape(self):
         result = [-1, -1]
-        if self.Lambda_in:
-            result[0] = len(self.Lambda_in.bfs())
-
         if self.Lambda_out:
-            result[1] = len(self.Lambda_out.bfs())
+            result[0] = len(self.Lambda_out.bfs())
+
+        if self.Lambda_in:
+            result[1] = len(self.Lambda_in.bfs())
 
         return tuple(result)
 
@@ -121,11 +122,11 @@ class BlockApplicator(ApplicatorInterface):
 
     def shape(self):
         result = [-1, -1]
-        if self.Lambda_in[0] and self.Lambda_in[1]:
-            result[0] = sum(len(l.bfs()) for l in self.Lambda_in)
-
         if self.Lambda_out[0] and self.Lambda_out[1]:
-            result[1] = sum(len(l.bfs()) for l in self.Lambda_out)
+            result[0] = sum(len(l.bfs()) for l in self.Lambda_out)
+
+        if self.Lambda_in[0] and self.Lambda_in[1]:
+            result[1] = sum(len(l.bfs()) for l in self.Lambda_in)
 
         return tuple(result)
 
@@ -172,3 +173,6 @@ class LinearOperatorApplicator(scipy.sparse.linalg.LinearOperator):
     def _matvec(self, x):
         self.input_vec.from_array(x)
         return self.applicator.apply(self.input_vec).to_array()
+
+    def to_matrix(self):
+        return self.matmat(np.eye(self.shape[1]))

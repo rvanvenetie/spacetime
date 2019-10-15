@@ -82,9 +82,43 @@ def test_sparse_tensor_heat():
     # Check the error..
     res_tree = heat_eq.mat.apply(sol)
     res_tree -= rhs
-    print(np.linalg.norm(res_tree.to_array()))
-    print(
-        np.linalg.norm(heat_eq.linop.matvec(sol.to_array()) - rhs.to_array()))
+    assert np.linalg.norm(res_tree.to_array()) < 1e-5
+
+
+def test_heat_eq_linear():
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    basis_space = triang.vertex_meta_root
+    basis_space.uniform_refine(6)
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(6)
+
+    # Create X^\delta
+    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space))
+    X_delta.sparse_refine(2)
+
+    # Create heat equation obkect
+    heat_eq = HeatEquation(X_delta=X_delta)
+    heat_eq_mat = heat_eq.linop.to_matrix()
+
+    # Check that the heat_eq linear operator is linear.
+    for _ in range(10):
+        v = random_rhs(heat_eq)
+        w = random_rhs(heat_eq)
+
+        v_arr = v.to_array()
+        w_arr = w.to_array()
+        alpha = random.random()
+
+        # Check whether the linop is linear.
+        assert np.allclose(
+            heat_eq.linop.matvec(v_arr + alpha * w_arr),
+            heat_eq.linop.matvec(v_arr) + alpha * heat_eq.linop.matvec(w_arr))
+
+        # Check whether the output corresponds to the matrix.
+        assert np.allclose(heat_eq.linop.matvec(v_arr), heat_eq_mat.dot(v_arr))
 
 
 if __name__ == "__main__":
