@@ -19,15 +19,18 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
 
     def eval(self, x, deriv=False):
         assert x.shape[0] == 2
-        if not deriv:
-            result = np.zeros(x.shape[1])
-            for elem in self.support:
-                bary = elem.to_barycentric_coordinates(x)
-                mask = np.all(bary >= 0, axis=0)
-                result[mask] = bary[elem.vertices.index(self.node), mask]
-            return result
-        else:
-            return np.zeros(x.shape)
+        result = np.zeros(x.shape) if deriv else np.zeros((1, x.shape[1]))
+        for elem in self.support:
+            i = elem.vertices.index(self.node)
+            bary = elem.to_barycentric_coordinates(x)
+            mask = np.all(bary >= 0, axis=0)
+            if not deriv: result[:, mask] = bary[i, mask]
+            else:
+                V = [elem.vertices[j].as_array() for j in range(3)]
+                opp_edge = V[(i - 1) % 3] - V[(i + 1) % 3]
+                normal = np.array([-opp_edge[1], opp_edge[0]])
+                result[:, mask] = np.tile(normal[:, np.newaxis], mask.sum())
+        return result
 
     def inner_quad(self, g, deriv=False, order=4):
         """ Computes <g, self> or <g, grad self> by quadrature. """

@@ -73,13 +73,9 @@ def test_mass_quad_non_symmetric():
                     for elem in support:
                         triangle = np.array(
                             [elem.vertices[i].as_array() for i in range(3)])
-
-                        def func(x):
-                            return np.array([
-                                np.dot(psi.eval(x[:, i], deriv),
-                                       phi.eval(x[:, i], deriv))
-                                for i in range(x.shape[1])
-                            ])
-
+                        func = lambda x: (psi.eval(x, deriv) * phi.eval(
+                            x, deriv)).sum(axis=0)
                         real_ip += quad_scheme.integrate(func, triangle)
+
+                    print(psi, phi, deriv)
                     assert np.allclose(real_ip, mat[j, i])
