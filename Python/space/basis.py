@@ -20,15 +20,15 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
                 v_index = elem.vertices.index(self.node)
                 if not deriv: return bary[v_index]
                 else:
-                    edge_opposite = elem.vertices[(v_index - 1) % 3].as_array(
-                    ) - elem.vertices[(v_index + 1) % 3].as_array()
-                    normal = np.array([-edge_opposite[1], edge_opposite[0]])
+                    opp_edge = elem.vertices[(v_index - 1) % 3].as_array() \
+                             - elem.vertices[(v_index + 1) % 3].as_array()
+                    normal = np.array([-opp_edge[1], opp_edge[0]])
                     return -normal / (2 * elem.area)
 
         if not deriv: return 0
         else: return np.zeros(2)
 
-    def L2_quad(self, g, deriv=False, order=4):
+    def L2_inner(self, g, deriv=False, order=4):
         quad_scheme = quadpy.triangle.newton_cotes_open(order)
 
         def func(x):
@@ -46,6 +46,6 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
 
     @staticmethod
     def from_triangulation(triangulation):
-        """ Creates a hierarchical basis function tree from the given triang. """
+        """ Creates hierarchical basis function tree from the given triang. """
         return TreeView(
             HierarchicalBasisFunction([triangulation.vertex_meta_root]))

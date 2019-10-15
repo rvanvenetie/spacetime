@@ -111,7 +111,7 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
         """ Resets the coefficients stored in this function object. """
         self.coeff = [0, 0]
 
-    def L2_quad(self, g, deriv=False, order=4):
+    def L2_inner(self, g, deriv=False, order=4):
         quad_scheme = quadpy.line_segment.gauss_patterson(order)
 
         def func(t):

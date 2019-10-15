@@ -1,8 +1,6 @@
 from . import basis
 from ..datastructures.tree import MetaRoot
 
-from scipy.integrate import quad
-
 
 class DiscConstScaling(basis.Scaling):
     """ Discontinous piecewise constant scaling function.
@@ -51,9 +49,6 @@ class DiscConstScaling(basis.Scaling):
         assert deriv == False
         l, n = self.labda
         return 1.0 * self.eval_mother(2**l * x - n)
-
-    def L2_quad(self, g, deriv=False, order=4):
-        pass
 
 
 class HaarWavelet(basis.Wavelet):
