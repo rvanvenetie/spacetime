@@ -29,21 +29,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
             print("result", result)
             return result
         else:
-            result = np.zeros(x.shape)
-        for elem in self.support:
-            bary = elem.to_barycentric_coordinates(x)
-            # Check if this triangle contains the point.
-            v_index = elem.vertices.index(self.node)
-            if not deriv:
-                result = result + bary[v_index, :] * np.all(bary >= 0, axis=0)
-            else:
-                opp_edge = elem.vertices[(v_index - 1) % 3].as_array() \
-                         - elem.vertices[(v_index + 1) % 3].as_array()
-                normal = np.array([-opp_edge[1], opp_edge[0]])
-                print(normal / (2 * elem.area), np.all(bary > 0, axis=0))
-                result -= normal / (2 * elem.area) * np.all(bary > 0, axis=0)
-
-        return result
+            return np.zeros(x.shape)
 
     def inner_quad(self, g, deriv=False, order=4):
         """ Computes <g, self> or <g, grad self> by quadrature. """
