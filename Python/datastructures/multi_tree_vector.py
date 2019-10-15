@@ -99,6 +99,11 @@ class BlockTreeVector:
             vec -= other[i]
         return self
 
+    def __iadd__(self, other):
+        for i, vec in enumerate(self.vecs):
+            vec += other[i]
+        return self
+
     def to_array(self):
         return np.concatenate([vec.to_array() for vec in self.vecs])
 
