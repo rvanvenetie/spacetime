@@ -154,12 +154,7 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
 
     def inner_quad(self, g, g_order=2, deriv=False):
         """ Computes <g, self> or <g, d/dt self> by quadrature. """
-        def func(t):
-            return np.array([
-                np.dot(self.eval(t[i], deriv), g(t[i]))
-                for i in range(t.shape[0])
-            ])
-
+        func = lambda t: (self.eval(t, deriv) * g(t))
         scheme = _get_quadrature_scheme(g_order + self.order)
         result = 0.0
         for elem in self.support:
@@ -205,7 +200,8 @@ class Wavelet(CoefficientFunction1D):
         self.support = list(OrderedDict.fromkeys(support))
 
     def eval(self, x, deriv=False):
-        result = 0
+        assert len(x.shape) == 1 or x.shape[0] == 1
+        result = np.zeros(x.shape)
         for phi, coeff_ss in self.single_scale:
             result += coeff_ss * phi.eval(x, deriv)
         return result
