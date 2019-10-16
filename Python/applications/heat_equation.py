@@ -6,8 +6,10 @@ from ..datastructures.applicator import (BlockApplicator,
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  DoubleTreeVector)
 from ..datastructures.multi_tree_vector import BlockTreeVector
+from ..datastructures.tree import MetaRoot
 from ..space import applicator
 from ..space import operators as s_operators
+from ..space.basis import HierarchicalBasisFunction
 from ..spacetime.applicator import Applicator
 from ..spacetime.basis import generate_y_delta
 from ..time import applicator
@@ -84,7 +86,7 @@ class HeatEquation:
                 nv.value = 0
 
     def create_vector(self, call_postprocess=None):
-        if isinstance(call_postprocess, tuple):
+        if not isinstance(call_postprocess, tuple):
             call_postprocess = (call_postprocess, call_postprocess)
 
         result = BlockTreeVector((
@@ -113,18 +115,22 @@ class HeatEquation:
         """
         def call_quad_g(nv, _):
             """ Helper function to do the quadrature for the rhs g. """
+            if any(isinstance(node, MetaRoot) for node in nv.nodes):
+                return
             hbf = HierarchicalBasisFunction(nv.nodes[1])
             nv.value = sum(nv.nodes[0].inner_quad(g0, g_order=g_order[0]) *
-                           hbf.inner_quad(g1, order=g_order[1])
+                           hbf.inner_quad(g1, g_order=g_order[1])
                            for g0, g1 in g)
 
         def call_quad_u0(nv, _):
             """ Helper function to do the quadrature for the rhs u0. """
+            if any(isinstance(node, MetaRoot) for node in nv.nodes):
+                return
             hbf = HierarchicalBasisFunction(nv.nodes[1])
-            nv.value = nv.nodes[0].eval(0) * hbf.inner_quad(u0, order=u0_order)
+            nv.value = nv.nodes[0].eval(0) * hbf.inner_quad(u0,
+                                                            g_order=u0_order)
 
         return self.create_vector((call_quad_g, call_quad_u0))
-                                       call_postprocess=call_quad_g)
 
     def solve(self, rhs):
         num_iters = 0
