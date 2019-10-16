@@ -8,7 +8,7 @@ class DiscConstScaling(basis.Scaling):
     The function (l, n) corresponds to the indicator function on element (l,n).
     That is, it has support [2^(-l)*n, 2^(-l)*(n+1)].
     """
-
+    __slots__ = []
     order = 0
 
     def __init__(self, labda, support, parents=None):
@@ -55,6 +55,7 @@ class DiscConstScaling(basis.Scaling):
 
 
 class HaarWavelet(basis.Wavelet):
+    __slots__ = []
     order = 0
 
     def __init__(self, labda, single_scale, parents=None):

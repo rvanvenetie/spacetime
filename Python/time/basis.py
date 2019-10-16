@@ -106,7 +106,7 @@ class Element1D(BinaryNodeAbstract):
 
 class CoefficientFunction1D(NodeAbstract, FunctionInterface):
     """ This is a base represention of a basis function with coefficients. """
-    __slots__ = ['support']
+    __slots__ = ['labda', 'support', 'coeff']
 
     def __init__(self, labda, support, parents=None):
         super().__init__(parents=parents, children=None)
@@ -148,6 +148,8 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
 
 
 class Scaling(CoefficientFunction1D):
+    __slots__ = ['multi_scale']
+
     def __init__(self, labda, support, parents=None):
         super().__init__(labda=labda, support=support, parents=parents)
         self.multi_scale = []  # Transpose of the wavelet to multiscale.
@@ -162,6 +164,8 @@ class Scaling(CoefficientFunction1D):
 
 
 class Wavelet(CoefficientFunction1D):
+    __slots__ = ['single_scale']
+
     def __init__(self, labda, single_scale, parents=None):
         super().__init__(labda, support=[], parents=parents)
 

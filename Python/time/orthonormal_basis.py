@@ -23,7 +23,7 @@ class DiscLinearScaling(basis.Scaling):
 
     The field Element.phi_disc_lin object is also ordered by labda: cons, lin.
     """
-
+    __slots__ = ['nbr', 'pw_constant']
     order = 1
 
     def __init__(self, labda, support, parents=None):
@@ -100,6 +100,7 @@ class DiscLinearScaling(basis.Scaling):
 
 
 class OrthonormalWavelet(basis.Wavelet):
+    __slots__ = []
     order = 1
 
     def __init__(self, labda, single_scale, parents=None):
