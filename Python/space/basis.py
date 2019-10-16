@@ -22,6 +22,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
         super().__init__(nodes=nodes, parents=parents, children=children)
         assert isinstance(self.node, (Vertex, MetaRoot))
 
+    @property
     def on_domain_boundary(self):
         return self.node.on_domain_boundary
 
