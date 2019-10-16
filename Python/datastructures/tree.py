@@ -5,9 +5,16 @@ from collections import deque
 
 class NodeInterface(ABC):
     """ Represents a node in a family tree: nodes have multiple parents. """
+    __slots__ = []
+
     @abstractmethod
     def is_full(self):
         """ Returns whether this node has all possible children present. """
+        pass
+
+    @abstractmethod
+    def is_metaroot(self):
+        """ Returns whether this node represents a *metaroot*. """
         pass
 
     @abstractmethod
@@ -69,9 +76,15 @@ class NodeAbstract(NodeInterface):
         self.children = children if children else []
         self.marked = False
 
+    def is_metaroot(self):
+        """ This is a real node. """
+        return False
+
 
 class BinaryNodeAbstract(NodeAbstract):
     """ Partial impl. of a binary tree node (hence, with a single parent). """
+    __slots__ = []
+
     def __init__(self, parent=None, children=None):
         if parent:
             super().__init__(parents=[parent], children=children)
@@ -93,6 +106,8 @@ class BinaryNodeAbstract(NodeAbstract):
 
 class MetaRoot(NodeAbstract):
     """ Combines the roots of a multi-rooted family tree. """
+    __slots__ = []
+
     def __init__(self, roots):
         if not isinstance(roots, list):
             roots = [roots]
@@ -103,11 +118,14 @@ class MetaRoot(NodeAbstract):
             assert not root.parents
             root.parents = [self]
 
-    def refine(self):
-        return self.children
-
     def is_full(self):
         return True
+
+    def is_metaroot(self):
+        return True
+
+    def refine(self):
+        return self.children
 
     @property
     def roots(self):

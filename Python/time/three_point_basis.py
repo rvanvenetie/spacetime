@@ -12,7 +12,9 @@ class ContLinearScaling(basis.Scaling):
 
     The field Element.phi_cont_lin object is ordered by labda, i.e. left, right.
     """
-
+    __slots__ = [
+        'nbr_left', 'nbr_right', 'child_left', 'child_mid', 'child_right'
+    ]
     order = 1
 
     def __init__(self, labda, support, parents=None):
@@ -147,7 +149,7 @@ class ThreePointWavelet(basis.Wavelet):
     level is indexed by the corresponding node index. A wavelet on level l >= 1
     is indexed by 0..2^l-1, corresponding to the odd nodes on level l.
     """
-
+    __slots__ = []
     order = 1
 
     def __init__(self, labda, single_scale, parents=None):

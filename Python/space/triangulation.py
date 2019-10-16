@@ -56,7 +56,7 @@ class Vertex(NodeAbstract):
 
 class Element2D(BinaryNodeAbstract):
     """ A element as part of a locally refined triangulation. """
-    __slots__ = ['level', 'vertices', 'area']
+    __slots__ = ['level', 'vertices', 'area', 'neighbours']
 
     def __init__(self, level, vertices, parent=None):
         """ Instantiates the element object.
@@ -69,7 +69,6 @@ class Element2D(BinaryNodeAbstract):
         super().__init__(parent=parent)
         self.level = level
         self.vertices = vertices
-        self.children = []  # References to the children of this element.
 
         # Indices of my neighbours, ordered by the edge opposite vertex i.
         self.neighbours = [None, None, None]

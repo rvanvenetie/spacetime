@@ -28,13 +28,17 @@ class Operator:
             w: a `np.array` of length len(self.triang.vertices).
         """
         assert len(v) == len(self.triang.vertices)
-        w = self.apply_T(v)
-        x = self.apply_SS(w)
-        y = self.apply_T_transpose(x)
         if self.dirichlet_boundary:
-            return self.apply_boundary_restriction(y)
-        else:
-            return y
+            v = self.apply_boundary_restriction(v)
+
+        v = self.apply_T(v)
+        v = self.apply_SS(v)
+        v = self.apply_T_transpose(v)
+
+        if self.dirichlet_boundary:
+            v = self.apply_boundary_restriction(v)
+
+        return v
 
     def apply_SS(self, v):
         """Application of the operator to the single-scale basis.

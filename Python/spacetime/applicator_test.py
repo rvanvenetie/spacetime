@@ -201,8 +201,9 @@ def test_sigma_combinations():
 def test_applicator_real():
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    hierarch_basis = triang.vertex_meta_root
-    hierarch_basis.uniform_refine(5)
+    triang.elem_meta_root.uniform_refine(5)
+    hierarch_basis = HierarchicalBasisFunction.from_triangulation(triang)
+    hierarch_basis.deep_refine()
 
     # Create space applicator
     applicator_space = Applicator2D(Mass2D())
@@ -219,11 +220,12 @@ def test_applicator_real():
                                    basis_out=basis_out)
 
     # Create Lambda_in as sparse tree
-    Lambda_in = DoubleTree((basis_in.metaroot_wavelet, hierarch_basis))
+    Lambda_in = DoubleTree((basis_in.metaroot_wavelet, hierarch_basis.root))
     Lambda_in.uniform_refine(5)
 
     # Create Lambda_out as full tree.
-    Lambda_out = DoubleTree((ThreePointBasis.metaroot_wavelet, hierarch_basis))
+    Lambda_out = DoubleTree(
+        (ThreePointBasis.metaroot_wavelet, hierarch_basis.root))
     Lambda_out.sparse_refine(4)
     assert len(Lambda_in.bfs()) != len(Lambda_out.bfs())
 

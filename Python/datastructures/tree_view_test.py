@@ -22,13 +22,13 @@ def test_uniform_refine():
     # Generate some metaroots to work with.
     T = InitialTriangulation.unit_square()
     metaroot_view = TreeView(T.elem_meta_root)
-
     assert len(metaroot_view.bfs()) == 0
     metaroot_view.uniform_refine(5)
     assert len(metaroot_view.bfs()) == 2
 
     # Refine the underlying tree.
     T.elem_meta_root.uniform_refine(2)
+    assert len(T.elem_meta_root.bfs()) == 2 + 2 * 2 + 2 * 2 * 2
     assert len(metaroot_view.bfs()) == 2
     metaroot_view.uniform_refine(1)
     assert len(metaroot_view.bfs()) == 2 + 2 * 2

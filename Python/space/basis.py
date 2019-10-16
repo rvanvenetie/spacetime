@@ -1,10 +1,12 @@
+from functools import lru_cache
+
 import numpy as np
 import quadpy
-from functools import lru_cache
 
 from ..datastructures.function import FunctionInterface
 from ..datastructures.tree import MetaRoot
 from ..datastructures.tree_view import NodeView, TreeView
+from .triangulation import Vertex
 
 
 @lru_cache(maxsize=10)
@@ -16,8 +18,19 @@ def _get_quadrature_scheme(order):
 class HierarchicalBasisFunction(FunctionInterface, NodeView):
     order = 1
 
+    def __init__(self, nodes, parents=None, children=None):
+        super().__init__(nodes=nodes, parents=parents, children=children)
+        assert isinstance(self.node, (Vertex, MetaRoot))
+
+    def on_domain_boundary(self):
+        return self.node.on_domain_boundary
+
     @property
     def support(self):
+        return self.node.patch
+
+    @property
+    def patch(self):
         return self.node.patch
 
     def eval(self, x, deriv=False):
@@ -57,4 +70,4 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
     def from_triangulation(triangulation):
         """ Creates hierarchical basis function tree from the given triang. """
         return TreeView(
-            HierarchicalBasisFunction([triangulation.vertex_meta_root]))
+            HierarchicalBasisFunction(triangulation.vertex_meta_root))
