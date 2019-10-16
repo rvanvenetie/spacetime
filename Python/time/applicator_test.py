@@ -110,15 +110,10 @@ def test_multiscale_mass_quadrature():
         resmat = applicator.to_matrix(Lambda_in, Lambda_out)
         truemat = np.zeros([len(Lambda_out), len(Lambda_in)])
         for j, psi in enumerate(Lambda_in):
-            supp_psi = support_to_interval(psi.support)
             for i, mu in enumerate(Lambda_out):
-                supp_mu = support_to_interval(mu.support)
-                true_val = quad(
-                    lambda x: psi.eval(x) * mu.eval(x),
-                    max(supp_mu[0], supp_psi[0]),
-                    min(supp_mu[1], supp_psi[1]),
-                )[0]
-                truemat[i, j] = true_val
+                f, g = (psi, mu) if psi.level > mu.level else (mu, psi)
+                truemat[i, j] = f.inner_quad(lambda t: g.eval(t),
+                                             g_order=g.order)
         assert np.allclose(resmat, truemat)
 
 
@@ -132,8 +127,8 @@ def test_multiscale_transport_quadrature():
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
     tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
-    for basis_in, basis_out in itertools.product(
-        [oru, oro, ore, tpu, tpo, tpe], [tpu, tpo, tpe]):
+    for basis_in, basis_out in itertools.product([tpu, tpo, tpe],
+                                                 [oru, oro, ore]):
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
         operator = operators.transport(basis_in, basis_out)
@@ -147,7 +142,7 @@ def test_multiscale_transport_quadrature():
             for i, psi_out in enumerate(Lambda_out):
                 supp_out = support_to_interval(psi_out.support)
                 true_val = quad(
-                    lambda x: psi_in.eval(x) * psi_out.eval(x, deriv=True),
+                    lambda x: psi_in.eval(x, deriv=True) * psi_out.eval(x),
                     max(supp_in[0], supp_out[0]),
                     min(supp_in[1], supp_out[1]),
                 )[0]
@@ -161,7 +156,8 @@ def test_multiscale_trace():
     tpu = ThreePointBasis.uniform_basis(max_level=5)
     tpo = ThreePointBasis.origin_refined_basis(max_level=12)
     for (basis_in, Lambda_in), (basis_out, Lambda_out) in \
-            list(itertools.product([tpu, tpo], [tpu, tpo])) \
+            list(itertools.product([oro, oru], [oro, oru])) \
+          + list(itertools.product([tpu, tpo], [tpu, tpo])) \
           + list(itertools.product([tpu, tpo], [oru, oro])) \
           + list(itertools.product([oru, oro], [tpu, tpo])):
         operator = operators.trace(basis_in, basis_out)
@@ -189,7 +185,6 @@ def test_multiscale_operator_quadrature_lin_comb():
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
     tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
-    deriv = (False, False)
     for basis_in, basis_out in [(hbu, hbu), (hbo, hbo), (hbu, hbo), (hbu, hbe),
                                 (oru, oru), (oro, oro), (oru, oro), (oru, ore),
                                 (tpu, tpu), (tpo, tpo), (tpu, tpo), (tpu, tpe),
@@ -212,10 +207,10 @@ def test_multiscale_operator_quadrature_lin_comb():
             applicator.apply(vec_in, vec_out)
 
             # Define function that evaluates lin. comb. Psi_Lambda_in
-            def psi_vec_in_eval(x, deriv):
+            def psi_vec_in_eval(x):
                 result = 0
                 for psi_in, val_in in vec_in.items():
-                    result += val_in * psi_in.eval(x, deriv)
+                    result += val_in * psi_in.eval(x)
                 return result
 
             for psi_out in Lambda_out:
@@ -229,8 +224,7 @@ def test_multiscale_operator_quadrature_lin_comb():
                 points = list(map(float, points))
 
                 # Apply quadrature.
-                true_val = quad(lambda x: psi_vec_in_eval(x, deriv=deriv[0]) *
-                                psi_out.eval(x, deriv=deriv[1]),
+                true_val = quad(lambda x: psi_vec_in_eval(x) * psi_out.eval(x),
                                 supp_psi_out[0],
                                 supp_psi_out[1],
                                 points=points)[0]
@@ -251,7 +245,6 @@ def test_apply_upp_low_vs_full():
     tpu = ThreePointBasis.uniform_basis(max_level=uml)
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
     tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
-    deriv = (False, False)
     for basis_in, basis_out in [(hbu, hbu), (hbo, hbo), (hbu, hbo), (hbu, hbe),
                                 (oru, oru), (oro, oro), (oru, oro), (oru, ore),
                                 (tpu, tpu), (tpo, tpo), (tpu, tpo), (tpu, tpe),

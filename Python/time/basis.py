@@ -14,6 +14,7 @@ from .sparse_vector import SparseVector
 
 @lru_cache(maxsize=10)
 def _get_quadrature_scheme(order):
+    # order == 2 * n - 1.
     return quadpy.line_segment.gauss_legendre((order + 2) // 2)
 
 
@@ -117,13 +118,14 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
         """ Resets the coefficients stored in this function object. """
         self.coeff = [0, 0]
 
-    def inner_quad(self, g, deriv=False, order=4):
+    def inner_quad(self, g, g_order=2, deriv=False):
         """ Computes <g, self> or <g, d/dt self> by quadrature. """
         func = lambda t: (self.eval(t, deriv) * g(t))
+        scheme = _get_quadrature_scheme(g_order + self.order)
         result = 0.0
         for elem in self.support:
             interval = list(map(float, elem.interval))
-            result += _get_quadrature_scheme(order).integrate(func, interval)
+            result += scheme.integrate(func, interval)
         return result
 
     def __repr__(self):

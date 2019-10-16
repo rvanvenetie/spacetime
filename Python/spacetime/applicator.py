@@ -1,9 +1,10 @@
+from ..datastructures.applicator import ApplicatorInterface
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  DoubleTreeVector,
                                                  FrozenDoubleNodeVector)
 
 
-class Applicator:
+class Applicator(ApplicatorInterface):
     """ Class that implements a tensor product operator. """
     def __init__(self, Lambda_in, Lambda_out, applicator_time,
                  applicator_space):
@@ -15,8 +16,7 @@ class Applicator:
             applicator_time: The applicator to be applied to the time axis.
             applicator_space: The applicator to be applied on the space axis.
         """
-        self.Lambda_in = Lambda_in
-        self.Lambda_out = Lambda_out
+        super().__init__(Lambda_in=Lambda_in, Lambda_out=Lambda_out)
         self.applicator_time = applicator_time
         self.applicator_space = applicator_space
 
@@ -149,3 +149,10 @@ class Applicator:
         vec_out = vec_out_low
         vec_out += vec_out_upp
         return vec_out
+
+    def transpose(self):
+        """ Transposes this spacetime bilinear formulation. """
+        return Applicator(Lambda_in=self.Lambda_out,
+                          Lambda_out=self.Lambda_in,
+                          applicator_time=self.applicator_time.transpose(),
+                          applicator_space=self.applicator_space.transpose())

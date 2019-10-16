@@ -8,9 +8,10 @@ from .triangulation_view import TriangulationView
 
 class Operator:
     """ Base class for space operators. """
-    def __init__(self, triang=None):
+    def __init__(self, triang=None, dirichlet_boundary=True):
         """ This operator binds to the to a given triangulation(view). """
         self.triang = triang
+        self.dirichlet_boundary = dirichlet_boundary
 
     def apply(self, v):
         """ Application of the operator the hierarchical basis. """
@@ -26,11 +27,14 @@ class Operator:
         Returns:
             w: a `np.array` of length len(self.triang.vertices).
         """
-        """ Applies the hierarchical stiffness matrix. """
         assert len(v) == len(self.triang.vertices)
         w = self.apply_T(v)
         x = self.apply_SS(w)
-        return self.apply_T_transpose(x)
+        y = self.apply_T_transpose(x)
+        if self.dirichlet_boundary:
+            return self.apply_boundary_restriction(y)
+        else:
+            return y
 
     def apply_SS(self, v):
         """Application of the operator to the single-scale basis.

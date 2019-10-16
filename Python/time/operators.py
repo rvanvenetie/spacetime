@@ -187,6 +187,17 @@ def _trace_ortho_in_three_out(phi_in):
         return [(elem.phi_cont_lin[0], -sq3)]
 
 
+def _trace_ortho_in_ortho_out(phi_in):
+    assert isinstance(phi_in, DiscLinearScaling)
+    l, n = phi_in.labda
+    if n > 1: return []
+    elem = phi_in.support[0]
+    if phi_in.pw_constant:
+        return [(elem.phi_disc_lin[0], 1.0), (elem.phi_disc_lin[1], -sq3)]
+    else:
+        return [(elem.phi_disc_lin[0], -sq3), (elem.phi_disc_lin[1], 3)]
+
+
 def trace(basis_in, basis_out=None):
     """ The trace matrix <gamma_0 phi, gamma_0 psi> = phi(0) psi(0). """
     if basis_out is None:
@@ -200,25 +211,14 @@ def trace(basis_in, basis_out=None):
             return LinearOperator(_trace_ortho_in_three_out,
                                   _trace_three_in_ortho_out)
     if isinstance(basis_in, OrthonormalBasis):
+        if isinstance(basis_out, OrthonormalBasis):
+            return LinearOperator(_trace_ortho_in_ortho_out)
         if isinstance(basis_out, ThreePointBasis):
             return LinearOperator(_trace_three_in_ortho_out,
                                   _trace_ortho_in_three_out)
     raise TypeError(
         'Trace operator for ({}, {}) is not implemented (yet).'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))
-
-
-def _transport_grad_three_in_three_out(phi_in):
-    """ The scaling transport matrix for threepoint in, threepoint out. """
-    assert isinstance(phi_in, ContLinearScaling)
-    result = []
-    l, n = phi_in.labda
-    if n > 0 and n < 2**l:
-        return [(phi_in.nbr_left, 0.5), (phi_in.nbr_right, -0.5)]
-    if n == 0:
-        return [(phi_in, -0.5), (phi_in.nbr_right, -0.5)]
-    if n == 2**l:
-        return [(phi_in.nbr_left, 0.5), (phi_in, 0.5)]
 
 
 def _transport_grad_three_in_ortho_out(phi_in):
@@ -247,14 +247,11 @@ def _transport_ortho_in_grad_three_out(phi_in):
 
 
 def transport(basis_in, basis_out):
-    """ The transport matrix <d_t phi, psi>. """
+    """ The transport matrix <psi_orth, d_t psi_3pt>, i.e. orth is output. """
     if isinstance(basis_in, ThreePointBasis) and isinstance(
-            basis_out, ThreePointBasis):
-        return LinearOperator(_transport_grad_three_in_three_out)
-    elif isinstance(basis_in, OrthonormalBasis) and isinstance(
-            basis_out, ThreePointBasis):
-        return LinearOperator(_transport_grad_three_in_ortho_out,
-                              _transport_ortho_in_grad_three_out)
+            basis_out, OrthonormalBasis):
+        return LinearOperator(_transport_ortho_in_grad_three_out,
+                              _transport_grad_three_in_ortho_out)
     else:
         raise TypeError(
             'Transport operator for ({}, {}) is not implemented (yet).'.format(

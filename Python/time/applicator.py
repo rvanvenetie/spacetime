@@ -1,11 +1,12 @@
 import numpy as np
 
+from ..datastructures.applicator import ApplicatorInterface
 from ..datastructures.tree_view import NodeViewInterface
 from .basis import MultiscaleFunctions, mother_element
 from .sparse_vector import SparseVector
 
 
-class Applicator(object):
+class Applicator(ApplicatorInterface):
     """ Class that can apply multiscale operators with minimal overhead.
 
     See also github.com/skestler/lawa-phd-skestler/LAWA-lite/
@@ -21,6 +22,7 @@ class Applicator(object):
             basis_in: A Basis object.
             basis_out: A Basis object (default: basis_in).
         """
+        super().__init__()
         self.operator = singlescale_operator
         self.basis_in = basis_in
         self.basis_out = basis_out if basis_out else basis_in
@@ -138,6 +140,12 @@ class Applicator(object):
 
         self._finalize(vec_in, vec_out)
         return vec_out
+
+    def transpose(self):
+        """ Returns an applicator for the tranpose of this bilinear form. """
+        return Applicator(self.operator.transpose(),
+                          basis_in=self.basis_out,
+                          basis_out=self.basis_in)
 
     #  Private methods from here on out.
     def _construct_Pi_out(self, Pi_out):

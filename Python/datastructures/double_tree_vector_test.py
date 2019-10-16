@@ -4,6 +4,7 @@ from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  DoubleTreeVector,
                                                  FrozenDoubleNodeVector)
 from ..datastructures.double_tree_view import DoubleTree
+from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..datastructures.tree_view import TreeView
 from ..space.triangulation import InitialTriangulation
 from ..space.basis import HierarchicalBasisFunction
@@ -14,10 +15,6 @@ def test_double_tree_vector():
     # Create space part.
     triang = InitialTriangulation.unit_square()
     triang.elem_meta_root.uniform_refine(2)
-
-    # Create a hierarchical basis
-    hierarch_basis = TreeView(triang.vertex_meta_root)
-    hierarch_basis.deep_refine()
 
     # Create time part.
     HaarBasis.metaroot_wavelet.uniform_refine(2)
@@ -98,10 +95,46 @@ def test_initialize_quadrature():
 
     # Initialize the vector.
     for db_node in dt_root.bfs():
-        db_node.value = sum(
-            db_node.nodes[0].inner_quad(g1) *
-            HierarchicalBasisFunction(db_node.nodes[1]).inner_quad(g2, order=6)
-            for (g1, g2) in g)
+        hbf = HierarchicalBasisFunction(db_node.nodes[1])
+        db_node.value = sum(db_node.nodes[0].inner_quad(g1, g_order=2) *
+                            hbf.inner_quad(g2, g_order=6) for (g1, g2) in g)
 
     for db_node in dt_root.bfs():
         assert np.isfinite(db_node.value)
+
+        
+def test_double_tree_block_vector():
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.elem_meta_root.uniform_refine(5)
+
+    # Create time part.
+    HaarBasis.metaroot_wavelet.uniform_refine(3)
+
+    # Create two DoubleTree Vectors
+    vec_1 = DoubleTreeVector(
+        (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
+    vec_2 = DoubleTreeVector(
+        (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
+
+    # Refine accroding to different levels, and store different values.
+    vec_1.uniform_refine([2, 3],
+                         call_postprocess=lambda nv: setattr(nv, 'value', 1))
+    vec_2.uniform_refine([4, 2],
+                         call_postprocess=lambda nv: setattr(nv, 'value', 2))
+
+    block_vec = BlockTreeVector((vec_1, vec_2))
+
+    arr_block_vec = block_vec.to_array()
+    assert sum(arr_block_vec) == len(vec_1.bfs()) + 2 * len(vec_2.bfs())
+
+    # Minus everything.
+    arr_block_vec = -arr_block_vec
+
+    # Set back these values.
+    block_vec.from_array(arr_block_vec)
+
+    for nv in vec_1.bfs():
+        assert nv.value == -1
+    for nv in vec_2.bfs():
+        assert nv.value == -2
