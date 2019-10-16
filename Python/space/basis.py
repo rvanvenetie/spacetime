@@ -36,8 +36,8 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
             if not deriv:
                 result[mask] = bary[i, mask]
             else:
-                V = [elem.vertices[j].as_array() for j in range(3)]
-                opp_edge = V[(i - 1) % 3] - V[(i + 1) % 3]
+                V = elem.vertex_array()
+                opp_edge = V[:, (i - 1) % 3] - V[:, (i + 1) % 3]
                 normal = np.array([-opp_edge[1], opp_edge[0]])
                 normal = -normal / (2 * elem.area)
                 result[:, mask] = normal.reshape(2, 1)

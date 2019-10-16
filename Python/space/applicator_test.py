@@ -52,7 +52,8 @@ def test_mass_quad_non_symmetric():
 
     assert len(Lambda_below.bfs()) < len(Lambda_above.bfs())
 
-    for op, deriv in [(MassOperator(), False), (StiffnessOperator(), True)]:
+    for op, deriv in [(MassOperator(dirichlet_boundary=False), False),
+                      (StiffnessOperator(dirichlet_boundary=False), True)]:
         applicator = Applicator(op)
 
         for Lambda_in, Lambda_out in [(Lambda_below, Lambda_below),
