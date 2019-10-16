@@ -77,10 +77,7 @@ class Element1D(BinaryNodeAbstract):
         return self.psi_ortho
 
     def _refine_phi_cont_lin(self):
-        """ Ensures that cont lin scaling functions all exist for this element.
-        
-        This requires that the mother element has valid references.
-        """
+        """ Ensures that all cont lin scaling functions exist on this elem. """
         if not all(self.phi_cont_lin):
             assert self.level > 0
 
