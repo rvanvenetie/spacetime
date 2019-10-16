@@ -31,7 +31,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
             else:
                 V = [elem.vertices[j].as_array() for j in range(3)]
                 opp_edge = V[(i - 1) % 3] - V[(i + 1) % 3]
-                normal = -np.array([-opp_edge[1], opp_edge[0]])
+                normal = np.array([-opp_edge[1], opp_edge[0]])
                 normal = -normal / (2 * elem.area)
                 result[:, mask] = np.tile(normal[:, np.newaxis], mask.sum())
         return result
@@ -44,7 +44,6 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
             triangle = np.array(
                 [elem.vertices[i].as_array() for i in range(3)])
             result += _get_quadrature_scheme(order).integrate(func, triangle)
-            print('space', result)
         return result
 
     @staticmethod
