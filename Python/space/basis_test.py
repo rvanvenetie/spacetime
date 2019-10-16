@@ -68,8 +68,8 @@ def test_eval_basis():
     basis.deep_refine()
     for phi in basis.bfs():
         # phi should be zero outside the domain.
-        assert np.allclose(
-            phi.eval(np.array([[-1, 0], [-1, -1], [2, 2], [3, 3]]).T), 0)
+        assert np.allclose(phi.eval(np.array([[-1, 0], [1, -1], [2, 2]]).T), 0)
+        assert np.isclose(phi.eval(np.array([3, 3])), 0)
         for elem in phi.support:
             # phi should be either 0 or 1 in the vertices of an element.
             verts = np.array([elem.vertices[i].as_array() for i in range(3)]).T

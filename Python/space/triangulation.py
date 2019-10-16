@@ -111,6 +111,8 @@ class Element2D(BinaryNodeAbstract):
 
     def to_barycentric_coordinates(self, p):
         """ Returns the barycentric coordinates for a list of points p. """
+        if len(p.shape) == 1:
+            p = p.reshape(2, 1)
         V = np.ones((3, 3))
         V[:2, :] = np.array([self.vertices[i].as_array() for i in range(3)]).T
         return np.linalg.solve(V, np.vstack([p, np.ones(p.shape[1])]))
