@@ -62,7 +62,7 @@ class MultiNodeViewInterface(NodeInterface):
             return len(self._children[i]) == len(self.nodes[i].children)
 
     def is_metaroot(self):
-        """ Returns whether any of the axis represents a metaroot. """
+        """ Returns whether node in any the axes represents a metaroot. """
         return any(self.nodes[i].is_metaroot() for i in range(self.dim))
 
     def coarsen(self):
