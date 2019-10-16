@@ -36,7 +36,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
             if not deriv:
                 result[mask] = bary[i, mask]
             else:
-                V = elem.vertex_array()
+                V = elem.vertex_array().T
                 opp_edge = V[:, (i - 1) % 3] - V[:, (i + 1) % 3]
                 normal = np.array([-opp_edge[1], opp_edge[0]])
                 normal = -normal / (2 * elem.area)
@@ -48,13 +48,12 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
         """ Computes <g, self> or <g, grad self> by quadrature. """
         if not deriv:
             func = lambda x: self.eval(x, deriv) * g(x)
-        else:
+        else:  # g is a vector field, so take the inner product.
             func = lambda x: (self.eval(x, deriv) * g(x)).sum(axis=0)
         scheme = _get_quadrature_scheme(g_order + self.order)
         result = 0.0
         for elem in self.support:
-            triangle = np.array(
-                [elem.vertices[i].as_array() for i in range(3)])
+            triangle = elem.vertex_array()
             result += scheme.integrate(func, triangle)
         return result
 
