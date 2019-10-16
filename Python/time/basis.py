@@ -1,12 +1,12 @@
 from collections import OrderedDict
 from fractions import Fraction
-import numpy as np
-import quadpy
 from functools import lru_cache
 
+import numpy as np
+import quadpy
+
 from ..datastructures.function import FunctionInterface
-from ..datastructures.tree import (BinaryNodeAbstract, MetaRoot, MetaRoot,
-                                   NodeAbstract)
+from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
 from ..datastructures.tree_view import NodeViewInterface
 from .linear_operator import LinearOperator
 from .sparse_vector import SparseVector
@@ -75,6 +75,30 @@ class Element1D(BinaryNodeAbstract):
             assert all(self.psi_ortho)
 
         return self.psi_ortho
+
+    def _refine_phi_cont_lin(self):
+        """ Ensures that all cont lin scaling functions exist on this elem. """
+        if not all(self.phi_cont_lin):
+            # Ensure that the parent has both scalar functions.
+            assert self.level > 0 and all(self.parent.phi_cont_lin)
+
+            # We are the left child element.
+            if self.left_node_idx % 2 == 0:
+                if not self.phi_cont_lin[0]:
+                    self.parent.phi_cont_lin[0].refine_mid()
+                if not self.phi_cont_lin[1]:
+                    self.parent.phi_cont_lin[0].refine_right()
+
+            # We are the right child element.
+            else:
+                if not self.phi_cont_lin[0]:
+                    self.parent.phi_cont_lin[1].refine_left()
+                if not self.phi_cont_lin[1]:
+                    self.parent.phi_cont_lin[1].refine_mid()
+
+            assert all(self.phi_cont_lin)
+
+        return self.phi_cont_lin
 
     def refine(self):
         if not self.children:
