@@ -45,6 +45,24 @@ class ContLinearScaling(basis.Scaling):
     def is_full(self):
         raise TypeError("ContLinearScaling functions cannot be `full' or not!")
 
+    def refine_nbr_right(self):
+        """ Ensures that the right neighbour of this hat function exists. """
+        if not self.nbr_right:
+            # We must have two parents, otherwise our neighbour right would exist.
+            assert len(self.parents) == 2
+            nbr_right = self.parents[-1].refine_mid()
+            assert self.nbr_right == nbr_right
+
+        return self.nbr_right
+
+    def refine_nbr_left(self):
+        """ Similar to refine_nbr_right. """
+        if not self.nbr_left:
+            assert len(self.parents) == 2
+            nbr_left = self.parents[0].refine_mid()
+            assert self.nbr_left == nbr_left
+        return self.nbr_left
+
     def refine_mid(self):
         if self.child_mid: return self.child_mid
         l, n = self.labda
