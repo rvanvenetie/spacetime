@@ -21,16 +21,23 @@ def test_deep_copy():
 def test_uniform_refine():
     # Generate some metaroots to work with.
     T = InitialTriangulation.unit_square()
+    print(T.element_roots)
+    print('mesh', T.elem_meta_root.bfs())
     metaroot_view = TreeView(T.elem_meta_root)
+    print('mesh fter view object', T.elem_meta_root.bfs())
 
     assert len(metaroot_view.bfs()) == 0
     metaroot_view.uniform_refine(5)
+    print('mesh after view refinement', T.elem_meta_root.bfs())
     assert len(metaroot_view.bfs()) == 2
 
     # Refine the underlying tree.
     T.elem_meta_root.uniform_refine(2)
+    print('mesh after refinement', T.elem_meta_root.bfs())
+    assert len(T.elem_meta_root.bfs()) == 2 + 2 * 2 + 2 * 2 * 2
     assert len(metaroot_view.bfs()) == 2
     metaroot_view.uniform_refine(1)
+    print(len(metaroot_view.bfs()))
     assert len(metaroot_view.bfs()) == 2 + 2 * 2
     metaroot_view.uniform_refine(2)
     assert len(metaroot_view.bfs()) == 2 + 2 * 2 + 2 * 2 * 2

@@ -19,4 +19,6 @@ class TreeVector(MultiTreeVector, TreeView):
                 root = NodeVector([root.node])
             elif isinstance(root, TreeView):
                 root = NodeVector([root.root.node])
+
+        assert root.is_metaroot()
         super().__init__(root)

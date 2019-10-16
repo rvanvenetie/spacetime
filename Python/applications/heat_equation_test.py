@@ -10,6 +10,7 @@ from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  DoubleTreeVector)
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.multi_tree_vector import BlockTreeVector
+from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..spacetime.applicator import Applicator
 from ..spacetime.basis import generate_y_delta
@@ -45,15 +46,16 @@ def random_rhs(heat_eq):
 def test_full_tensor_heat():
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    basis_space = triang.vertex_meta_root
-    basis_space.uniform_refine(5)
+    triang.vertex_meta_root.uniform_refine(5)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
 
     # Create time part for X^\delta
     basis_time = ThreePointBasis()
     basis_time.metaroot_wavelet.uniform_refine(5)
 
     # Create X^\delta
-    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space))
+    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space.root))
     X_delta.deep_refine()
 
     # Create heat equation obkect
@@ -71,15 +73,16 @@ def test_full_tensor_heat():
 def test_sparse_tensor_heat():
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    basis_space = triang.vertex_meta_root
-    basis_space.uniform_refine(6)
+    triang.vertex_meta_root.uniform_refine(6)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
 
     # Create time part for X^\delta
     basis_time = ThreePointBasis()
     basis_time.metaroot_wavelet.uniform_refine(6)
 
     # Create X^\delta
-    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space))
+    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space.root))
     X_delta.sparse_refine(3)
 
     # Create heat equation obkect
@@ -105,15 +108,16 @@ def test_sparse_tensor_heat():
 def test_real_tensor_heat():
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    basis_space = triang.vertex_meta_root
-    basis_space.uniform_refine(6)
+    triang.vertex_meta_root.uniform_refine(6)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
 
     # Create time part for X^\delta
     basis_time = ThreePointBasis()
     basis_time.metaroot_wavelet.uniform_refine(6)
 
     # Create X^\delta
-    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space))
+    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space.root))
     X_delta.sparse_refine(3)
 
     # Create heat equation obkect
@@ -132,15 +136,16 @@ def test_real_tensor_heat():
 def test_heat_eq_linear():
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    basis_space = triang.vertex_meta_root
-    basis_space.uniform_refine(6)
+    triang.vertex_meta_root.uniform_refine(6)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
 
     # Create time part for X^\delta
     basis_time = ThreePointBasis()
     basis_time.metaroot_wavelet.uniform_refine(6)
 
     # Create X^\delta
-    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space))
+    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space.root))
     X_delta.sparse_refine(2)
 
     # Create heat equation obkect

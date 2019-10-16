@@ -7,11 +7,22 @@ from .tree import MetaRoot
 
 class NodeViewInterface(MultiNodeViewInterface):
     """ This defines a `view` or `subtree` of an existing underlying tree. """
+    __slots__ = []
     dim = 1
 
     @property
     def node(self):
         return self.nodes[0]
+
+    @property
+    def parents(self):
+        """ Simply return the parents in the only dimension we have. """
+        return self._parents[0]
+
+    @property
+    def children(self):
+        """ Simply return the children in the only dimension we have. """
+        return self._children[0]
 
     def _refine(self,
                 i,
@@ -30,6 +41,8 @@ class NodeViewInterface(MultiNodeViewInterface):
 
 
 class NodeView(NodeViewInterface, MultiNodeView):
+    __slots__ = []
+
     def __init__(self, nodes, parents=None, children=None):
         if not isinstance(nodes, (list, tuple)): nodes = [nodes]
         super().__init__(nodes=nodes, parents=parents, children=children)
@@ -37,8 +50,8 @@ class NodeView(NodeViewInterface, MultiNodeView):
 
 class TreeView(MultiTree):
     def __init__(self, root):
-        assert isinstance(root, (NodeViewInterface, MetaRoot))
-        if isinstance(root, MetaRoot): root = NodeView([root])
+        assert root.is_metaroot()
+        if not isinstance(root, NodeViewInterface): root = NodeView([root])
         super().__init__(root=root)
 
     def uniform_refine(self, max_level=None):

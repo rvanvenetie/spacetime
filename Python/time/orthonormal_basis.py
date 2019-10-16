@@ -29,7 +29,6 @@ class DiscLinearScaling(basis.Scaling):
     def __init__(self, labda, support, parents=None):
         assert len(support) == 1
         super().__init__(labda, support=support, parents=parents)
-        self.children = []
         self.nbr = None  # Store a reference to the `neighbour` on this element.
         self.pw_constant = labda[1] % 2 == 0  # Store type of this function.
 

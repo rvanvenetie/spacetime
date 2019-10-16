@@ -1,12 +1,12 @@
 from collections import OrderedDict
 from fractions import Fraction
-import numpy as np
-import quadpy
 from functools import lru_cache
 
+import numpy as np
+import quadpy
+
 from ..datastructures.function import FunctionInterface
-from ..datastructures.tree import (BinaryNodeAbstract, MetaRoot, MetaRoot,
-                                   NodeAbstract)
+from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
 from ..datastructures.tree_view import NodeViewInterface
 from .linear_operator import LinearOperator
 from .sparse_vector import SparseVector
@@ -24,8 +24,18 @@ class Element1D(BinaryNodeAbstract):
     The element (l, n) is an interval on level l given by: [2^-l*n, 2^-l*(n+1)].
     """
     __slots__ = [
-        'level', 'left_node_idx', 'phi_disc_const', 'phi_disc_lin',
-        'phi_cont_lin', 'Lambda_in', 'Lambda_out', 'Pi_in', 'Pi_out'
+        'level',
+        'left_node_idx',
+        'phi_disc_const',
+        'phi_disc_lin',
+        'phi_cont_lin',
+        'psi_ortho',
+        'Lambda_in',
+        'Lambda_out',
+        'Pi_in',
+        'Pi_out',
+        'Sigma_psi_out',
+        'Theta_psi_in',
     ]
 
     def __init__(self, level, left_node_idx, parent=None):

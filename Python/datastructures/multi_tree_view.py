@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections import defaultdict, deque
+from collections import Iterable, defaultdict, deque
 from operator import eq
 
 from .tree import MetaRoot, NodeInterface
@@ -12,8 +12,21 @@ def _replace(i, items, item_i):
     return result
 
 
+def flatten(l):
+    """ Flattens a list of lists. """
+    # https://stackoverflow.com/questions/2158395/flatten-an-irregular-list-of-lists
+    for el in l:
+        if isinstance(el, Iterable):
+            yield from flatten(el)
+        else:
+            yield el
+
+
 class MultiNodeViewInterface(NodeInterface):
     """ Class that represents a multinode interface. """
+    __slots__ = []
+
+    # Things to be implemented.
     @property
     @abstractmethod
     def dim(self):
@@ -25,17 +38,42 @@ class MultiNodeViewInterface(NodeInterface):
         pass
 
     @property
+    @abstractmethod
+    def _children(self):
+        """ This should return the children as a tuple of length self.dim. """
+        pass
+
+    @property
+    @abstractmethod
+    def _parents(self):
+        """ This should return the parents as a tuple of length self.dim. """
+        pass
+
+    # Default implementations.
+    @property
+    def children(self):
+        return self._children
+
+    @property
+    def parents(self):
+        return self._parents
+
+    @property
     def level(self):
         return sum(n.level for n in self.nodes)
 
     def is_leaf(self):
-        return all(len(self.children[i]) == 0 for i in range(self.dim))
+        return all(len(self._children[i]) == 0 for i in range(self.dim))
 
     def is_full(self, i=None):
         if i is None:
             return all(self.is_full(i) for i in range(self.dim))
         else:
-            return len(self.children[i]) == len(self.nodes[i].children)
+            return len(self._children[i]) == len(self.nodes[i].children)
+
+    def is_metaroot(self):
+        """ Returns whether any of the axis represents a metaroot. """
+        return any(self.nodes[i].is_metaroot() for i in range(self.dim))
 
     def coarsen(self):
         return self._coarsen()
@@ -96,7 +134,7 @@ class MultiNodeViewInterface(NodeInterface):
           call_filter: This function can be used to filter children. It is 
             called with the multi-node that is to be created. 
         """
-        if self.is_full(i): return self.children[i]
+        if self.is_full(i): return self._children[i]
         if children is None: children = self.nodes[i].children
         if call_filter is None: call_filter = lambda _: True
 
@@ -107,7 +145,7 @@ class MultiNodeViewInterface(NodeInterface):
             child_nodes = _replace(i, self.nodes, child_i)
 
             # Skip if this child already exists, or if the filter doesn't pass.
-            if child_nodes in (n.nodes for n in self.children[i]) \
+            if child_nodes in (n.nodes for n in self._children[i]) \
                     or not call_filter(child_nodes):
                 continue
 
@@ -125,16 +163,16 @@ class MultiNodeViewInterface(NodeInterface):
             child = self.__class__(nodes=child_nodes, parents=brothers)
             for j in range(self.dim):
                 for brother in brothers[j]:
-                    brother.children[j].append(child)
+                    brother._children[j].append(child)
 
-        return self.children[i]
+        return self._children[i]
 
     def _coarsen(self):
         """ Removes `self' from the double tree. """
         assert self.is_leaf()
         for i in range(self.dim):
-            for parent in self.parents[i]:
-                parent.children[i].remove(self)
+            for parent in self._parents[i]:
+                parent._children[i].remove(self)
 
     def _find_brother(self, nodes, j, i, make_conforming=False):
         """ Finds the given brother in the given axes.
@@ -144,14 +182,14 @@ class MultiNodeViewInterface(NodeInterface):
         have the same parent in the `i`-axis.
         """
         if self.nodes == nodes: return self
-        for parent_j in self.parents[j]:
-            for sibling_i in parent_j.children[i]:
+        for parent_j in self._parents[j]:
+            for sibling_i in parent_j._children[i]:
                 if sibling_i.nodes == nodes:
                     return sibling_i
 
         # We didn't find the brother, lets create it.
         assert make_conforming
-        for parent_j in self.parents[j]:
+        for parent_j in self._parents[j]:
             parent_j.refine(i, children=[nodes[i]], make_conforming=True)
 
         # Recursive call.
@@ -187,12 +225,12 @@ class MultiNodeViewInterface(NodeInterface):
                 # Refine according to the call_filter.
                 my_node._refine(
                     i=i,
-                    children=[c.nodes[i] for c in other_node.children[i]],
+                    children=[c.nodes[i] for c in other_node._children[i]],
                     call_filter=call_filter)
 
                 # Only put children that other_node has as well into the queue.
-                for my_child in my_node.children[i]:
-                    for other_child in other_node.children[i]:
+                for my_child in my_node._children[i]:
+                    for other_child in other_node._children[i]:
                         if my_child.nodes == other_child.nodes:
                             queue.append((my_child, other_child))
 
@@ -237,7 +275,7 @@ class MultiNodeViewInterface(NodeInterface):
             nodes.append(node)
             node.marked = True
             for i in range(self.dim):
-                queue.extend(node.children[i])
+                queue.extend(node._children[i])
         for node in nodes:
             node.marked = False
         return nodes
@@ -247,15 +285,16 @@ class MultiNodeViewInterface(NodeInterface):
 
 
 class MultiNodeView(MultiNodeViewInterface):
-    __slots__ = ['nodes', 'parents', 'children', 'marked']
+    __slots__ = ['nodes', '_parents', '_children', 'marked']
 
     def __init__(self, nodes, parents=None, children=None):
         """ Creates multi node, with nodes pointing to `single` index node. """
         self.nodes = list(nodes)
-        self.parents = parents if parents else [[] for _ in range(self.dim)]
-        self.children = children if children else [[] for _ in range(self.dim)]
-        assert len(self.parents) == self.dim and len(
-            self.children) == self.dim and len(nodes) == self.dim
+        self._parents = parents if parents else [[] for _ in range(self.dim)]
+        self._children = children if children else [[]
+                                                    for _ in range(self.dim)]
+        assert len(self._parents) == self.dim and len(
+            self._children) == self.dim and len(nodes) == self.dim
 
         # Create a marked field useful for bfs/dfs.
         self.marked = False
@@ -276,11 +315,7 @@ class MultiTree:
         """
         nodes = self.root._bfs()
         if not include_meta_root:
-            nodes = [
-                n for n in nodes if not any(
-                    isinstance(n.nodes[j], MetaRoot)
-                    for j in range(self.root.dim))
-            ]
+            nodes = [n for n in nodes if not n.is_metaroot()]
         return nodes
 
     def deep_copy(self,
