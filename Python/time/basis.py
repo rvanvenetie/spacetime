@@ -79,10 +79,8 @@ class Element1D(BinaryNodeAbstract):
     def _refine_phi_cont_lin(self):
         """ Ensures that all cont lin scaling functions exist on this elem. """
         if not all(self.phi_cont_lin):
-            assert self.level > 0
-
             # Ensure that the parent has both scalar functions.
-            assert all(self.parent.phi_cont_lin)
+            assert self.level > 0 and all(self.parent.phi_cont_lin)
 
             # We are the left child element.
             if self.left_node_idx % 2 == 0:
