@@ -27,12 +27,16 @@ def _mass_three_in_three_out(phi_in):
     self_ip = 0
     if n > 0:
         elem = phi_in.support[0]
-        if not all(elem.phi_cont_lin): elem._refine_phi_cont_lin()
+        if not elem.phi_cont_lin[0]:
+            elem._refine_phi_cont_lin()
+
         result.append((elem.phi_cont_lin[0], 1 / 6 * 2**-l))
         self_ip += 1 / 3 * 2**-l
     if n < 2**l:
         elem = phi_in.support[-1]
-        if not all(elem.phi_cont_lin): elem._refine_phi_cont_lin()
+        if not elem.phi_cont_lin[1]:
+            elem._refine_phi_cont_lin()
+
         result.append((elem.phi_cont_lin[1], 1 / 6 * 2**-l))
         self_ip += 1 / 3 * 2**-l
     result.append((phi_in, self_ip))
