@@ -10,6 +10,7 @@ from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  DoubleTreeVector)
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.multi_tree_vector import BlockTreeVector
+from ..datastructures.tree_vector import TreeVector
 from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..spacetime.applicator import Applicator
@@ -27,12 +28,20 @@ def example_rhs(heat_eq):
 
     u0 = lambda x: (x[0] - 1) * x[0] * (x[0] + 1) * (x[1] - 1) * x[1] * (x[1] +
                                                                          1)
+    #    u0 = lambda x: (x[0] - 1) * x[0] * (x[1] - 1) * x[1]
+
     u0_order = 6
 
-    return heat_eq.calculate_rhs_vector(g=g,
-                                        g_order=g_order,
-                                        u0=u0,
-                                        u0_order=u0_order)
+    result = heat_eq.calculate_rhs_vector(g=g,
+                                          g_order=g_order,
+                                          u0=u0,
+                                          u0_order=u0_order)
+    # Check that the vector != 0.
+    assert sum(abs(result.to_array())) > 0.0001
+    #    print('rhs vector g:', result[0].to_array())
+    #    print('rhs vector -gamma u:', result[1].to_array())
+    #    print(sum(abs(result.to_array())))
+    return result
 
 
 def random_rhs(heat_eq):
@@ -118,7 +127,7 @@ def test_real_tensor_heat():
 
     # Create X^\delta
     X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space.root))
-    X_delta.sparse_refine(3)
+    X_delta.uniform_refine([2, 1])
 
     # Create heat equation obkect
     heat_eq = HeatEquation(X_delta=X_delta)
@@ -131,6 +140,19 @@ def test_real_tensor_heat():
     res_tree = heat_eq.mat.apply(sol)
     res_tree -= rhs
     assert np.linalg.norm(res_tree.to_array()) < 1e-5
+
+    # Get the FEM solution for t = 0.5
+    sol = res_tree[1]
+    t = 0.5
+    result = TreeVector(basis_space.root)
+    for nv in sol.project(0).bfs():
+        # Check if t is contained inside support of time wavelet.
+        a = float(nv.node.support[0].interval[0])
+        b = float(nv.node.support[-1].interval[1])
+        if a <= t <= b:
+            result.axpy(nv.frozen_other_axis(), nv.node.eval(t))
+
+    print(result.bfs())
 
 
 def test_heat_eq_linear():
