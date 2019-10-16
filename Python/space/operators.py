@@ -8,7 +8,7 @@ from .triangulation_view import TriangulationView
 
 class Operator:
     """ Base class for space operators. """
-    def __init__(self, triang=None, dirichlet_boundary=True):
+    def __init__(self, triang=None, dirichlet_boundary=False):
         """ This operator binds to the to a given triangulation(view). """
         self.triang = triang
         self.dirichlet_boundary = dirichlet_boundary

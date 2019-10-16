@@ -74,7 +74,7 @@ def test_eval_basis():
             # phi should be either 0 or 1 in the vertices of an element.
             verts = np.array([elem.vertices[i].as_array() for i in range(3)]).T
             v_eval = phi.eval(verts)
-            assert np.allclose(np.sum(v_eval, axis=1), 1.0)
+            assert np.allclose(v_eval.sum(), 1.0)
             assert np.allclose(v_eval, np.array(elem.vertices) == phi.node)
 
             # Take random combination of vertices.

@@ -67,7 +67,6 @@ def test_mass_quad_non_symmetric():
                 psi = HierarchicalBasisFunction(v_psi.node)
                 for j, v_phi in enumerate(Lambda_out.bfs()):
                     phi = HierarchicalBasisFunction(v_phi.node)
-
                     f, g = (psi, phi) if psi.level > phi.level else (phi, psi)
                     real_ip = f.inner_quad(lambda x: g.eval(x, deriv=deriv),
                                            g_order=1,

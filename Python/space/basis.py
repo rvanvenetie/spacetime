@@ -23,14 +23,14 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
     def eval(self, x, deriv=False):
         """ Evaluate hat function on a number of points `x` at once. """
         assert x.shape[0] == 2
-        result = np.zeros(x.shape) if deriv else np.zeros((1, x.shape[1]))
+        result = np.zeros(x.shape) if deriv else np.zeros(x.shape[1])
         for elem in self.support:
             i = elem.vertices.index(self.node)
             bary = elem.to_barycentric_coordinates(x)
             # mask[j] == True exactly when point x[:,j] is inside elem.
             mask = np.all(bary >= 0, axis=0)
             if not deriv:
-                result[:, mask] = bary[i, mask]
+                result[mask] = bary[i, mask]
             else:
                 V = [elem.vertices[j].as_array() for j in range(3)]
                 opp_edge = V[(i - 1) % 3] - V[(i + 1) % 3]
@@ -41,7 +41,10 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
 
     def inner_quad(self, g, g_order=2, deriv=False):
         """ Computes <g, self> or <g, grad self> by quadrature. """
-        func = lambda x: (self.eval(x, deriv) * g(x)).sum(axis=0)
+        if not deriv:
+            func = lambda x: self.eval(x, deriv) * g(x)
+        else:
+            func = lambda x: (self.eval(x, deriv) * g(x)).sum(axis=0)
         scheme = _get_quadrature_scheme(g_order + self.order)
         result = 0.0
         for elem in self.support:
