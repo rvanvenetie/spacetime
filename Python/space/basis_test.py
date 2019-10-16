@@ -6,10 +6,10 @@ from .triangulation import InitialTriangulation
 
 def test_hierarchical_basis():
     T = InitialTriangulation.unit_square()
-    basis_meta_root = HierarchicalBasisFunction.from_triangulation(T)
-    basis_meta_root.root.refine()
-    assert basis_meta_root.root.is_full()
-    for root in basis_meta_root.root.children[0]:
+    basis_tree_view = HierarchicalBasisFunction.from_triangulation(T)
+    basis_tree_view.root.refine()
+    assert basis_tree_view.root.is_full()
+    for root in basis_tree_view.root.children:
         assert root.is_full()
         root.refine()
     assert len(T.elem_meta_root.bfs()) == 2
@@ -23,11 +23,11 @@ def test_diamond_no_overrefine():
     assert len(leaves) == 8
     leaves[0].refine()
 
-    basis_meta_root = HierarchicalBasisFunction.from_triangulation(T)
-    basis_meta_root.uniform_refine(0)
+    basis_tree_view = HierarchicalBasisFunction.from_triangulation(T)
+    basis_tree_view.uniform_refine(0)
 
     # Refine and find the node view with the single vertex on level 1.
-    level1_fn = basis_meta_root.root.children[0][0].refine()[0]
+    level1_fn = basis_tree_view.root.children[0].refine()[0]
     assert level1_fn.level == 1
 
     # Refine *a single child* and find the node view on level 2.
@@ -37,28 +37,28 @@ def test_diamond_no_overrefine():
     # Refine this new node view; the diamond should be refined but we should
     # *not* have the entire vertex tree.
     level2_fn.refine(make_conforming=True)
-    assert len(basis_meta_root.bfs()) == 8
+    assert len(basis_tree_view.bfs()) == 8
     assert len(T.vertex_meta_root.bfs()) == 10
 
 
 def test_refine_hierarchical_basis():
     T = InitialTriangulation.unit_square()
-    basis_meta_root = HierarchicalBasisFunction.from_triangulation(T)
-    basis_meta_root.root.refine()
-    for root in basis_meta_root.root.children[0]:
+    basis_tree_view = HierarchicalBasisFunction.from_triangulation(T)
+    basis_tree_view.root.refine()
+    for root in basis_tree_view.root.children:
         assert root.is_full()
         root.node.refine()
         root.refine()
     assert len(T.elem_meta_root.bfs()) == 6
     assert len(T.vertex_meta_root.bfs()) == 5
-    assert len(basis_meta_root.bfs()) == 5
+    assert len(basis_tree_view.bfs()) == 5
 
-    leaves = set([f for f in basis_meta_root.bfs() if f.is_leaf()])
+    leaves = set([f for f in basis_tree_view.bfs() if f.is_leaf()])
     for i in range(800):
         f = leaves.pop()
         f.node.refine()
         leaves.update(f.refine(make_conforming=True))
-        assert len(basis_meta_root.bfs()) == len(T.vertex_meta_root.bfs())
+        assert len(basis_tree_view.bfs()) == len(T.vertex_meta_root.bfs())
 
 
 def test_eval_basis():
@@ -68,13 +68,13 @@ def test_eval_basis():
     basis.deep_refine()
     for phi in basis.bfs():
         # phi should be zero outside the domain.
-        assert np.allclose(
-            phi.eval(np.array([[-1, 0], [-1, -1], [2, 2], [3, 3]]).T), 0)
+        assert np.allclose(phi.eval(np.array([[-1, 0], [1, -1], [2, 2]]).T), 0)
+        assert np.isclose(phi.eval(np.array([3, 3])), 0)
         for elem in phi.support:
             # phi should be either 0 or 1 in the vertices of an element.
-            verts = np.array([elem.vertices[i].as_array() for i in range(3)]).T
-            v_eval = phi.eval(verts)
-            assert np.allclose(np.sum(v_eval, axis=1), 1.0)
+            V = elem.vertex_array().T
+            v_eval = phi.eval(V)
+            assert np.allclose(v_eval.sum(), 1.0)
             assert np.allclose(v_eval, np.array(elem.vertices) == phi.node)
 
             # Take random combination of vertices.
@@ -82,4 +82,4 @@ def test_eval_basis():
 
             alpha = np.random.rand(3, 4)
             alpha /= np.sum(alpha, axis=0)
-            assert np.allclose(phi.eval(verts @ alpha), alpha[v_index, :])
+            assert np.allclose(phi.eval(V @ alpha), alpha[v_index, :])

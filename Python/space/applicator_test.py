@@ -41,18 +41,19 @@ def test_mass_quad_non_symmetric():
     T.elem_meta_root.uniform_refine(5)
 
     # Create a vector with only vertices lying below the diagonal upto lvl 4
-    Lambda_below = TreeView(T.vertex_meta_root)
+    Lambda_below = HierarchicalBasisFunction.from_triangulation(T)
     Lambda_below.deep_refine(call_filter=lambda vertex: vertex.level <= 4 and
                              vertex.x + vertex.y <= 1)
 
     # Create an out vector with only vertices lying above the diagonal.
-    Lambda_above = TreeVector(T.vertex_meta_root)
+    Lambda_above = HierarchicalBasisFunction.from_triangulation(T)
     Lambda_above.deep_refine(
         call_filter=lambda vertex: vertex.x + vertex.y >= 1)
 
     assert len(Lambda_below.bfs()) < len(Lambda_above.bfs())
 
-    for op, deriv in [(MassOperator(), False), (StiffnessOperator(), True)]:
+    for op, deriv in [(MassOperator(dirichlet_boundary=False), False),
+                      (StiffnessOperator(dirichlet_boundary=False), True)]:
         applicator = Applicator(op)
 
         for Lambda_in, Lambda_out in [(Lambda_below, Lambda_below),
@@ -63,24 +64,43 @@ def test_mass_quad_non_symmetric():
             mat = applicator.to_matrix(Lambda_in, Lambda_out)
 
             # Compare with quadrature
-            for i, v_psi in enumerate(Lambda_in.bfs()):
-                psi = HierarchicalBasisFunction(v_psi.node)
-                for j, v_phi in enumerate(Lambda_out.bfs()):
-                    phi = HierarchicalBasisFunction(v_phi.node)
-<<<<<<< HEAD
-                    support = psi.support if psi.level > phi.level else phi.support
-                    real_ip = 0
-                    for elem in support:
-                        triangle = np.array(
-                            [elem.vertices[i].as_array() for i in range(3)])
-                        func = lambda x: (psi.eval(x, deriv) * phi.eval(
-                            x, deriv)).sum(axis=0)
-                        real_ip += quad_scheme.integrate(func, triangle)
-
-=======
+            for i, psi in enumerate(Lambda_in.bfs()):
+                for j, phi in enumerate(Lambda_out.bfs()):
                     f, g = (psi, phi) if psi.level > phi.level else (phi, psi)
                     real_ip = f.inner_quad(lambda x: g.eval(x, deriv=deriv),
                                            g_order=1,
                                            deriv=deriv)
->>>>>>> applicators
                     assert np.allclose(real_ip, mat[j, i])
+
+
+def test_dirichlet_boundary():
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(5)
+
+    # Create a vector with only vertices lying below the diagonal upto lvl 4
+    Lambda_below = HierarchicalBasisFunction.from_triangulation(T)
+    Lambda_below.deep_refine(call_filter=lambda vertex: vertex.level <= 4 and
+                             vertex.x + vertex.y <= 1)
+
+    # Create an out vector with only vertices lying above the diagonal.
+    Lambda_above = HierarchicalBasisFunction.from_triangulation(T)
+    Lambda_above.deep_refine(
+        call_filter=lambda vertex: vertex.x + vertex.y >= 1)
+
+    for op in [
+            MassOperator(dirichlet_boundary=True),
+            StiffnessOperator(dirichlet_boundary=True)
+    ]:
+        applicator = Applicator(op)
+
+        for Lambda_in, Lambda_out in [(Lambda_below, Lambda_below),
+                                      (Lambda_below, Lambda_above),
+                                      (Lambda_above, Lambda_below)]:
+            # Matrix
+            mat = applicator.to_matrix(Lambda_in, Lambda_out)
+
+            # Compare with quadrature
+            for i, psi in enumerate(Lambda_in.bfs()):
+                for j, phi in enumerate(Lambda_out.bfs()):
+                    if psi.node.on_domain_boundary or phi.node.on_domain_boundary:
+                        assert mat[j, i] == 0

@@ -1,12 +1,12 @@
 from collections import OrderedDict
 from fractions import Fraction
-import numpy as np
-import quadpy
 from functools import lru_cache
 
+import numpy as np
+import quadpy
+
 from ..datastructures.function import FunctionInterface
-from ..datastructures.tree import (BinaryNodeAbstract, MetaRoot, MetaRoot,
-                                   NodeAbstract)
+from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
 from ..datastructures.tree_view import NodeViewInterface
 from .linear_operator import LinearOperator
 from .sparse_vector import SparseVector
@@ -24,8 +24,18 @@ class Element1D(BinaryNodeAbstract):
     The element (l, n) is an interval on level l given by: [2^-l*n, 2^-l*(n+1)].
     """
     __slots__ = [
-        'level', 'left_node_idx', 'phi_disc_const', 'phi_disc_lin',
-        'phi_cont_lin', 'Lambda_in', 'Lambda_out', 'Pi_in', 'Pi_out'
+        'level',
+        'left_node_idx',
+        'phi_disc_const',
+        'phi_disc_lin',
+        'phi_cont_lin',
+        'psi_ortho',
+        'Lambda_in',
+        'Lambda_out',
+        'Pi_in',
+        'Pi_out',
+        'Sigma_psi_out',
+        'Theta_psi_in',
     ]
 
     def __init__(self, level, left_node_idx, parent=None):
@@ -76,6 +86,30 @@ class Element1D(BinaryNodeAbstract):
 
         return self.psi_ortho
 
+    def _refine_phi_cont_lin(self):
+        """ Ensures that all cont lin scaling functions exist on this elem. """
+        if not all(self.phi_cont_lin):
+            # Ensure that the parent has both scalar functions.
+            assert self.level > 0 and all(self.parent.phi_cont_lin)
+
+            # We are the left child element.
+            if self.left_node_idx % 2 == 0:
+                if not self.phi_cont_lin[0]:
+                    self.parent.phi_cont_lin[0].refine_mid()
+                if not self.phi_cont_lin[1]:
+                    self.parent.phi_cont_lin[0].refine_right()
+
+            # We are the right child element.
+            else:
+                if not self.phi_cont_lin[0]:
+                    self.parent.phi_cont_lin[1].refine_left()
+                if not self.phi_cont_lin[1]:
+                    self.parent.phi_cont_lin[1].refine_mid()
+
+            assert all(self.phi_cont_lin)
+
+        return self.phi_cont_lin
+
     def refine(self):
         if not self.children:
             child_left = Element1D(self.level + 1, self.left_node_idx * 2,
@@ -96,7 +130,7 @@ class Element1D(BinaryNodeAbstract):
 
 class CoefficientFunction1D(NodeAbstract, FunctionInterface):
     """ This is a base represention of a basis function with coefficients. """
-    __slots__ = ['support']
+    __slots__ = ['labda', 'support', 'coeff']
 
     def __init__(self, labda, support, parents=None):
         super().__init__(parents=parents, children=None)
@@ -133,6 +167,8 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
 
 
 class Scaling(CoefficientFunction1D):
+    __slots__ = ['multi_scale']
+
     def __init__(self, labda, support, parents=None):
         super().__init__(labda=labda, support=support, parents=parents)
         self.multi_scale = []  # Transpose of the wavelet to multiscale.
@@ -147,6 +183,8 @@ class Scaling(CoefficientFunction1D):
 
 
 class Wavelet(CoefficientFunction1D):
+    __slots__ = ['single_scale']
+
     def __init__(self, labda, single_scale, parents=None):
         super().__init__(labda, support=[], parents=parents)
 

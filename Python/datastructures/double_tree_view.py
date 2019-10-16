@@ -8,6 +8,7 @@ from .tree_view import NodeViewInterface
 
 class DoubleNodeView(MultiNodeView):
     """ Class that represents a double node. """
+    __slots__ = []
     dim = 2
 
 
@@ -39,14 +40,14 @@ class FrozenDoubleNodeView(NodeViewInterface):
         self.dbl_node.marked = value
 
     @property
-    def parents(self):
+    def _parents(self):
         return [[
             self.__class__(parent, self.i)
             for parent in self.dbl_node.parents[self.i]
         ]]
 
     @property
-    def children(self):
+    def _children(self):
         return [[
             self.__class__(child, self.i)
             for child in self.dbl_node.children[self.i]
@@ -59,7 +60,7 @@ class FrozenDoubleNodeView(NodeViewInterface):
 
     def bfs(self, include_meta_root=False):
         nodes = self._bfs()
-        if not include_meta_root and isinstance(self.node, MetaRoot):
+        if not include_meta_root and self.is_metaroot():
             return nodes[1:]
         else:
             return nodes
@@ -90,7 +91,7 @@ class FrozenDoubleNodeView(NodeViewInterface):
                               children=children,
                               call_filter=call_filter,
                               make_conforming=make_conforming)
-        return self.children[0]
+        return self.children
 
     def __repr__(self):
         return 'FN({}, {})'.format(self.i, self.node)
@@ -108,7 +109,7 @@ class FrozenDoubleNodeView(NodeViewInterface):
 class DoubleTreeView(MultiTree):
     def __init__(self, root, frozen_dbl_cls=FrozenDoubleNodeView):
         if isinstance(root, (tuple, list)): root = DoubleNode(root)
-        assert all(isinstance(root.nodes[i], MetaRoot) for i in [0, 1])
+        assert all(root.nodes[i].is_metaroot() for i in [0, 1])
         assert issubclass(frozen_dbl_cls, FrozenDoubleNodeView)
         super().__init__(root=root)
         self.root = root
@@ -164,8 +165,7 @@ class DoubleTreeView(MultiTree):
                        dbl_node_cls=DoubleNodeView,
                        frozen_dbl_cls=FrozenDoubleNodeView):
         """ Makes a full grid doubletree from the given single trees. """
-        assert isinstance(meta_root_time, MetaRoot) and isinstance(
-            meta_root_space, MetaRoot)
+        assert meta_root_time.is_metaroot() and meta_root_space.is_metaroot()
         double_root = dbl_node_cls((meta_root_time, meta_root_space))
         double_tree = cls(double_root, frozen_dbl_cls=frozen_dbl_cls)
         return double_tree

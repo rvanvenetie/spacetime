@@ -1,4 +1,5 @@
 from ..datastructures.double_tree_view import DoubleTree
+from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import Vertex
 from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointWavelet
@@ -8,8 +9,9 @@ def generate_y_delta(x_delta):
     """ This generates the Y^\delta from X^\delta as given in followup1.pdf  """
 
     assert isinstance(x_delta, DoubleTree)
-    assert isinstance(x_delta.root.nodes[0].roots[0], ThreePointWavelet)
-    assert isinstance(x_delta.root.nodes[1].roots[1], Vertex)
+    assert isinstance(x_delta.root.nodes[0].children[0], ThreePointWavelet)
+    assert isinstance(x_delta.root.nodes[1].children[0],
+                      HierarchicalBasisFunction)
 
     y_basis_time = OrthonormalBasis()
 
