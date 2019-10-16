@@ -33,6 +33,8 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
             bary = elem.to_barycentric_coordinates(x)
             # mask[j] == True exactly when point x[:,j] is inside elem.
             mask = np.all(bary >= 0, axis=0)
+            if not any(mask):
+                continue
             if not deriv:
                 result[mask] = bary[i, mask]
             else:
