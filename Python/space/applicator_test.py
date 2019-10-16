@@ -77,5 +77,4 @@ def test_mass_quad_non_symmetric():
                             x, deriv)).sum(axis=0)
                         real_ip += quad_scheme.integrate(func, triangle)
 
-                    print(psi, phi, deriv)
                     assert np.allclose(real_ip, mat[j, i])

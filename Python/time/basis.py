@@ -14,7 +14,7 @@ from .sparse_vector import SparseVector
 
 @lru_cache(maxsize=10)
 def _get_quadrature_scheme(order):
-    return quadpy.line_segment.gauss_patterson(order)
+    return quadpy.line_segment.gauss_legendre((order + 2) // 2)
 
 
 class Element1D(BinaryNodeAbstract):
@@ -119,12 +119,7 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
 
     def inner_quad(self, g, deriv=False, order=4):
         """ Computes <g, self> or <g, d/dt self> by quadrature. """
-        def func(t):
-            return np.array([
-                np.dot(self.eval(t[i], deriv), g(t[i]))
-                for i in range(t.shape[0])
-            ])
-
+        func = lambda t: (self.eval(t, deriv) * g(t))
         result = 0.0
         for elem in self.support:
             interval = list(map(float, elem.interval))
@@ -165,7 +160,7 @@ class Wavelet(CoefficientFunction1D):
         self.support = list(OrderedDict.fromkeys(support))
 
     def eval(self, x, deriv=False):
-        assert len(x.shape) == 1 or x.shape[1] == 1
+        assert len(x.shape) == 1 or x.shape[0] == 1
         result = np.zeros(x.shape)
         for phi, coeff_ss in self.single_scale:
             result += coeff_ss * phi.eval(x, deriv)
