@@ -12,16 +12,6 @@ def _replace(i, items, item_i):
     return result
 
 
-def flatten(l):
-    """ Flattens a list of lists. """
-    # https://stackoverflow.com/questions/2158395/flatten-an-irregular-list-of-lists
-    for el in l:
-        if isinstance(el, Iterable):
-            yield from flatten(el)
-        else:
-            yield el
-
-
 class MultiNodeViewInterface(NodeInterface):
     """ Class that represents a multinode interface. """
     __slots__ = []
