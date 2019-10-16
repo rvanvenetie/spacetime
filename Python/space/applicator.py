@@ -1,11 +1,12 @@
 import numpy as np
 
+from ..datastructures.applicator import ApplicatorInterface
 from ..datastructures.tree_vector import NodeVector, TreeVector
 from ..datastructures.tree_view import MetaRoot
 from .triangulation_view import TriangulationView
 
 
-class Applicator:
+class Applicator(ApplicatorInterface):
     """ Class that can apply operators on the hierarchical basis. """
     def __init__(self, singlescale_operator):
         """ Initialize the applicator.
@@ -13,6 +14,7 @@ class Applicator:
         Arguments:
             singlescale_operator: an instance of operators.Operator.
         """
+        super().__init__()
         self.operator = singlescale_operator
 
     def apply(self, vec_in, vec_out):
@@ -53,6 +55,10 @@ class Applicator:
                       call_postprocess=call_copy)
 
         return vec_out
+
+    def transpose(self):
+        """ All of the space applicators are self-adjoint. """
+        return self
 
     def to_matrix(self, Lambda_in, Lambda_out):
         """ Returns the dense matrix. Debug function. O(n^2). """

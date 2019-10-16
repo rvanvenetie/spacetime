@@ -9,10 +9,13 @@ from ..datastructures.tree_view import NodeView, TreeView
 
 @lru_cache(maxsize=10)
 def _get_quadrature_scheme(order):
+    # order == 2 * s + 1.
     return quadpy.nsimplex.grundmann_moeller(2, order // 2)
 
 
 class HierarchicalBasisFunction(FunctionInterface, NodeView):
+    order = 1
+
     @property
     def support(self):
         return self.node.patch
@@ -36,14 +39,15 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
                 result[:, mask] = np.tile(normal[:, np.newaxis], mask.sum())
         return result
 
-    def inner_quad(self, g, deriv=False, order=4):
+    def inner_quad(self, g, g_order=2, deriv=False):
         """ Computes <g, self> or <g, grad self> by quadrature. """
         func = lambda x: (self.eval(x, deriv) * g(x)).sum(axis=0)
+        scheme = _get_quadrature_scheme(g_order + self.order)
         result = 0.0
         for elem in self.support:
             triangle = np.array(
                 [elem.vertices[i].as_array() for i in range(3)])
-            result += _get_quadrature_scheme(order).integrate(func, triangle)
+            result += scheme.integrate(func, triangle)
         return result
 
     @staticmethod

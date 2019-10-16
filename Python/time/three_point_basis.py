@@ -12,6 +12,9 @@ class ContLinearScaling(basis.Scaling):
 
     The field Element.phi_cont_lin object is ordered by labda, i.e. left, right.
     """
+
+    order = 1
+
     def __init__(self, labda, support, parents=None):
         super().__init__(labda, support=support, parents=parents)
 
@@ -142,7 +145,11 @@ class ThreePointWavelet(basis.Wavelet):
 
     Scaling functions are simply the hat functions. A hat function on given
     level is indexed by the corresponding node index. A wavelet on level l >= 1
-    is indexed by 0..2^l-1, corresponding to the odd nodes on level l."""
+    is indexed by 0..2^l-1, corresponding to the odd nodes on level l.
+    """
+
+    order = 1
+
     def __init__(self, labda, single_scale, parents=None):
         super().__init__(labda, single_scale=single_scale, parents=parents)
 
