@@ -107,13 +107,12 @@ class FrozenDoubleNodeView(NodeViewInterface):
 
 
 class DoubleTreeView(MultiTree):
-    def __init__(self, root, frozen_dbl_cls=FrozenDoubleNodeView):
-        if isinstance(root, (tuple, list)): root = DoubleNode(root)
-        assert all(root.nodes[i].is_metaroot() for i in [0, 1])
-        assert issubclass(frozen_dbl_cls, FrozenDoubleNodeView)
+    mlt_node_cls = DoubleNodeView
+    frozen_dbl_cls = FrozenDoubleNodeView
+
+    def __init__(self, root):
+        assert issubclass(self.frozen_dbl_cls, FrozenDoubleNodeView)
         super().__init__(root=root)
-        self.root = root
-        self.frozen_dbl_cls = frozen_dbl_cls
         self.compute_fibers()
 
     def compute_fibers(self):
@@ -157,18 +156,6 @@ class DoubleTreeView(MultiTree):
         """
         self.root._deep_refine(call_filter, call_postprocess)
         self.compute_fibers()
-
-    @classmethod
-    def from_metaroots(cls,
-                       meta_root_time,
-                       meta_root_space,
-                       dbl_node_cls=DoubleNodeView,
-                       frozen_dbl_cls=FrozenDoubleNodeView):
-        """ Makes a full grid doubletree from the given single trees. """
-        assert meta_root_time.is_metaroot() and meta_root_space.is_metaroot()
-        double_root = dbl_node_cls((meta_root_time, meta_root_space))
-        double_tree = cls(double_root, frozen_dbl_cls=frozen_dbl_cls)
-        return double_tree
 
 
 # Some aliases for legacy reasons

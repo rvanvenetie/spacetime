@@ -294,8 +294,20 @@ class MultiTree:
     """ Class that holds the root of the tree. """
     __slots__ = ['root']
 
+    # The fall-back multi node view class.
+    mlt_node_cls = MultiNodeView
+
     def __init__(self, root):
+        assert isinstance(root, self.mlt_node_cls)
+        assert all(root.nodes[i].is_metaroot() for i in range(root.dim))
         self.root = root
+
+    @classmethod
+    def from_metaroots(cls, meta_roots, mlt_node_cls=None):
+        """ Initializes the multitree given a tuple of metaroots. """
+        assert isinstance(meta_roots, (tuple, list))
+        if mlt_node_cls is None: mlt_node_cls = cls.mlt_node_cls
+        return cls(mlt_node_cls(meta_roots))
 
     def bfs(self, include_meta_root=False):
         """ Does a bfs from the root.
@@ -313,12 +325,12 @@ class MultiTree:
                   mlt_tree_cls=None,
                   call_postprocess=None):
         """ Copies the current multitree. """
-        if mlt_node_cls is None: mlt_node_cls = self.root.__class__
         if mlt_tree_cls is None: mlt_tree_cls = self.__class__
-        multi_root = mlt_node_cls(self.root.nodes)
-        multi_root._union(self.root, call_postprocess=call_postprocess)
-        multi_tree = mlt_tree_cls(multi_root)
-        return multi_tree
+        if mlt_node_cls is None: mlt_node_cls = mlt_tree_cls.mlt_node_cls
+        mlt_root = mlt_node_cls(self.root.nodes)
+        mlt_root._union(self.root, call_postprocess=call_postprocess)
+        mlt_tree = mlt_tree_cls(mlt_root)
+        return mlt_tree
 
     def union(self, other, call_filter=None, call_postprocess=None):
         if isinstance(other, MultiTree): other = other.root

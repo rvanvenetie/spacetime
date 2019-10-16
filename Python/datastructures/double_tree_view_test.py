@@ -28,9 +28,8 @@ class DebugDoubleNode(DoubleNode):
 
 def full_tensor_double_tree(meta_root_time, meta_root_space, max_levels=None):
     """ Makes a full grid doubletree from the given single trees. """
-    dt_tree = DoubleTree.from_metaroots(meta_root_time,
-                                        meta_root_space,
-                                        dbl_node_cls=DebugDoubleNode)
+    dt_tree = DoubleTree.from_metaroots((meta_root_time, meta_root_space),
+                                        mlt_node_cls=DebugDoubleNode)
     dt_tree.uniform_refine(max_levels)
     return dt_tree
 

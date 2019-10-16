@@ -8,10 +8,10 @@ def test_vertex_subtree():
     elem_meta_root = T.elem_meta_root
     elem_meta_root.uniform_refine(6)
 
-    vertex_subtree = TreeView(T.vertex_meta_root)
+    vertex_subtree = TreeView.from_metaroot(T.vertex_meta_root)
 
     # Create a subtree with only vertices lying below the diagonal.
-    vertex_subtree = TreeView(T.vertex_meta_root)
+    vertex_subtree = TreeView.from_metaroot(T.vertex_meta_root)
     vertex_subtree.deep_refine(
         call_filter=lambda vertex: vertex.x + vertex.y <= 1)
     assert len(vertex_subtree.bfs()) < len(T.vertex_meta_root.bfs())

@@ -1,6 +1,6 @@
 from ..datastructures.tree import MetaRoot
 from ..datastructures.tree_view import NodeView, NodeViewInterface, TreeView
-from .triangulation import Element2D
+from .triangulation import Element2D, Vertex
 
 
 class ElementView(NodeView):
@@ -30,18 +30,25 @@ class TriangulationView:
         """ Initializer given a vertex (sub)tree. """
         if isinstance(vertex_view, NodeViewInterface):
             assert vertex_view.is_metaroot()
+
         # Store the vertices inside the vertex_view
         self.vertices = vertex_view.bfs()
+        assert self.vertices
+
+        # In the case of stacked views, we must iterate to find the vertices.
+        while isinstance(self.vertices[0], NodeViewInterface):
+            self.vertices = [v.node for v in self.vertices]
+        assert isinstance(self.vertices[0], Vertex)
 
         # Extract the original element root.
-        elem_meta_root = self.vertices[0].node.patch[0].parent
+        elem_meta_root = self.vertices[0].patch[0].parent
         assert isinstance(elem_meta_root, MetaRoot)
         assert isinstance(elem_meta_root.children[0], Element2D)
 
         # Mark all necessary vertices -- uses the mark field inside vertex.
         for idx, vertex in enumerate(self.vertices):
             assert not vertex.is_metaroot()
-            vertex.node.marked = idx
+            vertex.marked = idx
 
         # Two helper functions used inside the element tree generation..
         def newest_vertex_in_tree_view(elem):
@@ -61,8 +68,13 @@ class TriangulationView:
             call_filter=newest_vertex_in_tree_view,
             call_postprocess=store_vertices_element_view)
 
-        # Also store a flattened view of the elements.
+        # Unmark the vertices
+        for vertex in self.vertices:
+            vertex.marked = False
+
+        # Also store a flattened list of the elements.
         self.elements = self.elem_tree_view.bfs()
+        assert self.elements
 
         # Create the history object -- uses mark field of the vertex view obj.
         self.history = []
@@ -73,7 +85,9 @@ class TriangulationView:
             assert len(elem.parents) == 1
             self.history.append((elem.newest_vertex(), elem.parents[0]))
 
+        assert len(self.history) == len(self.vertices) - len(
+            self.vertices[0].parents[0].children)
+
         # Undo marking.
         for vertex in self.vertices:
             vertex.marked = False
-            vertex.node.marked = False

@@ -6,8 +6,8 @@ from ..datastructures.double_tree_vector import (DoubleNodeVector,
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..datastructures.tree_view import TreeView
-from ..space.triangulation import InitialTriangulation
 from ..space.basis import HierarchicalBasisFunction
+from ..space.triangulation import InitialTriangulation
 from ..time.haar_basis import HaarBasis
 
 
@@ -21,10 +21,7 @@ def test_double_tree_vector():
 
     # Create a DoubleTree Vector
     dt_root = DoubleTreeVector.from_metaroots(
-        HaarBasis.metaroot_wavelet,
-        triang.vertex_meta_root,
-        dbl_node_cls=DoubleNodeVector,
-        frozen_dbl_cls=FrozenDoubleNodeVector)
+        (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
     dt_root.uniform_refine()
 
     # Assert that main axis correspond to trees we've put in.
@@ -87,10 +84,7 @@ def test_initialize_quadrature():
 
     # Create a DoubleTree Vector
     dt_root = DoubleTreeVector.from_metaroots(
-        HaarBasis.metaroot_wavelet,
-        triang.vertex_meta_root,
-        dbl_node_cls=DoubleNodeVector,
-        frozen_dbl_cls=FrozenDoubleNodeVector)
+        (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
     dt_root.uniform_refine()
 
     # Initialize the vector.
@@ -102,7 +96,7 @@ def test_initialize_quadrature():
     for db_node in dt_root.bfs():
         assert np.isfinite(db_node.value)
 
-        
+
 def test_double_tree_block_vector():
     # Create space part.
     triang = InitialTriangulation.unit_square()
@@ -112,9 +106,9 @@ def test_double_tree_block_vector():
     HaarBasis.metaroot_wavelet.uniform_refine(3)
 
     # Create two DoubleTree Vectors
-    vec_1 = DoubleTreeVector(
+    vec_1 = DoubleTreeVector.from_metaroots(
         (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
-    vec_2 = DoubleTreeVector(
+    vec_2 = DoubleTreeVector.from_metaroots(
         (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
 
     # Refine accroding to different levels, and store different values.

@@ -29,7 +29,7 @@ class Applicator(ApplicatorInterface):
                 elem.Sigma_psi_out.append(psi_out.node)
 
         # Sigma is actually an empty vector.
-        sigma = DoubleTreeVector(
+        sigma = DoubleTreeVector.from_metaroots(
             (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
 
         # Insert the `time single tree` x `space meta root` and
@@ -67,7 +67,7 @@ class Applicator(ApplicatorInterface):
 
     def theta(self):
         # Theta is actually an empty vector.
-        theta = DoubleTreeVector(
+        theta = DoubleTreeVector.from_metaroots(
             (self.Lambda_out.root.nodes[0], self.Lambda_in.root.nodes[1]))
 
         # Load the metaroot axes.
@@ -114,10 +114,8 @@ class Applicator(ApplicatorInterface):
         vec_in = vec
 
         # Create two empty out vectors for the L and U part.
-        vec_out_low = self.Lambda_out.deep_copy(mlt_node_cls=DoubleNodeVector,
-                                                mlt_tree_cls=DoubleTreeVector)
-        vec_out_upp = self.Lambda_out.deep_copy(mlt_node_cls=DoubleNodeVector,
-                                                mlt_tree_cls=DoubleTreeVector)
+        vec_out_low = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
+        vec_out_upp = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
 
         # Calculate R_sigma(Id x A_1)I_Lambda
         sigma = self.sigma()

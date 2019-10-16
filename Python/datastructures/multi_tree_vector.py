@@ -24,9 +24,9 @@ class MultiNodeVectorInterface(MultiNodeViewInterface):
 class MultiNodeVector(MultiNodeVectorInterface, MultiNodeView):
     __slots__ = ['value']
 
-    def __init__(self, nodes, value=0, parents=None, children=None):
+    def __init__(self, nodes, parents=None, children=None):
         super().__init__(nodes=nodes, parents=parents, children=children)
-        self.value = value
+        self.value = 0
 
 
 class MultiTreeVector(MultiTree):
@@ -53,7 +53,9 @@ class MultiTreeVector(MultiTree):
                 new_node.value = old_node.value
 
             call_postprocess = call_copy
-        return super().deep_copy(mlt_node_cls, mlt_tree_cls, call_postprocess)
+        return super().deep_copy(mlt_node_cls=mlt_node_cls,
+                                 mlt_tree_cls=mlt_tree_cls,
+                                 call_postprocess=call_postprocess)
 
     def __iadd__(self, other):
         """ Add two double trees. """

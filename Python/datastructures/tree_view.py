@@ -49,10 +49,19 @@ class NodeView(NodeViewInterface, MultiNodeView):
 
 
 class TreeView(MultiTree):
-    def __init__(self, root):
-        assert root.is_metaroot()
-        if not isinstance(root, NodeViewInterface): root = NodeView([root])
-        super().__init__(root=root)
+    mlt_node_cls = NodeView
+
+    # Convenience method
+    @property
+    def node(self):
+        return self.root.node
+
+    @classmethod
+    def from_metaroot(cls, meta_root, node_view_cls=None):
+        """ Makes a full grid doubletree from the given single trees. """
+        assert meta_root.is_metaroot()
+        if node_view_cls is None: node_view_cls = cls.mlt_node_cls
+        return cls(node_view_cls(meta_root))
 
     def uniform_refine(self, max_level=None):
         """ Uniformly refine the multi tree rooted at `self`. """

@@ -33,9 +33,11 @@ class FrozenDoubleNodeVector(MultiNodeVectorInterface, FrozenDoubleNodeView):
 
 
 class DoubleTreeVector(MultiTreeVector, DoubleTreeView):
-    def __init__(self, root, frozen_dbl_cls=FrozenDoubleNodeVector):
-        if isinstance(root, (tuple, list)): root = DoubleNodeVector(root)
-        super().__init__(root=root, frozen_dbl_cls=frozen_dbl_cls)
+    mlt_node_cls = DoubleNodeVector
+    frozen_dbl_cls = FrozenDoubleNodeVector
+
+    def __init__(self, root):
+        super().__init__(root=root)
 
     def to_array(self):
         """ Transforms a double tree vector to a numpy vector. 
