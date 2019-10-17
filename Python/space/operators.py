@@ -66,7 +66,7 @@ class Operator:
         """ Sets all boundary vertices to zero. """
         w = np.zeros(v.shape)
         for i, vertex in enumerate(self.triang.vertices):
-            if not vertex.node.on_domain_boundary:
+            if not vertex.on_domain_boundary:
                 w[i] = v[i]
         return w
 
@@ -110,7 +110,7 @@ class StiffnessOperator(Operator):
             if not elem.is_leaf():
                 continue
             Vids = elem.vertices_view_idx
-            V = [self.triang.vertices[idx].node for idx in Vids]
+            V = [self.triang.vertices[idx] for idx in Vids]
             D = np.array([[V[2].x - V[1].x, V[0].x - V[2].x, V[1].x - V[0].x],
                           [V[2].y - V[1].y, V[0].y - V[2].y, V[1].y - V[0].y]],
                          dtype=float)

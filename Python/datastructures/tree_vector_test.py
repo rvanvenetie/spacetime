@@ -13,7 +13,7 @@ def test_vector_add():
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(4)
     for metaroot in [T.elem_meta_root, T.vertex_meta_root]:
-        vec = TreeVector(metaroot)
+        vec = TreeVector.from_metaroot(metaroot)
         vec.uniform_refine(max_level=5)
         for node in vec.bfs():
             node.value = random.random()
@@ -36,7 +36,7 @@ def test_vector_add():
                            [a.value for a in vec.bfs()])
 
         # Create a unit vector on a coarser grid.
-        vec2 = TreeVector(metaroot)
+        vec2 = TreeVector.from_metaroot(metaroot)
         vec2.uniform_refine(max_level=2)
         for node in vec2.bfs():
             node.value = 1.0
