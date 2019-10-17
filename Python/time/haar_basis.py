@@ -45,13 +45,13 @@ class DiscConstScaling(basis.Scaling):
         return len(self.children) == 2
 
     @staticmethod
-    def eval_mother(x):
-        return (0 <= x) & (x < 1)
+    def eval_mother(t):
+        return (0 <= t) & (t < 1)
 
-    def eval(self, x, deriv=False):
+    def eval(self, t, deriv=False):
         assert deriv == False
         l, n = self.labda
-        return 1.0 * self.eval_mother(2**l * x - n)
+        return 1.0 * self.eval_mother(2**l * t - n)
 
 
 class HaarWavelet(basis.Wavelet):

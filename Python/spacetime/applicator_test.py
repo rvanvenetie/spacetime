@@ -51,7 +51,7 @@ class FakeApplicator(Applicator):
         super().__init__(Lambda_in=Lambda_in,
                          Lambda_out=Lambda_out,
                          applicator_time=self.FakeSingleApplicator('t'),
-                         applicator_space=self.FakeSingleApplicator('x'))
+                         applicator_space=self.FakeSingleApplicator('xy'))
 
 
 class FakeHaarFunctionExt(FakeHaarFunction):
@@ -100,7 +100,7 @@ class ApplicatorFullSigmaTheta(Applicator):
 def test_small_sigma():
     """ I computed on a piece of paper what Sigma should be for this combo. """
     root_time = uniform_index_tree(1, 't', node_class=FakeHaarFunctionExt)
-    root_space = uniform_index_tree(1, 'x', node_class=FakeHaarFunctionExt)
+    root_space = uniform_index_tree(1, 'xy', node_class=FakeHaarFunctionExt)
     Lambda_in = full_tensor_double_tree(root_time, root_space)
     Lambda_out = full_tensor_double_tree(root_time, root_space)
     applicator = FakeApplicator(Lambda_in, Lambda_out)
@@ -178,8 +178,9 @@ def test_sigma_combinations():
                 corner_index_tree(Lmax[0], 't', node_class=FakeHaarFunctionExt)
         ], [
                 uniform_index_tree(
-                    Lmax[1], 'x', node_class=FakeHaarFunctionExt),
-                corner_index_tree(Lmax[1], 'x', node_class=FakeHaarFunctionExt)
+                    Lmax[1], 'xy', node_class=FakeHaarFunctionExt),
+                corner_index_tree(
+                    Lmax[1], 'xy', node_class=FakeHaarFunctionExt)
         ]):
             Lambdas_in = [
                 full_tensor_double_tree(*roots, L_in),

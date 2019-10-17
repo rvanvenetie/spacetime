@@ -67,7 +67,7 @@ def test_mass_quad_non_symmetric():
             for i, psi in enumerate(Lambda_in.bfs()):
                 for j, phi in enumerate(Lambda_out.bfs()):
                     f, g = (psi, phi) if psi.level > phi.level else (phi, psi)
-                    real_ip = f.inner_quad(lambda x: g.eval(x, deriv=deriv),
+                    real_ip = f.inner_quad(lambda xy: g.eval(xy, deriv=deriv),
                                            g_order=1,
                                            deriv=deriv)
                     assert np.allclose(real_ip, mat[j, i])

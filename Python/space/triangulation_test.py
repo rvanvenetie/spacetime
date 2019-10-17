@@ -142,10 +142,10 @@ def test_element_barycentric():
         V = elem.vertex_array().T
         for _ in range(10):
             # Random point.
-            p = np.random.rand(2, 1)
+            xy = np.random.rand(2, 4)
 
             # Convert to barycentric coordinates.
-            bary = elem.to_barycentric_coordinates(p)
+            bary = elem.to_barycentric_coordinates(xy)
 
             # Convert barycentric back to normal
-            assert np.allclose(V @ bary, p)
+            assert np.allclose(V @ bary, xy)
