@@ -89,11 +89,9 @@ class HeatEquation:
             call_postprocess = (call_postprocess, call_postprocess)
 
         result = BlockTreeVector((
-            self.Y_delta.deep_copy(mlt_node_cls=DoubleNodeVector,
-                                   mlt_tree_cls=DoubleTreeVector,
+            self.Y_delta.deep_copy(mlt_tree_cls=DoubleTreeVector,
                                    call_postprocess=call_postprocess[0]),
-            self.X_delta.deep_copy(mlt_node_cls=DoubleNodeVector,
-                                   mlt_tree_cls=DoubleTreeVector,
+            self.X_delta.deep_copy(mlt_tree_cls=DoubleTreeVector,
                                    call_postprocess=call_postprocess[1]),
         ))
         if self.dirichlet_boundary:

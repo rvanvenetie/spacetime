@@ -200,11 +200,12 @@ class Wavelet(CoefficientFunction1D):
         self.support = list(OrderedDict.fromkeys(support))
 
     def eval(self, t, deriv=False):
+        if not isinstance(t, np.ndarray): t = np.array([float(t)])
         assert len(t.shape) == 1 or t.shape[0] == 1
         result = np.zeros(t.shape)
         for phi, coeff_ss in self.single_scale:
             result += coeff_ss * phi.eval(t, deriv)
-        return result
+        return result if t.shape[0] > 1 else result[0]
 
 
 class MultiscaleFunctions:

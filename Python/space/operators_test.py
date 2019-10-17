@@ -20,7 +20,7 @@ def test_transformation():
     assert len([elem for elem in elements if elem.is_leaf()]) == 8
 
     # Create a view of the vertices.
-    vertex_view = TreeView(T.vertex_meta_root)
+    vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
     vertex_view.deep_refine()
     T_view = TriangulationView(vertex_view)
     operators = Operator(T_view)
@@ -65,7 +65,7 @@ def test_galerkin(plot=False):
     vertices = [[-1, -1], [1, 1], [1, -1], [-1, 1]]
     elements = [[0, 2, 3], [1, 3, 2]]
     T = InitialTriangulation(vertices, elements)
-    vertex_view = TreeView(T.vertex_meta_root)
+    vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
     vertex_view.deep_refine()
     # Create a view of the vertices.
     T_view = TriangulationView(vertex_view)

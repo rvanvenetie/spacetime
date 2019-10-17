@@ -66,7 +66,7 @@ class Operator:
         """ Sets all boundary vertices to zero. """
         w = np.zeros(v.shape)
         for i, vertex in enumerate(self.triang.vertices):
-            if not vertex.node.on_domain_boundary:
+            if not vertex.on_domain_boundary:
                 w[i] = v[i]
         return w
 

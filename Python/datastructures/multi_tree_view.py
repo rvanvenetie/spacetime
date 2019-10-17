@@ -90,10 +90,12 @@ class MultiNodeViewInterface(NodeInterface):
                                 call_filter=call_filter,
                                 make_conforming=make_conforming)
 
-    def _sparse_refine(self, max_level):
+    def _sparse_refine(self, max_level, call_postprocess=None):
         """ Refines this multi tree to a sparse grid multitree. """
-        self._deep_refine(call_filter=lambda n: sum(
-            n[i].level for i in range(self.dim)) <= max_level)
+        self._deep_refine(
+            call_filter=lambda n: sum(n[i].level
+                                      for i in range(self.dim)) <= max_level,
+            call_postprocess=call_postprocess)
 
     def _uniform_refine(self, max_levels=None, call_postprocess=None):
         """ Uniformly refine the multi tree rooted at `self`. """
@@ -292,10 +294,20 @@ class MultiNodeView(MultiNodeViewInterface):
 
 class MultiTree:
     """ Class that holds the root of the tree. """
-    __slots__ = ['root']
+    # The fall-back multi node view class.
+    mlt_node_cls = MultiNodeView
 
     def __init__(self, root):
+        assert isinstance(root, self.mlt_node_cls)
+        assert all(root.nodes[i].is_metaroot() for i in range(root.dim))
         self.root = root
+
+    @classmethod
+    def from_metaroots(cls, meta_roots, mlt_node_cls=None):
+        """ Initializes the multitree given a tuple of metaroots. """
+        assert isinstance(meta_roots, (tuple, list))
+        if mlt_node_cls is None: mlt_node_cls = cls.mlt_node_cls
+        return cls(mlt_node_cls(meta_roots))
 
     def bfs(self, include_meta_root=False):
         """ Does a bfs from the root.
@@ -309,16 +321,16 @@ class MultiTree:
         return nodes
 
     def deep_copy(self,
-                  mlt_node_cls=None,
                   mlt_tree_cls=None,
+                  mlt_node_cls=None,
                   call_postprocess=None):
         """ Copies the current multitree. """
-        if mlt_node_cls is None: mlt_node_cls = self.root.__class__
         if mlt_tree_cls is None: mlt_tree_cls = self.__class__
-        multi_root = mlt_node_cls(self.root.nodes)
-        multi_root._union(self.root, call_postprocess=call_postprocess)
-        multi_tree = mlt_tree_cls(multi_root)
-        return multi_tree
+        if mlt_node_cls is None: mlt_node_cls = mlt_tree_cls.mlt_node_cls
+        mlt_root = mlt_node_cls(self.root.nodes)
+        mlt_root._union(self.root, call_postprocess=call_postprocess)
+        mlt_tree = mlt_tree_cls(mlt_root)
+        return mlt_tree
 
     def union(self, other, call_filter=None, call_postprocess=None):
         if isinstance(other, MultiTree): other = other.root
@@ -327,7 +339,16 @@ class MultiTree:
                          call_postprocess=call_postprocess)
         return self
 
+    def uniform_refine(self, max_levels=None, call_postprocess=None):
+        """ Sparse refines the root of this multi tree view. """
+        self.root._uniform_refine(max_levels,
+                                  call_postprocess=call_postprocess)
+
+    def sparse_refine(self, max_level, call_postprocess=None):
+        """ Sparse refines the root of this multi tree view. """
+        assert self.root.dim > 1
+        self.root._sparse_refine(max_level, call_postprocess=call_postprocess)
+
     def deep_refine(self, call_filter=None, call_postprocess=None):
-        """ Deep-refines `self` by recursively refining the tree view. """
+        """ Deep refines the root of this multi tree view. """
         self.root._deep_refine(call_filter, call_postprocess)
-        return self

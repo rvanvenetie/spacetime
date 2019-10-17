@@ -20,14 +20,15 @@ def test_full_tensor_y_delta():
     # Tryout various levels.
     for l in range(6):
         # Create X^\delta
-        X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space.root))
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
         X_delta.uniform_refine(l)
 
         # Generate Y^\delta
         Y_delta = generate_y_delta(X_delta)
 
         # Compare to the full tensor one.
-        Y_delta_tensor = DoubleTree(
+        Y_delta_tensor = DoubleTree.from_metaroots(
             (OrthonormalBasis.metaroot_wavelet, basis_space.root))
         Y_delta_tensor.uniform_refine(l)
 
@@ -51,14 +52,15 @@ def test_sparse_tensor_y_delta():
     # Tryout various levels.
     for l in range(6):
         # Create X^\delta
-        X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space.root))
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
         X_delta.sparse_refine(l)
 
         # Generate Y^\delta
         Y_delta = generate_y_delta(X_delta)
 
         # Compare to the sparse tensor one.
-        Y_delta_tensor = DoubleTree(
+        Y_delta_tensor = DoubleTree.from_metaroots(
             (OrthonormalBasis.metaroot_wavelet, basis_space.root))
         Y_delta_tensor.sparse_refine(l)
 
