@@ -90,10 +90,12 @@ class MultiNodeViewInterface(NodeInterface):
                                 call_filter=call_filter,
                                 make_conforming=make_conforming)
 
-    def _sparse_refine(self, max_level):
+    def _sparse_refine(self, max_level, call_postprocess=None):
         """ Refines this multi tree to a sparse grid multitree. """
-        self._deep_refine(call_filter=lambda n: sum(
-            n[i].level for i in range(self.dim)) <= max_level)
+        self._deep_refine(
+            call_filter=lambda n: sum(n[i].level
+                                      for i in range(self.dim)) <= max_level,
+            call_postprocess=call_postprocess)
 
     def _uniform_refine(self, max_levels=None, call_postprocess=None):
         """ Uniformly refine the multi tree rooted at `self`. """
@@ -292,8 +294,6 @@ class MultiNodeView(MultiNodeViewInterface):
 
 class MultiTree:
     """ Class that holds the root of the tree. """
-    __slots__ = ['root']
-
     # The fall-back multi node view class.
     mlt_node_cls = MultiNodeView
 
@@ -339,7 +339,15 @@ class MultiTree:
                          call_postprocess=call_postprocess)
         return self
 
+    def uniform_refine(self, max_levels=None, call_postprocess=None):
+        """ Sparse refines the root of this multi tree view. """
+        self.root._uniform_refine(max_levels,
+                                  call_postprocess=call_postprocess)
+
+    def sparse_refine(self, max_level, call_postprocess=None):
+        """ Sparse refines the root of this multi tree view. """
+        self.root._sparse_refine(max_level, call_postprocess=call_postprocess)
+
     def deep_refine(self, call_filter=None, call_postprocess=None):
-        """ Deep-refines `self` by recursively refining the tree view. """
+        """ Deep refines the root of this multi tree view. """
         self.root._deep_refine(call_filter, call_postprocess)
-        return self

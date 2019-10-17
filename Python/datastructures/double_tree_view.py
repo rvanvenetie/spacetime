@@ -113,7 +113,7 @@ class DoubleTreeView(MultiTree):
     def __init__(self, root):
         assert issubclass(self.frozen_dbl_cls, FrozenDoubleNodeView)
         super().__init__(root=root)
-        self.compute_fibers()
+        self.fibers = None
 
     def compute_fibers(self):
         self.fibers = ({}, {})
@@ -130,32 +130,14 @@ class DoubleTreeView(MultiTree):
         
         The fiber is the tree of single-nodes in axis i frozen at coordinate mu
         in the other axis. """
+        if not self.fibers:
+            self.compute_fibers()
+
+        assert self.fibers[i]
         if isinstance(mu, FrozenDoubleNodeView):
             assert not mu.i == i
-            return self.fibers[i][mu.node]
-        else:
-            return self.fibers[i][mu]
-
-    def uniform_refine(self, max_levels=None, call_postprocess=None):
-        self.root._uniform_refine(max_levels,
-                                  call_postprocess=call_postprocess)
-        self.compute_fibers()
-
-    def sparse_refine(self, max_level):
-        self.root._sparse_refine(max_level)
-        self.compute_fibers()
-
-    def deep_refine(self, call_filter=None, call_postprocess=None):
-        """ Deep-refines `self` by recursively refining the double tree view. 
-
-        Args:
-          call_filter: This call determines whether a given double node 
-            should be inside the subtree.
-          call_postprocess: This call will be invoked with a freshly
-              created doublenode object. Can be used to load data, etc.
-        """
-        self.root._deep_refine(call_filter, call_postprocess)
-        self.compute_fibers()
+            mu = mu.node
+        return self.fibers[i][mu]
 
 
 # Some aliases for legacy reasons

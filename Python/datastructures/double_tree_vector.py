@@ -7,10 +7,12 @@ from .multi_tree_vector import (MultiNodeVector, MultiNodeVectorInterface,
 
 
 class DoubleNodeVector(MultiNodeVector, DoubleNodeView):
-    pass
+    __slots__ = []
 
 
 class FrozenDoubleNodeVector(MultiNodeVectorInterface, FrozenDoubleNodeView):
+    __slots__ = []
+
     @property
     def value(self):
         return self.dbl_node.value

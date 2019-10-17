@@ -8,7 +8,7 @@ from .tree_view import NodeView, NodeViewInterface, TreeView
 
 
 class NodeVector(MultiNodeVector, NodeView):
-    pass
+    __slots__ = []
 
 
 class TreeVector(MultiTreeVector, TreeView):

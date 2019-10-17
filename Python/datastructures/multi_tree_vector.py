@@ -7,6 +7,8 @@ from .multi_tree_view import MultiNodeView, MultiNodeViewInterface, MultiTree
 
 class MultiNodeVectorInterface(MultiNodeViewInterface):
     """ Extends the multinode interface with a value. """
+    __slots__ = []
+
     @property
     @abstractmethod
     def value(self):

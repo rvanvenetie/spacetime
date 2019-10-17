@@ -17,6 +17,8 @@ class Applicator(ApplicatorInterface):
             applicator_space: The applicator to be applied on the space axis.
         """
         super().__init__(Lambda_in=Lambda_in, Lambda_out=Lambda_out)
+        self.Lambda_in.compute_fibers()
+        self.Lambda_out.compute_fibers()
         self.applicator_time = applicator_time
         self.applicator_space = applicator_space
 
