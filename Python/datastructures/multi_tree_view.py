@@ -346,6 +346,7 @@ class MultiTree:
 
     def sparse_refine(self, max_level, call_postprocess=None):
         """ Sparse refines the root of this multi tree view. """
+        assert self.dim > 1
         self.root._sparse_refine(max_level, call_postprocess=call_postprocess)
 
     def deep_refine(self, call_filter=None, call_postprocess=None):
