@@ -1,12 +1,13 @@
 import numpy as np
 
-from ..datastructures.multi_tree_function import (TreeFunction,
-                                                  DoubleTreeFunction)
-from ..space.triangulation import InitialTriangulation
+from ..datastructures.multi_tree_function import (DoubleTreeFunction,
+                                                  TreeFunction)
 from ..space.basis import HierarchicalBasisFunction
+from ..space.triangulation import InitialTriangulation
 from ..time.three_point_basis import ThreePointBasis
 
 
+@pytest.mark.slow
 def test_dbl_fn_single_nonzero():
     # Create space part.
     triang = InitialTriangulation.unit_square()
