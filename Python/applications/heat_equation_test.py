@@ -80,18 +80,18 @@ def plot_slice(heat_eq, t, sol):
 def test_full_tensor_heat():
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    triang.vertex_meta_root.uniform_refine(5)
+    triang.vertex_meta_root.uniform_refine(4)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
     # Create time part for X^\delta
     basis_time = ThreePointBasis()
-    basis_time.metaroot_wavelet.uniform_refine(5)
+    basis_time.metaroot_wavelet.uniform_refine(4)
 
     # Create X^\delta
     X_delta = DoubleTree.from_metaroots(
         (basis_time.metaroot_wavelet, basis_space.root))
-    X_delta.deep_refine()
+    X_delta.uniform_refine(4)
 
     # Create heat equation obkect
     heat_eq = HeatEquation(X_delta=X_delta)
@@ -119,7 +119,7 @@ def test_sparse_tensor_heat():
     # Create X^\delta
     X_delta = DoubleTree.from_metaroots(
         (basis_time.metaroot_wavelet, basis_space.root))
-    X_delta.sparse_refine(3)
+    X_delta.sparse_refine(2)
 
     # Create heat equation obkect
     heat_eq = HeatEquation(X_delta=X_delta)
@@ -138,7 +138,7 @@ def test_sparse_tensor_heat():
     # Check the error..
     res_tree = heat_eq.mat.apply(sol)
     res_tree -= rhs
-    assert np.linalg.norm(res_tree.to_array()) < 1e-5
+    assert np.linalg.norm(res_tree.to_array()) < 1e-4
 
 
 def test_real_tensor_heat():
@@ -155,7 +155,7 @@ def test_real_tensor_heat():
     # Create X^\delta
     X_delta = DoubleTree.from_metaroots(
         (basis_time.metaroot_wavelet, basis_space.root))
-    X_delta.sparse_refine(4)
+    X_delta.sparse_refine(3)
 
     # Create heat equation obkect
     heat_eq = HeatEquation(X_delta=X_delta)
