@@ -23,16 +23,13 @@ from .heat_equation import HeatEquation
 
 
 def example_rhs(heat_eq):
-    g = [(lambda t: 2 * t, \
-          lambda xy: xy[0] * xy[1] * (xy[0]**2 - 1) * (xy[1]**2 - 1)),
-         (lambda t: -6 * (t**2 + 1), \
-          lambda xy: xy[0] * xy[1] * (xy[0]**2 + xy[1]**2 - 2))]
-    g_order = (2, 6)
-
-    u0 = lambda xy: (xy[0] - 1) * xy[0] * (xy[0] + 1) * (xy[1] - 1) * xy[1] * (
-        xy[1] + 1)
-
-    u0_order = 6
+    g = [(lambda t: -2 * (1 + t**2), lambda xy: (xy[0] - 1) * xy[0] +
+          (xy[1] - 1) * xy[1]),
+         (lambda t: 2 * t, lambda xy: (xy[0] - 1) * xy[0] *
+          (xy[1] - 1) * xy[1])]
+    g_order = (2, 4)
+    u0 = lambda xy: (1 - xy[0]) * xy[0] * (1 - xy[1]) * xy[1]
+    u0_order = 4
 
     result = heat_eq.calculate_rhs_vector(g=g,
                                           g_order=g_order,
@@ -221,4 +218,5 @@ def test_heat_eq_linear():
 if __name__ == "__main__":
     heat_eq, sol = test_real_tensor_heat()
     # Plot solution for t = 0.5.
-    plot_slice(heat_eq, 0.5, sol)
+    for t in [0, 0.1, 0.5, 1]:
+        plot_slice(heat_eq, t, sol)
