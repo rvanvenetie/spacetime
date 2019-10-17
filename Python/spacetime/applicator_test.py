@@ -2,7 +2,6 @@ from collections import defaultdict
 from itertools import product
 from pprint import pprint
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from ..datastructures.double_tree_vector import (DoubleNodeVector,

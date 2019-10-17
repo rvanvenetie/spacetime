@@ -1,6 +1,5 @@
 from fractions import Fraction
 
-import matplotlib.pyplot as plt
 import numpy as np
 from pytest import approx
 
@@ -223,6 +222,7 @@ def test_basis_PQ():
                 try:
                     assert np.allclose(inner, phi.eval(t))
                 except AssertionError:
+                    import matplotlib.pyplot as plt
                     plt.plot(t, inner, label=r'$(\Phi_{l-1}^T P_l)_\mu$')
                     plt.plot(t, phi.eval(t), label=r"$\phi_\mu$")
                     plt.legend()
