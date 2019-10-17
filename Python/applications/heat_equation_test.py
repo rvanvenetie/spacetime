@@ -64,7 +64,8 @@ def test_full_tensor_heat():
     basis_time.metaroot_wavelet.uniform_refine(5)
 
     # Create X^\delta
-    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space.root))
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.deep_refine()
 
     # Create heat equation obkect
@@ -91,7 +92,8 @@ def test_sparse_tensor_heat():
     basis_time.metaroot_wavelet.uniform_refine(6)
 
     # Create X^\delta
-    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space.root))
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.sparse_refine(3)
 
     # Create heat equation obkect
@@ -126,8 +128,9 @@ def test_real_tensor_heat():
     basis_time.metaroot_wavelet.uniform_refine(6)
 
     # Create X^\delta
-    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space.root))
-    X_delta.uniform_refine([2, 1])
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    X_delta.sparse_refine(3)
 
     # Create heat equation obkect
     heat_eq = HeatEquation(X_delta=X_delta)
@@ -167,7 +170,8 @@ def test_heat_eq_linear():
     basis_time.metaroot_wavelet.uniform_refine(6)
 
     # Create X^\delta
-    X_delta = DoubleTree((basis_time.metaroot_wavelet, basis_space.root))
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.sparse_refine(2)
 
     # Create heat equation obkect

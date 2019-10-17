@@ -7,6 +7,8 @@ from .multi_tree_view import MultiNodeView, MultiNodeViewInterface, MultiTree
 
 class MultiNodeVectorInterface(MultiNodeViewInterface):
     """ Extends the multinode interface with a value. """
+    __slots__ = []
+
     @property
     @abstractmethod
     def value(self):
@@ -24,9 +26,9 @@ class MultiNodeVectorInterface(MultiNodeViewInterface):
 class MultiNodeVector(MultiNodeVectorInterface, MultiNodeView):
     __slots__ = ['value']
 
-    def __init__(self, nodes, value=0, parents=None, children=None):
+    def __init__(self, nodes, parents=None, children=None):
         super().__init__(nodes=nodes, parents=parents, children=children)
-        self.value = value
+        self.value = 0
 
 
 class MultiTreeVector(MultiTree):
@@ -43,17 +45,16 @@ class MultiTreeVector(MultiTree):
         return self
 
     def deep_copy(self,
-                  mlt_node_cls=None,
                   mlt_tree_cls=None,
+                  mlt_node_cls=None,
                   call_postprocess=None):
         """ Copies the current multitree. """
         if call_postprocess is None:
-
-            def call_copy(new_node, old_node):
-                new_node.value = old_node.value
-
-            call_postprocess = call_copy
-        return super().deep_copy(mlt_node_cls, mlt_tree_cls, call_postprocess)
+            call_postprocess = lambda new, old: setattr(
+                new, 'value', old.value)
+        return super().deep_copy(mlt_tree_cls=mlt_tree_cls,
+                                 mlt_node_cls=mlt_node_cls,
+                                 call_postprocess=call_postprocess)
 
     def axpy(self, other, scalar_mult=1):
         """ Implementation of `self += scalar_mult * other` """

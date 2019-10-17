@@ -105,29 +105,19 @@ class Element2D(BinaryNodeAbstract):
         assert 0 <= i <= 2
         return [self.vertices[(i + 2) % 3], self.vertices[(i + 1) % 3]]
 
+    def vertex_array(self):
+        return np.array([self.vertices[i].as_array() for i in range(3)])
+
     def is_leaf(self):
         return not len(self.children)
 
     def to_barycentric_coordinates(self, p):
-        """ Returns the barycentric coordinates for a point p. """
-
-        # https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
-        a, b, c = [self.vertices[i].as_array() for i in range(3)]
-        v0 = b - a
-        v1 = c - a
-        v2 = np.array(p) - a
-
-        d00 = np.dot(v0, v0)
-        d01 = np.dot(v0, v1)
-        d11 = np.dot(v1, v1)
-        d20 = np.dot(v2, v0)
-        d21 = np.dot(v2, v1)
-
-        denom = (d00 * d11 - d01 * d01)
-        v = (d11 * d20 - d01 * d21) / denom
-        w = (d00 * d21 - d01 * d20) / denom
-
-        return np.array([1 - v - w, v, w])
+        """ Returns the barycentric coordinates for a list of points p. """
+        if len(p.shape) == 1:
+            p = p.reshape(2, 1)
+        V = np.ones((3, 3))
+        V[:2, :] = self.vertex_array().T
+        return np.linalg.solve(V, np.vstack([p, np.ones(p.shape[1])]))
 
     def __repr__(self):
         return 'Element2D({}, {})'.format(self.level, self.vertices)
@@ -255,9 +245,7 @@ class InitialTriangulation:
 
     def _compute_area(self, elem):
         """ Computes the area of the element spanned by `vertex_ids`. """
-        v1 = elem.vertices[0].as_array()
-        v2 = elem.vertices[1].as_array()
-        v3 = elem.vertices[2].as_array()
+        v1, v2, v3 = elem.vertex_array()
         return 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1))
 
 

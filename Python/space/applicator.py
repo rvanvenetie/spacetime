@@ -33,16 +33,16 @@ class Applicator(ApplicatorInterface):
         # This is the case where vec_in != vec_out.
         # We can handle this by enlarging vec_in and vec_out.
         def call_copy(my_node, other_node):
-            if not isinstance(other_node, MetaRoot):
+            if not my_node.is_metaroot():
                 my_node.value = other_node.value
 
         # If that's not the case, create an enlarged vec_in.
-        vec_in_new = TreeVector(vec_in)
+        vec_in_new = TreeVector.from_metaroot(vec_in.node)
         vec_in_new.union(vec_in, call_postprocess=call_copy)
         vec_in_new.union(vec_out, call_postprocess=None)
 
         # Also create an enlarge vec_out.
-        vec_out_new = TreeVector(vec_out)
+        vec_out_new = TreeVector.from_metaroot(vec_in.node)
         vec_out_new.union(vec_in, call_postprocess=None)
         vec_out_new.union(vec_out, call_postprocess=None)
 
@@ -69,7 +69,7 @@ class Applicator(ApplicatorInterface):
         result = np.zeros((n, m))
         for i, psi in enumerate(nodes_in):
             # Create vector with a 1 for psi
-            vec_in = TreeVector(Lambda_in)
+            vec_in = TreeVector.from_metaroot(Lambda_in.node)
             vec_in.union(Lambda_in)
             for n in vec_in.bfs():
                 if n.node == psi.node:
@@ -77,7 +77,7 @@ class Applicator(ApplicatorInterface):
                     break
             assert sum(n.value for n in vec_in.bfs()) == 1
 
-            vec_out = TreeVector(Lambda_out)
+            vec_out = TreeVector.from_metaroot(Lambda_out.node)
             vec_out.union(Lambda_out)
             assert sum(n.value for n in vec_out.bfs()) == 0
             self.apply(vec_in, vec_out)

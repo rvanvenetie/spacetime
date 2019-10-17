@@ -74,7 +74,7 @@ class ApplicatorFullSigmaTheta(Applicator):
                          applicator_space)
 
     def sigma(self):
-        sigma = DoubleTreeVector(
+        sigma = DoubleTreeVector.from_metaroots(
             (self.Lambda_in.root.nodes[0], self.Lambda_out.root.nodes[1]))
         sigma.project(0).union(self.Lambda_in.project(0))
         sigma.project(1).union(self.Lambda_out.project(1))
@@ -86,7 +86,7 @@ class ApplicatorFullSigmaTheta(Applicator):
         return sigma
 
     def theta(self):
-        theta = DoubleTreeVector(
+        theta = DoubleTreeVector.from_metaroots(
             (self.Lambda_out.root.nodes[0], self.Lambda_in.root.nodes[1]))
         theta.project(0).union(self.Lambda_out.project(0))
         theta.project(1).union(self.Lambda_in.project(1))
@@ -111,10 +111,10 @@ def test_small_sigma():
 
 def test_theta_full_tensor():
     HaarBasis.metaroot_wavelet.uniform_refine(4)
-    Lambda_in = DoubleTree(
+    Lambda_in = DoubleTree.from_metaroots(
         (HaarBasis.metaroot_wavelet, HaarBasis.metaroot_wavelet))
     Lambda_in.deep_refine()
-    Lambda_out = DoubleTree(
+    Lambda_out = DoubleTree.from_metaroots(
         (HaarBasis.metaroot_wavelet, HaarBasis.metaroot_wavelet))
     Lambda_out.deep_refine()
 
@@ -126,9 +126,9 @@ def test_theta_full_tensor():
 
 def test_theta_small():
     HaarBasis.metaroot_wavelet.uniform_refine(3)
-    Lambda_in = DoubleTree(
+    Lambda_in = DoubleTree.from_metaroots(
         (HaarBasis.metaroot_wavelet, HaarBasis.metaroot_wavelet))
-    Lambda_out = DoubleTree(
+    Lambda_out = DoubleTree.from_metaroots(
         (HaarBasis.metaroot_wavelet, HaarBasis.metaroot_wavelet))
 
     # Define the maximum levels
@@ -220,11 +220,12 @@ def test_applicator_real():
                                    basis_out=basis_out)
 
     # Create Lambda_in as sparse tree
-    Lambda_in = DoubleTree((basis_in.metaroot_wavelet, hierarch_basis.root))
+    Lambda_in = DoubleTree.from_metaroots(
+        (basis_in.metaroot_wavelet, hierarch_basis.root))
     Lambda_in.uniform_refine(5)
 
     # Create Lambda_out as full tree.
-    Lambda_out = DoubleTree(
+    Lambda_out = DoubleTree.from_metaroots(
         (ThreePointBasis.metaroot_wavelet, hierarch_basis.root))
     Lambda_out.sparse_refine(4)
     assert len(Lambda_in.bfs()) != len(Lambda_out.bfs())
@@ -233,8 +234,7 @@ def test_applicator_real():
                             applicator_space)
 
     # Now create an vec_in and vec_out.
-    vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
-                                 mlt_tree_cls=DoubleTreeVector)
+    vec_in = Lambda_in.deep_copy(mlt_tree_cls=DoubleTreeVector)
 
     assert len(vec_in.bfs()) == len(Lambda_in.bfs())
     assert all(n1.nodes == n2.nodes
@@ -253,7 +253,7 @@ def test_applicator_tensor_haar_Mass1D():
     basis.metaroot_wavelet.uniform_refine(6)
     for l in range(1, 5):
         # Create Lambda_in/out and initialize the applicator.
-        Lambda_in = DoubleTree(
+        Lambda_in = DoubleTree.from_metaroots(
             (HaarBasis.metaroot_wavelet, HaarBasis.metaroot_wavelet))
         Lambda_in.uniform_refine(l)
         Lambda_out = Lambda_in
@@ -272,8 +272,7 @@ def test_applicator_tensor_haar_Mass1D():
         # Test and apply 20 random vectors.
         for _ in range(20):
             # Initialze double tree vectors.
-            vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
-                                         mlt_tree_cls=DoubleTreeVector)
+            vec_in = Lambda_in.deep_copy(mlt_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -308,12 +307,12 @@ def test_applicator_full_tensor_time():
         l_out = [2, 4]
 
         # Create Lambda_in/out and initialize the applicator.
-        Lambda_in = DoubleTree(
+        Lambda_in = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.metaroot_wavelet))
         Lambda_in.uniform_refine(l_in)
         print('\tLambda_in is tree upto levels {} with dofs {}'.format(
             l_in, len(Lambda_in.bfs())))
-        Lambda_out = DoubleTree(
+        Lambda_out = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.metaroot_wavelet))
         Lambda_out.uniform_refine(l_out)
         print('\tLambda_out is tree upto levels {} with dofs {}'.format(
@@ -336,8 +335,7 @@ def test_applicator_full_tensor_time():
         # Test and apply 10 random vectors.
         for _ in range(10):
             # Initialze double tree vectors.
-            vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
-                                         mlt_tree_cls=DoubleTreeVector)
+            vec_in = Lambda_in.deep_copy(mlt_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -383,12 +381,12 @@ def test_applicator_full_tensor_spacetime_quad():
                     op_space.__class__.__name__, l_in, l_out))
 
         # Create Lambda_in/out and initialize the applicator.
-        Lambda_in = DoubleTree(
+        Lambda_in = DoubleTree.from_metaroots(
             (basis_time_in.metaroot_wavelet, hierarch_basis))
         Lambda_in.uniform_refine(l_in)
         print('\tLambda_in is tree upto levels {} with dofs {}'.format(
             l_in, len(Lambda_in.bfs())))
-        Lambda_out = DoubleTree(
+        Lambda_out = DoubleTree.from_metaroots(
             (basis_time_out.metaroot_wavelet, hierarch_basis))
         Lambda_out.uniform_refine(l_out)
         print('\tLambda_out is tree upto levels {} with dofs {}'.format(
@@ -412,8 +410,7 @@ def test_applicator_full_tensor_spacetime_quad():
         # Test and apply 10 random vectors.
         for _ in range(10):
             # Initialze double tree vectors.
-            vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
-                                         mlt_tree_cls=DoubleTreeVector)
+            vec_in = Lambda_in.deep_copy(mlt_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -454,13 +451,14 @@ def test_applicator_different_out():
         l_out = [2, 4]
 
         # Create Lambda_in/out and initialize the applicator.
-        Lambda_in = DoubleTree(
+        Lambda_in = DoubleTree.from_metaroots(
             (basis_time_in.metaroot_wavelet, basis_space_in.metaroot_wavelet))
         Lambda_in.uniform_refine(l_in)
         print('\tLambda_in is tree upto levels {} with dofs {}'.format(
             l_in, len(Lambda_in.bfs())))
-        Lambda_out = DoubleTree((basis_time_out.metaroot_wavelet,
-                                 basis_space_out.metaroot_wavelet))
+        Lambda_out = DoubleTree.from_metaroots(
+            (basis_time_out.metaroot_wavelet,
+             basis_space_out.metaroot_wavelet))
         Lambda_out.uniform_refine(l_out)
         print('\tLambda_out is tree upto levels {} with dofs {}'.format(
             l_out, len(Lambda_out.bfs())))
@@ -486,8 +484,7 @@ def test_applicator_different_out():
         # Test and apply 10 random vectors.
         for _ in range(10):
             # Initialze double tree vectors.
-            vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
-                                         mlt_tree_cls=DoubleTreeVector)
+            vec_in = Lambda_in.deep_copy(mlt_tree_cls=DoubleTreeVector)
 
             assert len(vec_in.bfs()) == len(Lambda_in.bfs())
             assert all(n1.nodes == n2.nodes
@@ -521,12 +518,12 @@ def test_applicator_sparse_grid_time():
         l_out = 4
 
         # Create Lambda_in/out and initialize the applicator.
-        Lambda_in = DoubleTree(
+        Lambda_in = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.metaroot_wavelet))
         Lambda_in.sparse_refine(l_in)
         print('\tLambda_in is a sparse grid tree upto level {} with dofs {}'.
               format(l_in, len(Lambda_in.bfs())))
-        Lambda_out = DoubleTree(
+        Lambda_out = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.metaroot_wavelet))
         Lambda_out.sparse_refine(l_out)
         print('\tLambda_out is a sparse grid tree upto level {} with dofs {}'.
@@ -547,8 +544,7 @@ def test_applicator_sparse_grid_time():
         # Test and apply 10 random vectors.
         for _ in range(10):
             # Init double tree vector with random values.
-            vec_in = Lambda_in.deep_copy(mlt_node_cls=DoubleNodeVector,
-                                         mlt_tree_cls=DoubleTreeVector)
+            vec_in = Lambda_in.deep_copy(mlt_tree_cls=DoubleTreeVector)
             for db_node in vec_in.bfs():
                 db_node.value = np.random.rand()
 

@@ -16,7 +16,7 @@ def generate_y_delta(x_delta):
     y_basis_time = OrthonormalBasis()
 
     # Create an empty double tree.
-    y_delta = DoubleTree(
+    y_delta = DoubleTree.from_metaroots(
         (y_basis_time.metaroot_wavelet, x_delta.root.nodes[1]))
 
     # Plug in the space metaroot axis.

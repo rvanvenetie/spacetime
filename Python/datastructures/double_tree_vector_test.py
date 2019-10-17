@@ -1,3 +1,6 @@
+import random
+from collections import defaultdict
+
 import numpy as np
 
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
@@ -6,8 +9,8 @@ from ..datastructures.double_tree_vector import (DoubleNodeVector,
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..datastructures.tree_view import TreeView
-from ..space.triangulation import InitialTriangulation
 from ..space.basis import HierarchicalBasisFunction
+from ..space.triangulation import InitialTriangulation
 from ..time.haar_basis import HaarBasis
 
 
@@ -21,10 +24,7 @@ def test_double_tree_vector():
 
     # Create a DoubleTree Vector
     dt_root = DoubleTreeVector.from_metaroots(
-        HaarBasis.metaroot_wavelet,
-        triang.vertex_meta_root,
-        dbl_node_cls=DoubleNodeVector,
-        frozen_dbl_cls=FrozenDoubleNodeVector)
+        (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
     dt_root.uniform_refine()
 
     # Assert that main axis correspond to trees we've put in.
@@ -61,13 +61,60 @@ def test_double_tree_vector():
         assert db_node.value == 1
 
     # Check that copying works.
-    def call_copy_value(new_node, old_node):
-        new_node.value = old_node.value
-
-    dt_copy = dt_root.deep_copy(call_postprocess=call_copy_value)
+    dt_copy = dt_root.deep_copy()
     assert len(dt_copy.bfs()) == len(dt_root.bfs())
     for db_node in dt_copy.bfs():
         assert db_node.value == 1
+
+
+def test_double_tree_vector_sum():
+    triang = InitialTriangulation.unit_square()
+    triang.elem_meta_root.uniform_refine(6)
+    HaarBasis.metaroot_wavelet.uniform_refine(4)
+
+    # Create a sparse DoubleTree Vector filled with random values.
+    vec_sp = DoubleTreeVector.from_metaroots(
+        (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
+    vec_sp.sparse_refine(
+        4, call_postprocess=lambda nv: setattr(nv, 'value', random.random()))
+
+    # Create a double tree uniformly refined with levels [1,4].
+    vec_unif = DoubleTreeVector.from_metaroots(
+        (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
+    vec_unif.uniform_refine(
+        [1, 4],
+        call_postprocess=lambda nv: setattr(nv, 'value', random.random()))
+
+    # Create two empty vectors holding the sum.
+    vec_0 = DoubleTreeVector.from_metaroots(
+        (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
+    vec_1 = DoubleTreeVector.from_metaroots(
+        (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
+
+    # vec_0 = vec_sp + vec_unif
+    vec_0 += vec_sp
+    vec_0 += vec_unif
+
+    # vec_1 = vec_unif + vec_sp
+    vec_1 += vec_unif
+    vec_1 += vec_sp
+
+    # Assert vec_0 == vec_1
+    assert [(nv.nodes, nv.value) for nv in vec_0.bfs()
+            ] == [(nv.nodes, nv.value) for nv in vec_1.bfs()]
+
+    # Assert that the sum domain is larger than the two vectors themselves.
+    assert len(vec_0.bfs()) > max(len(vec_sp.bfs()), len(vec_unif.bfs()))
+
+    # Calculate the sum by dict
+    vec_dict = defaultdict(float)
+    for nv in vec_sp.bfs():
+        vec_dict[tuple(nv.nodes)] = nv.value
+    for nv in vec_unif.bfs():
+        vec_dict[tuple(nv.nodes)] += nv.value
+
+    for nv in vec_0.bfs():
+        assert nv.value == vec_dict[tuple(nv.nodes)]
 
 
 def test_initialize_quadrature():
@@ -87,10 +134,7 @@ def test_initialize_quadrature():
 
     # Create a DoubleTree Vector
     dt_root = DoubleTreeVector.from_metaroots(
-        HaarBasis.metaroot_wavelet,
-        triang.vertex_meta_root,
-        dbl_node_cls=DoubleNodeVector,
-        frozen_dbl_cls=FrozenDoubleNodeVector)
+        (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
     dt_root.uniform_refine()
 
     # Initialize the vector.
@@ -102,7 +146,7 @@ def test_initialize_quadrature():
     for db_node in dt_root.bfs():
         assert np.isfinite(db_node.value)
 
-        
+
 def test_double_tree_block_vector():
     # Create space part.
     triang = InitialTriangulation.unit_square()
@@ -112,9 +156,9 @@ def test_double_tree_block_vector():
     HaarBasis.metaroot_wavelet.uniform_refine(3)
 
     # Create two DoubleTree Vectors
-    vec_1 = DoubleTreeVector(
+    vec_1 = DoubleTreeVector.from_metaroots(
         (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
-    vec_2 = DoubleTreeVector(
+    vec_2 = DoubleTreeVector.from_metaroots(
         (HaarBasis.metaroot_wavelet, triang.vertex_meta_root))
 
     # Refine accroding to different levels, and store different values.

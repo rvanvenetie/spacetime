@@ -19,19 +19,19 @@ def test_operators():
         applicator = Applicator(op)
         for ml in range(5):
             # Create some (sub)vector on the vertices.
-            vec_in = TreeVector(T.vertex_meta_root)
+            vec_in = TreeVector.from_metaroot(T.vertex_meta_root)
             vec_in.uniform_refine(ml)
             assert len(vec_in.bfs()) < len(T.vertex_meta_root.bfs())
             for vertex in vec_in.bfs():
                 vertex.value = random.random()
 
-            vec_out = TreeVector(T.vertex_meta_root)
+            vec_out = TreeVector.from_metaroot(T.vertex_meta_root)
             vec_out.uniform_refine(max_level=ml)
             applicator.apply(vec_in, vec_out)
 
             # Compare.
             T_view = TriangulationView(vec_in)
-            assert vec_in.bfs() == T_view.vertices
+            assert [nv.node for nv in vec_in.bfs()] == T_view.vertices
             vec_out_np = op.apply(vec_in.to_array())
             assert np.allclose(vec_out.to_array(), vec_out_np)
 
