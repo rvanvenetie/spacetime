@@ -56,15 +56,21 @@ class MultiTreeVector(MultiTree):
                                  mlt_node_cls=mlt_node_cls,
                                  call_postprocess=call_postprocess)
 
+    def axpy(self, other, scalar_mult=1):
+        """ Implementation of `self += scalar_mult * other` """
+        def call_add(my_node, other_node):
+            my_node.value += other_node.value * scalar_mult
+
+        if isinstance(other, MultiTreeVector):
+            self.root._union(other.root, call_postprocess=call_add)
+        else:
+            self.root._union(other, call_postprocess=call_add)
+
+        return self
+
     def __iadd__(self, other):
         """ Add two double trees. """
-        assert isinstance(other, MultiTreeVector)
-
-        def call_add(my_node, other_node):
-            my_node.value += other_node.value
-
-        self.root._union(other.root, call_postprocess=call_add)
-        return self
+        return self.axpy(other)
 
     def __isub__(self, other):
         """ Subtract a double tree. """

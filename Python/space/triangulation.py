@@ -3,6 +3,7 @@ import itertools
 import numpy as np
 
 from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
+from ..datastructures.tree_view import NodeViewInterface
 
 
 class Vertex(NodeAbstract):
@@ -253,10 +254,13 @@ def to_matplotlib_triangulation(elem_meta_root, vertex_meta_root):
     """ The current triangulation as matplotlib-compatible object. """
     import matplotlib.tri as mpltri
     elements = [e for e in elem_meta_root.bfs() if e.is_leaf()]
-    vertices = vertex_meta_root.bfs()
-    if isinstance(vertices[0], NodeView):
-        vertices = [v.node for v in vertices]
+    while isinstance(elements[0], NodeViewInterface):
         elements = [e.node for e in elements]
+
+    vertices = vertex_meta_root.bfs()
+    while isinstance(vertices[0], NodeViewInterface):
+        vertices = [v.node for v in vertices]
+
     vertex_to_index = {}
     for idx, vertex in enumerate(vertices):
         vertex_to_index[vertex] = idx

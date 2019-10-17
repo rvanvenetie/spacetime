@@ -10,8 +10,12 @@ from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  DoubleTreeVector)
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.multi_tree_vector import BlockTreeVector
+from ..datastructures.tree_vector import TreeVector
 from ..space.basis import HierarchicalBasisFunction
-from ..space.triangulation import InitialTriangulation
+from ..space.operators import Operator
+from ..space.triangulation import (InitialTriangulation,
+                                   to_matplotlib_triangulation)
+from ..space.triangulation_view import TriangulationView
 from ..spacetime.applicator import Applicator
 from ..spacetime.basis import generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
@@ -19,20 +23,22 @@ from .heat_equation import HeatEquation
 
 
 def example_rhs(heat_eq):
-    g = [(lambda t: 2 * t, \
-          lambda x: x[0] * x[1] * (x[0]**2 - 1) * (x[1]**2 - 1)),
-         (lambda t: -6 * (t**2 + 1), \
-          lambda x: x[0] * x[1] * (x[0]**2 + x[1]**2 - 2))]
-    g_order = (2, 6)
+    g = [(lambda t: -2 * (1 + t**2), lambda xy: (xy[0] - 1) * xy[0] +
+          (xy[1] - 1) * xy[1]),
+         (lambda t: 2 * t, lambda xy: (xy[0] - 1) * xy[0] *
+          (xy[1] - 1) * xy[1])]
+    g_order = (2, 4)
+    u0 = lambda xy: (1 - xy[0]) * xy[0] * (1 - xy[1]) * xy[1]
+    u0_order = 4
 
-    u0 = lambda x: (x[0] - 1) * x[0] * (x[0] + 1) * (x[1] - 1) * x[1] * (x[1] +
-                                                                         1)
-    u0_order = 6
+    result = heat_eq.calculate_rhs_vector(g=g,
+                                          g_order=g_order,
+                                          u0=u0,
+                                          u0_order=u0_order)
+    # Check that the vector != 0.
+    assert sum(abs(result.to_array())) > 0.0001
 
-    return heat_eq.calculate_rhs_vector(g=g,
-                                        g_order=g_order,
-                                        u0=u0,
-                                        u0_order=u0_order)
+    return result
 
 
 def random_rhs(heat_eq):
@@ -41,6 +47,34 @@ def random_rhs(heat_eq):
         new_node.value = random.random()
 
     return heat_eq.create_vector(call_postprocess=call_random_fill)
+
+
+def plot_slice(heat_eq, t, sol):
+    """ Plots a slice of the given solution for a fixed time. """
+    result = TreeVector.from_metaroot(sol.root.nodes[1])
+    for nv in sol.project(0).bfs():
+        # Check if t is contained inside support of time wavelet.
+        a = float(nv.node.support[0].interval[0])
+        b = float(nv.node.support[-1].interval[1])
+        if a <= t <= b:
+            result.axpy(nv.frozen_other_axis(), nv.node.eval(t))
+
+    # Calculate the triangulation that is associated to the result.
+    triang = TriangulationView(result)
+
+    # Convert the result to single scale.
+    space_operator = Operator(triang, heat_eq.dirichlet_boundary)
+    result_ss = space_operator.apply_T(result.to_array())
+
+    # Plot the result
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.pyplot as plt
+    matplotlib_triang = to_matplotlib_triangulation(triang.elem_tree_view,
+                                                    result)
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.plot_trisurf(matplotlib_triang, Z=result_ss)
+    plt.show()
 
 
 def test_full_tensor_heat():
@@ -121,7 +155,7 @@ def test_real_tensor_heat():
     # Create X^\delta
     X_delta = DoubleTree.from_metaroots(
         (basis_time.metaroot_wavelet, basis_space.root))
-    X_delta.sparse_refine(3)
+    X_delta.sparse_refine(4)
 
     # Create heat equation obkect
     heat_eq = HeatEquation(X_delta=X_delta)
@@ -129,11 +163,18 @@ def test_real_tensor_heat():
 
     # Now actually solve this beast!
     sol, num_iters = heat_eq.solve(rhs)
+    error = np.linalg.norm(heat_eq.mat.apply(sol).to_array() - rhs.to_array())
+    print('MINRES solved in {} iterations with an error {}'.format(
+        num_iters, error))
 
-    # Check the error..
-    res_tree = heat_eq.mat.apply(sol)
-    res_tree -= rhs
-    assert np.linalg.norm(res_tree.to_array()) < 1e-5
+    # assert that minres converged.
+    assert error < 1e-4
+
+    # assert that the solution is not identically zero.
+    assert sum(abs(sol[1].to_array())) > 0
+
+    # Return heat_eq, sol for plotting purposes!
+    return heat_eq, sol[1]
 
 
 def test_heat_eq_linear():
@@ -175,4 +216,7 @@ def test_heat_eq_linear():
 
 
 if __name__ == "__main__":
-    cProfile.run('test_sparse_tensor_heat()', sort='tottime')
+    heat_eq, sol = test_real_tensor_heat()
+    # Plot solution for t = 0.5.
+    for t in [0, 0.1, 0.5, 1]:
+        plot_slice(heat_eq, t, sol)

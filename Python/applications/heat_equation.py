@@ -120,7 +120,7 @@ class HeatEquation:
         def call_quad_u0(nv, _):
             """ Helper function to do the quadrature for the rhs u0. """
             if nv.is_metaroot(): return
-            nv.value = nv.nodes[0].eval(0) * nv.nodes[1].inner_quad(
+            nv.value = -nv.nodes[0].eval(0) * nv.nodes[1].inner_quad(
                 u0, g_order=u0_order)
 
         return self.create_vector((call_quad_g, call_quad_u0))
@@ -133,7 +133,6 @@ class HeatEquation:
             num_iters += 1
 
         rhs_array = rhs.to_array()
-
         result_array, info = scipy.sparse.linalg.minres(
             self.linop, b=rhs_array, x0=rhs_array, callback=call_iterations)
         assert info == 0
