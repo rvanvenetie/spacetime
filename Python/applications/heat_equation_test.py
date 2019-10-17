@@ -18,6 +18,7 @@ from ..space.operators import Operator
 from ..space.triangulation import (InitialTriangulation,
                                    to_matplotlib_triangulation)
 from ..space.triangulation_view import TriangulationView
+from ..space.triangulation_function import TriangulationFunction
 from ..spacetime.applicator import Applicator
 from ..spacetime.basis import generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
@@ -39,6 +40,7 @@ def example_rhs(heat_eq):
     g_order = (2, 4)
     u, u_order = example_solution_function()
     u0 = lambda xy: u[0](0) * u[1](xy)
+    u0_order = u_order[1]
 
     result = heat_eq.calculate_rhs_vector(g=g,
                                           g_order=g_order,
@@ -194,6 +196,51 @@ def test_heat_eq_linear():
 
         # Check whether the output corresponds to the matrix.
         assert np.allclose(heat_eq.linop.matvec(v_arr), heat_eq_mat.dot(v_arr))
+
+
+def test_heat_refine():
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.vertex_meta_root.uniform_refine(6)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(6)
+
+    for level in range(2, 6):
+        # Create X^\delta
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
+        X_delta.sparse_refine(level)
+
+        # Create heat equation obkect
+        heat_eq = HeatEquation(X_delta=X_delta)
+        rhs = example_rhs(heat_eq)
+
+        # Now actually solve this beast!
+        sol, num_iters = heat_eq.solve(rhs)
+        error = np.linalg.norm(
+            heat_eq.mat.apply(sol).to_array() - rhs.to_array())
+        print('MINRES solved in {} iterations with an error {}'.format(
+            num_iters, error))
+
+        u, order = example_solution_function()
+        fig = plt.figure()
+        for t in np.linspace(0, 1, 100):
+            plt.clf()
+            sol_slice = sol[1].slice_time(t, slice_cls=TriangulationFunction)
+            true_slice = sol_slice.deep_copy().from_singlescale_array(
+                np.array([
+                    u[0](t) * u[1](node.node.node.xy)
+                    for node in sol_slice.bfs()
+                ]))
+            sol_slice.axpy(true_slice, -1.0)
+            sol_slice.plot(fig=fig, show=False)
+            plt.show(block=False)
+            plt.pause(0.05)
+        plt.show()
 
 
 if __name__ == "__main__":
