@@ -142,7 +142,7 @@ def test_element_barycentric():
         V = elem.vertex_array().T
         for _ in range(10):
             # Random point.
-            xy = np.random.rand(2, 1)
+            xy = np.random.rand(2, 4)
 
             # Convert to barycentric coordinates.
             bary = elem.to_barycentric_coordinates(xy)
