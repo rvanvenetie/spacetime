@@ -176,7 +176,7 @@ def test_all_subclasses():
 
 def test_basis_PQ():
     """ Test if we recover the scaling functions by applying P or Q. """
-    x = np.linspace(0, 1, 1025)
+    t = np.linspace(0, 1, 1025)
     uml = 6
     oml = 20
     for basis, Lambda in [
@@ -219,12 +219,12 @@ def test_basis_PQ():
                 # Write phi_mu on lv l-1 as combination of scalings on lv l.
                 vec = {phi: 1.0}
                 res = basis.P.matvec(vec)
-                inner = np.sum([phi.eval(x) * res[phi] for phi in res], axis=0)
+                inner = np.sum([phi.eval(t) * res[phi] for phi in res], axis=0)
                 try:
-                    assert np.allclose(inner, phi.eval(x))
+                    assert np.allclose(inner, phi.eval(t))
                 except AssertionError:
-                    plt.plot(x, inner, label=r'$(\Phi_{l-1}^T P_l)_\mu$')
-                    plt.plot(x, phi.eval(x), label=r"$\phi_\mu$")
+                    plt.plot(t, inner, label=r'$(\Phi_{l-1}^T P_l)_\mu$')
+                    plt.plot(t, phi.eval(t), label=r"$\phi_\mu$")
                     plt.legend()
                     plt.show()
                     raise
@@ -257,14 +257,14 @@ def test_basis_PQ_matrix():
 
 
 def print_3point_functions():
-    x = np.linspace(0, 1, 1025)
+    t = np.linspace(0, 1, 1025)
     for basis, Lambda in [
             HaarBasis.uniform_basis(max_level=4),
             ThreePointBasis.uniform_basis(max_level=4),
     ]:
         for l in range(Lambda.maximum_level):
             for psi in Lambda.on_level(l):
-                plt.plot(x, psi.eval(x), label=psi.labda)
+                plt.plot(t, psi.eval(t), label=psi.labda)
             plt.title("Wavelet functions on level {} for {}".format(
                 l, basis.__class__.__name__))
             plt.legend()
@@ -273,7 +273,7 @@ def print_3point_functions():
 
 #        for l in range(basis.indices.maximum_level + 1):
 #            for labda in basis.indices.on_level(l):
-#                plt.plot(x, basis.eval_wavelet(labda, x), label=labda)
+#                plt.plot(t, basis.eval_wavelet(labda, t), label=labda)
 #            plt.legend()
 #            plt.show()
 

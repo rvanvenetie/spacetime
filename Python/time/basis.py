@@ -199,11 +199,11 @@ class Wavelet(CoefficientFunction1D):
         # Deduplicate the support while keeping the ordering intact.
         self.support = list(OrderedDict.fromkeys(support))
 
-    def eval(self, x, deriv=False):
-        assert len(x.shape) == 1 or x.shape[0] == 1
-        result = np.zeros(x.shape)
+    def eval(self, t, deriv=False):
+        assert len(t.shape) == 1 or t.shape[0] == 1
+        result = np.zeros(t.shape)
         for phi, coeff_ss in self.single_scale:
-            result += coeff_ss * phi.eval(x, deriv)
+            result += coeff_ss * phi.eval(t, deriv)
         return result
 
 

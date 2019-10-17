@@ -142,7 +142,7 @@ def test_multiscale_transport_quadrature():
             for i, psi_out in enumerate(Lambda_out):
                 supp_out = support_to_interval(psi_out.support)
                 true_val = quad(
-                    lambda x: psi_in.eval(x, deriv=True) * psi_out.eval(x),
+                    lambda t: psi_in.eval(t, deriv=True) * psi_out.eval(t),
                     max(supp_in[0], supp_out[0]),
                     min(supp_in[1], supp_out[1]),
                 )[0]
@@ -207,10 +207,10 @@ def test_multiscale_operator_quadrature_lin_comb():
             applicator.apply(vec_in, vec_out)
 
             # Define function that evaluates lin. comb. Psi_Lambda_in
-            def psi_vec_in_eval(x):
+            def psi_vec_in_eval(t):
                 result = 0
                 for psi_in, val_in in vec_in.items():
-                    result += val_in * psi_in.eval(x)
+                    result += val_in * psi_in.eval(t)
                 return result
 
             for psi_out in Lambda_out:
@@ -224,7 +224,7 @@ def test_multiscale_operator_quadrature_lin_comb():
                 points = list(map(float, points))
 
                 # Apply quadrature.
-                true_val = quad(lambda x: psi_vec_in_eval(x) * psi_out.eval(x),
+                true_val = quad(lambda t: psi_vec_in_eval(t) * psi_out.eval(t),
                                 supp_psi_out[0],
                                 supp_psi_out[1],
                                 points=points)[0]
