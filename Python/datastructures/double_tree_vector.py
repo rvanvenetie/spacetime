@@ -37,23 +37,3 @@ class FrozenDoubleNodeVector(MultiNodeVectorInterface, FrozenDoubleNodeView):
 class DoubleTreeVector(MultiTreeVector, DoubleTreeView):
     mlt_node_cls = DoubleNodeVector
     frozen_dbl_cls = FrozenDoubleNodeVector
-
-    def to_array(self):
-        """ Transforms a double tree vector to a numpy vector. 
-        
-        This overrides the default behaviour, but this is consistent with the
-        np.kron ordering of dofs.
-        """
-        return np.array([
-            psi_1.value for psi_0 in self.project(0).bfs()
-            for psi_1 in psi_0.frozen_other_axis().bfs()
-        ],
-                        dtype=float)
-
-    def from_array(self, array):
-        """ Loads the values from an numpy array into this double vector. """
-        i = 0
-        for psi_0 in self.project(0).bfs():
-            for psi_1 in psi_0.frozen_other_axis().bfs():
-                psi_1.value = array[i]
-                i += 1
