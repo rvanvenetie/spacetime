@@ -25,7 +25,7 @@ def test_multi_tree_view():
     multi_tree = MultiTree.from_metaroots(
         (metaroot_haar, metaroot_haar, metaroot_haar),
         mlt_node_cls=TripleNodeView)
-    multi_tree.sparse_refine(2)
+    multi_tree.sparse_refine(3)
 
     assert len(multi_tree.bfs()) < len(basis_nodes)**2
 
