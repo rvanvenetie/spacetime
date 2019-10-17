@@ -258,7 +258,10 @@ class MultiNodeViewInterface(NodeInterface):
             my_node.marked = False
 
     def _bfs(self):
-        """ Performs a BFS on the multi tree rooted at `self`.  """
+        """ Performs a BFS on the multi tree rooted at `self`.
+        
+        This visits the multi nodes in order of their sum of levels.
+        """
         queue = deque([self])
         nodes = []
         while queue:
@@ -268,6 +271,39 @@ class MultiNodeViewInterface(NodeInterface):
             node.marked = True
             for i in range(self.dim):
                 queue.extend(node._children[i])
+        for node in nodes:
+            node.marked = False
+        return nodes
+
+    def _bfs_kron(self):
+        """ Performs a BFS in kron order on the multi tree rooted at `self`.
+        
+        This visits the multi nodes in `kron` order. That is, it visits
+        the last axis first, then the second-to last axis, etc.
+
+        Suppose we have the full tensor between (0, 1) x (0, 1, 2). Then
+        this bfs would return:
+            ((0,0), (0,1), (0,2), (1,0), (1,1), (1,2)),
+        whereas the normal bfs would return:
+            ((0,0), (1,0), (0,1), (1,1), (1,2))
+        """
+
+        # Queues holds the children per axis.
+        queues = [deque() for _ in range(self.dim)]
+        nodes = []
+        queues[0].append(self)
+        while any(queues):
+            # Extract children in reversed order.
+            for queue in reversed(queues):
+                if queue:
+                    node = queue.popleft()
+                    break
+
+            if node.marked: continue
+            nodes.append(node)
+            node.marked = True
+            for i in range(self.dim):
+                queues[i].extend(node._children[i])
         for node in nodes:
             node.marked = False
         return nodes
@@ -288,7 +324,7 @@ class MultiNodeView(MultiNodeViewInterface):
         assert len(self._parents) == self.dim and len(
             self._children) == self.dim and len(nodes) == self.dim
 
-        # Create a marked field useful for bfs/dfs.
+        # Create a marked field useful for bfs/bfs_kron.
         self.marked = False
 
 
@@ -316,6 +352,12 @@ class MultiTree:
             include_meta_root: if false, filter out all MetaRoot nodes.
         """
         nodes = self.root._bfs()
+        if not include_meta_root:
+            nodes = [n for n in nodes if not n.is_metaroot()]
+        return nodes
+
+    def bfs_kron(self, include_meta_root=False):
+        nodes = self.root._bfs_kron()
         if not include_meta_root:
             nodes = [n for n in nodes if not n.is_metaroot()]
         return nodes

@@ -33,12 +33,12 @@ class MultiNodeVector(MultiNodeVectorInterface, MultiNodeView):
 
 class MultiTreeVector(MultiTree):
     def to_array(self):
-        """ Transforms a double tree vector to a numpy vector.  """
-        return np.array([node.value for node in self.bfs()], dtype=float)
+        """ Transforms a multi tree vector to a numpy vector, in kron order. """
+        return np.array([node.value for node in self.bfs_kron()], dtype=float)
 
     def from_array(self, array):
-        """ Loads the values from the array in BFS-order into the multi treevector. """
-        nodes = self.bfs()
+        """ Loads the values from an array in bfs kron order. """
+        nodes = self.bfs_kron()
         assert len(nodes) == len(array)
         for idx, node in enumerate(nodes):
             node.value = array[idx]
