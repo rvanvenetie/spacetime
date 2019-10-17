@@ -111,13 +111,13 @@ class Element2D(BinaryNodeAbstract):
     def is_leaf(self):
         return not len(self.children)
 
-    def to_barycentric_coordinates(self, p):
-        """ Returns the barycentric coordinates for a list of points p. """
-        if len(p.shape) == 1:
-            p = p.reshape(2, 1)
+    def to_barycentric_coordinates(self, xy):
+        """ Returns the barycentric coordinates for a list of points xy. """
+        if len(xy.shape) == 1:
+            xy = xy.reshape(2, 1)
         V = np.ones((3, 3))
         V[:2, :] = self.vertex_array().T
-        return np.linalg.solve(V, np.vstack([p, np.ones(p.shape[1])]))
+        return np.linalg.solve(V, np.vstack([xy, np.ones(xy.shape[1])]))
 
     def __repr__(self):
         return 'Element2D({}, {})'.format(self.level, self.vertices)

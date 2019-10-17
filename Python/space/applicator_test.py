@@ -19,19 +19,19 @@ def test_operators():
         applicator = Applicator(op)
         for ml in range(5):
             # Create some (sub)vector on the vertices.
-            vec_in = TreeVector(T.vertex_meta_root)
+            vec_in = TreeVector.from_metaroot(T.vertex_meta_root)
             vec_in.uniform_refine(ml)
             assert len(vec_in.bfs()) < len(T.vertex_meta_root.bfs())
             for vertex in vec_in.bfs():
                 vertex.value = random.random()
 
-            vec_out = TreeVector(T.vertex_meta_root)
+            vec_out = TreeVector.from_metaroot(T.vertex_meta_root)
             vec_out.uniform_refine(max_level=ml)
             applicator.apply(vec_in, vec_out)
 
             # Compare.
             T_view = TriangulationView(vec_in)
-            assert vec_in.bfs() == T_view.vertices
+            assert [nv.node for nv in vec_in.bfs()] == T_view.vertices
             vec_out_np = op.apply(vec_in.to_array())
             assert np.allclose(vec_out.to_array(), vec_out_np)
 
@@ -67,7 +67,7 @@ def test_mass_quad_non_symmetric():
             for i, psi in enumerate(Lambda_in.bfs()):
                 for j, phi in enumerate(Lambda_out.bfs()):
                     f, g = (psi, phi) if psi.level > phi.level else (phi, psi)
-                    real_ip = f.inner_quad(lambda x: g.eval(x, deriv=deriv),
+                    real_ip = f.inner_quad(lambda xy: g.eval(xy, deriv=deriv),
                                            g_order=1,
                                            deriv=deriv)
                     assert np.allclose(real_ip, mat[j, i])

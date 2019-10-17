@@ -66,7 +66,7 @@ class Operator:
         """ Sets all boundary vertices to zero. """
         w = np.zeros(v.shape)
         for i, vertex in enumerate(self.triang.vertices):
-            if not vertex.node.on_domain_boundary:
+            if not vertex.on_domain_boundary:
                 w[i] = v[i]
         return w
 
@@ -75,14 +75,15 @@ class Operator:
         return LinearOperator(dtype=float,
                               shape=(len(self.triang.vertices),
                                      len(self.triang.vertices)),
-                              matvec=lambda x: self.apply(x))
+                              matvec=lambda vec: self.apply(vec))
 
     def as_boundary_restricted_linear_operator(self):
         """ Recasts the application of a method as a scipy LinearOperator. """
-        return LinearOperator(
-            dtype=float,
-            shape=(len(self.triang.vertices), len(self.triang.vertices)),
-            matvec=lambda x: self.apply_boundary_restriction(self.apply(x)))
+        return LinearOperator(dtype=float,
+                              shape=(len(self.triang.vertices),
+                                     len(self.triang.vertices)),
+                              matvec=lambda vec: self.
+                              apply_boundary_restriction(self.apply(vec)))
 
 
 class MassOperator(Operator):
@@ -110,10 +111,8 @@ class StiffnessOperator(Operator):
             if not elem.is_leaf():
                 continue
             Vids = elem.vertices_view_idx
-            V = [self.triang.vertices[idx].node for idx in Vids]
-            D = np.array([[V[2].x - V[1].x, V[0].x - V[2].x, V[1].x - V[0].x],
-                          [V[2].y - V[1].y, V[0].y - V[2].y, V[1].y - V[0].y]],
-                         dtype=float)
+            V = elem.node.vertex_array()
+            D = np.array([V[2] - V[1], V[0] - V[2], V[1] - V[0]]).T
             element_stiff = (D.T @ D) / (4 * elem.area)
             for (i, j) in itertools.product(range(3), range(3)):
                 w[Vids[j]] += element_stiff[i, j] * v[Vids[i]]

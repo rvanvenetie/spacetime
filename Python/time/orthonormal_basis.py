@@ -84,19 +84,19 @@ class DiscLinearScaling(basis.Scaling):
         return len(self.children) == 4
 
     @staticmethod
-    def eval_mother(constant, x, deriv):
+    def eval_mother(constant, t, deriv):
         if not deriv:
-            if constant: return 1.0 * ((0 <= x) & (x < 1))
-            else: return sq3 * (2 * x - 1) * ((0 <= x) & (x < 1))
+            if constant: return 1.0 * ((0 <= t) & (t < 1))
+            else: return sq3 * (2 * t - 1) * ((0 <= t) & (t < 1))
         else:
-            if constant: return 0 * ((0 <= x) & (x < 1))
-            else: return sq3 * 2 * ((0 <= x) & (x < 1))
+            if constant: return 0 * ((0 <= t) & (t < 1))
+            else: return sq3 * 2 * ((0 <= t) & (t < 1))
 
-    def eval(self, x, deriv=False):
+    def eval(self, t, deriv=False):
         l, n = self.labda
         chain_rule_constant = 2**l if deriv else 1.0
         return chain_rule_constant * self.eval_mother(
-            self.pw_constant, 2**l * x - (n // 2), deriv)
+            self.pw_constant, 2**l * t - (n // 2), deriv)
 
 
 class OrthonormalWavelet(basis.Wavelet):

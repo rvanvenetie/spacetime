@@ -126,20 +126,20 @@ class ContLinearScaling(basis.Scaling):
             return [(parent, 0.5) for parent in self.parents]
 
     @staticmethod
-    def eval_mother(x, deriv=False):
+    def eval_mother(t, deriv=False):
         """ Evaluates the hat function on [-1,1] centered at 0. """
-        left_mask = (-1 < x) & (x <= 0)
-        right_mask = (0 < x) & (x < 1)
+        left_mask = (-1 < t) & (t <= 0)
+        right_mask = (0 < t) & (t < 1)
 
         if not deriv:
-            return left_mask * (1 + x) + right_mask * (1 - x)
+            return left_mask * (1 + t) + right_mask * (1 - t)
         else:
             return left_mask * 1 + right_mask * -1
 
-    def eval(self, x, deriv=False):
+    def eval(self, t, deriv=False):
         l, n = self.labda
         c = 2**l if deriv else 1.0
-        return c * self.eval_mother(2**l * x - n, deriv)
+        return c * self.eval_mother(2**l * t - n, deriv)
 
 
 class ThreePointWavelet(basis.Wavelet):
