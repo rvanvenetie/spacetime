@@ -1,9 +1,8 @@
 import cProfile
 import random
+import pytest
 
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
 
 from .. import space, time
 from ..datastructures.applicator import (BlockApplicator,
@@ -23,6 +22,8 @@ from ..spacetime.applicator import Applicator
 from ..spacetime.basis import generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
 from .heat_equation import HeatEquation
+
+np.set_printoptions(linewidth=1000)
 
 
 def example_solution_function():
@@ -198,6 +199,7 @@ def test_heat_eq_linear():
         assert np.allclose(heat_eq.linop.matvec(v_arr), heat_eq_mat.dot(v_arr))
 
 
+@pytest.mark.slow
 def test_heat_refine():
     # Create space part.
     triang = InitialTriangulation.unit_square()
@@ -225,27 +227,26 @@ def test_heat_refine():
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())
         print('MINRES solved in {} iterations with an error {}'.format(
             num_iters, error))
-
         u, order = example_solution_function()
-        fig = plt.figure()
-        for t in np.linspace(0, 1, 5):
-            plt.clf()
+
+        n_t = 101
+        prev_errors = np.ones(n_t)
+        for i, t in enumerate(np.linspace(0, 1, n_t)):
             sol_slice = sol[1].slice_time(t, slice_cls=TriangulationFunction)
             true_slice = sol_slice.deep_copy().from_singlescale_array(
                 np.array([
                     u[0](t) * u[1](node.node.node.xy)
                     for node in sol_slice.bfs()
                 ]))
-            print(t, sol_slice.to_array(), true_slice.to_array())
-            sol_slice.axpy(true_slice, -1.0)
-            #print(sol_slice.L2norm(), true_slice.L2norm())
-            true_slice.plot(fig=fig, show=False)
-            plt.show(block=False)
-            plt.pause(0.05)
-        plt.show()
+            sol_slice -= true_slice
+            error = sol_slice.L2norm()
+            assert error < prev_errors[i]
+            prev_errors[i] = error
 
 
 if __name__ == "__main__":
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.pyplot as plt
     heat_eq, sol = test_real_tensor_heat()
     fig = plt.figure()
     for t in np.linspace(0, 1, 100):
