@@ -24,14 +24,21 @@ from ..time.three_point_basis import ThreePointBasis
 from .heat_equation import HeatEquation
 
 
+def example_solution_function():
+    u = (lambda t: 1 + t**2, lambda xy: (1 - xy[0]) * xy[0] *
+         (1 - xy[1]) * xy[1])
+    u_order = (2, 4)
+    return u, u_order
+
+
 def example_rhs(heat_eq):
     g = [(lambda t: -2 * (1 + t**2), lambda xy: (xy[0] - 1) * xy[0] +
           (xy[1] - 1) * xy[1]),
          (lambda t: 2 * t, lambda xy: (xy[0] - 1) * xy[0] *
           (xy[1] - 1) * xy[1])]
     g_order = (2, 4)
-    u0 = lambda xy: (1 - xy[0]) * xy[0] * (1 - xy[1]) * xy[1]
-    u0_order = 4
+    u, u_order = example_solution_function()
+    u0 = lambda xy: u[0](0) * u[1](xy)
 
     result = heat_eq.calculate_rhs_vector(g=g,
                                           g_order=g_order,
@@ -191,7 +198,6 @@ def test_heat_eq_linear():
 
 if __name__ == "__main__":
     heat_eq, sol = test_real_tensor_heat()
-    # Plot solution for t = 0.5.
     fig = plt.figure()
     for t in np.linspace(0, 1, 100):
         plt.clf()
