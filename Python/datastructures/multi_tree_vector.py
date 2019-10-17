@@ -45,18 +45,15 @@ class MultiTreeVector(MultiTree):
         return self
 
     def deep_copy(self,
-                  mlt_node_cls=None,
                   mlt_tree_cls=None,
+                  mlt_node_cls=None,
                   call_postprocess=None):
         """ Copies the current multitree. """
         if call_postprocess is None:
-
-            def call_copy(new_node, old_node):
-                new_node.value = old_node.value
-
-            call_postprocess = call_copy
-        return super().deep_copy(mlt_node_cls=mlt_node_cls,
-                                 mlt_tree_cls=mlt_tree_cls,
+            call_postprocess = lambda new, old: setattr(
+                new, 'value', old.value)
+        return super().deep_copy(mlt_tree_cls=mlt_tree_cls,
+                                 mlt_node_cls=mlt_node_cls,
                                  call_postprocess=call_postprocess)
 
     def __iadd__(self, other):

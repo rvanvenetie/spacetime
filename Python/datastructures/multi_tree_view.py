@@ -321,8 +321,8 @@ class MultiTree:
         return nodes
 
     def deep_copy(self,
-                  mlt_node_cls=None,
                   mlt_tree_cls=None,
+                  mlt_node_cls=None,
                   call_postprocess=None):
         """ Copies the current multitree. """
         if mlt_tree_cls is None: mlt_tree_cls = self.__class__
@@ -346,7 +346,7 @@ class MultiTree:
 
     def sparse_refine(self, max_level, call_postprocess=None):
         """ Sparse refines the root of this multi tree view. """
-        assert self.dim > 1
+        assert self.root.dim > 1
         self.root._sparse_refine(max_level, call_postprocess=call_postprocess)
 
     def deep_refine(self, call_filter=None, call_postprocess=None):
