@@ -228,7 +228,7 @@ def test_heat_refine():
 
         u, order = example_solution_function()
         fig = plt.figure()
-        for t in np.linspace(0, 1, 100):
+        for t in np.linspace(0, 1, 5):
             plt.clf()
             sol_slice = sol[1].slice_time(t, slice_cls=TriangulationFunction)
             true_slice = sol_slice.deep_copy().from_singlescale_array(
@@ -236,8 +236,10 @@ def test_heat_refine():
                     u[0](t) * u[1](node.node.node.xy)
                     for node in sol_slice.bfs()
                 ]))
+            print(t, sol_slice.to_array(), true_slice.to_array())
             sol_slice.axpy(true_slice, -1.0)
-            sol_slice.plot(fig=fig, show=False)
+            #print(sol_slice.L2norm(), true_slice.L2norm())
+            true_slice.plot(fig=fig, show=False)
             plt.show(block=False)
             plt.pause(0.05)
         plt.show()
