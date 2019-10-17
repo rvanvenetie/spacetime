@@ -3,9 +3,8 @@ import scipy
 from .. import space, time
 from ..datastructures.applicator import (BlockApplicator,
                                          LinearOperatorApplicator)
-from ..datastructures.double_tree_vector import (DoubleNodeVector,
-                                                 DoubleTreeVector)
 from ..datastructures.multi_tree_vector import BlockTreeVector
+from ..datastructures.multi_tree_function import DoubleTreeFunction
 from ..datastructures.tree import MetaRoot
 from ..space import applicator
 from ..space import operators as s_operators
@@ -84,14 +83,16 @@ class HeatEquation:
             if nv.nodes[1].on_domain_boundary:
                 nv.value = 0
 
-    def create_vector(self, call_postprocess=None):
+    def create_vector(self,
+                      call_postprocess=None,
+                      mlt_tree_cls=DoubleTreeFunction):
         if not isinstance(call_postprocess, tuple):
             call_postprocess = (call_postprocess, call_postprocess)
 
         result = BlockTreeVector((
-            self.Y_delta.deep_copy(mlt_tree_cls=DoubleTreeVector,
+            self.Y_delta.deep_copy(mlt_tree_cls=mlt_tree_cls,
                                    call_postprocess=call_postprocess[0]),
-            self.X_delta.deep_copy(mlt_tree_cls=DoubleTreeVector,
+            self.X_delta.deep_copy(mlt_tree_cls=mlt_tree_cls,
                                    call_postprocess=call_postprocess[1]),
         ))
         if self.dirichlet_boundary:
@@ -130,11 +131,13 @@ class HeatEquation:
 
         def call_iterations(_):
             nonlocal num_iters
+            print(".", end='', flush=True)
             num_iters += 1
 
         rhs_array = rhs.to_array()
         result_array, info = scipy.sparse.linalg.minres(
             self.linop, b=rhs_array, x0=rhs_array, callback=call_iterations)
+        print(end='\n')
         assert info == 0
 
         result_vec = self.create_vector()

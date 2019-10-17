@@ -2,6 +2,8 @@ import cProfile
 import random
 
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
 
 from .. import space, time
 from ..datastructures.applicator import (BlockApplicator,
@@ -47,34 +49,6 @@ def random_rhs(heat_eq):
         new_node.value = random.random()
 
     return heat_eq.create_vector(call_postprocess=call_random_fill)
-
-
-def plot_slice(heat_eq, t, sol):
-    """ Plots a slice of the given solution for a fixed time. """
-    result = TreeVector.from_metaroot(sol.root.nodes[1])
-    for nv in sol.project(0).bfs():
-        # Check if t is contained inside support of time wavelet.
-        a = float(nv.node.support[0].interval[0])
-        b = float(nv.node.support[-1].interval[1])
-        if a <= t <= b:
-            result.axpy(nv.frozen_other_axis(), nv.node.eval(t))
-
-    # Calculate the triangulation that is associated to the result.
-    triang = TriangulationView(result)
-
-    # Convert the result to single scale.
-    space_operator = Operator(triang, heat_eq.dirichlet_boundary)
-    result_ss = space_operator.apply_T(result.to_array())
-
-    # Plot the result
-    from mpl_toolkits.mplot3d import Axes3D
-    import matplotlib.pyplot as plt
-    matplotlib_triang = to_matplotlib_triangulation(triang.elem_tree_view,
-                                                    result)
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    ax.plot_trisurf(matplotlib_triang, Z=result_ss)
-    plt.show()
 
 
 def test_full_tensor_heat():
@@ -218,5 +192,10 @@ def test_heat_eq_linear():
 if __name__ == "__main__":
     heat_eq, sol = test_real_tensor_heat()
     # Plot solution for t = 0.5.
-    for t in [0, 0.1, 0.5, 1]:
-        plot_slice(heat_eq, t, sol)
+    fig = plt.figure()
+    for t in np.linspace(0, 1, 100):
+        plt.clf()
+        sol.slice_time(t).plot(fig=fig, show=False)
+        plt.show(block=False)
+        plt.pause(0.05)
+    plt.show()
