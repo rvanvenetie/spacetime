@@ -1,9 +1,10 @@
 import numpy as np
+import pytest
 
-from ..datastructures.multi_tree_function import (TreeFunction,
-                                                  DoubleTreeFunction)
-from ..space.triangulation import InitialTriangulation
+from ..datastructures.multi_tree_function import (DoubleTreeFunction,
+                                                  TreeFunction)
 from ..space.basis import HierarchicalBasisFunction
+from ..space.triangulation import InitialTriangulation
 from ..time.three_point_basis import ThreePointBasis
 
 
@@ -20,7 +21,7 @@ def test_dbl_fn_single_nonzero():
 
     dbl_fn = DoubleTreeFunction.from_metaroots(
         (basis_time.metaroot_wavelet, basis_space.root))
-    dbl_fn.uniform_refine()
+    dbl_fn.uniform_refine(1)
     t, x, y = np.mgrid[0:1:25j, 0:1:25j, 0:1:25j].reshape(3, -1)
     xy = np.vstack([x, y])
 

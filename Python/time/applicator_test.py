@@ -2,6 +2,7 @@ import itertools
 from fractions import Fraction
 
 import numpy as np
+import pytest
 from pytest import approx
 from scipy.integrate import quad
 
@@ -117,6 +118,7 @@ def test_multiscale_mass_quadrature():
         assert np.allclose(resmat, truemat)
 
 
+@pytest.mark.slow
 def test_multiscale_transport_quadrature():
     """ Test that the multiscale matrix equals that found with quadrature. """
     uml = 4
@@ -172,6 +174,7 @@ def test_multiscale_trace():
         assert np.allclose(resmat, truemat)
 
 
+@pytest.mark.slow
 def test_multiscale_operator_quadrature_lin_comb():
     """ Test that the multiscale matrix equals that found with quadrature. """
     uml = 4
