@@ -51,9 +51,9 @@ class NodeView(NodeViewInterface, MultiNodeView):
 class TreeView(MultiTree):
     mlt_node_cls = NodeView
 
-    # Convenience method
     @property
     def node(self):
+        """ Convenience method for retrieving the node of the root. """
         return self.root.node
 
     @classmethod
