@@ -2,8 +2,8 @@ from collections import defaultdict
 from itertools import product
 from pprint import pprint
 
-import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 
 from ..datastructures.double_tree_vector import (DoubleNodeVector,
                                                  DoubleTreeVector,
@@ -296,6 +296,7 @@ def test_applicator_tensor_haar_Mass1D():
             assert np.allclose(real_vec_out, tr_vec_out)
 
 
+@pytest.mark.slow
 def test_applicator_full_tensor_time():
     """ Takes a combination of wavelets on the time. """
     bases = [HaarBasis(), OrthonormalBasis(), ThreePointBasis()]
@@ -358,6 +359,7 @@ def test_applicator_full_tensor_time():
             assert np.allclose(real_vec_out, tr_vec_out)
 
 
+@pytest.mark.slow
 def test_applicator_full_tensor_spacetime_quad():
     """ Takes a combination of wavelets on the time against space. """
     bases = [HaarBasis(), OrthonormalBasis(), ThreePointBasis()]

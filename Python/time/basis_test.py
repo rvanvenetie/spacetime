@@ -1,6 +1,5 @@
 from fractions import Fraction
 
-import matplotlib.pyplot as plt
 import numpy as np
 from pytest import approx
 
@@ -223,6 +222,7 @@ def test_basis_PQ():
                 try:
                     assert np.allclose(inner, phi.eval(t))
                 except AssertionError:
+                    import matplotlib.pyplot as plt
                     plt.plot(t, inner, label=r'$(\Phi_{l-1}^T P_l)_\mu$')
                     plt.plot(t, phi.eval(t), label=r"$\phi_\mu$")
                     plt.legend()
@@ -257,6 +257,7 @@ def test_basis_PQ_matrix():
 
 
 def print_3point_functions():
+    import matplotlib.pyplot as plt
     t = np.linspace(0, 1, 1025)
     for basis, Lambda in [
             HaarBasis.uniform_basis(max_level=4),
