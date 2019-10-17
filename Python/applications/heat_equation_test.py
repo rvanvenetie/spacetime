@@ -177,7 +177,7 @@ def test_real_tensor_heat():
     assert sum(abs(sol[1].to_array())) > 0
 
     # Return heat_eq, sol for plotting purposes!
-    return heat_eq, sol
+    return heat_eq, sol[1]
 
 
 def test_heat_eq_linear():
