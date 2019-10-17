@@ -13,7 +13,11 @@ class MultiTreeFunction(MultiTreeVector):
         """ Evaluate in a stupid way.
         
         Arguments:
-            coords: a list of coords, each size (dim, N)."""
+            coords: a list of coords, each a float or array of size (dim, N).
+
+        Returns:
+            A float, or array of shape (N,).
+        """
         assert len(coords) == self.root.dim
         # If the input coords are arrays, return an array, else a number.
         if any(isinstance(coord, np.ndarray) for coord in coords):
