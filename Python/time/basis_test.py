@@ -257,6 +257,7 @@ def test_basis_PQ_matrix():
 
 
 def print_3point_functions():
+    import matplotlib.pyplot as plt
     t = np.linspace(0, 1, 1025)
     for basis, Lambda in [
             HaarBasis.uniform_basis(max_level=4),
