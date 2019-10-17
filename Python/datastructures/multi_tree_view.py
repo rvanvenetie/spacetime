@@ -294,7 +294,7 @@ class MultiNodeViewInterface(NodeInterface):
         queues[0].append(self)
         while any(queues):
             # Extract children in reversed order.
-            for queue in reversed(queues):
+            for axis, queue in enumerate(reversed(queues)):
                 if queue:
                     node = queue.popleft()
                     break
@@ -302,7 +302,10 @@ class MultiNodeViewInterface(NodeInterface):
             if node.marked: continue
             nodes.append(node)
             node.marked = True
-            for i in range(self.dim):
+
+            # Only add children for higher or equal to the current axes.
+            axis = self.dim - 1 - axis
+            for i in range(axis, self.dim):
                 queues[i].extend(node._children[i])
         for node in nodes:
             node.marked = False
