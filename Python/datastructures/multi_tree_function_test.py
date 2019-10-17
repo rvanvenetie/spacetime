@@ -8,7 +8,6 @@ from ..space.triangulation import InitialTriangulation
 from ..time.three_point_basis import ThreePointBasis
 
 
-@pytest.mark.slow
 def test_dbl_fn_single_nonzero():
     # Create space part.
     triang = InitialTriangulation.unit_square()
