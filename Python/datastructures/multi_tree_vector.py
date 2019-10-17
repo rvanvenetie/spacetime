@@ -28,7 +28,7 @@ class MultiNodeVector(MultiNodeVectorInterface, MultiNodeView):
 
     def __init__(self, nodes, parents=None, children=None):
         super().__init__(nodes=nodes, parents=parents, children=children)
-        self.value = 0
+        self.value = 0.0
 
 
 class MultiTreeVector(MultiTree):
