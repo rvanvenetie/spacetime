@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 
 
-
 class TreePlotter:
     @staticmethod
     def draw_matplotlib_graph(root, axis=None, label_nodes=False):

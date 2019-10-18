@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
 
-
 class FunctionInterface(ABC):
     """ This represents a (multilevel) function. """
     __slots__ = []

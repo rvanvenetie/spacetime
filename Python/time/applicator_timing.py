@@ -55,7 +55,7 @@ def test_linear_complexity():
     try:
         for level in range(1, 18):
             basis_obj, Lambda = ThreePointBasis.uniform_basis(max_level=level)
-            if not basis_obj.__class__.__name__ in results:
+            if basis_obj.__class__.__name__ not in results:
                 results[basis_obj.__class__.__name__] = {
                     'N': [],
                     'apply_time': []
