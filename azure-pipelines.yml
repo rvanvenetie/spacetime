@@ -22,13 +22,14 @@ steps:
 - script: |
     python -m pip install --upgrade pip
     pip install quadpy
+    pip install matplotlib
   displayName: 'Install dependencies'
 
 - script: |
     pip install pytest pytest-azurepipelines
-    pytest -s -v -m 'not slow' Python/datastructures
-    pytest -s -v -m 'not slow' Python/space
-    pytest -s -v -m 'not slow' Python/time
-    pytest -s -v -m 'not slow' Python/applications
-    pytest -s -v -m 'not slow' Python/spacetime
+    pytest -m 'not slow' Python/datastructures
+    pytest -m 'not slow' Python/space
+    pytest -m 'not slow' Python/time
+    pytest -m 'not slow' Python/applications
+    pytest -m 'not slow' Python/spacetime
   displayName: 'pytest'
