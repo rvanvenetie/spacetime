@@ -1,8 +1,5 @@
-from abc import ABC, abstractmethod
-from collections import deque
 
 from .multi_tree_view import MultiNodeView, MultiNodeViewInterface, MultiTree
-from .tree import MetaRoot
 
 
 class NodeViewInterface(MultiNodeViewInterface):

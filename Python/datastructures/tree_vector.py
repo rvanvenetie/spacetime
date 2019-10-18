@@ -1,10 +1,5 @@
-import numpy as np
-
-from .double_tree_view import FrozenDoubleNode
-from .multi_tree_vector import (MultiNodeVector, MultiNodeVectorInterface,
-                                MultiTreeVector)
-from .tree import MetaRoot
-from .tree_view import NodeView, NodeViewInterface, TreeView
+from .multi_tree_vector import MultiNodeVector, MultiTreeVector
+from .tree_view import NodeView, TreeView
 
 
 class NodeVector(MultiNodeVector, NodeView):

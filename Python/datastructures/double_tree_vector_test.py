@@ -3,12 +3,8 @@ from collections import defaultdict
 
 import numpy as np
 
-from ..datastructures.double_tree_vector import (DoubleNodeVector,
-                                                 DoubleTreeVector,
-                                                 FrozenDoubleNodeVector)
-from ..datastructures.double_tree_view import DoubleTree
+from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..datastructures.multi_tree_vector import BlockTreeVector
-from ..datastructures.tree_view import TreeView
 from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..time.haar_basis import HaarBasis

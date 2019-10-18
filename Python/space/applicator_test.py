@@ -1,10 +1,8 @@
 import random
 
 import numpy as np
-import quadpy
 
 from ..datastructures.tree_vector import TreeVector
-from ..datastructures.tree_view import TreeView
 from .applicator import Applicator
 from .basis import HierarchicalBasisFunction
 from .operators import MassOperator, StiffnessOperator

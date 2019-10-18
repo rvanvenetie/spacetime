@@ -1,8 +1,6 @@
-from collections import deque
 
 from ..space.triangulation import InitialTriangulation
-from .tree_test import corner_index_tree, uniform_index_tree
-from .tree_view import NodeView, TreeView
+from .tree_view import TreeView
 
 
 def test_deep_copy():

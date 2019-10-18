@@ -1,8 +1,5 @@
-import itertools
-from collections import defaultdict, deque
 
-from .multi_tree_view import MultiNodeView, MultiNodeViewInterface, MultiTree
-from .tree import MetaRoot
+from .multi_tree_view import MultiNodeView, MultiTree
 from .tree_view import NodeViewInterface
 
 

@@ -175,11 +175,9 @@ class Scaling(CoefficientFunction1D):
 
     def prolongate(self):
         """ Returns a list of pairs with the corresponding coefficients. """
-        pass
 
     def restrict(self):
         """ The adjoint of transposing. """
-        pass
 
 
 class Wavelet(CoefficientFunction1D):

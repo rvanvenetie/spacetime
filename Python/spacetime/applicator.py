@@ -1,7 +1,5 @@
 from ..datastructures.applicator import ApplicatorInterface
-from ..datastructures.double_tree_vector import (DoubleNodeVector,
-                                                 DoubleTreeVector,
-                                                 FrozenDoubleNodeVector)
+from ..datastructures.double_tree_vector import DoubleTreeVector
 
 
 class Applicator(ApplicatorInterface):

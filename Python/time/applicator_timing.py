@@ -1,4 +1,3 @@
-import cProfile
 import time
 
 import matplotlib.pyplot as plt
@@ -6,7 +5,6 @@ import numpy as np
 import pytest
 
 from . import applicator, operators
-from .applicator import Applicator
 from .sparse_vector import SparseVector
 from .three_point_basis import ThreePointBasis
 
@@ -41,7 +39,7 @@ def test_comparison_implementations():
             N = len(Lambda_tree)
             vec = SparseVector(Lambda_tree, np.random.rand(N))
             start = time.time()
-            res = applicator_tree.apply(vec)
+            applicator_tree.apply(vec)
             apply_time = time.time() - start
             results['ThreePoint_tree']['N'].append(N)
             results['ThreePoint_tree']['apply_time'].append(apply_time)
@@ -69,7 +67,7 @@ def test_linear_complexity():
             N = len(Lambda)
             vec = SparseVector(Lambda, np.random.rand(N))
             start = time.time()
-            res = applicator_obj.apply(vec)
+            applicator_obj.apply(vec)
             apply_time = time.time() - start
 
             results[basis_obj.__class__.__name__]['N'].append(N)

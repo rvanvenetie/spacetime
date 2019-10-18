@@ -2,7 +2,6 @@ from collections import defaultdict
 
 import numpy as np
 
-from ..datastructures.tree_view import NodeView
 from .triangulation import InitialTriangulation
 
 

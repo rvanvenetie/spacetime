@@ -1,4 +1,4 @@
-from ..datastructures.tree_view import NodeView, TreeView
+from ..datastructures.tree_view import TreeView
 from .triangulation import InitialTriangulation
 from .triangulation_view import TriangulationView
 
