@@ -42,6 +42,9 @@ def test_transformation():
             np.inner(v, operators.apply_T_transpose(z)) -
             np.inner(operators.apply_T(v), z)) < 1e-10
 
+        # Test that T_inverse(T) == Id
+        assert np.allclose(operators.apply_T_inverse(operators.apply_T(v)), v)
+
         # Test that T is a linear operator.
         alpha = np.random.rand()
         assert norm(
@@ -80,6 +83,11 @@ def test_galerkin(plot=False):
         mass_op.triang = T_view
         ones = np.ones(len(T_view.vertices), dtype=float)
         new_rhs = mass_op.apply_T_transpose(mass_op.apply_SS(ones))
+
+        # Test that T_inverse(T) == Id
+        assert np.allclose(mass_op.apply_T_inverse(mass_op.apply_T(new_rhs)),
+                           new_rhs)
+
         # Test that the first V elements of the right-hand side coincide -- we
         # have a hierarchic basis after all.
         assert norm(rhs - rhs[:rhs.shape[0]]) < 1e-10
