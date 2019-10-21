@@ -8,7 +8,7 @@ from ..space.triangulation_view import TriangulationView
 
 class TriangulationFunction(TreeFunction):
     """ A continuous piecewise affine function defined on a triangulation.
-    
+
     This is more of a convenience class, with methods that are specific to
     TreeFunctions where the underlying tree is a vertex tree.
     """
