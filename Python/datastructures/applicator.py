@@ -103,9 +103,9 @@ class ComposeApplicator(ApplicatorInterface):
         assert isinstance(applicators, (tuple, list))
         for i in range(len(applicators) - 1):
             assert applicators[i].Lambda_out == applicators[i].Lambad_in
-
         super().__init__(Lamba_in=applicators[0].Lambda_in,
                          Lambda_out=applicators[-1].Lambda_out)
+        self.applicators = applicators
 
     def apply(self, v):
         res = v
