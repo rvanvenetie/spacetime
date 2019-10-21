@@ -1,5 +1,4 @@
 import random
-from math import log
 
 import numpy as np
 import pytest
