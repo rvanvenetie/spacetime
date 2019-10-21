@@ -3,14 +3,12 @@ import scipy
 from .. import space, time
 from ..datastructures.applicator import (BlockApplicator,
                                          LinearOperatorApplicator)
+from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..datastructures.multi_tree_function import DoubleTreeFunction
-from ..datastructures.tree import MetaRoot
-from ..space import applicator
 from ..space import operators as s_operators
 from ..spacetime.applicator import Applicator
 from ..spacetime.basis import generate_y_delta
-from ..time import applicator
 from ..time import operators as t_operators
 from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointBasis

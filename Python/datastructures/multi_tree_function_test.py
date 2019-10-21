@@ -1,5 +1,4 @@
 import numpy as np
-import time
 
 from ..datastructures.multi_tree_function import (DoubleTreeFunction,
                                                   TreeFunction)

@@ -1,13 +1,10 @@
 import matplotlib.pyplot as plt
 
-from ..datastructures.tree import NodeInterface
-
 
 class TreePlotter:
     @staticmethod
     def draw_matplotlib_graph(root, axis=None, label_nodes=False):
-        import networkx as nx
-        from networkx.drawing.nx_agraph import write_dot, graphviz_layout
+        from networkx.drawing.nx_agraph import graphviz_layout
         from grave import plot_network
         from grave.style import use_attributes
 

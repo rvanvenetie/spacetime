@@ -1,8 +1,7 @@
 import numpy as np
 
 from ..datastructures.applicator import ApplicatorInterface
-from ..datastructures.tree_vector import NodeVector, TreeVector
-from ..datastructures.tree_view import MetaRoot
+from ..datastructures.tree_vector import TreeVector
 from .triangulation_view import TriangulationView
 
 

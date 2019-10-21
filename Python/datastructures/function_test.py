@@ -48,7 +48,7 @@ class FakeOrthoFunction(FakeFunctionNode):
 
     @property
     def support(self):
-        l, n = labda
+        l, n = self.labda
         return (n // 2 * 2**-l, (n // 2 + 1) * 2**-l)
 
     def refine(self):

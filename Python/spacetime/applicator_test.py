@@ -1,13 +1,9 @@
-from collections import defaultdict
 from itertools import product
-from pprint import pprint
 
 import numpy as np
 import pytest
 
-from ..datastructures.double_tree_vector import (DoubleNodeVector,
-                                                 DoubleTreeVector,
-                                                 FrozenDoubleNodeVector)
+from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.double_tree_view_test import (corner_index_tree,
                                                     full_tensor_double_tree,
@@ -246,7 +242,7 @@ def test_applicator_real():
         assert db_node.value == 0
         db_node.value = 1
 
-    vec_out = applicator.apply(vec_in)
+    applicator.apply(vec_in)
 
 
 def test_applicator_tensor_haar_Mass1D():

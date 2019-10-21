@@ -1,6 +1,4 @@
-import random
-from collections import defaultdict, deque
-from pprint import pprint
+from collections import deque
 
 import pytest
 
@@ -84,23 +82,23 @@ def random_double_tree(meta_root_time, meta_root_space, max_level, N):
 
 def test_full_tensor():
     DebugDoubleNode.total_counter = 0
-    double_root = uniform_full_grid(4, 2, FakeHaarFunction)
+    uniform_full_grid(4, 2, FakeHaarFunction)
     assert DebugDoubleNode.total_counter == (2**5 - 1) * (2**3 - 1)
     DebugDoubleNode.total_counter = 0
-    double_root = uniform_full_grid(4, 2, FakeOrthoFunction)
+    uniform_full_grid(4, 2, FakeOrthoFunction)
     assert DebugDoubleNode.total_counter == (2**6 - 2) * (2**4 - 2)
 
 
 def test_sparse_tensor():
     DebugDoubleNode.total_counter = 0
-    double_root = uniform_sparse_grid(1, FakeHaarFunction)
+    uniform_sparse_grid(1, FakeHaarFunction)
     assert DebugDoubleNode.total_counter == 5
     DebugDoubleNode.total_counter = 0
-    double_root = uniform_sparse_grid(4, FakeHaarFunction)
+    uniform_sparse_grid(4, FakeHaarFunction)
     assert DebugDoubleNode.total_counter == 129
 
     DebugDoubleNode.total_counter = 0
-    double_root = uniform_sparse_grid(1, FakeOrthoFunction)
+    uniform_sparse_grid(1, FakeOrthoFunction)
     assert DebugDoubleNode.total_counter == 2 * 2 + 2 * 2 * 4
 
 

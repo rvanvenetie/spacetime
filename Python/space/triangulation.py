@@ -19,7 +19,7 @@ class Vertex(NodeAbstract):
       parents: the NVB-parents
       children: the child nodes that were induces by this vertex
     """
-    __slots__ = ['level', 'x', 'y', 'xy', 'on_domain_boundary', 'patch']
+    __slots__ = ['level', 'x', 'y', 'on_domain_boundary', 'patch']
 
     def __init__(self,
                  level,

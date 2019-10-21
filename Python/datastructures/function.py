@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
 
-from .tree import NodeAbstract
-
 
 class FunctionInterface(ABC):
     """ This represents a (multilevel) function. """

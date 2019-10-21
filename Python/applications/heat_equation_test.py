@@ -1,25 +1,15 @@
-import cProfile
 import random
 import pytest
 
 import numpy as np
 
-from .. import space, time
-from ..datastructures.applicator import (BlockApplicator,
-                                         LinearOperatorApplicator)
-from ..datastructures.double_tree_vector import (DoubleNodeVector,
-                                                 DoubleTreeVector)
 from ..datastructures.double_tree_view import DoubleTree
-from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..datastructures.tree_vector import TreeVector
 from ..space.basis import HierarchicalBasisFunction
 from ..space.operators import Operator
 from ..space.triangulation import (InitialTriangulation,
                                    to_matplotlib_triangulation)
 from ..space.triangulation_view import TriangulationView
-from ..space.triangulation_function import TriangulationFunction
-from ..spacetime.applicator import Applicator
-from ..spacetime.basis import generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
 from .heat_equation import HeatEquation
 
@@ -57,6 +47,33 @@ def random_rhs(heat_eq):
         new_node.value = random.random()
 
     return heat_eq.create_vector(call_postprocess=call_random_fill)
+
+
+def plot_slice(heat_eq, t, sol):
+    """ Plots a slice of the given solution for a fixed time. """
+    result = TreeVector.from_metaroot(sol.root.nodes[1])
+    for nv in sol.project(0).bfs():
+        # Check if t is contained inside support of time wavelet.
+        a = float(nv.node.support[0].interval[0])
+        b = float(nv.node.support[-1].interval[1])
+        if a <= t <= b:
+            result.axpy(nv.frozen_other_axis(), nv.node.eval(t))
+
+    # Calculate the triangulation that is associated to the result.
+    triang = TriangulationView(result)
+
+    # Convert the result to single scale.
+    space_operator = Operator(triang, heat_eq.dirichlet_boundary)
+    result_ss = space_operator.apply_T(result.to_array())
+
+    # Plot the result
+    import matplotlib.pyplot as plt
+    matplotlib_triang = to_matplotlib_triangulation(triang.elem_tree_view,
+                                                    result)
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.plot_trisurf(matplotlib_triang, Z=result_ss)
+    plt.show()
 
 
 def test_full_tensor_heat():

@@ -2,7 +2,7 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.sparse.linalg import cg
 
-from ..datastructures.tree_view import NodeView, TreeView
+from ..datastructures.tree_view import TreeView
 from .operators import MassOperator, Operator, StiffnessOperator
 from .triangulation import InitialTriangulation, to_matplotlib_triangulation
 from .triangulation_view import TriangulationView
@@ -46,6 +46,9 @@ def test_transformation():
         assert norm(v -
                     operators.apply_T_inverse(operators.apply_T(v))) < 1e-10
 
+        # Test that T_inverse(T) == Id
+        assert np.allclose(operators.apply_T_inverse(operators.apply_T(v)), v)
+
         # Test that T is a linear operator.
         alpha = np.random.rand()
         assert norm(
@@ -84,6 +87,11 @@ def test_galerkin(plot=False):
         mass_op.triang = T_view
         ones = np.ones(len(T_view.vertices), dtype=float)
         new_rhs = mass_op.apply_T_transpose(mass_op.apply_SS(ones))
+
+        # Test that T_inverse(T) == Id
+        assert np.allclose(mass_op.apply_T_inverse(mass_op.apply_T(new_rhs)),
+                           new_rhs)
+
         # Test that the first V elements of the right-hand side coincide -- we
         # have a hierarchic basis after all.
         assert norm(rhs - rhs[:rhs.shape[0]]) < 1e-10
@@ -101,7 +109,6 @@ def test_galerkin(plot=False):
 
     if plot:
         import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d import Axes3D
 
         fig = plt.figure()
         ax = fig.gca(projection='3d')
