@@ -36,5 +36,5 @@ class TriangulationFunction(TreeFunction):
 
     def L2norm(self):
         triang = TriangulationView(self)
-        mass = MassOperator(triang, dirichlet_boundary=True)
+        mass = MassOperator(triang, dirichlet_boundary=False)
         return np.sqrt(self.to_array().T @ mass.apply(self.to_array()))

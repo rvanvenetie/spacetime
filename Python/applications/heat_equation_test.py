@@ -1,9 +1,9 @@
 import random
-import pytest
+from math import log
 
 import numpy as np
+import pytest
 from numpy.linalg import norm
-from math import log
 
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_vector import TreeVector
@@ -18,17 +18,22 @@ from .heat_equation import HeatEquation
 
 
 def example_solution_function():
-    u = (lambda t: 1 + t**2, lambda xy: (1 - xy[0]) * xy[0] *
-         (1 - xy[1]) * xy[1])
+    u = (
+        lambda t: 1 + t**2,
+        lambda xy: (1 - xy[0]) * xy[0] * (1 - xy[1]) * xy[1],
+    )
     u_order = (2, 4)
     return u, u_order
 
 
 def example_rhs(heat_eq):
-    g = [(lambda t: -2 * (1 + t**2), lambda xy: (xy[0] - 1) * xy[0] +
-          (xy[1] - 1) * xy[1]),
-         (lambda t: 2 * t, lambda xy: (xy[0] - 1) * xy[0] *
-          (xy[1] - 1) * xy[1])]
+    g = [(
+        lambda t: -2 * (1 + t**2),
+        lambda xy: (xy[0] - 1) * xy[0] + (xy[1] - 1) * xy[1],
+    ), (
+        lambda t: 2 * t,
+        lambda xy: (xy[0] - 1) * xy[0] * (xy[1] - 1) * xy[1],
+    )]
     g_order = (2, 4)
     u, u_order = example_solution_function()
     u0 = lambda xy: u[0](0) * u[1](xy)
@@ -218,11 +223,11 @@ def test_heat_eq_linear():
 
 
 @pytest.mark.slow
-def test_heat_refine():
-    max_level = 8
+def test_heat_error_reduction():
+    max_level = 14
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    triang.vertex_meta_root.uniform_refine(max_level)
+    triang.vertex_meta_root.uniform_refine(max_level + 2)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
@@ -231,16 +236,18 @@ def test_heat_refine():
     basis_time.metaroot_wavelet.uniform_refine(max_level)
 
     n_t = 9
-    first_errors = np.ones(n_t)
+    first_errors = None
     prev_errors = np.ones(n_t)
     cur_errors = np.ones(n_t)
     ndofs = []
-    for level in range(1, 5):
+    for level in range(2, max_level, 2):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
-        X_delta.sparse_refine(level)
+        X_delta.sparse_refine(level, weights=[2, 1])
         ndofs.append(len(X_delta.bfs()))
+        print('X_delta: dofs time axis={}\tdofs space axis={}'.format(
+            len(X_delta.project(0).bfs()), len(X_delta.project(1).bfs())))
 
         # Create heat equation object.
         heat_eq = HeatEquation(X_delta=X_delta)
@@ -259,21 +266,27 @@ def test_heat_refine():
                                      coord=t,
                                      slice_cls=TriangulationFunction)
             # Refine twice so that we compare with a good reference solution.
-            sol_slice.uniform_refine(max_level)
+            sol_slice.uniform_refine(level + 2)
             true_slice = TriangulationFunction.interpolate_on(
                 sol_slice, fn=lambda xy: u[0](t) * u[1](xy))
             sol_slice -= true_slice
             cur_errors[i] = sol_slice.L2norm()
-            if level == 1:
-                first_errors[i] = cur_errors[i]
+
+        if first_errors is None:
+            first_errors = cur_errors.copy()
+
         assert norm(cur_errors) <= norm(prev_errors)
         assert cur_errors[-1] <= prev_errors[-1]
         print(ndofs, cur_errors)
         prev_errors[:] = cur_errors[:]
+        rates = np.log(cur_errors / first_errors) / np.log(
+            ndofs[0] / ndofs[-1])
+        print('Error reduction rates: {}'.format(rates))
+
+    end_rate = rates[-1]
     # Haha this is quite an atrocious rate --
     # we would expect rate 0.5 to 1.0 for t=T.
-    rate = log(cur_errors[-1] / first_errors[-1]) / log(ndofs[0] / ndofs[-1])
-    assert rate > 0.25
+    assert end_rate > 0.25
 
 
 if __name__ == "__main__":

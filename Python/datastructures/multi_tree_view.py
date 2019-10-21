@@ -86,10 +86,14 @@ class MultiNodeViewInterface(NodeInterface):
                                 call_filter=call_filter,
                                 make_conforming=make_conforming)
 
-    def _sparse_refine(self, max_level, call_postprocess=None):
-        """ Refines this multi tree to a sparse grid multitree. """
+    def _sparse_refine(self, max_level, weights=None, call_postprocess=None):
+        """ Refines this multi tree to a sparse grid multitree.
+
+        Refines such that \sum_i weights[i] * nodes[i].level <= max_level.
+        """
+        if weights is None: weights = [1] * self.dim
         self._deep_refine(
-            call_filter=lambda n: sum(n[i].level
+            call_filter=lambda n: sum(weights[i] * n[i].level
                                       for i in range(self.dim)) <= max_level,
             call_postprocess=call_postprocess)
 
@@ -385,10 +389,12 @@ class MultiTree:
         self.root._uniform_refine(max_levels,
                                   call_postprocess=call_postprocess)
 
-    def sparse_refine(self, max_level, call_postprocess=None):
+    def sparse_refine(self, max_level, weights=None, call_postprocess=None):
         """ Sparse refines the root of this multi tree view. """
         assert self.root.dim > 1
-        self.root._sparse_refine(max_level, call_postprocess=call_postprocess)
+        self.root._sparse_refine(max_level,
+                                 weights=weights,
+                                 call_postprocess=call_postprocess)
 
     def deep_refine(self, call_filter=None, call_postprocess=None):
         """ Deep refines the root of this multi tree view. """
