@@ -255,14 +255,13 @@ def test_heat_refine():
         u, order = example_solution_function()
 
         for i, t in enumerate(np.linspace(0, 1, n_t)):
-            sol_slice = sol[1].slice_time(t, slice_cls=TriangulationFunction)
+            sol_slice = sol[1].slice(i=0,
+                                     coord=t,
+                                     slice_cls=TriangulationFunction)
             # Refine twice so that we compare with a good reference solution.
             sol_slice.uniform_refine(max_level)
-            true_slice = sol_slice.deep_copy().from_singlescale_array(
-                np.array([
-                    u[0](t) * u[1](node.node.node.xy)
-                    for node in sol_slice.bfs()
-                ]))
+            true_slice = TriangulationFunction.interpolate_on(
+                sol_slice, fn=lambda xy: u[0](t) * u[1](xy))
             sol_slice -= true_slice
             cur_errors[i] = sol_slice.L2norm()
             if level == 1:
@@ -283,7 +282,7 @@ if __name__ == "__main__":
     fig = plt.figure()
     for t in np.linspace(0, 1, 100):
         plt.clf()
-        time_slice = sol.slice_time(t, slice_cls=TriangulationFunction)
+        time_slice = sol.slice(i=0, coord=t, slice_cls=TriangulationFunction)
         time_slice.uniform_refine(5)
         time_slice.plot(fig=fig, show=False)
         plt.show(block=False)

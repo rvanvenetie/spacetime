@@ -40,13 +40,13 @@ class TreeFunction(MultiTreeFunction, TreeVector):
 
 
 class DoubleTreeFunction(MultiTreeFunction, DoubleTreeVector):
-    def slice_time(self, t, slice_cls=TreeFunction):
-        """ Slices a double tree fn through a point in time. """
-        result = slice_cls.from_metaroot(self.root.nodes[1])
+    def slice(self, i, coord, slice_cls=TreeFunction):
+        """ Slices a double tree fn through a coordinate. """
+        result = slice_cls.from_metaroot(self.root.nodes[not i])
 
-        for nv in self.project(0).bfs():
+        for nv in self.project(i).bfs():
             # Check if t is contained inside support of time wavelet.
-            if nv.node.support_contains(t):
-                result.axpy(nv.frozen_other_axis(), nv.node.eval(t))
+            if nv.node.support_contains(coord):
+                result.axpy(nv.frozen_other_axis(), nv.node.eval(coord))
 
         return result

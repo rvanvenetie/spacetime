@@ -27,10 +27,12 @@ class TriangulationFunction(TreeFunction):
         if show:
             plt.show()
 
-    def from_singlescale_array(self, array):
-        triang = TriangulationView(self)
-        array_ms = Operator(triang, False).apply_T_inverse(array)
-        return self.from_array(array_ms)
+    @staticmethod
+    def interpolate_on(tree, fn):
+        result = tree.deep_copy(mlt_tree_cls=TriangulationFunction)
+        mass = MassOperator(TriangulationView(tree), dirichlet_boundary=False)
+        nodal_eval = np.array([fn(node.node.node.xy) for node in result.bfs()])
+        return result.from_array(mass.apply_T_inverse(nodal_eval))
 
     def L2norm(self):
         triang = TriangulationView(self)
