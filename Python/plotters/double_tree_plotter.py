@@ -1,4 +1,4 @@
-from collections import defaultdict, deque
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,10 +29,6 @@ class DoubleTreePlotter:
     @staticmethod
     def plot_matplotlib_graph(doubletree, i_in):
         assert isinstance(doubletree, DoubleTree)
-        import networkx as nx
-        from networkx.drawing.nx_agraph import write_dot, graphviz_layout
-        from grave import plot_network
-        from grave.style import use_attributes
 
         def onpick(ax, i, event):
             """ Event handler for clicking on a node. """

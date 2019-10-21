@@ -10,23 +10,19 @@ class NodeInterface(ABC):
     @abstractmethod
     def is_full(self):
         """ Returns whether this node has all possible children present. """
-        pass
 
     @abstractmethod
     def is_metaroot(self):
         """ Returns whether this node represents a *metaroot*. """
-        pass
 
     @abstractmethod
     def refine(self):
         """ Refines this node to ensure it is full. Returns all children. """
-        pass
 
     @property
     @abstractmethod
     def level(self):
         """ The level of this node. Root has level 0, its children 1, etc. """
-        pass
 
     @property
     @abstractmethod
@@ -42,7 +38,6 @@ class NodeInterface(ABC):
     @abstractmethod
     def marked(self):
         """ A marked field getter/setter.  Useful for bfs/dfs. """
-        pass
 
     @marked.setter
     @abstractmethod

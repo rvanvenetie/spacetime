@@ -1,23 +1,14 @@
-import cProfile
 import random
 
 import numpy as np
 
-from .. import space, time
-from ..datastructures.applicator import (BlockApplicator,
-                                         LinearOperatorApplicator)
-from ..datastructures.double_tree_vector import (DoubleNodeVector,
-                                                 DoubleTreeVector)
 from ..datastructures.double_tree_view import DoubleTree
-from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..datastructures.tree_vector import TreeVector
 from ..space.basis import HierarchicalBasisFunction
 from ..space.operators import Operator
 from ..space.triangulation import (InitialTriangulation,
                                    to_matplotlib_triangulation)
 from ..space.triangulation_view import TriangulationView
-from ..spacetime.applicator import Applicator
-from ..spacetime.basis import generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
 from .heat_equation import HeatEquation
 
@@ -67,7 +58,6 @@ def plot_slice(heat_eq, t, sol):
     result_ss = space_operator.apply_T(result.to_array())
 
     # Plot the result
-    from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.pyplot as plt
     matplotlib_triang = to_matplotlib_triangulation(triang.elem_tree_view,
                                                     result)

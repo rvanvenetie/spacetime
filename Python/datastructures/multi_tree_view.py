@@ -1,8 +1,7 @@
-from abc import ABC, abstractmethod
-from collections import Iterable, defaultdict, deque
-from operator import eq
+from abc import abstractmethod
+from collections import deque
 
-from .tree import MetaRoot, NodeInterface
+from .tree import NodeInterface
 
 
 def _replace(i, items, item_i):
@@ -31,13 +30,11 @@ class MultiNodeViewInterface(NodeInterface):
     @abstractmethod
     def _children(self):
         """ This should return the children as a tuple of length self.dim. """
-        pass
 
     @property
     @abstractmethod
     def _parents(self):
         """ This should return the parents as a tuple of length self.dim. """
-        pass
 
     # Default implementations.
     @property

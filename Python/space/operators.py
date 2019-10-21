@@ -44,7 +44,7 @@ class Operator:
         """Application of the operator to the single-scale basis.
 
         Abstract method that should be implemented by the derived classess."""
-        raise NotImplemented('This function is not implemented')
+        raise NotImplementedError('This function is not implemented')
 
     def apply_T(self, v):
         """Applies the hierarchical-to-single-scale transformation.  """
@@ -146,9 +146,9 @@ def plot_hatfn():
     for i in range(len(T_view.vertices)):
         fig = plt.figure()
         fig.suptitle("Hoedfuncties bij vertex %d" % i)
-        ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+        ax1 = fig.add_subplot(1, 2, 1, projection=Axes3D.name)
         ax1.set_title("Nodale basis")
-        ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+        ax2 = fig.add_subplot(1, 2, 2, projection=Axes3D.name)
         ax2.set_title("Hierarchische basis")
         ax1.plot_trisurf(matplotlib_triang, Z=I[:, i])
         w = op.apply_T(I[:, i])

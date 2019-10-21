@@ -3,9 +3,7 @@ import random
 import numpy as np
 
 from ..space.triangulation import InitialTriangulation
-from .tree_test import corner_index_tree, uniform_index_tree
-from .tree_vector import NodeVector, TreeVector
-from .tree_view import NodeView, TreeView
+from .tree_vector import TreeVector
 
 
 def test_vector_add():

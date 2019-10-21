@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 
-from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.double_tree_view_test import (corner_index_tree,
                                                     full_tensor_double_tree,
                                                     random_double_tree,
@@ -8,7 +7,6 @@ from ..datastructures.double_tree_view_test import (corner_index_tree,
                                                     uniform_index_tree)
 from ..space.triangulation import InitialTriangulation
 from .double_tree_plotter import DoubleTreePlotter
-from .tree_plotter import TreePlotter
 
 
 def show_rectangle_plot():

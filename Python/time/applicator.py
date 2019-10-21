@@ -2,7 +2,7 @@ import numpy as np
 
 from ..datastructures.applicator import ApplicatorInterface
 from ..datastructures.tree_view import NodeViewInterface
-from .basis import MultiscaleFunctions, mother_element
+from .basis import MultiscaleFunctions
 from .sparse_vector import SparseVector
 
 
@@ -270,7 +270,6 @@ class Applicator(ApplicatorInterface):
         Lambda_l_out = self.Lambda_out.on_level(l)
         if len(Lambda_l_out) > 0 and len(Pi_in) + len(Lambda_l_in) > 0:
             Pi_B_in, _ = self._construct_Pi_in(Pi_in, Pi_B_out={})
-            Pi_B_bar_in = self.basis_in.P.range(Pi_B_in)
             Pi_B_bar_out = self.basis_out.Q.range(Lambda_l_out)
             Pi_bar_in = self.basis_in.P.range(Pi_B_in) | self.basis_in.Q.range(
                 Lambda_l_in)

@@ -1,6 +1,5 @@
 from ..datastructures.double_tree_view import DoubleTree
 from ..space.basis import HierarchicalBasisFunction
-from ..space.triangulation import Vertex
 from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointWavelet
 

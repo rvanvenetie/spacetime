@@ -213,7 +213,6 @@ def test_basis_PQ():
                 for psi in basis.Q.range(Lambda.per_level[l])
             ])
 
-            eye = np.eye(len(Delta.per_level[l - 1]))
             for i, phi in enumerate(Delta.per_level[l - 1]):
                 # Write phi_mu on lv l-1 as combination of scalings on lv l.
                 vec = {phi: 1.0}

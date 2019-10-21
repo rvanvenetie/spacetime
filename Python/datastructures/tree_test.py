@@ -1,7 +1,7 @@
 import pytest
 
 from .function_test import FakeHaarFunction, FakeOrthoFunction
-from .tree import *
+from .tree import BinaryNodeAbstract, MetaRoot, NodeAbstract, NodeInterface
 
 
 class FakeMetaRoot(MetaRoot):
@@ -90,9 +90,9 @@ def corner_index_tree(max_level,
 
 def test_ABC():
     with pytest.raises(TypeError):
-        root = NodeAbstract()
+        NodeAbstract()
     with pytest.raises(TypeError):
-        root = NodeInterface()
+        NodeInterface()
 
 
 def test_binary():

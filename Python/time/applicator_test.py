@@ -7,7 +7,6 @@ from pytest import approx
 from scipy.integrate import quad
 
 from . import operators
-from ..datastructures.tree_view import NodeViewInterface
 from .applicator import Applicator
 from .basis import MultiscaleFunctions
 from .haar_basis import HaarBasis
@@ -73,7 +72,6 @@ def test_haar_3pt_mass():
 
     applicator = Applicator(operators.mass(basis_in, basis_out), basis_in,
                             basis_out)
-    real_mat = applicator.to_matrix(Lambda_in, Lambda_out)
     for _ in range(2):
         vec_in = SparseVector(Lambda_in, np.zeros(len(Lambda_in)))
         vec_in[Lambda_in.functions[0]] = 1.0
@@ -138,7 +136,6 @@ def test_multiscale_transport_quadrature():
             basis_in.__class__.__name__, basis_out.__class__.__name__))
         applicator = Applicator(operator, basis_in, basis_out)
         resmat = applicator.to_matrix(Lambda_in, Lambda_out)
-        truemat = np.zeros([len(Lambda_out), len(Lambda_in)])
         for j, psi_in in enumerate(Lambda_in):
             supp_in = support_to_interval(psi_in.support)
             for i, psi_out in enumerate(Lambda_out):
