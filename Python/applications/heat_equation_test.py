@@ -1,6 +1,9 @@
 import random
+import pytest
 
 import numpy as np
+from numpy.linalg import norm
+from math import log
 
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_vector import TreeVector
@@ -8,9 +11,17 @@ from ..space.basis import HierarchicalBasisFunction
 from ..space.operators import Operator
 from ..space.triangulation import (InitialTriangulation,
                                    to_matplotlib_triangulation)
+from ..space.triangulation_function import TriangulationFunction
 from ..space.triangulation_view import TriangulationView
 from ..time.three_point_basis import ThreePointBasis
 from .heat_equation import HeatEquation
+
+
+def example_solution_function():
+    u = (lambda t: 1 + t**2, lambda xy: (1 - xy[0]) * xy[0] *
+         (1 - xy[1]) * xy[1])
+    u_order = (2, 4)
+    return u, u_order
 
 
 def example_rhs(heat_eq):
@@ -19,8 +30,9 @@ def example_rhs(heat_eq):
          (lambda t: 2 * t, lambda xy: (xy[0] - 1) * xy[0] *
           (xy[1] - 1) * xy[1])]
     g_order = (2, 4)
-    u0 = lambda xy: (1 - xy[0]) * xy[0] * (1 - xy[1]) * xy[1]
-    u0_order = 4
+    u, u_order = example_solution_function()
+    u0 = lambda xy: u[0](0) * u[1](xy)
+    u0_order = u_order[1]
 
     result = heat_eq.calculate_rhs_vector(g=g,
                                           g_order=g_order,
@@ -83,7 +95,7 @@ def test_full_tensor_heat():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.uniform_refine(4)
 
-    # Create heat equation obkect
+    # Create heat equation object.
     heat_eq = HeatEquation(X_delta=X_delta)
     rhs = random_rhs(heat_eq)
 
@@ -111,7 +123,7 @@ def test_sparse_tensor_heat():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.sparse_refine(2)
 
-    # Create heat equation obkect
+    # Create heat equation object.
     heat_eq = HeatEquation(X_delta=X_delta)
     rhs = random_rhs(heat_eq)
 
@@ -147,7 +159,7 @@ def test_real_tensor_heat():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.sparse_refine(3)
 
-    # Create heat equation obkect
+    # Create heat equation object.
     heat_eq = HeatEquation(X_delta=X_delta)
     rhs = example_rhs(heat_eq)
 
@@ -183,7 +195,7 @@ def test_heat_eq_linear():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.sparse_refine(2)
 
-    # Create heat equation obkect
+    # Create heat equation object.
     heat_eq = HeatEquation(X_delta=X_delta)
     heat_eq_mat = heat_eq.linop.to_matrix()
 
@@ -205,8 +217,74 @@ def test_heat_eq_linear():
         assert np.allclose(heat_eq.linop.matvec(v_arr), heat_eq_mat.dot(v_arr))
 
 
+@pytest.mark.slow
+def test_heat_refine():
+    max_level = 8
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.vertex_meta_root.uniform_refine(max_level)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(max_level)
+
+    n_t = 9
+    first_errors = np.ones(n_t)
+    prev_errors = np.ones(n_t)
+    cur_errors = np.ones(n_t)
+    ndofs = []
+    for level in range(1, 5):
+        # Create X^\delta as a sparse grid.
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
+        X_delta.sparse_refine(level)
+        ndofs.append(len(X_delta.bfs()))
+
+        # Create heat equation object.
+        heat_eq = HeatEquation(X_delta=X_delta)
+        rhs = example_rhs(heat_eq)
+
+        # Now actually solve this beast!
+        sol, num_iters = heat_eq.solve(rhs)
+        residual_norm = np.linalg.norm(
+            heat_eq.mat.apply(sol).to_array() - rhs.to_array())
+        print('MINRES solved in {} iterations with a residual norm {}'.format(
+            num_iters, residual_norm))
+        u, order = example_solution_function()
+
+        for i, t in enumerate(np.linspace(0, 1, n_t)):
+            sol_slice = sol[1].slice(i=0,
+                                     coord=t,
+                                     slice_cls=TriangulationFunction)
+            # Refine twice so that we compare with a good reference solution.
+            sol_slice.uniform_refine(max_level)
+            true_slice = TriangulationFunction.interpolate_on(
+                sol_slice, fn=lambda xy: u[0](t) * u[1](xy))
+            sol_slice -= true_slice
+            cur_errors[i] = sol_slice.L2norm()
+            if level == 1:
+                first_errors[i] = cur_errors[i]
+        assert norm(cur_errors) <= norm(prev_errors)
+        assert cur_errors[-1] <= prev_errors[-1]
+        print(ndofs, cur_errors)
+        prev_errors[:] = cur_errors[:]
+    # Haha this is quite an atrocious rate --
+    # we would expect rate 0.5 to 1.0 for t=T.
+    rate = log(cur_errors[-1] / first_errors[-1]) / log(ndofs[0] / ndofs[-1])
+    assert rate > 0.25
+
+
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     heat_eq, sol = test_real_tensor_heat()
-    # Plot solution for t = 0.5.
-    for t in [0, 0.1, 0.5, 1]:
-        plot_slice(heat_eq, t, sol)
+    fig = plt.figure()
+    for t in np.linspace(0, 1, 100):
+        plt.clf()
+        time_slice = sol.slice(i=0, coord=t, slice_cls=TriangulationFunction)
+        time_slice.uniform_refine(5)
+        time_slice.plot(fig=fig, show=False)
+        plt.show(block=False)
+        plt.pause(0.01)
+    plt.show()

@@ -33,11 +33,20 @@ class MultiTreeFunction(MultiTreeVector):
         return result
 
 
-class DoubleTreeFunction(MultiTreeFunction, DoubleTreeVector):
-    pass
-
-
 class TreeFunction(MultiTreeFunction, TreeVector):
     def eval(self, coords):
         if not isinstance(coords, tuple): coords = (coords, )
         return super().eval(coords)
+
+
+class DoubleTreeFunction(MultiTreeFunction, DoubleTreeVector):
+    def slice(self, i, coord, slice_cls=TreeFunction):
+        """ Slices a double tree fn through a coordinate. """
+        result = slice_cls.from_metaroot(self.root.nodes[not i])
+
+        for nv in self.project(i).bfs():
+            # Check if t is contained inside support of time wavelet.
+            if nv.node.support_contains(coord):
+                result.axpy(nv.frozen_other_axis(), nv.node.eval(coord))
+
+        return result

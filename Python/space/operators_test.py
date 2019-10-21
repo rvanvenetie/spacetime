@@ -41,6 +41,10 @@ def test_transformation():
         assert norm(
             np.inner(v, operators.apply_T_transpose(z)) -
             np.inner(operators.apply_T(v), z)) < 1e-10
+        assert norm(v -
+                    operators.apply_T(operators.apply_T_inverse(v))) < 1e-10
+        assert norm(v -
+                    operators.apply_T_inverse(operators.apply_T(v))) < 1e-10
 
         # Test that T_inverse(T) == Id
         assert np.allclose(operators.apply_T_inverse(operators.apply_T(v)), v)

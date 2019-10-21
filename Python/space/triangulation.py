@@ -39,6 +39,10 @@ class Vertex(NodeAbstract):
         # Sanity check.
         assert (all([p.level == self.level - 1 for p in self.parents]))
 
+    @property
+    def xy(self):
+        return np.array([self.x, self.y])
+
     def refine(self):
         if not self.is_full():
             for elem in self.patch:
@@ -119,6 +123,9 @@ class Element2D(BinaryNodeAbstract):
         V = np.ones((3, 3))
         V[:2, :] = self.vertex_array().T
         return np.linalg.solve(V, np.vstack([xy, np.ones(xy.shape[1])]))
+
+    def contains(self, xy):
+        return np.all(self.to_barycentric_coordinates(xy) >= 0)
 
     def __repr__(self):
         return 'Element2D({}, {})'.format(self.level, self.vertices)

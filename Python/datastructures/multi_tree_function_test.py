@@ -42,3 +42,30 @@ def test_fn_small():
         node.value = 1.0
         assert np.allclose(fn.eval(t), node.node.eval(t))
         node.value = 0.0
+
+
+if __name__ == "__main__":
+    """ We can plot a slice of a DoubleTreeFunction. Animate it for fun. """
+    import matplotlib.pyplot as plt
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.vertex_meta_root.uniform_refine(2)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part.
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(2)
+
+    dbl_fn = DoubleTreeFunction.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    dbl_fn.uniform_refine()
+    dbl_fn.bfs()[7].value = 1.0
+    dbl_fn.bfs()[2].value = 1.0
+    fig = plt.figure()
+    for t in np.linspace(0, 1, 100):
+        plt.clf()
+        dbl_fn.slice_time(t).plot(fig=fig, show=False)
+        plt.show(block=False)
+        plt.pause(0.05)
+    plt.show()
