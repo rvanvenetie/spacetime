@@ -152,6 +152,11 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
         """ Resets the coefficients stored in this function object. """
         self.coeff = [0, 0]
 
+    def support_contains(self, t):
+        a = float(self.support[0].interval[0])
+        b = float(self.support[-1].interval[1])
+        return a <= t <= b
+
     def inner_quad(self, g, g_order=2, deriv=False):
         """ Computes <g, self> or <g, d/dt self> by quadrature. """
         func = lambda t: (self.eval(t, deriv) * g(t))
@@ -175,7 +180,6 @@ class Scaling(CoefficientFunction1D):
 
     def prolongate(self):
         """ Returns a list of pairs with the corresponding coefficients. """
-
     def restrict(self):
         """ The adjoint of transposing. """
 

@@ -34,6 +34,9 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
     def patch(self):
         return self.node.patch
 
+    def support_contains(self, xy):
+        return any(elem.contains(xy) for elem in self.support)
+
     def eval(self, xy, deriv=False):
         """ Evaluate hat function on a number of points `xy` at once. """
         assert xy.shape[0] == 2

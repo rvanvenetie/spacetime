@@ -2,6 +2,8 @@ import random
 import pytest
 
 import numpy as np
+from numpy.linalg import norm
+from math import log
 
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_vector import TreeVector
@@ -9,6 +11,7 @@ from ..space.basis import HierarchicalBasisFunction
 from ..space.operators import Operator
 from ..space.triangulation import (InitialTriangulation,
                                    to_matplotlib_triangulation)
+from ..space.triangulation_function import TriangulationFunction
 from ..space.triangulation_view import TriangulationView
 from ..time.three_point_basis import ThreePointBasis
 from .heat_equation import HeatEquation
@@ -218,7 +221,7 @@ def test_heat_eq_linear():
 def test_heat_refine():
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    triang.vertex_meta_root.uniform_refine(6)
+    triang.vertex_meta_root.uniform_refine(7)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
@@ -226,13 +229,17 @@ def test_heat_refine():
     basis_time = ThreePointBasis()
     basis_time.metaroot_wavelet.uniform_refine(6)
 
-    n_t = 101
+    n_t = 9
+    first_errors = np.ones(n_t)
     prev_errors = np.ones(n_t)
-    for level in range(2, 6):
+    cur_errors = np.ones(n_t)
+    ndofs = []
+    for level in range(1, 5):
         # Create X^\delta
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
         X_delta.sparse_refine(level)
+        ndofs.append(len(X_delta.bfs()))
 
         # Create heat equation object.
         heat_eq = HeatEquation(X_delta=X_delta)
@@ -240,33 +247,44 @@ def test_heat_refine():
 
         # Now actually solve this beast!
         sol, num_iters = heat_eq.solve(rhs)
-        error = np.linalg.norm(
+        residual_norm = np.linalg.norm(
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())
-        print('MINRES solved in {} iterations with an error {}'.format(
-            num_iters, error))
+        print('MINRES solved in {} iterations with a residual norm {}'.format(
+            num_iters, residual_norm))
         u, order = example_solution_function()
 
         for i, t in enumerate(np.linspace(0, 1, n_t)):
             sol_slice = sol[1].slice_time(t, slice_cls=TriangulationFunction)
+            # Refine twice so that we compare with a good reference solution.
+            sol_slice.uniform_refine(7)
             true_slice = sol_slice.deep_copy().from_singlescale_array(
                 np.array([
                     u[0](t) * u[1](node.node.node.xy)
                     for node in sol_slice.bfs()
                 ]))
             sol_slice -= true_slice
-            error = sol_slice.L2norm()
-            assert error < prev_errors[i]
-            prev_errors[i] = error
+            cur_errors[i] = sol_slice.L2norm()
+            if level == 1:
+                first_errors[i] = cur_errors[i]
+        assert norm(cur_errors) <= norm(prev_errors)
+        assert cur_errors[-1] <= prev_errors[-1]
+        prev_errors[:] = cur_errors[:]
+    # Haha this is quite an atrocious rate --
+    # we would expect rate 0.5 to 1.0 for t=T.
+    rate = log(cur_errors[-1] / first_errors[-1]) / log(ndofs[0] / ndofs[-1])
+    assert rate > 0.25
 
 
 if __name__ == "__main__":
-    from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
     heat_eq, sol = test_real_tensor_heat()
     fig = plt.figure()
     for t in np.linspace(0, 1, 100):
         plt.clf()
-        sol.slice_time(t).plot(fig=fig, show=False)
+        time_slice = sol.slice_time(t, slice_cls=TriangulationFunction)
+        time_slice.uniform_refine(5)
+        time_slice.plot(fig=fig, show=False)
         plt.show(block=False)
-        plt.pause(0.05)
+        plt.pause(0.01)
     plt.show()

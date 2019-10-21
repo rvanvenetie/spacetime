@@ -54,14 +54,6 @@ class Operator:
                 w[vi] = w[vi] + 0.5 * w[gp]
         return w
 
-    def apply_T_inverse(self, v):
-        """Applies the single-scale-to-hierarhical transformation. """
-        w = np.copy(v)
-        for (vi, T) in reversed(self.triang.history):
-            for gp in T.refinement_edge():
-                w[vi] = w[vi] - 0.5 * w[gp]
-        return w
-
     def apply_T_transpose(self, v):
         """Applies the transposed hierarchical-to-single-scale transformation. """
         w = np.copy(v)

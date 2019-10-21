@@ -1,10 +1,8 @@
 import numpy as np
 
 from ..datastructures.multi_tree_function import TreeFunction
-from ..space.applicator import Applicator
 from ..space.operators import MassOperator, Operator
-from ..space.triangulation import (InitialTriangulation,
-                                   to_matplotlib_triangulation)
+from ..space.triangulation import to_matplotlib_triangulation
 from ..space.triangulation_view import TriangulationView
 
 
@@ -19,7 +17,6 @@ class TriangulationFunction(TreeFunction):
         self_ss = space_operator.apply_T(self.to_array())
 
         # Plot the result
-        from mpl_toolkits.mplot3d import Axes3D
         import matplotlib.pyplot as plt
         matplotlib_triang = to_matplotlib_triangulation(
             triang.elem_tree_view, self)

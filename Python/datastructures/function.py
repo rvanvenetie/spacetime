@@ -16,6 +16,10 @@ class FunctionInterface(ABC):
     def support(self, value):
         pass
 
+    def support_contains(self, x):
+        """ Does our support contain the given coordinate? """
+        raise NotImplementedError
+
     def eval(self, x, deriv=False):
         """ Evaluates this function at the given coordinate. """
         raise NotImplementedError

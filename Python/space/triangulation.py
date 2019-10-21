@@ -124,6 +124,9 @@ class Element2D(BinaryNodeAbstract):
         V[:2, :] = self.vertex_array().T
         return np.linalg.solve(V, np.vstack([xy, np.ones(xy.shape[1])]))
 
+    def contains(self, xy):
+        return np.all(self.to_barycentric_coordinates(xy) >= 0)
+
     def __repr__(self):
         return 'Element2D({}, {})'.format(self.level, self.vertices)
 
