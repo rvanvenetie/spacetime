@@ -8,11 +8,11 @@ from ..datastructures.tree_view import NodeViewInterface
 
 class Vertex(NodeAbstract):
     """ A vertex in a locally refined triangulation.
-    
+
     Vertices also form a (family)tree, induced by the NVB-relation.
 
     Args:
-      level: the uniform level that introduces this vertex. 
+      level: the uniform level that introduces this vertex.
       x,y: the physical coordinates
       on_domain_boundary: does this vertex lie on the domain boundary?
       patch: the elements that surround this vertex
@@ -64,7 +64,7 @@ class Element2D(BinaryNodeAbstract):
 
         Arguments:
             level: uniform level that introduces this element
-            vertices: array of three Vertex references. 
+            vertices: array of three Vertex references.
             parent: reference to the parent of this element.
             """
         super().__init__(parent=parent)
@@ -128,7 +128,7 @@ class Element2D(BinaryNodeAbstract):
 
         Args:
             nbr : If self.refinement_edge() is not on the boundary, this
-                   should be the element on the other side. 
+                   should be the element on the other side.
         """
         assert self.is_leaf()
         vertex_parents = [self.newest_vertex()]
@@ -202,7 +202,7 @@ class InitialTriangulation:
 
         Arguments:
             vertices: Vx2 matrix of floats: the coordinates of the vertices.
-            elements: Tx3 matrix of integers: the indices inside the vertices array.
+            elements: Tx3 matrix of integers: indices inside the vertices array.
         """
         self.vertex_roots = [
             Vertex(0, *vert, on_domain_boundary=False)

@@ -117,9 +117,9 @@ def test_initialize_quadrature():
     # g is the RHS to u(t,x,y) = (t**2 + 1) (x-1) x (x+1) (y-1) y (y+1).
     # so g(t,x,y) = 2xy(t(x^2-1)(y^2-1) - 3(t^2 + 1)(x^2 + y^2 - 2))
     #             = 2t * xy(x^2-1)(y^2-1) - 6(t^2 + 1) * xy(x^2 + y^2 - 2).
-    g = [(lambda t: 2 * t, \
+    g = [(lambda t: 2 * t, \ # noqa
           lambda x: x[0] * x[1] * (x[0]**2 - 1) * (x[1]**2 - 1)),
-         (lambda t: -6 * (t**2 + 1), \
+         (lambda t: -6 * (t**2 + 1), \ # noqa
           lambda x: x[0] * x[1] * (x[0]**2 + x[1]**2 - 2))]
     # Create time part.
     HaarBasis.metaroot_wavelet.uniform_refine(2)

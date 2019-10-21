@@ -22,7 +22,7 @@ class FunctionInterface(ABC):
 
     def inner_quad(self, g, g_order=4, deriv=False):
         """ Computes <g, self> or <g, grad self> by quadrature.
-        
+
         Arguments:
             g: the function to take inner products with. Takes numpy array x.
             g_order: the polynomial order of g.

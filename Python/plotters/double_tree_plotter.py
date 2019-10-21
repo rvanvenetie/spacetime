@@ -46,9 +46,10 @@ class DoubleTreePlotter:
 
             # Update the right subplot to show the single-tree.
             ax[1].clear()
-            TreePlotter.draw_matplotlib_graph(doubletree.fiber(
-                not i, double_node.node),
-                                              axis=ax[1])
+            TreePlotter.draw_matplotlib_graph(
+                doubletree.fiber(not i, double_node.node),
+                axis=ax[1],
+            )
             ax[1].set_title("Fiber of %s in axis %d" %
                             (double_node.node, not i))
             plt.draw()

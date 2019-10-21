@@ -97,10 +97,10 @@ class HeatEquation:
     def calculate_rhs_vector(self, g, g_order, u0, u0_order):
         """ Generates a rhs vector for the given rhs g and initial cond u_0 .
 
-        This assumes that g is given as a sum of seperable functions. 
+        This assumes that g is given as a sum of seperable functions.
 
         Args:
-          g: the rhs of the heat equation. Given as list of tuples, 
+          g: the rhs of the heat equation. Given as list of tuples,
             where each tuple (f_t, f_xy) represents the tensor product f_tf_xy.
           g_order: a tuple describing the time/space polynomial degree of g.
           u0: a function of space that represents the initial condition.

@@ -10,14 +10,14 @@ class DiscLinearScaling(basis.Scaling):
     """ Discontinous piecewise linear scaling function.
 
     There are two `types` of scaling functions. Given index (l, n):
-    1. For even n, the function represents a piecewise constant on 
+    1. For even n, the function represents a piecewise constant on
        the element (l, n//2).
     2. For odd n, it represents a linear function (from -sqrt(3)
        to sqrt(3)) on the element (l, n // 2).
-    
+
     The field `self.pw_constant` can be used to differentiate between the types.
     The field `self.nbr` can be used to retrieve the `other` scaling function
-    on the same element. 
+    on the same element.
     If set, the field `self.children` contains references to the 4 children,
     in order of labda, i.e. cons left, lin left, cons right, lin right.
 

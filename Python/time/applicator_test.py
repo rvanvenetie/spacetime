@@ -99,7 +99,9 @@ def test_multiscale_mass_quadrature():
     tpo = ThreePointBasis.origin_refined_basis(max_level=oml)
     tpe = ThreePointBasis.end_points_refined_basis(max_level=oml)
     for basis_in, basis_out in itertools.product(
-        [hbu, hbo, hbe, oru, oro, ore, tpu, tpo, tpe], repeat=2):
+        [hbu, hbo, hbe, oru, oro, ore, tpu, tpo, tpe],
+            repeat=2,
+    ):
         basis_in, Lambda_in = basis_in
         basis_out, Lambda_out = basis_out
         operator = operators.mass(basis_in, basis_out)
@@ -154,11 +156,11 @@ def test_multiscale_trace():
     oro = OrthonormalBasis.origin_refined_basis(max_level=12)
     tpu = ThreePointBasis.uniform_basis(max_level=5)
     tpo = ThreePointBasis.origin_refined_basis(max_level=12)
-    for (basis_in, Lambda_in), (basis_out, Lambda_out) in \
-            list(itertools.product([oro, oru], [oro, oru])) \
-          + list(itertools.product([tpu, tpo], [tpu, tpo])) \
-          + list(itertools.product([tpu, tpo], [oru, oro])) \
-          + list(itertools.product([oru, oro], [tpu, tpo])):
+    bases = list(itertools.product([oro, oru], [oro, oru]))
+    bases += list(itertools.product([tpu, tpo], [tpu, tpo]))
+    bases += list(itertools.product([tpu, tpo], [oru, oro]))
+    bases += list(itertools.product([oru, oro], [tpu, tpo]))
+    for (basis_in, Lambda_in), (basis_out, Lambda_out) in bases:
         operator = operators.trace(basis_in, basis_out)
         print('Calculating results for: basis_in={}\tbasis_out={}'.format(
             basis_in.__class__.__name__, basis_out.__class__.__name__))

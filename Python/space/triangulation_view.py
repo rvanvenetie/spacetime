@@ -56,7 +56,7 @@ class TriangulationView:
             return not isinstance(elem.newest_vertex().marked, bool)
 
         def store_vertices_element_view(elem_view):
-            """ Stores the vertex view indices inside the element_view object. """
+            """ Store vertex view indices inside the element_view object. """
             if not isinstance(elem_view.node, MetaRoot):
                 elem_view.vertices_view_idx = [
                     v.marked for v in elem_view.node.vertices

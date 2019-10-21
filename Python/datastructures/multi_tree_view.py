@@ -30,7 +30,6 @@ class MultiNodeViewInterface(NodeInterface):
     @abstractmethod
     def _children(self):
         """ This should return the children as a tuple of length self.dim. """
-
     @property
     @abstractmethod
     def _parents(self):
@@ -112,7 +111,7 @@ class MultiNodeViewInterface(NodeInterface):
                 call_filter=None,
                 make_conforming=False):
         """ Refines the node in the `i`-th coordinate.
-        
+
         If the node that will be introduced has multiple parents, then these
         must be brothers of self (and already exist).
 
@@ -120,8 +119,8 @@ class MultiNodeViewInterface(NodeInterface):
           i: The axis we are considering.
           children: If set, the list of children to create. If none, refine
                     all children that exist in the underlying tree.
-          call_filter: This function can be used to filter children. It is 
-            called with the multi-node that is to be created. 
+          call_filter: This function can be used to filter children. It is
+            called with the multi-node that is to be created.
         """
         if self.is_full(i): return self._children[i]
         if children is None: children = self.nodes[i].children
@@ -165,9 +164,9 @@ class MultiNodeViewInterface(NodeInterface):
 
     def _find_brother(self, nodes, j, i, make_conforming=False):
         """ Finds the given brother in the given axes.
-        
+
         A brother shares a parent with self in the `i`-axis. That is,
-        if self has a parent in the `j`-axis, then the brother would 
+        if self has a parent in the `j`-axis, then the brother would
         have the same parent in the `i`-axis.
         """
         if self.nodes == nodes: return self
@@ -190,7 +189,7 @@ class MultiNodeViewInterface(NodeInterface):
         Args:
           other: Root of the other node view tree that we whish to union. We
                  must have self.node == other.node.
-          call_filter: This call determines whether a given node of the 
+          call_filter: This call determines whether a given node of the
               other tree should be inside this subtree.
           call_postprocess: This call will be invoked for every pair
               of nodeview objects. First arg will hold a ref to this tree,
@@ -228,10 +227,10 @@ class MultiNodeViewInterface(NodeInterface):
             my_node.marked = False
 
     def _deep_refine(self, call_filter=None, call_postprocess=None):
-        """ Deep-refines `self` by recursively refining the multitree. 
+        """ Deep-refines `self` by recursively refining the multitree.
 
         Args:
-          call_filter: This call determines whether a given multinode 
+          call_filter: This call determines whether a given multinode
             should be inside the subtree.
           call_postprocess: This call will be invoked with a freshly
               created multinode object. Can be used to load data, etc.
@@ -256,7 +255,7 @@ class MultiNodeViewInterface(NodeInterface):
 
     def _bfs(self):
         """ Performs a BFS on the multi tree rooted at `self`.
-        
+
         This visits the multi nodes in order of their sum of levels.
         """
         queue = deque([self])
@@ -274,7 +273,7 @@ class MultiNodeViewInterface(NodeInterface):
 
     def _bfs_kron(self):
         """ Performs a BFS in kron order on the multi tree rooted at `self`.
-        
+
         This visits the multi nodes in `kron` order. That is, it visits
         the last axis first, then the second-to last axis, etc.
 
@@ -347,7 +346,7 @@ class MultiTree:
 
     def bfs(self, include_meta_root=False):
         """ Does a bfs from the root.
-        
+
         Args:
             include_meta_root: if false, filter out all MetaRoot nodes.
         """

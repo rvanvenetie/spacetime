@@ -9,7 +9,7 @@ from ..datastructures.multi_tree_vector import BlockTreeVector
 
 class ApplicatorInterface(ABC):
     def __init__(self, Lambda_in=None, Lambda_out=None):
-        """ Initializes this applicator. 
+        """ Initializes this applicator.
 
         Args:
           Lambda_*: If set, these must be the indices of the in/output.
@@ -34,17 +34,15 @@ class ApplicatorInterface(ABC):
         Arguments:
             vec_in: a (multi)tree vector holding the linear combination
               of input functions.
-            vec_out: Optional. If supported, and set, it should 
+            vec_out: Optional. If supported, and set, it should
               hold an *empty* (mult)tree vector for the output functions.
 
         Returns:
             self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
-
     @abstractmethod
     def transpose(self):
         """ Returns the transpose of this bilinear form. """
-
     def __neg__(self):
         """ Returns a negated operator. """
         return ScalarApplicator(self, scalar=-1)
@@ -77,7 +75,7 @@ class SumApplicator(ApplicatorInterface):
 
 
 class ScalarApplicator(ApplicatorInterface):
-    """ Simple wrapper that multiples the output of an applicator with a scalar. """
+    """ Wrapper that multiples the output of an applicator with a scalar. """
     def __init__(self, applicator, scalar):
         """ Initialize with the applicator whose output is to be negated. """
         assert isinstance(applicator, ApplicatorInterface)
@@ -123,7 +121,7 @@ class BlockApplicator(ApplicatorInterface):
 
         Args:
            applicators: A 2x2 list of applicators, representing the
-             block-linear bilinear form. 
+             block-linear bilinear form.
         """
         assert 2 == len(applicators) == len(applicators[0]) == len(
             applicators[1])
@@ -180,7 +178,7 @@ class BlockApplicator(ApplicatorInterface):
 class LinearOperatorApplicator(scipy.sparse.linalg.LinearOperator):
     def __init__(self, applicator, input_vec):
         """ Creates a linear operator, given an applicator.
-        
+
         Args:
           applicator: the applicator this linear operator represents.
           input_vec: an suitable datastructure for holding an input vector.

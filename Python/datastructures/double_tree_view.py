@@ -1,4 +1,3 @@
-
 from .multi_tree_view import MultiNodeView, MultiTree
 from .tree_view import NodeViewInterface
 
@@ -11,7 +10,7 @@ class DoubleNodeView(MultiNodeView):
 
 class FrozenDoubleNodeView(NodeViewInterface):
     """ A double node that is frozen in a single coordinate.
-    
+
     The resulting object acts like a single node in the other coordinate.
     """
     # This should be a lightweight class.
@@ -124,7 +123,7 @@ class DoubleTreeView(MultiTree):
 
     def fiber(self, i, mu):
         """ Return the fiber of (single) node mu in axis i.
-        
+
         The fiber is the tree of single-nodes in axis i frozen at coordinate mu
         in the other axis. """
         if not self.fibers:
