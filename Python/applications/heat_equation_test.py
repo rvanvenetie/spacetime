@@ -23,8 +23,6 @@ from ..spacetime.basis import generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
 from .heat_equation import HeatEquation
 
-np.set_printoptions(linewidth=1000)
-
 
 def example_solution_function():
     u = (lambda t: 1 + t**2, lambda xy: (1 - xy[0]) * xy[0] *
@@ -77,7 +75,7 @@ def test_full_tensor_heat():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.uniform_refine(4)
 
-    # Create heat equation obkect
+    # Create heat equation object.
     heat_eq = HeatEquation(X_delta=X_delta)
     rhs = random_rhs(heat_eq)
 
@@ -105,7 +103,7 @@ def test_sparse_tensor_heat():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.sparse_refine(2)
 
-    # Create heat equation obkect
+    # Create heat equation object.
     heat_eq = HeatEquation(X_delta=X_delta)
     rhs = random_rhs(heat_eq)
 
@@ -141,7 +139,7 @@ def test_real_tensor_heat():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.sparse_refine(3)
 
-    # Create heat equation obkect
+    # Create heat equation object.
     heat_eq = HeatEquation(X_delta=X_delta)
     rhs = example_rhs(heat_eq)
 
@@ -177,7 +175,7 @@ def test_heat_eq_linear():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.sparse_refine(2)
 
-    # Create heat equation obkect
+    # Create heat equation object.
     heat_eq = HeatEquation(X_delta=X_delta)
     heat_eq_mat = heat_eq.linop.to_matrix()
 
@@ -211,13 +209,15 @@ def test_heat_refine():
     basis_time = ThreePointBasis()
     basis_time.metaroot_wavelet.uniform_refine(6)
 
+    n_t = 101
+    prev_errors = np.ones(n_t)
     for level in range(2, 6):
         # Create X^\delta
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
         X_delta.sparse_refine(level)
 
-        # Create heat equation obkect
+        # Create heat equation object.
         heat_eq = HeatEquation(X_delta=X_delta)
         rhs = example_rhs(heat_eq)
 
@@ -229,8 +229,6 @@ def test_heat_refine():
             num_iters, error))
         u, order = example_solution_function()
 
-        n_t = 101
-        prev_errors = np.ones(n_t)
         for i, t in enumerate(np.linspace(0, 1, n_t)):
             sol_slice = sol[1].slice_time(t, slice_cls=TriangulationFunction)
             true_slice = sol_slice.deep_copy().from_singlescale_array(

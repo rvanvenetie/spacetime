@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import time
 
 from ..datastructures.multi_tree_function import (DoubleTreeFunction,
@@ -48,6 +47,7 @@ def test_fn_small():
 
 if __name__ == "__main__":
     """ We can plot a slice of a DoubleTreeFunction. Animate it for fun. """
+    import matplotlib.pyplot as plt
     # Create space part.
     triang = InitialTriangulation.unit_square()
     triang.vertex_meta_root.uniform_refine(2)

@@ -33,12 +33,15 @@ class Vertex(NodeAbstract):
         self.level = level
         self.x = x
         self.y = y
-        self.xy = np.array([x, y])
         self.on_domain_boundary = on_domain_boundary
         self.patch = patch if patch else []
 
         # Sanity check.
         assert (all([p.level == self.level - 1 for p in self.parents]))
+
+    @property
+    def xy(self):
+        return np.array([self.x, self.y])
 
     def refine(self):
         if not self.is_full():
