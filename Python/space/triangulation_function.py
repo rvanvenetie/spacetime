@@ -7,7 +7,18 @@ from ..space.triangulation_view import TriangulationView
 
 
 class TriangulationFunction(TreeFunction):
-    """ A piecewise constant function defined on a triangulation. """
+    """ A continuous piecewise affine function defined on a triangulation.
+    
+    This is more of a convenience class, with methods that are specific to
+    TreeFunctions where the underlying tree is a vertex tree.
+    """
+    def interpolate_on(self, fn):
+        triang = TriangulationView(self)
+        result = self.deep_copy()
+        mass = MassOperator(triang, dirichlet_boundary=False)
+        nodal_eval = np.array([fn(node.node.node.xy) for node in result.bfs()])
+        return result.from_array(mass.apply_T_inverse(nodal_eval))
+
     def plot(self, fig=None, show=True, dirichlet_boundary=True):
         # Calculate the triangulation that is associated to the result.
         triang = TriangulationView(self)
@@ -27,14 +38,7 @@ class TriangulationFunction(TreeFunction):
         if show:
             plt.show()
 
-    @staticmethod
-    def interpolate_on(tree, fn):
-        result = tree.deep_copy(mlt_tree_cls=TriangulationFunction)
-        mass = MassOperator(TriangulationView(tree), dirichlet_boundary=False)
-        nodal_eval = np.array([fn(node.node.node.xy) for node in result.bfs()])
-        return result.from_array(mass.apply_T_inverse(nodal_eval))
-
     def L2norm(self):
         triang = TriangulationView(self)
-        mass = MassOperator(triang, dirichlet_boundary=True)
+        mass = MassOperator(triang, dirichlet_boundary=False)
         return np.sqrt(self.to_array().T @ mass.apply(self.to_array()))

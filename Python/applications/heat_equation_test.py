@@ -258,17 +258,16 @@ def test_heat_refine():
             sol_slice = sol[1].slice(i=0,
                                      coord=t,
                                      slice_cls=TriangulationFunction)
-            # Refine twice so that we compare with a good reference solution.
+            # Refine a bit so that we compare with a good reference solution.
             sol_slice.uniform_refine(max_level)
-            true_slice = TriangulationFunction.interpolate_on(
-                sol_slice, fn=lambda xy: u[0](t) * u[1](xy))
+            true_slice = sol_slice.interpolate_on(
+                fn=lambda xy: u[0](t) * u[1](xy))
             sol_slice -= true_slice
             cur_errors[i] = sol_slice.L2norm()
             if level == 1:
                 first_errors[i] = cur_errors[i]
         assert norm(cur_errors) <= norm(prev_errors)
         assert cur_errors[-1] <= prev_errors[-1]
-        print(ndofs, cur_errors)
         prev_errors[:] = cur_errors[:]
     # Haha this is quite an atrocious rate --
     # we would expect rate 0.5 to 1.0 for t=T.
