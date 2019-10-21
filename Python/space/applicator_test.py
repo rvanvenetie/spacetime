@@ -100,5 +100,6 @@ def test_dirichlet_boundary():
             # Compare with quadrature
             for i, psi in enumerate(Lambda_in.bfs()):
                 for j, phi in enumerate(Lambda_out.bfs()):
-                    if psi.node.on_domain_boundary or phi.node.on_domain_boundary:
+                    if psi.node.on_domain_boundary or \
+                            phi.node.on_domain_boundary:
                         assert mat[j, i] == 0

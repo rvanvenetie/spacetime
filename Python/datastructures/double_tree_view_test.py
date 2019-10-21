@@ -186,7 +186,7 @@ def test_union():
 
         # Assert double-tree structure is copied as well.
         assert to_tree.root.children[0][0].children[1][0] == \
-               to_tree.root.children[1][0].children[0][0]
+               to_tree.root.children[1][0].children[0][0]  # noqa
 
 
 def test_deep_copy():

@@ -26,7 +26,8 @@ def test_vertex_subtree():
     vertices_subtree = set(v.node for v in vertex_subtree.bfs())
     assert len(vertex_subtree.bfs()) == len(vertices_subtree)
 
-    # Check all nodes necessary for the elem subtree are inside the vertices_subtree
+    # Check all nodes necessary for the elem subtree are
+    # inside the vertices_subtree.
     for elem in T_view.elements:
         for vtx in elem.node.vertices:
             assert vtx in vertices_subtree

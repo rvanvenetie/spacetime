@@ -26,7 +26,7 @@ class FrozenDoubleNodeVector(MultiNodeVectorInterface, FrozenDoubleNodeView):
         return np.array([node.value for node in self.bfs()], dtype=float)
 
     def from_array(self, array):
-        """ Loads the values from the array in BFS-order into the multi treevector. """
+        """ Loads values in BFS-order into the multi treevector. """
         nodes = self.bfs()
         assert len(nodes) == len(array)
         for idx, node in enumerate(nodes):

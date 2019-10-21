@@ -1,7 +1,7 @@
 import numpy as np
 
-from ..datastructures.multi_tree_vector import MultiTreeVector
 from ..datastructures.double_tree_vector import DoubleTreeVector
+from ..datastructures.multi_tree_vector import MultiTreeVector
 from ..datastructures.tree_vector import TreeVector
 
 
@@ -9,7 +9,7 @@ class MultiTreeFunction(MultiTreeVector):
     """ Class that represents a function living on a multi tree. """
     def eval(self, coords):
         """ Evaluate in a stupid way.
-        
+
         Arguments:
             coords: a tuple of coords, each a float or array of size (dim, N).
 
