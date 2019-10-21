@@ -63,7 +63,6 @@ def test_haar_local_refinement():
         assert len(Lambda.per_level[l]) == 1
         assert len(Delta.per_level[l]) == 2
         assert Lambda.per_level[l][0].labda == (l, 0)
-        #assert Delta.per_level[l][0].labda == (l, 0) and Delta.per_level[l][1].labda == (l, 1)
 
 
 def test_ortho_uniform_refinement():

@@ -61,7 +61,7 @@ class Applicator(ApplicatorInterface):
                 elem.Lambda_out = True
 
     def _finalize(self, vec_in, vec_out):
-        """ Helper function to finalize the results. 
+        """ Helper function to finalize the results.
 
         This also copies the data from the single trees into vec_out. """
 

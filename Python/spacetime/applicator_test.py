@@ -373,11 +373,11 @@ def test_applicator_full_tensor_spacetime_quad():
                 Stiff2D(dirichlet_boundary=False),
                 Stiff2D(dirichlet_boundary=False)
             ], [(5, 4), (4, 5)], [(4, 5), (2, 6)]):
-        print(
-            '\nTesting for basis_time_in={}, basis_time_out={}, op_space={}, l_in={}, l_out={}'
-            .format(basis_time_in.__class__.__name__,
-                    basis_time_out.__class__.__name__,
-                    op_space.__class__.__name__, l_in, l_out))
+        print('\nTesting for basis_time_in={}, basis_time_out={}, '
+              'op_space={}, l_in={}, l_out={}'.format(
+                  basis_time_in.__class__.__name__,
+                  basis_time_out.__class__.__name__,
+                  op_space.__class__.__name__, l_in, l_out))
 
         # Create Lambda_in/out and initialize the applicator.
         Lambda_in = DoubleTree.from_metaroots(

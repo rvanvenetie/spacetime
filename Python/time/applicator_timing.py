@@ -11,11 +11,14 @@ from .three_point_basis import ThreePointBasis
 
 def plot_results(results):
     for basis_name in results:
-        plt.plot(range(len(results[basis_name]['N'])), [
-            t / n for n, t in zip(results[basis_name]['N'], results[basis_name]
-                                  ['apply_time'])
-        ],
-                 label=basis_name)
+        plt.plot(
+            range(len(results[basis_name]['N'])),
+            [
+                t / n for n, t in zip(results[basis_name]['N'],
+                                      results[basis_name]['apply_time'])
+            ],
+            label=basis_name,
+        )
     plt.title("Complexity of applying mass matrices")
     plt.xlabel("Maximum level")
     plt.ylabel("Seconds per dof to apply 1 mass matrix")

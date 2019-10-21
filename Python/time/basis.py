@@ -65,13 +65,13 @@ class Element1D(BinaryNodeAbstract):
         self.Pi_out = False
 
         # Add some extra variables the spacetime applicator
-        #TODO: Is this the right place?
+        # TODO: Is this the right place?
         self.Sigma_psi_out = []
         self.Theta_psi_in = False
 
     def _refine_psi_orthonormal(self):
         """ Ensures that Orthonormal wavelets are all set for this element.
-        
+
         This requires that the mother element has valid references.
         """
         if not all(self.psi_ortho):
@@ -175,7 +175,6 @@ class Scaling(CoefficientFunction1D):
 
     def prolongate(self):
         """ Returns a list of pairs with the corresponding coefficients. """
-
     def restrict(self):
         """ The adjoint of transposing. """
 
@@ -248,7 +247,7 @@ class MultiscaleFunctions:
 
     def single_scale_functions(self):
         """ Expensive. Returns a list of all single scale functions.
-        
+
         Assumes that this set represents wavelets.
         """
         Delta = []

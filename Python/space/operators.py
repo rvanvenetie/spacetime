@@ -19,7 +19,7 @@ class Operator:
         return self.apply_HB(v.astype(float))
 
     def apply_HB(self, v):
-        """ Application of the operator the hierarchical basis. 
+        """ Application of the operator the hierarchical basis.
 
         Args:
            v: a `np.array` of length len(self.triang.vertices).
@@ -63,7 +63,7 @@ class Operator:
         return w
 
     def apply_T_transpose(self, v):
-        """Applies the transposed hierarchical-to-single-scale transformation. """
+        """Applies the transposed hierarchical-to-single-scale transform. """
         w = np.copy(v)
         for (vi, T) in reversed(self.triang.history):
             for gp in T.refinement_edge():
