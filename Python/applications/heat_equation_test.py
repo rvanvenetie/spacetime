@@ -219,15 +219,16 @@ def test_heat_eq_linear():
 
 @pytest.mark.slow
 def test_heat_refine():
+    max_level = 8
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    triang.vertex_meta_root.uniform_refine(7)
+    triang.vertex_meta_root.uniform_refine(max_level)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
     # Create time part for X^\delta
     basis_time = ThreePointBasis()
-    basis_time.metaroot_wavelet.uniform_refine(6)
+    basis_time.metaroot_wavelet.uniform_refine(max_level)
 
     n_t = 9
     first_errors = np.ones(n_t)
@@ -235,7 +236,7 @@ def test_heat_refine():
     cur_errors = np.ones(n_t)
     ndofs = []
     for level in range(1, 5):
-        # Create X^\delta
+        # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
         X_delta.sparse_refine(level)
@@ -256,7 +257,7 @@ def test_heat_refine():
         for i, t in enumerate(np.linspace(0, 1, n_t)):
             sol_slice = sol[1].slice_time(t, slice_cls=TriangulationFunction)
             # Refine twice so that we compare with a good reference solution.
-            sol_slice.uniform_refine(7)
+            sol_slice.uniform_refine(max_level)
             true_slice = sol_slice.deep_copy().from_singlescale_array(
                 np.array([
                     u[0](t) * u[1](node.node.node.xy)
@@ -268,6 +269,7 @@ def test_heat_refine():
                 first_errors[i] = cur_errors[i]
         assert norm(cur_errors) <= norm(prev_errors)
         assert cur_errors[-1] <= prev_errors[-1]
+        print(ndofs, cur_errors)
         prev_errors[:] = cur_errors[:]
     # Haha this is quite an atrocious rate --
     # we would expect rate 0.5 to 1.0 for t=T.
@@ -277,7 +279,6 @@ def test_heat_refine():
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
     heat_eq, sol = test_real_tensor_heat()
     fig = plt.figure()
     for t in np.linspace(0, 1, 100):

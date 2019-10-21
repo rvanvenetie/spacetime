@@ -18,10 +18,11 @@ class TriangulationFunction(TreeFunction):
 
         # Plot the result
         import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
         matplotlib_triang = to_matplotlib_triangulation(
             triang.elem_tree_view, self)
         fig = fig or plt.figure()
-        ax = fig.gca(projection='3d')
+        ax = fig.gca(projection=Axes3D.name)
         ax.plot_trisurf(matplotlib_triang, Z=self_ss)
         if show:
             plt.show()
