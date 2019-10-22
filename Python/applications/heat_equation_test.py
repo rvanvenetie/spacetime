@@ -21,7 +21,7 @@ def example_solution_function():
         lambda xy: (1 - xy[0]) * xy[0] * (1 - xy[1]) * xy[1],
     )
     u_order = (2, 4)
-    u_slice_norm_l2 = (lambda t: (1 + t**2) / 30)
+    u_slice_norm_l2 = lambda t: (1 + t**2) / 30
     return u, u_order, u_slice_norm_l2
 
 
