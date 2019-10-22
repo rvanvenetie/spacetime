@@ -322,6 +322,6 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
 
 if __name__ == "__main__":
     test_heat_error_reduction(
-        max_level=14,
+        max_level=16,
         save_results_file='error_reduction.pickle',
     )
