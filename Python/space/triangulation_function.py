@@ -21,7 +21,7 @@ class TriangulationFunction(TreeFunction):
         return result.from_array(mass.apply_T_inverse(nodal_eval))
 
     def norm_L2(self):
-        """ Calculates the L2 norm of this funciton. """
+        """ Calculates the L2 norm of this function. """
         triang = TriangulationView(self)
         mass = MassOperator(triang, dirichlet_boundary=False)
         return np.sqrt(self.to_array().T @ mass.apply(self.to_array()))
