@@ -224,8 +224,11 @@ def test_heat_eq_linear():
 
 
 @pytest.mark.slow
-def test_heat_error_reduction():
-    max_level = 14
+def test_heat_error_reduction(max_level=6, save_results_file=None):
+    # Printing options.
+    np.set_printoptions(precision=4)
+    np.set_printoptions(linewidth=10000)
+
     # Create space part.
     triang = InitialTriangulation.unit_square()
     triang.vertex_meta_root.uniform_refine(max_level + 2)
@@ -240,16 +243,19 @@ def test_heat_error_reduction():
     errors_quad = []
     ndofs = []
     time_per_dof = []
-    np.set_printoptions(precision=4)
-    np.set_printoptions(linewidth=10000)
-    for level in range(2, max_level, 2):
+    for level in range(2, max_level):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
         X_delta.sparse_refine(level, weights=[2, 1])
-        ndofs.append(len(X_delta.bfs()))
         print('X_delta: dofs time axis={}\tdofs space axis={}'.format(
             len(X_delta.project(0).bfs()), len(X_delta.project(1).bfs())))
+
+        # Count number of dofs (not on the boundary!)
+        ndofs.append(
+            len([
+                n for n in X_delta.bfs() if not n.nodes[1].on_domain_boundary
+            ]))
 
         # Create heat equation object.
         heat_eq = HeatEquation(X_delta=X_delta)
@@ -289,24 +295,35 @@ def test_heat_error_reduction():
         print('\trates:', rates_quad)
         print('\n')
 
-        # assert norm(cur_errors) <= norm(prev_errors)
-        # assert cur_errors[-1] <= prev_errors[-1]
+        if save_results_file:
+            import pickle
+            results = {
+                "n_t": n_t,
+                "max_level": max_level,
+                "dofs": ndofs,
+                "time_per_dof": time_per_dof,
+                "errors": errors_quad,
+                "rates": rates_quad
+            }
+            pickle.dump(results, open(save_results_file, "wb"))
 
+        if len(errors_quad) > 1:
+            # Assert that at least 50% of the time steps have error reduction.
+            assert sum(errors_quad[-1] <= errors_quad[-2]) > 0.5 * n_t
 
-#    end_rate = rates[-1]
-#    # Haha this is quite an atrocious rate --
-#    # we would expect rate 0.5 to 1.0 for t=T.
-#    assert end_rate > 0.25
+        if len(errors_quad) > 2:
+            # Assert that at least 80% of the time steps have error reduction.
+            assert sum(errors_quad[-1] <= errors_quad[-3]) > 0.8 * n_t
+
+    # Assert that all our errors have reduced.
+    assert all(errors_quad[-1] <= errors_quad[0])
+
+    # Assert that we have a convergence rate of at least 0.25 :-).
+    assert all(rates_quad > 0.25)
+
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    heat_eq, sol = test_real_tensor_heat()
-    fig = plt.figure()
-    for t in np.linspace(0, 1, 100):
-        plt.clf()
-        time_slice = sol.slice(i=0, coord=t, slice_cls=TriangulationFunction)
-        time_slice.uniform_refine(5)
-        time_slice.plot(fig=fig, show=False)
-        plt.show(block=False)
-        plt.pause(0.01)
-    plt.show()
+    test_heat_error_reduction(
+        max_level=14,
+        save_results_file='error_reduction.pickle',
+    )
