@@ -5,22 +5,21 @@ from collections import deque
 
 class NodeInterface(ABC):
     """ Represents a node in a family tree: nodes have multiple parents. """
+    __slots__ = []
+
     @abstractmethod
     def is_full(self):
         """ Returns whether this node has all possible children present. """
-        pass
-
+    @abstractmethod
+    def is_metaroot(self):
+        """ Returns whether this node represents a *metaroot*. """
     @abstractmethod
     def refine(self):
         """ Refines this node to ensure it is full. Returns all children. """
-        pass
-
     @property
     @abstractmethod
     def level(self):
         """ The level of this node. Root has level 0, its children 1, etc. """
-        pass
-
     @property
     @abstractmethod
     def children(self):
@@ -35,8 +34,6 @@ class NodeInterface(ABC):
     @abstractmethod
     def marked(self):
         """ A marked field getter/setter.  Useful for bfs/dfs. """
-        pass
-
     @marked.setter
     @abstractmethod
     def marked(self, value):
@@ -46,8 +43,7 @@ class NodeInterface(ABC):
         return len(self.children) == 0
 
     def _bfs(self):
-        """ Performs a BFS on the family tree rooted at `self`.
-        """
+        """ Performs a BFS on the family tree rooted at `self`.  """
         queue = deque([self])
         nodes = []
         while queue:
@@ -70,9 +66,15 @@ class NodeAbstract(NodeInterface):
         self.children = children if children else []
         self.marked = False
 
+    def is_metaroot(self):
+        """ This is a real node. """
+        return False
+
 
 class BinaryNodeAbstract(NodeAbstract):
     """ Partial impl. of a binary tree node (hence, with a single parent). """
+    __slots__ = []
+
     def __init__(self, parent=None, children=None):
         if parent:
             super().__init__(parents=[parent], children=children)
@@ -92,9 +94,14 @@ class BinaryNodeAbstract(NodeAbstract):
         return len(self.children) == 2
 
 
-class MetaRootInterface(NodeInterface):
+class MetaRoot(NodeAbstract):
+    """ Combines the roots of a multi-rooted family tree. """
+    __slots__ = []
+
     def __init__(self, roots):
-        """ Registers self as the parent of the roots. """
+        if not isinstance(roots, list):
+            roots = [roots]
+        super().__init__(children=roots)
         # Register self as the parent of the roots. We are now Pater Familias.
         for root in roots:
             assert isinstance(root, NodeAbstract)
@@ -103,6 +110,12 @@ class MetaRootInterface(NodeInterface):
 
     def is_full(self):
         return True
+
+    def is_metaroot(self):
+        return True
+
+    def refine(self):
+        return self.children
 
     @property
     def roots(self):
@@ -115,7 +128,7 @@ class MetaRootInterface(NodeInterface):
 
     def bfs(self, include_metaroot=False):
         """ Performs a BFS on the family tree rooted at `self`.
-        
+
         Args:
             include_metaroot: whether to return `self` as well.
         """
@@ -124,18 +137,6 @@ class MetaRootInterface(NodeInterface):
             return nodes[1:]
         else:
             return nodes
-
-
-class MetaRoot(MetaRootInterface, NodeAbstract):
-    """ Combines the roots of a multi-rooted family tree. """
-    def __init__(self, roots):
-        if not isinstance(roots, list):
-            roots = [roots]
-        NodeAbstract.__init__(self, children=roots)
-        MetaRootInterface.__init__(self, roots=roots)
-
-    def refine(self):
-        return self.children
 
     def uniform_refine(self, max_level):
         """ Ensure that the tree contains up to max_level nodes. """

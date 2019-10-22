@@ -3,16 +3,16 @@ import itertools
 import numpy as np
 
 from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
-from ..datastructures.tree_view import MetaRootView, NodeView
+from ..datastructures.tree_view import NodeViewInterface
 
 
 class Vertex(NodeAbstract):
     """ A vertex in a locally refined triangulation.
-    
+
     Vertices also form a (family)tree, induced by the NVB-relation.
 
     Args:
-      level: the uniform level that introduces this vertex. 
+      level: the uniform level that introduces this vertex.
       x,y: the physical coordinates
       on_domain_boundary: does this vertex lie on the domain boundary?
       patch: the elements that surround this vertex
@@ -39,6 +39,10 @@ class Vertex(NodeAbstract):
         # Sanity check.
         assert (all([p.level == self.level - 1 for p in self.parents]))
 
+    @property
+    def xy(self):
+        return np.array([self.x, self.y])
+
     def refine(self):
         if not self.is_full():
             for elem in self.patch:
@@ -57,20 +61,19 @@ class Vertex(NodeAbstract):
 
 class Element2D(BinaryNodeAbstract):
     """ A element as part of a locally refined triangulation. """
-    __slots__ = ['level', 'vertices', 'area']
+    __slots__ = ['level', 'vertices', 'area', 'neighbours']
 
     def __init__(self, level, vertices, parent=None):
         """ Instantiates the element object.
 
         Arguments:
             level: uniform level that introduces this element
-            vertices: array of three Vertex references. 
+            vertices: array of three Vertex references.
             parent: reference to the parent of this element.
             """
         super().__init__(parent=parent)
         self.level = level
         self.vertices = vertices
-        self.children = []  # References to the children of this element.
 
         # Indices of my neighbours, ordered by the edge opposite vertex i.
         self.neighbours = [None, None, None]
@@ -107,8 +110,22 @@ class Element2D(BinaryNodeAbstract):
         assert 0 <= i <= 2
         return [self.vertices[(i + 2) % 3], self.vertices[(i + 1) % 3]]
 
+    def vertex_array(self):
+        return np.array([self.vertices[i].as_array() for i in range(3)])
+
     def is_leaf(self):
         return not len(self.children)
+
+    def to_barycentric_coordinates(self, xy):
+        """ Returns the barycentric coordinates for a list of points xy. """
+        if len(xy.shape) == 1:
+            xy = xy.reshape(2, 1)
+        V = np.ones((3, 3))
+        V[:2, :] = self.vertex_array().T
+        return np.linalg.solve(V, np.vstack([xy, np.ones(xy.shape[1])]))
+
+    def contains(self, xy):
+        return np.all(self.to_barycentric_coordinates(xy) >= 0)
 
     def __repr__(self):
         return 'Element2D({}, {})'.format(self.level, self.vertices)
@@ -118,7 +135,7 @@ class Element2D(BinaryNodeAbstract):
 
         Args:
             nbr : If self.refinement_edge() is not on the boundary, this
-                   should be the element on the other side. 
+                   should be the element on the other side.
         """
         assert self.is_leaf()
         vertex_parents = [self.newest_vertex()]
@@ -192,7 +209,7 @@ class InitialTriangulation:
 
         Arguments:
             vertices: Vx2 matrix of floats: the coordinates of the vertices.
-            elements: Tx3 matrix of integers: the indices inside the vertices array.
+            elements: Tx3 matrix of integers: indices inside the vertices array.
         """
         self.vertex_roots = [
             Vertex(0, *vert, on_domain_boundary=False)
@@ -236,9 +253,7 @@ class InitialTriangulation:
 
     def _compute_area(self, elem):
         """ Computes the area of the element spanned by `vertex_ids`. """
-        v1 = elem.vertices[0].as_array()
-        v2 = elem.vertices[1].as_array()
-        v3 = elem.vertices[2].as_array()
+        v1, v2, v3 = elem.vertex_array()
         return 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1))
 
 
@@ -246,10 +261,13 @@ def to_matplotlib_triangulation(elem_meta_root, vertex_meta_root):
     """ The current triangulation as matplotlib-compatible object. """
     import matplotlib.tri as mpltri
     elements = [e for e in elem_meta_root.bfs() if e.is_leaf()]
-    vertices = vertex_meta_root.bfs()
-    if isinstance(vertices[0], NodeView):
-        vertices = [v.node for v in vertices]
+    while isinstance(elements[0], NodeViewInterface):
         elements = [e.node for e in elements]
+
+    vertices = vertex_meta_root.bfs()
+    while isinstance(vertices[0], NodeViewInterface):
+        vertices = [v.node for v in vertices]
+
     vertex_to_index = {}
     for idx, vertex in enumerate(vertices):
         vertex_to_index[vertex] = idx

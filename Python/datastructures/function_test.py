@@ -38,7 +38,7 @@ class FakeHaarFunction(FakeFunctionNode):
 
 
 class FakeOrthoFunction(FakeFunctionNode):
-    """ Fake orthonormal node. Familytree structure with 4 children, 2 parents. """
+    """ Fake orthonormal node. Familytree with 4 children, 2 parents. """
     def __init__(self, labda, f_type, parents=None, children=None):
         super().__init__(labda, f_type, parents, children)
         self.nbr = None
@@ -48,7 +48,7 @@ class FakeOrthoFunction(FakeFunctionNode):
 
     @property
     def support(self):
-        l, n = labda
+        l, n = self.labda
         return (n // 2 * 2**-l, (n // 2 + 1) * 2**-l)
 
     def refine(self):

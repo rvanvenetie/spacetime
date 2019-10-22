@@ -1,7 +1,7 @@
 import pytest
 
 from .function_test import FakeHaarFunction, FakeOrthoFunction
-from .tree import *
+from .tree import BinaryNodeAbstract, MetaRoot, NodeAbstract, NodeInterface
 
 
 class FakeMetaRoot(MetaRoot):
@@ -61,7 +61,7 @@ def create_roots(node_type, node_class):
 
 def uniform_index_tree(max_level, node_type, node_class=FakeHaarFunction):
     """ Creates a (dummy) index tree.
-    
+
     Creates a field node_type inside the nodes and sets it to the node_type.
     """
     meta_root = create_roots(node_type, node_class)
@@ -74,7 +74,7 @@ def corner_index_tree(max_level,
                       which_child=0,
                       node_class=FakeHaarFunction):
     """ Creates a (dummy) index tree with 1 element per level.
-    
+
     Creates a field node_type inside the nodes and sets it to the node_type.
     """
     meta_root = create_roots(node_type, node_class)
@@ -90,9 +90,9 @@ def corner_index_tree(max_level,
 
 def test_ABC():
     with pytest.raises(TypeError):
-        root = NodeAbstract()
+        NodeAbstract()
     with pytest.raises(TypeError):
-        root = NodeInterface()
+        NodeInterface()
 
 
 def test_binary():

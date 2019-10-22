@@ -1,10 +1,21 @@
 from collections import OrderedDict
 from fractions import Fraction
+from functools import lru_cache
+
+import numpy as np
+import quadpy
 
 from ..datastructures.function import FunctionInterface
 from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
-from ..datastructures.tree_view import NodeView
+from ..datastructures.tree_view import NodeViewInterface
 from .linear_operator import LinearOperator
+from .sparse_vector import SparseVector
+
+
+@lru_cache(maxsize=10)
+def _get_quadrature_scheme(order):
+    # order == 2 * n - 1.
+    return quadpy.line_segment.gauss_legendre((order + 2) // 2)
 
 
 class Element1D(BinaryNodeAbstract):
@@ -13,8 +24,18 @@ class Element1D(BinaryNodeAbstract):
     The element (l, n) is an interval on level l given by: [2^-l*n, 2^-l*(n+1)].
     """
     __slots__ = [
-        'level', 'left_node_idx', 'phi_disc_const', 'phi_disc_lin',
-        'phi_cont_lin', 'Lambda_in', 'Lambda_out', 'Pi_in', 'Pi_out'
+        'level',
+        'left_node_idx',
+        'phi_disc_const',
+        'phi_disc_lin',
+        'phi_cont_lin',
+        'psi_ortho',
+        'Lambda_in',
+        'Lambda_out',
+        'Pi_in',
+        'Pi_out',
+        'Sigma_psi_out',
+        'Theta_psi_in',
     ]
 
     def __init__(self, level, left_node_idx, parent=None):
@@ -31,6 +52,11 @@ class Element1D(BinaryNodeAbstract):
         self.phi_disc_lin = [None, None]
         self.phi_cont_lin = [None, None]
 
+        # Create variables to register non-zero wavelet functions.
+        # The ordering of functions inside these lists is important.
+        # TODO: Is this the right place?
+        self.psi_ortho = [None, None]
+
         # Add some extra variables necessary for time applicator.
         # TODO: Is this the right place?
         self.Lambda_in = False
@@ -39,9 +65,50 @@ class Element1D(BinaryNodeAbstract):
         self.Pi_out = False
 
         # Add some extra variables the spacetime applicator
-        #TODO: Is this the right place?
+        # TODO: Is this the right place?
         self.Sigma_psi_out = []
         self.Theta_psi_in = False
+
+    def _refine_psi_orthonormal(self):
+        """ Ensures that Orthonormal wavelets are all set for this element.
+
+        This requires that the mother element has valid references.
+        """
+        if not all(self.psi_ortho):
+            assert self.level > 0
+
+            # Recursively find/create the wavelets of the parents.
+            parent_ortho = self.parent._refine_psi_orthonormal()
+
+            # Refine the parent wavelets, so this element gets its children.
+            parent_ortho[0].refine()
+            assert all(self.psi_ortho)
+
+        return self.psi_ortho
+
+    def _refine_phi_cont_lin(self):
+        """ Ensures that all cont lin scaling functions exist on this elem. """
+        if not all(self.phi_cont_lin):
+            # Ensure that the parent has both scalar functions.
+            assert self.level > 0 and all(self.parent.phi_cont_lin)
+
+            # We are the left child element.
+            if self.left_node_idx % 2 == 0:
+                if not self.phi_cont_lin[0]:
+                    self.parent.phi_cont_lin[0].refine_mid()
+                if not self.phi_cont_lin[1]:
+                    self.parent.phi_cont_lin[0].refine_right()
+
+            # We are the right child element.
+            else:
+                if not self.phi_cont_lin[0]:
+                    self.parent.phi_cont_lin[1].refine_left()
+                if not self.phi_cont_lin[1]:
+                    self.parent.phi_cont_lin[1].refine_mid()
+
+            assert all(self.phi_cont_lin)
+
+        return self.phi_cont_lin
 
     def refine(self):
         if not self.children:
@@ -63,7 +130,7 @@ class Element1D(BinaryNodeAbstract):
 
 class CoefficientFunction1D(NodeAbstract, FunctionInterface):
     """ This is a base represention of a basis function with coefficients. """
-    __slots__ = ['support']
+    __slots__ = ['labda', 'support', 'coeff']
 
     def __init__(self, labda, support, parents=None):
         super().__init__(parents=parents, children=None)
@@ -83,27 +150,43 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
 
     def reset_coeff(self):
         """ Resets the coefficients stored in this function object. """
-        self.coeff = [0] * 3
+        self.coeff = [0, 0]
+
+    def support_contains(self, t):
+        a = float(self.support[0].interval[0])
+        b = float(self.support[-1].interval[1])
+        return a <= t <= b
+
+    def inner_quad(self, g, g_order=2, deriv=False):
+        """ Computes <g, self> or <g, d/dt self> by quadrature. """
+        func = lambda t: (self.eval(t, deriv) * g(t))
+        scheme = _get_quadrature_scheme(g_order + self.order)
+        result = 0.0
+        for elem in self.support:
+            interval = list(map(float, elem.interval))
+            result += scheme.integrate(func, interval)
+        return result
 
     def __repr__(self):
         return "{}({}, {})".format(self.__class__.__name__, *self.labda)
 
 
 class Scaling(CoefficientFunction1D):
+    __slots__ = ['multi_scale']
+
     def __init__(self, labda, support, parents=None):
         super().__init__(labda=labda, support=support, parents=parents)
         self.multi_scale = []  # Transpose of the wavelet to multiscale.
 
     def prolongate(self):
         """ Returns a list of pairs with the corresponding coefficients. """
-        pass
-
     def restrict(self):
         """ The adjoint of transposing. """
-        pass
 
 
 class Wavelet(CoefficientFunction1D):
+    __slots__ = ['single_scale']
+
     def __init__(self, labda, single_scale, parents=None):
         super().__init__(labda, support=[], parents=parents)
 
@@ -118,21 +201,29 @@ class Wavelet(CoefficientFunction1D):
         # Deduplicate the support while keeping the ordering intact.
         self.support = list(OrderedDict.fromkeys(support))
 
-    def eval(self, x, deriv=False):
-        result = 0
+    def eval(self, t, deriv=False):
+        if not isinstance(t, np.ndarray): t = np.array([float(t)])
+        assert len(t.shape) == 1 or t.shape[0] == 1
+        result = np.zeros(t.shape)
         for phi, coeff_ss in self.single_scale:
-            result += coeff_ss * phi.eval(x, deriv)
-        return result
+            result += coeff_ss * phi.eval(t, deriv)
+        return result if t.shape[0] > 1 else result[0]
 
 
 class MultiscaleFunctions:
     """ Immutable set of multiscale functions.  """
     def __init__(self, functions):
+        if isinstance(functions, MetaRoot):
+            functions = [nv for nv in functions.bfs()]
+        if isinstance(functions, NodeViewInterface):
+            functions = [nv.node for nv in functions.bfs()]
+        if isinstance(functions, SparseVector):
+            functions = list(functions)
         self.functions = functions
-        self.maximum_level = max([fn.labda[0] for fn in functions])
+        self.maximum_level = max([-1] + [fn.level for fn in functions])
         self.per_level = [[] for _ in range(self.maximum_level + 1)]
         for fn in functions:
-            self.per_level[fn.labda[0]].append(fn)
+            self.per_level[fn.level].append(fn)
 
     def __repr__(self):
         return r"MSIS(%s)" % self.functions
@@ -161,7 +252,7 @@ class MultiscaleFunctions:
 
     def single_scale_functions(self):
         """ Expensive. Returns a list of all single scale functions.
-        
+
         Assumes that this set represents wavelets.
         """
         Delta = []

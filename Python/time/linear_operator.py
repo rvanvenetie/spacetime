@@ -93,3 +93,7 @@ class LinearOperator(object):
             labda_in
             for labda_out in indices_out for labda_in, _ in self.row(labda_out)
         }
+
+    def transpose(self):
+        """ Returns a linear operator of the transpose. """
+        return LinearOperator(row=self.col, col=self.row)

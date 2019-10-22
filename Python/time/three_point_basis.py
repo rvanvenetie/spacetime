@@ -10,8 +10,13 @@ class ContLinearScaling(basis.Scaling):
     The fields `self.nbr_x` correspond to the neighbour on the left/right.
     The fields `self.child_x` correspond to the children on the left/mid/right.
 
-    The field Element.phi_disc_lin object is ordered by labda, i.e. left, right.
+    The field Element.phi_cont_lin object is ordered by labda, i.e. left, right.
     """
+    __slots__ = [
+        'nbr_left', 'nbr_right', 'child_left', 'child_mid', 'child_right'
+    ]
+    order = 1
+
     def __init__(self, labda, support, parents=None):
         super().__init__(labda, support=support, parents=parents)
 
@@ -30,6 +35,11 @@ class ContLinearScaling(basis.Scaling):
         if n < 2**l:
             assert support[-1].phi_cont_lin[0] is None
             support[-1].phi_cont_lin[0] = self
+
+    def _update_children(self):
+        """ Updates the children variable. Invoke after refining. """
+        self.children = list(
+            filter(None, [self.child_left, self.child_mid, self.child_right]))
 
     def refine(self):
         raise TypeError("Regular refinement of ContLinearScaling impossible!")
@@ -51,6 +61,7 @@ class ContLinearScaling(basis.Scaling):
         # Create element.
         child = ContLinearScaling((l + 1, 2 * n), child_support, [self])
         self.child_mid = child
+        self._update_children()
 
         # Update nbrs.
         if self.child_left:
@@ -83,6 +94,8 @@ class ContLinearScaling(basis.Scaling):
         )
         phi_left.child_right = child
         phi_right.child_left = child
+        phi_left._update_children()
+        phi_right._update_children()
 
         # Update nbrs.
         if phi_left.child_mid:
@@ -113,20 +126,20 @@ class ContLinearScaling(basis.Scaling):
             return [(parent, 0.5) for parent in self.parents]
 
     @staticmethod
-    def eval_mother(x, deriv=False):
+    def eval_mother(t, deriv=False):
         """ Evaluates the hat function on [-1,1] centered at 0. """
-        left_mask = (-1 < x) & (x <= 0)
-        right_mask = (0 < x) & (x < 1)
+        left_mask = (-1 < t) & (t <= 0)
+        right_mask = (0 < t) & (t < 1)
 
         if not deriv:
-            return left_mask * (1 + x) + right_mask * (1 - x)
+            return left_mask * (1 + t) + right_mask * (1 - t)
         else:
             return left_mask * 1 + right_mask * -1
 
-    def eval(self, x, deriv=False):
+    def eval(self, t, deriv=False):
         l, n = self.labda
         c = 2**l if deriv else 1.0
-        return c * self.eval_mother(2**l * x - n, deriv)
+        return c * self.eval_mother(2**l * t - n, deriv)
 
 
 class ThreePointWavelet(basis.Wavelet):
@@ -134,7 +147,11 @@ class ThreePointWavelet(basis.Wavelet):
 
     Scaling functions are simply the hat functions. A hat function on given
     level is indexed by the corresponding node index. A wavelet on level l >= 1
-    is indexed by 0..2^l-1, corresponding to the odd nodes on level l."""
+    is indexed by 0..2^l-1, corresponding to the odd nodes on level l.
+    """
+    __slots__ = []
+    order = 1
+
     def __init__(self, labda, single_scale, parents=None):
         super().__init__(labda, single_scale=single_scale, parents=parents)
 

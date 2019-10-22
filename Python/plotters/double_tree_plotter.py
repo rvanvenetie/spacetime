@@ -1,11 +1,11 @@
-from collections import defaultdict, deque
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
 
-from ..datastructures.double_tree import DoubleTree
+from ..datastructures.double_tree_view import DoubleTree
 from .tree_plotter import TreePlotter
 
 
@@ -29,10 +29,6 @@ class DoubleTreePlotter:
     @staticmethod
     def plot_matplotlib_graph(doubletree, i_in):
         assert isinstance(doubletree, DoubleTree)
-        import networkx as nx
-        from networkx.drawing.nx_agraph import write_dot, graphviz_layout
-        from grave import plot_network
-        from grave.style import use_attributes
 
         def onpick(ax, i, event):
             """ Event handler for clicking on a node. """
@@ -50,9 +46,10 @@ class DoubleTreePlotter:
 
             # Update the right subplot to show the single-tree.
             ax[1].clear()
-            TreePlotter.draw_matplotlib_graph(doubletree.fiber(
-                not i, double_node.node),
-                                              axis=ax[1])
+            TreePlotter.draw_matplotlib_graph(
+                doubletree.fiber(not i, double_node.node),
+                axis=ax[1],
+            )
             ax[1].set_title("Fiber of %s in axis %d" %
                             (double_node.node, not i))
             plt.draw()

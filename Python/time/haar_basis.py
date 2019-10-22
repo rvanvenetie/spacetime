@@ -8,6 +8,9 @@ class DiscConstScaling(basis.Scaling):
     The function (l, n) corresponds to the indicator function on element (l,n).
     That is, it has support [2^(-l)*n, 2^(-l)*(n+1)].
     """
+    __slots__ = []
+    order = 0
+
     def __init__(self, labda, support, parents=None):
         assert len(support) == 1
         super().__init__(labda, support=support, parents=parents)
@@ -42,16 +45,19 @@ class DiscConstScaling(basis.Scaling):
         return len(self.children) == 2
 
     @staticmethod
-    def eval_mother(x):
-        return (0 <= x) & (x < 1)
+    def eval_mother(t):
+        return (0 <= t) & (t < 1)
 
-    def eval(self, x, deriv=False):
-        assert deriv == False
+    def eval(self, t, deriv=False):
+        assert not deriv
         l, n = self.labda
-        return 1.0 * self.eval_mother(2**l * x - n)
+        return 1.0 * self.eval_mother(2**l * t - n)
 
 
 class HaarWavelet(basis.Wavelet):
+    __slots__ = []
+    order = 0
+
     def __init__(self, labda, single_scale, parents=None):
         super().__init__(labda, single_scale=single_scale, parents=parents)
 

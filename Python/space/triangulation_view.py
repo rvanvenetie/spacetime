@@ -1,5 +1,6 @@
 from ..datastructures.tree import MetaRoot
-from ..datastructures.tree_view import MetaRootView, NodeView
+from ..datastructures.tree_view import NodeView, NodeViewInterface, TreeView
+from .triangulation import Element2D, Vertex
 
 
 class ElementView(NodeView):
@@ -27,21 +28,27 @@ class TriangulationView:
     """
     def __init__(self, vertex_view):
         """ Initializer given a vertex (sub)tree. """
-        if not isinstance(vertex_view, MetaRootView):
-            vertex_view = MetaRootView(vertex_view, node_view_cls=NodeView)
-            vertex_view.deep_refine()
+        if isinstance(vertex_view, NodeViewInterface):
+            assert vertex_view.is_metaroot()
 
-        # Store the vertex_view with its vertices.
-        self.vertex_view = vertex_view
+        # Store the vertices inside the vertex_view
         self.vertices = vertex_view.bfs()
+        assert self.vertices
+
+        # In the case of stacked views, we must iterate to find the vertices.
+        while isinstance(self.vertices[0], NodeViewInterface):
+            self.vertices = [v.node for v in self.vertices]
+        assert isinstance(self.vertices[0], Vertex)
 
         # Extract the original element root.
-        elem_meta_root = vertex_view.roots[0].node.patch[0].parent
+        elem_meta_root = self.vertices[0].patch[0].parent
         assert isinstance(elem_meta_root, MetaRoot)
+        assert isinstance(elem_meta_root.children[0], Element2D)
 
         # Mark all necessary vertices -- uses the mark field inside vertex.
         for idx, vertex in enumerate(self.vertices):
-            vertex.node.marked = idx
+            assert not vertex.is_metaroot()
+            vertex.marked = idx
 
         # Two helper functions used inside the element tree generation..
         def newest_vertex_in_tree_view(elem):
@@ -49,20 +56,25 @@ class TriangulationView:
             return not isinstance(elem.newest_vertex().marked, bool)
 
         def store_vertices_element_view(elem_view):
-            """ Stores the vertex view indices inside the element_view object. """
-            elem_view.vertices_view_idx = [
-                v.marked for v in elem_view.node.vertices
-            ]
+            """ Store vertex view indices inside the element_view object. """
+            if not isinstance(elem_view.node, MetaRoot):
+                elem_view.vertices_view_idx = [
+                    v.marked for v in elem_view.node.vertices
+                ]
 
         # Now create the associated element tree.
-        self.elem_meta_root_view = MetaRootView(elem_meta_root,
-                                                node_view_cls=ElementView)
-        self.elem_meta_root_view.deep_refine(
+        self.elem_tree_view = TreeView(ElementView(elem_meta_root))
+        self.elem_tree_view.deep_refine(
             call_filter=newest_vertex_in_tree_view,
             call_postprocess=store_vertices_element_view)
 
-        # Also store a flattened view of the elements.
-        self.elements = self.elem_meta_root_view.bfs()
+        # Unmark the vertices
+        for vertex in self.vertices:
+            vertex.marked = False
+
+        # Also store a flattened list of the elements.
+        self.elements = self.elem_tree_view.bfs()
+        assert self.elements
 
         # Create the history object -- uses mark field of the vertex view obj.
         self.history = []
@@ -70,9 +82,12 @@ class TriangulationView:
             vertex = self.vertices[elem.newest_vertex()]
             if elem.level == 0 or vertex.marked: continue
             vertex.marked = True
+            assert len(elem.parents) == 1
             self.history.append((elem.newest_vertex(), elem.parents[0]))
+
+        assert len(self.history) == len(self.vertices) - len(
+            self.vertices[0].parents[0].children)
 
         # Undo marking.
         for vertex in self.vertices:
             vertex.marked = False
-            vertex.node.marked = False

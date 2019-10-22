@@ -1,4 +1,4 @@
-from ..datastructures.tree_view import MetaRootView, NodeView
+from ..datastructures.tree_view import TreeView
 from .triangulation import InitialTriangulation
 from .triangulation_view import TriangulationView
 
@@ -8,12 +8,10 @@ def test_vertex_subtree():
     elem_meta_root = T.elem_meta_root
     elem_meta_root.uniform_refine(6)
 
-    vertex_subtree = MetaRootView(T.vertex_meta_root)
-    T_view = TriangulationView(vertex_subtree)
-    assert len(T_view.elements) == 2
+    vertex_subtree = TreeView.from_metaroot(T.vertex_meta_root)
 
     # Create a subtree with only vertices lying below the diagonal.
-    vertex_subtree = MetaRootView(T.vertex_meta_root)
+    vertex_subtree = TreeView.from_metaroot(T.vertex_meta_root)
     vertex_subtree.deep_refine(
         call_filter=lambda vertex: vertex.x + vertex.y <= 1)
     assert len(vertex_subtree.bfs()) < len(T.vertex_meta_root.bfs())
@@ -22,13 +20,14 @@ def test_vertex_subtree():
 
     # Check that the history object contains exactly non-root vertices
     assert len(T_view.history) == len(vertex_subtree.bfs()) - len(
-        vertex_subtree.roots)
+        T.vertex_meta_root.roots)
 
     # Check that we do not have duplicates
     vertices_subtree = set(v.node for v in vertex_subtree.bfs())
     assert len(vertex_subtree.bfs()) == len(vertices_subtree)
 
-    # Check all nodes necessary for the elem subtree are inside the vertices_subtree
+    # Check all nodes necessary for the elem subtree are
+    # inside the vertices_subtree.
     for elem in T_view.elements:
         for vtx in elem.node.vertices:
             assert vtx in vertices_subtree

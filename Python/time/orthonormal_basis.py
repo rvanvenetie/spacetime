@@ -10,23 +10,25 @@ class DiscLinearScaling(basis.Scaling):
     """ Discontinous piecewise linear scaling function.
 
     There are two `types` of scaling functions. Given index (l, n):
-    1. For even n, the function represents a piecewise constant on 
+    1. For even n, the function represents a piecewise constant on
        the element (l, n//2).
     2. For odd n, it represents a linear function (from -sqrt(3)
        to sqrt(3)) on the element (l, n // 2).
-    
+
     The field `self.pw_constant` can be used to differentiate between the types.
     The field `self.nbr` can be used to retrieve the `other` scaling function
-    on the same element. 
+    on the same element.
     If set, the field `self.children` contains references to the 4 children,
     in order of labda, i.e. cons left, lin left, cons right, lin right.
 
     The field Element.phi_disc_lin object is also ordered by labda: cons, lin.
     """
+    __slots__ = ['nbr', 'pw_constant']
+    order = 1
+
     def __init__(self, labda, support, parents=None):
         assert len(support) == 1
         super().__init__(labda, support=support, parents=parents)
-        self.children = []
         self.nbr = None  # Store a reference to the `neighbour` on this element.
         self.pw_constant = labda[1] % 2 == 0  # Store type of this function.
 
@@ -82,24 +84,31 @@ class DiscLinearScaling(basis.Scaling):
         return len(self.children) == 4
 
     @staticmethod
-    def eval_mother(constant, x, deriv):
+    def eval_mother(constant, t, deriv):
         if not deriv:
-            if constant: return (0 <= x) & (x < 1)
-            else: return sq3 * (2 * x - 1) * ((0 <= x) & (x < 1))
+            if constant: return 1.0 * ((0 <= t) & (t < 1))
+            else: return sq3 * (2 * t - 1) * ((0 <= t) & (t < 1))
         else:
-            if constant: return 0 * ((0 <= x) & (x < 1))
-            else: return sq3 * 2 * ((0 <= x) & (x < 1))
+            if constant: return 0 * ((0 <= t) & (t < 1))
+            else: return sq3 * 2 * ((0 <= t) & (t < 1))
 
-    def eval(self, x, deriv=False):
+    def eval(self, t, deriv=False):
         l, n = self.labda
         chain_rule_constant = 2**l if deriv else 1.0
         return chain_rule_constant * self.eval_mother(
-            self.pw_constant, 2**l * x - (n // 2), deriv)
+            self.pw_constant, 2**l * t - (n // 2), deriv)
 
 
 class OrthonormalWavelet(basis.Wavelet):
+    __slots__ = []
+    order = 1
+
     def __init__(self, labda, single_scale, parents=None):
         super().__init__(labda, single_scale=single_scale, parents=parents)
+
+        for elem in self.support:
+            assert elem.psi_ortho[self.index % 2] is None
+            elem.psi_ortho[self.index % 2] = self
 
     def _nbr(self):
         """ Finds the `neighbour` of this wavelet, i.e. its twin brother. """
