@@ -319,10 +319,10 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
     assert all(errors_quad[-1] <= errors_quad[0])
 
     # Assert that we have a convergence rate of at least 0.25 :-).
-    assert all(rates_quad > 0.25)
+    assert all(rates_quad[-1] > 0.25)
 
     # We expect a reat of atleast 0.5, but this requires some refines.
-    if max_level >= 8: assert all(rates_quad > 0.5)
+    if max_level >= 8: assert all(rates_quad[-1] > 0.5)
 
 
 if __name__ == "__main__":

@@ -71,6 +71,12 @@ class MultiTreeVector(MultiTree):
     def sum(self):
         return sum(nv.value for nv in self.bfs())
 
+    def reset(self):
+        """ Resets all the values in the underlying tree to zero. """
+        for node in self.bfs():
+            node.value = 0
+        return self
+
     def __iadd__(self, other):
         """ Add two double trees. """
         return self.axpy(other)
