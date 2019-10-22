@@ -1,7 +1,6 @@
 import random
 
 import numpy as np
-import pytest
 
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_vector import TreeVector
@@ -221,7 +220,6 @@ def test_heat_eq_linear():
         assert np.allclose(heat_eq.linop.matvec(v_arr), heat_eq_mat.dot(v_arr))
 
 
-@pytest.mark.slow
 def test_heat_error_reduction(max_level=6, save_results_file=None):
     # Printing options.
     np.set_printoptions(precision=4)
@@ -284,9 +282,12 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
             )
 
         errors_quad.append(cur_errors_quad)
-        rates_quad.append(
-            np.log(errors_quad[-1] / errors_quad[0]) /
-            np.log(ndofs[0] / ndofs[-1]))
+        if len(ndofs) == 1:
+            rates_quad.append([0] * n_t)
+        else:
+            rates_quad.append(
+                np.log(errors_quad[-1] / errors_quad[0]) /
+                np.log(ndofs[0] / ndofs[-1]))
 
         print('-- Results for level = {} --'.format(level))
         print('\tdofs:', ndofs[-1])
@@ -319,10 +320,10 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
     assert all(errors_quad[-1] <= errors_quad[0])
 
     # Assert that we have a convergence rate of at least 0.25 :-).
-    assert all(rates_quad > 0.25)
+    assert all(rates_quad[-1] > 0.25)
 
     # We expect a reat of atleast 0.5, but this requires some refines.
-    if max_level >= 8: assert all(rates_quad > 0.5)
+    if max_level >= 8: assert all(rates_quad[-1] > 0.5)
 
 
 if __name__ == "__main__":
