@@ -1,9 +1,7 @@
 import random
-import pytest
 
 import numpy as np
-from numpy.linalg import norm
-from math import log
+import pytest
 
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_vector import TreeVector
@@ -18,19 +16,25 @@ from .heat_equation import HeatEquation
 
 
 def example_solution_function():
-    u = (lambda t: 1 + t**2, lambda xy: (1 - xy[0]) * xy[0] *
-         (1 - xy[1]) * xy[1])
+    u = (
+        lambda t: 1 + t**2,
+        lambda xy: (1 - xy[0]) * xy[0] * (1 - xy[1]) * xy[1],
+    )
     u_order = (2, 4)
-    return u, u_order
+    u_slice_norm_l2 = lambda t: (1 + t**2) / 30
+    return u, u_order, u_slice_norm_l2
 
 
 def example_rhs(heat_eq):
-    g = [(lambda t: -2 * (1 + t**2), lambda xy: (xy[0] - 1) * xy[0] +
-          (xy[1] - 1) * xy[1]),
-         (lambda t: 2 * t, lambda xy: (xy[0] - 1) * xy[0] *
-          (xy[1] - 1) * xy[1])]
+    g = [(
+        lambda t: -2 * (1 + t**2),
+        lambda xy: (xy[0] - 1) * xy[0] + (xy[1] - 1) * xy[1],
+    ), (
+        lambda t: 2 * t,
+        lambda xy: (xy[0] - 1) * xy[0] * (xy[1] - 1) * xy[1],
+    )]
     g_order = (2, 4)
-    u, u_order = example_solution_function()
+    u, u_order, _ = example_solution_function()
     u0 = lambda xy: u[0](0) * u[1](xy)
     u0_order = u_order[1]
 
@@ -218,8 +222,11 @@ def test_heat_eq_linear():
 
 
 @pytest.mark.slow
-def test_heat_refine():
-    max_level = 8
+def test_heat_error_reduction(max_level=6, save_results_file=None):
+    # Printing options.
+    np.set_printoptions(precision=4)
+    np.set_printoptions(linewidth=10000)
+
     # Create space part.
     triang = InitialTriangulation.unit_square()
     triang.vertex_meta_root.uniform_refine(max_level)
@@ -231,16 +238,23 @@ def test_heat_refine():
     basis_time.metaroot_wavelet.uniform_refine(max_level)
 
     n_t = 9
-    first_errors = np.ones(n_t)
-    prev_errors = np.ones(n_t)
-    cur_errors = np.ones(n_t)
+    errors_quad = []
     ndofs = []
-    for level in range(1, 5):
+    time_per_dof = []
+    rates_quad = []
+    for level in range(2, max_level):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
-        X_delta.sparse_refine(level)
-        ndofs.append(len(X_delta.bfs()))
+        X_delta.sparse_refine(level, weights=[2, 1])
+        print('X_delta: dofs time axis={}\tdofs space axis={}'.format(
+            len(X_delta.project(0).bfs()), len(X_delta.project(1).bfs())))
+
+        # Count number of dofs (not on the boundary!)
+        ndofs.append(
+            len([
+                n for n in X_delta.bfs() if not n.nodes[1].on_domain_boundary
+            ]))
 
         # Create heat equation object.
         heat_eq = HeatEquation(X_delta=X_delta)
@@ -252,38 +266,67 @@ def test_heat_refine():
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())
         print('MINRES solved in {} iterations with a residual norm {}'.format(
             num_iters, residual_norm))
-        u, order = example_solution_function()
+        print('Time per dof is approximately {}'.format(
+            heat_eq.time_per_dof()))
+        time_per_dof.append(heat_eq.time_per_dof())
 
+        u, u_order, u_slice_norm = example_solution_function()
+
+        cur_errors_quad = np.ones(n_t)
         for i, t in enumerate(np.linspace(0, 1, n_t)):
             sol_slice = sol[1].slice(i=0,
                                      coord=t,
                                      slice_cls=TriangulationFunction)
-            # Refine a bit so that we compare with a good reference solution.
-            sol_slice.uniform_refine(max_level)
-            true_slice = sol_slice.interpolate_on(
-                fn=lambda xy: u[0](t) * u[1](xy))
-            sol_slice -= true_slice
-            cur_errors[i] = sol_slice.L2norm()
-            if level == 1:
-                first_errors[i] = cur_errors[i]
-        assert norm(cur_errors) <= norm(prev_errors)
-        assert cur_errors[-1] <= prev_errors[-1]
-        prev_errors[:] = cur_errors[:]
-    # Haha this is quite an atrocious rate --
-    # we would expect rate 0.5 to 1.0 for t=T.
-    rate = log(cur_errors[-1] / first_errors[-1]) / log(ndofs[0] / ndofs[-1])
-    assert rate > 0.25
+            cur_errors_quad[i] = sol_slice.error_L2(
+                lambda xy: u[0](t) * u[1](xy),
+                u_slice_norm(t),
+                u_order[1],
+            )
+
+        errors_quad.append(cur_errors_quad)
+        rates_quad.append(
+            np.log(errors_quad[-1] / errors_quad[0]) /
+            np.log(ndofs[0] / ndofs[-1]))
+
+        print('-- Results for level = {} --'.format(level))
+        print('\tdofs:', ndofs[-1])
+        print('\ttime_per_dof: {0:.4f}'.format(time_per_dof[-1]))
+        print('\terrors:', errors_quad[-1])
+        print('\trates:', rates_quad[-1])
+        print('\n')
+
+        if save_results_file:
+            import pickle
+            results = {
+                "n_t": n_t,
+                "max_level": max_level,
+                "dofs": ndofs,
+                "time_per_dof": time_per_dof,
+                "errors": errors_quad,
+                "rates": rates_quad
+            }
+            pickle.dump(results, open(save_results_file, "wb"))
+
+        if len(errors_quad) > 1:
+            # Assert that at least 50% of the time steps have error reduction.
+            assert sum(errors_quad[-1] <= errors_quad[-2]) > 0.5 * n_t
+
+        if len(errors_quad) > 2:
+            # Assert that at least 80% of the time steps have error reduction.
+            assert sum(errors_quad[-1] <= errors_quad[-3]) > 0.8 * n_t
+
+    # Assert that all our errors have reduced.
+    assert all(errors_quad[-1] <= errors_quad[0])
+
+    # Assert that we have a convergence rate of at least 0.25 :-).
+    assert all(rates_quad > 0.25)
+
+    # We expect a reat of atleast 0.5, but this requires some refines.
+    if max_level >= 8: assert all(rates_quad > 0.5)
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    heat_eq, sol = test_real_tensor_heat()
-    fig = plt.figure()
-    for t in np.linspace(0, 1, 100):
-        plt.clf()
-        time_slice = sol.slice(i=0, coord=t, slice_cls=TriangulationFunction)
-        time_slice.uniform_refine(5)
-        time_slice.plot(fig=fig, show=False)
-        plt.show(block=False)
-        plt.pause(0.01)
-    plt.show()
+    test_heat_error_reduction(
+        max_level=16,
+        save_results_file='error_reduction.pickle',
+    )
