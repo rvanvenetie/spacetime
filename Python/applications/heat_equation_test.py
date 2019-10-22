@@ -1,4 +1,5 @@
 import random
+from pprint import pprint
 
 import numpy as np
 import pytest
@@ -22,7 +23,8 @@ def example_solution_function():
         lambda xy: (1 - xy[0]) * xy[0] * (1 - xy[1]) * xy[1],
     )
     u_order = (2, 4)
-    return u, u_order
+    u_slice_norm_l2 = (lambda t: (1 + t**2) / 30)
+    return u, u_order, u_slice_norm_l2
 
 
 def example_rhs(heat_eq):
@@ -34,7 +36,7 @@ def example_rhs(heat_eq):
         lambda xy: (xy[0] - 1) * xy[0] * (xy[1] - 1) * xy[1],
     )]
     g_order = (2, 4)
-    u, u_order = example_solution_function()
+    u, u_order, _ = example_solution_function()
     u0 = lambda xy: u[0](0) * u[1](xy)
     u0_order = u_order[1]
 
@@ -235,10 +237,11 @@ def test_heat_error_reduction():
     basis_time.metaroot_wavelet.uniform_refine(max_level)
 
     n_t = 9
-    first_errors = None
-    prev_errors = np.ones(n_t)
-    cur_errors = np.ones(n_t)
+    errors_quad = []
+    errors_interp = []
     ndofs = []
+    np.set_printoptions(precision=4)
+    np.set_printoptions(linewidth=10000)
     for level in range(2, max_level, 2):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
@@ -258,35 +261,43 @@ def test_heat_error_reduction():
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())
         print('MINRES solved in {} iterations with a residual norm {}'.format(
             num_iters, residual_norm))
-        u, order = example_solution_function()
+        u, u_order, u_slice_norm = example_solution_function()
 
+        cur_errors_quad = np.ones(n_t)
         for i, t in enumerate(np.linspace(0, 1, n_t)):
             sol_slice = sol[1].slice(i=0,
                                      coord=t,
                                      slice_cls=TriangulationFunction)
-            # Refine twice so that we compare with a good reference solution.
-            sol_slice.uniform_refine(level + 2)
-            true_slice = TriangulationFunction.interpolate_on(
-                sol_slice, fn=lambda xy: u[0](t) * u[1](xy))
-            sol_slice -= true_slice
-            cur_errors[i] = sol_slice.L2norm()
+            cur_errors_quad[i] = sol_slice.error_L2(
+                lambda xy: u[0](t) * u[1](xy),
+                u_slice_norm(t),
+                u_order[1],
+            )
 
-        if first_errors is None:
-            first_errors = cur_errors.copy()
-
-        assert norm(cur_errors) <= norm(prev_errors)
-        assert cur_errors[-1] <= prev_errors[-1]
-        print(ndofs, cur_errors)
-        prev_errors[:] = cur_errors[:]
-        rates = np.log(cur_errors / first_errors) / np.log(
+        errors_quad.append(cur_errors_quad)
+        errors_interp.append(cur_errors_interp)
+        rates_quad = np.log(errors_quad[-1] / errors_quad[0]) / np.log(
             ndofs[0] / ndofs[-1])
-        print('Error reduction rates: {}'.format(rates))
+        rates_interp = np.log(errors_interp[-1] / errors_interp[0]) / np.log(
+            ndofs[0] / ndofs[-1])
 
-    end_rate = rates[-1]
-    # Haha this is quite an atrocious rate --
-    # we would expect rate 0.5 to 1.0 for t=T.
-    assert end_rate > 0.25
+        print('-- Results for {} dofs --'.format(ndofs[-1]))
+        print('Quadrature')
+        print('\terrors: ', cur_errors_quad)
+        print('\trates: ', rates_quad)
+        print('Interpolation')
+        print('\terrors: ', cur_errors_interp)
+        print('\trates: ', rates_interp)
+        print('\n')
 
+        # assert norm(cur_errors) <= norm(prev_errors)
+        # assert cur_errors[-1] <= prev_errors[-1]
+
+
+#    end_rate = rates[-1]
+#    # Haha this is quite an atrocious rate --
+#    # we would expect rate 0.5 to 1.0 for t=T.
+#    assert end_rate > 0.25
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt

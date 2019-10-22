@@ -68,6 +68,9 @@ class MultiTreeVector(MultiTree):
 
         return self
 
+    def sum(self):
+        return sum(nv.value for nv in self.bfs())
+
     def __iadd__(self, other):
         """ Add two double trees. """
         return self.axpy(other)
