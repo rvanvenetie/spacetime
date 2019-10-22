@@ -282,9 +282,12 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
             )
 
         errors_quad.append(cur_errors_quad)
-        rates_quad.append(
-            np.log(errors_quad[-1] / errors_quad[0]) /
-            np.log(ndofs[0] / ndofs[-1]))
+        if len(ndofs) == 1:
+            rates_quad.append([0] * n_t)
+        else:
+            rates_quad.append(
+                np.log(errors_quad[-1] / errors_quad[0]) /
+                np.log(ndofs[0] / ndofs[-1]))
 
         print('-- Results for level = {} --'.format(level))
         print('\tdofs:', ndofs[-1])
