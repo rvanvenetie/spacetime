@@ -43,7 +43,6 @@ class TriangulationFunction(TreeFunction):
 
         quad_tree = self.deep_copy(call_postprocess=call_quad_g)
         quad_tree_sum = quad_tree.sum()
-        assert quad_tree_sum > 0
 
         # <g - self, g - self> = <g, g> + <self, self> - 2<g, self>.
         result = g_norm_l2**2 + self.norm_L2()**2 - 2 * quad_tree_sum

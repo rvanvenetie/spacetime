@@ -241,6 +241,7 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
     errors_quad = []
     ndofs = []
     time_per_dof = []
+    rates_quad = []
     for level in range(2, max_level):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
@@ -283,14 +284,15 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
             )
 
         errors_quad.append(cur_errors_quad)
-        rates_quad = np.log(errors_quad[-1] / errors_quad[0]) / np.log(
-            ndofs[0] / ndofs[-1])
+        rates_quad.append(
+            np.log(errors_quad[-1] / errors_quad[0]) /
+            np.log(ndofs[0] / ndofs[-1]))
 
         print('-- Results for level = {} --'.format(level))
         print('\tdofs:', ndofs[-1])
         print('\ttime_per_dof: {0:.4f}'.format(time_per_dof[-1]))
-        print('\terrors:', cur_errors_quad)
-        print('\trates:', rates_quad)
+        print('\terrors:', errors_quad[-1])
+        print('\trates:', rates_quad[-1])
         print('\n')
 
         if save_results_file:
