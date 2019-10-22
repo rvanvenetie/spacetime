@@ -229,7 +229,7 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
 
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    triang.vertex_meta_root.uniform_refine(max_level + 2)
+    triang.vertex_meta_root.uniform_refine(max_level)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
