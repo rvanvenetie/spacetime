@@ -3,8 +3,8 @@ import scipy
 from ..datastructures.applicator import (BlockApplicator,
                                          LinearOperatorApplicator)
 from ..datastructures.double_tree_vector import DoubleTreeVector
-from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..datastructures.multi_tree_function import DoubleTreeFunction
+from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..space import applicator as s_applicator
 from ..space import operators as s_operators
 from ..spacetime.applicator import Applicator
@@ -142,3 +142,6 @@ class HeatEquation:
         result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
         result_fn.from_array(result_array)
         return result_fn, num_iters
+
+    def time_per_dof(self):
+        return self.linop.time_per_dof()

@@ -1,3 +1,4 @@
+import time
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -186,10 +187,22 @@ class LinearOperatorApplicator(scipy.sparse.linalg.LinearOperator):
         super().__init__(float, applicator.shape())
         self.applicator = applicator
         self.input_vec = input_vec
+        self.total_time = 0
+        self.total_applies = 0
 
     def _matvec(self, x):
+        time_begin = time.process_time()
+
         self.input_vec.from_array(x)
-        return self.applicator.apply(self.input_vec).to_array()
+        result = self.applicator.apply(self.input_vec).to_array()
+
+        self.total_time += time.process_time() - time_begin
+        self.total_applies += 1
+        return result
 
     def to_matrix(self):
         return self.matmat(np.eye(self.shape[1]))
+
+    def time_per_dof(self):
+        """ Returns an estimated time per dof. """
+        return self.total_time / (self.total_applies * self.shape[1])

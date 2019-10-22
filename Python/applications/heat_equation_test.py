@@ -238,8 +238,8 @@ def test_heat_error_reduction():
 
     n_t = 9
     errors_quad = []
-    errors_interp = []
     ndofs = []
+    time_per_dof = []
     np.set_printoptions(precision=4)
     np.set_printoptions(linewidth=10000)
     for level in range(2, max_level, 2):
@@ -261,6 +261,10 @@ def test_heat_error_reduction():
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())
         print('MINRES solved in {} iterations with a residual norm {}'.format(
             num_iters, residual_norm))
+        print('Time per dof is approximately {}'.format(
+            heat_eq.time_per_dof()))
+        time_per_dof.append(heat_eq.time_per_dof())
+
         u, u_order, u_slice_norm = example_solution_function()
 
         cur_errors_quad = np.ones(n_t)
@@ -275,19 +279,14 @@ def test_heat_error_reduction():
             )
 
         errors_quad.append(cur_errors_quad)
-        errors_interp.append(cur_errors_interp)
         rates_quad = np.log(errors_quad[-1] / errors_quad[0]) / np.log(
             ndofs[0] / ndofs[-1])
-        rates_interp = np.log(errors_interp[-1] / errors_interp[0]) / np.log(
-            ndofs[0] / ndofs[-1])
 
-        print('-- Results for {} dofs --'.format(ndofs[-1]))
-        print('Quadrature')
-        print('\terrors: ', cur_errors_quad)
-        print('\trates: ', rates_quad)
-        print('Interpolation')
-        print('\terrors: ', cur_errors_interp)
-        print('\trates: ', rates_interp)
+        print('-- Results for level = {} --'.format(level))
+        print('\tdofs:', ndofs[-1])
+        print('\ttime_per_dof: {0:.4f}'.format(time_per_dof[-1]))
+        print('\terrors:', cur_errors_quad)
+        print('\trates:', rates_quad)
         print('\n')
 
         # assert norm(cur_errors) <= norm(prev_errors)
