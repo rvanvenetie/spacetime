@@ -1,7 +1,6 @@
 import random
 
 import numpy as np
-import pytest
 
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_vector import TreeVector
@@ -221,7 +220,6 @@ def test_heat_eq_linear():
         assert np.allclose(heat_eq.linop.matvec(v_arr), heat_eq_mat.dot(v_arr))
 
 
-@pytest.mark.slow
 def test_heat_error_reduction(max_level=6, save_results_file=None):
     # Printing options.
     np.set_printoptions(precision=4)
