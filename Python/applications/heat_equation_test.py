@@ -1,9 +1,7 @@
 import random
-from pprint import pprint
 
 import numpy as np
 import pytest
-from numpy.linalg import norm
 
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_vector import TreeVector
