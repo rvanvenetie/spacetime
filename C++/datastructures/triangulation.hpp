@@ -6,7 +6,7 @@
 #include <vector>
 #include "tree.hpp"
 
-struct Vertex;
+class Vertex;
 using VertexPtr = std::shared_ptr<Vertex>;
 using VectorVertexPtr = std::vector<VertexPtr>;
 template <size_t N>
@@ -19,18 +19,16 @@ template <size_t N>
 using ArrayElement2DPtr = std::array<Element2DPtr, N>;
 std::ostream &operator<<(std::ostream &os, const Element2D &elem);
 
-struct Vertex {
-  double x, y;
+class Vertex : public Node<Vertex> {
+ public:
+  const double x, y;
   bool on_domain_boundary;
-  VectorVertexPtr parents;
-  VectorVertexPtr children;
-  Vertex(double x, double y, bool on_domain_boundary, VectorVertexPtr parents,
-         VectorVertexPtr children)
-      : x(x),
-        y(y),
-        on_domain_boundary(on_domain_boundary),
-        parents(parents),
-        children(children) {}
+  VectorElement2DPtr patch;
+
+  Vertex() : Node(), x(-1), y(-1), on_domain_boundary(false) {}
+  Vertex(double x, double y, bool on_domain_boundary,
+         const VectorVertexPtr &parents)
+      : Node(parents), x(x), y(y), on_domain_boundary(on_domain_boundary) {}
 };
 
 std::ostream &operator<<(std::ostream &os, const Vertex &vertex) {
@@ -40,7 +38,7 @@ std::ostream &operator<<(std::ostream &os, const Vertex &vertex) {
 
 class InitialTriangulation;
 
-class Element2D : public Node<Element2D> {
+class Element2D : public BinaryNode<Element2D> {
  protected:
   double area_;
   VectorVertexPtr vertices_;
@@ -54,10 +52,10 @@ class Element2D : public Node<Element2D> {
     }
 
     ArrayVertexPtr<2> godparents{{vertices_[1], vertices_[2]}};
-    auto new_vertex = std::make_shared<Vertex>(
-        (godparents[0]->x + godparents[1]->x) / 2,
-        (godparents[0]->y + godparents[1]->y) / 2, nbr != nullptr,
-        vertex_parents, VectorVertexPtr{});
+    auto new_vertex =
+        std::make_shared<Vertex>((godparents[0]->x + godparents[1]->x) / 2,
+                                 (godparents[0]->y + godparents[1]->y) / 2,
+                                 nbr != nullptr, vertex_parents);
     for (auto vertex_parent : vertex_parents)
       vertex_parent->children.push_back(vertex_parent);
     return new_vertex;
@@ -79,19 +77,20 @@ class Element2D : public Node<Element2D> {
     child2->neighbours = {{neighbours[1], child1, nullptr}};
 
     assert(child1->edge(2) == child2->reversed_edge(1));
-    // new_vertex->patch.append(child1, child2);
+    new_vertex->patch.push_back(child1);
+    new_vertex->patch.push_back(child2);
 
     if (neighbours[2]) {
-      for (int i = 0; i < 3; ++i) {
-        if (neighbours[2]->neighbours[i] == shared_from_this()) {
-          neighbours[2]->neighbours[i] = child1;
+      for (auto &nbr_nbr : neighbours[2]->neighbours) {
+        if (nbr_nbr == shared_from_this()) {
+          nbr_nbr = child1;
         }
       }
     }
     if (neighbours[1]) {
-      for (int i = 0; i < 3; ++i) {
-        if (neighbours[1]->neighbours[i] == shared_from_this()) {
-          neighbours[1]->neighbours[i] = child2;
+      for (auto &nbr_nbr : neighbours[1]->neighbours) {
+        if (nbr_nbr == shared_from_this()) {
+          nbr_nbr = child2;
         }
       }
     }
@@ -114,9 +113,6 @@ class Element2D : public Node<Element2D> {
 
  public:
   ArrayElement2DPtr<3> neighbours;
-  bool is_full() const { return children.size() == 2; }
-  bool is_leaf() const { return children.size() == 0; }
-  Element2DPtr parent() const { return parents_[0]; }
 
   double area() const { return area_; }
   const VectorVertexPtr &vertices() const { return vertices_; }
@@ -129,11 +125,11 @@ class Element2D : public Node<Element2D> {
     assert(0 <= i && i <= 2);
     return {{vertices_[(i + 2) % 3], vertices_[(i + 1) % 3]}};
   }
-  Element2D() : Node(), area_(-1) {}
+  Element2D() : BinaryNode(), area_(-1) {}
 
   explicit Element2D(Element2DPtr parent, const VectorVertexPtr &vertices,
                      double area)
-      : Node({parent}), area_(area), vertices_(vertices) {}
+      : BinaryNode(parent), area_(area), vertices_(vertices) {}
 
   explicit Element2D(Element2DPtr parent, const VectorVertexPtr &vertices)
       : Element2D(parent, vertices, parent->area() / 2.0) {}
@@ -169,8 +165,7 @@ class InitialTriangulation {
   Element2DPtr elem_meta_root;
   InitialTriangulation(const std::vector<std::array<double, 2>> &vertices,
                        const std::vector<std::array<int, 3>> &elements)
-      : vertex_meta_root(std::make_shared<Vertex>(
-            -1, -1, false, VectorVertexPtr{}, VectorVertexPtr{})),
+      : vertex_meta_root(std::make_shared<Vertex>()),
         elem_meta_root(std::make_shared<Element2D>()) {
     // Convenient aliases
     auto &vertex_roots = vertex_meta_root->children;
@@ -178,8 +173,7 @@ class InitialTriangulation {
 
     for (auto vertex : vertices) {
       vertex_roots.push_back(std::make_shared<Vertex>(
-          vertex[0], vertex[1], false, VectorVertexPtr{vertex_meta_root},
-          VectorVertexPtr{}));
+          vertex[0], vertex[1], false, VectorVertexPtr{vertex_meta_root}));
     }
 
     for (auto element : elements) {
@@ -196,6 +190,7 @@ class InitialTriangulation {
           elem_area));
     }
 
+    // Set neighbour information.
     for (int i = 0; i < elements.size(); ++i) {
       for (int j = i + 1; j < elements.size(); ++j) {
         for (int k = 0; k < 3; k++) {
@@ -209,6 +204,15 @@ class InitialTriangulation {
         }
       }
     }
+
+    // Determine patches for the vertices.
+    for (auto element : element_roots) {
+      for (auto vertex : element->vertices()) {
+        vertex->patch.push_back(element);
+      }
+    }
+
+    // Determine vertices that are on the boundary.
     for (auto element : element_roots) {
       for (int i = 0; i < 3; ++i)
         if (!element->neighbours[i]) {

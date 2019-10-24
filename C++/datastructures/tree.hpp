@@ -64,6 +64,7 @@ class Node : public NodeInterface<T> {
   int level_;
   bool marked_ = false;
   std::vector<std::shared_ptr<T>> parents_;
+  Node() : level_(-1) {}
 
  public:
   int level() const { return level_; }
@@ -73,8 +74,6 @@ class Node : public NodeInterface<T> {
   std::vector<std::shared_ptr<T>> children;
   const std::vector<std::shared_ptr<T>> parents() const { return parents_; }
 
-  Node() : level_(-1) {}
-
   explicit Node(const std::vector<std::shared_ptr<T>> &parents)
       : parents_(parents) {
     assert(parents.size());
@@ -83,4 +82,17 @@ class Node : public NodeInterface<T> {
       assert(parent->level() == level_ - 1);
     }
   }
+};
+
+template <typename T>
+class BinaryNode : public Node<T> {
+ protected:
+  using Node<T>::Node;
+
+ public:
+  bool is_full() const { return Node<T>::children.size() == 2; }
+  bool is_leaf() const { return Node<T>::children.size() == 0; }
+  std::shared_ptr<T> parent() const { return Node<T>::parents_[0]; }
+
+  explicit BinaryNode(std::shared_ptr<T> parent) : Node<T>({parent}) {}
 };
