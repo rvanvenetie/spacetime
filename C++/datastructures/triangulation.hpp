@@ -37,7 +37,7 @@ class Vertex : public datastructures::Node<Vertex> {
   }
 
  protected:
-  Vertex() : Node(), x(-1), y(-1), on_domain_boundary(false) {}
+  Vertex() : Node(), x(NAN), y(NAN), on_domain_boundary(false) {}
 };
 
 class Element2D : public datastructures::BinaryNode<Element2D> {
