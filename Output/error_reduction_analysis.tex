@@ -1,0 +1,102 @@
+\documentclass[11pt,a4paper]{amsart}
+
+\usepackage{amsmath, amssymb}
+\usepackage{dsfont}
+\usepackage{geometry}
+\usepackage{commath}
+\usepackage{url}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{mathtools}
+\usepackage{todonotes}
+%\setlength{\parindent}{0pt}
+\geometry{%
+  includeheadfoot,
+  margin=2cm
+}
+
+\newtheorem*{problem}{Problem}
+\newtheorem*{lemma}{Lemma}
+\theoremstyle{definition}
+\newtheorem*{answer}{Answer}
+
+\newcommand{\bbone}{\mathds{1}}
+\DeclareMathOperator*{\diam}{diam}
+\DeclareMathOperator*{\spann}{span}
+\DeclareMathOperator*{\init}{init}
+\DeclareMathOperator*{\ext}{ext}
+\newcommand{\udlrarrow}{\mathrlap{\,{\scriptscriptstyle \updownarrow}}{\scriptscriptstyle \leftrightarrow}}
+
+%\input{/Users/janwesterdiep/Dropbox/Commands.tex}
+\newcommand{\T}{{\mathcal T}}
+\newcommand{\R}{\mathbb{R}}
+
+\date{\today}
+\begin{document}
+
+\title{First look at Spacetime}
+\maketitle
+
+Let me keep it short. We did a first run of the spacetime project solving the
+heat equation on the unit square $\Omega = [0,1]^2$ on the time interval
+$I := [0,1]$. The true solution is 
+\[
+  u(t,x,y) := (t^2 + 1) (1-x)x(1-y)y.
+\]
+
+Given some level $L$, we build $X_\delta$ as the double tree consisting of all
+double nodes $\lambda = (\lambda_{\text{time}}, \lambda_{\text{space}})$ for
+which $2|\lambda_{\text{time}}| + |\lambda_{\text{space}}| \leq L$ (a \emph{sparse grid}).
+We then build $Y_\delta$ through the formula halfway page 6 of \texttt{followup.pdf}.
+We use the system on the bottom of page 6, and compute the data integrals in the
+right-hand side using Gauss quadrature of sufficient order to be exact.
+
+Denote the $2 \times 2$ block-matrix with $M$. We use MINRES with initial guess $x_0$
+equal to the right-hand side $b$ of the system, and continue until the relative residual is `small':
+\[
+  \frac{\|Mx_k - b\|_2}{\|x_k\|_2} \leq 10^{-5}.
+\]
+This gives us a discrete solution $(\mu_\delta, u_\delta)$ for which we can measure
+\[
+  E(t) := t \mapsto \|\gamma_t(u_\delta - u)\|_{L_2(\Omega)}.
+\]
+We will use this as a proxy for the error $\|u - u_\delta\|_X$ which is difficult to measure.
+
+Given $X_\delta$, we distinguish its dimension $\dim X_\delta$ and $\# X_\delta$,
+being the total number of \emph{degrees of freedom}, i.e., the dimension of $X_\delta$
+minus the number of Dirichlet double nodes (double nodes for which the vertex of
+$\lambda_{\text{space}}$ is not on the domain boundary).
+
+\section*{Convergence rate}
+The code right now seems to solve the problem, as can be seen by Figure~\ref{fig:time-slice}:
+Increasing $L$ (thereby increasing $\# X_\delta$, yields an error reduction.
+We discern a pre-asymptotic regime: the error hardly decreases between levels $L=1$
+and $2$. Moreover, errors seem to taper off near the final levels $L$, which may
+have something to do with our solver tolerance.
+
+In fact, the errors decay at an algebraic rate somewhere between $0.75$ and $0.85$,
+depending on the time $t$ at which the errors are measured, as well as whether or
+not we keep the full range of errors when calculating the rate (for instance, in
+the brown line, we slice away level $1$ because it is in the pre-asymptotic regime,
+and levels $11$ and $12$ because the convergence stagnates in this regime).
+\begin{figure}[h!]
+  \includegraphics[width=0.495\linewidth]{error_reduction_time_slices.pdf}
+  \includegraphics[width=0.495\linewidth]{error_reduction_rates.pdf}
+  \caption{Left: Time slice errors. Right: rates.}
+  \label{fig:time-slice}
+\end{figure}
+
+\section*{Computational cost}
+Looking at computation time, we measure the time it takes to perform a single
+application of the system matrix, not taking into account the setup cost (like
+computing $\Sigma$ and $\Theta$). Figure~\ref{fig:linearity} paints a slightly
+less enthousiastic picture, but it is obvious that we need more data points
+before concluding anything.\todo{BV: meten we nou per DoF, of per dimensie?}
+\begin{figure}[h!]
+  \includegraphics[width=0.8\linewidth]{error_reduction_linearity.pdf}
+  \caption{Top: time (s) per apply; bottom: time (ms) per apply per DoF.}
+  \label{fig:linearity}
+\end{figure}
+
+
+\end{document}
