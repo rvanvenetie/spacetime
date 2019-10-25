@@ -5,6 +5,7 @@
 #include <vector>
 #include "cassert"
 
+namespace datastructures {
 template <typename T>
 class NodeInterface : public std::enable_shared_from_this<T> {
   /**
@@ -30,7 +31,7 @@ virtual const std::vector<std::shared_ptr<T>> &parents() const = 0;
       nodes.emplace_back(node);
       node->set_marked(true);
       callback(node);
-      for (auto child : node->children) queue.emplace(child);
+      for (auto child : node->children()) queue.emplace(child);
     }
     for (auto node : nodes) {
       node->set_marked(false);
@@ -64,6 +65,7 @@ class Node : public NodeInterface<T> {
   int level_;
   bool marked_ = false;
   std::vector<std::shared_ptr<T>> parents_;
+  std::vector<std::shared_ptr<T>> children_;
   Node() : level_(-1) {}
 
  public:
@@ -71,8 +73,8 @@ class Node : public NodeInterface<T> {
   bool marked() const { return marked_; }
   void set_marked(bool value) { marked_ = value; }
   bool is_metaroot() const { return (level_ == -1); }
-  std::vector<std::shared_ptr<T>> children;
-  const std::vector<std::shared_ptr<T>> parents() const { return parents_; }
+  const std::vector<std::shared_ptr<T>> &parents() const { return parents_; }
+  std::vector<std::shared_ptr<T>> &children() { return children_; }
 
   explicit Node(const std::vector<std::shared_ptr<T>> &parents)
       : parents_(parents) {
@@ -90,9 +92,10 @@ class BinaryNode : public Node<T> {
   using Node<T>::Node;
 
  public:
-  bool is_full() const { return Node<T>::children.size() == 2; }
-  bool is_leaf() const { return Node<T>::children.size() == 0; }
+  bool is_full() const { return Node<T>::children_.size() == 2; }
+  bool is_leaf() const { return Node<T>::children_.size() == 0; }
   std::shared_ptr<T> parent() const { return Node<T>::parents_[0]; }
 
   explicit BinaryNode(std::shared_ptr<T> parent) : Node<T>({parent}) {}
 };
+}  // namespace datastructures
