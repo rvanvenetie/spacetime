@@ -5,6 +5,19 @@ import numpy as np
 from .triangulation import InitialTriangulation
 
 
+def test_area():
+    init_triang = InitialTriangulation.unit_square()
+    assert all(v.on_domain_boundary for v in init_triang.vertex_roots)
+    init_triang.element_roots[0].refine()
+
+    leaves = set(init_triang.element_roots)
+    for _ in range(100):
+        elem = leaves.pop()
+        leaves.update(elem.refine())
+    for elem in init_triang.elem_meta_root.bfs():
+        assert elem.area == 0.5**(elem.level + 1)
+
+
 def test_on_domain_bdr():
     init_triang = InitialTriangulation.unit_square()
     assert all(v.on_domain_boundary for v in init_triang.vertex_roots)
