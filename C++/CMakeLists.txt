@@ -36,5 +36,6 @@ macro(package_add_test TESTNAME)
 endmacro()
 
 ## Add all the subdirectories.
+include_directories(.)
 add_subdirectory(datastructures)
 add_subdirectory(space)
