@@ -8,16 +8,6 @@
 namespace datastructures {
 template <typename T>
 class NodeInterface : public std::enable_shared_from_this<T> {
-  /**
-virtual int level() const = 0;
-virtual bool marked() = 0;
-virtual void set_marked(bool value) = 0;
-virtual bool is_full() const = 0;
-virtual bool is_metaroot() const = 0;
-virtual const std::vector<std::shared_ptr<T>> &children() const = 0;
-virtual const std::vector<std::shared_ptr<T>> &parents() const = 0;
-**/
-
  public:
   std::vector<std::shared_ptr<T>> Bfs(
       bool include_metaroot, std::function<void(std::shared_ptr<T>)> callback) {
