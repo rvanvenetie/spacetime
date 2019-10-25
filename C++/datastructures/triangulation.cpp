@@ -153,6 +153,7 @@ InitialTriangulation::InitialTriangulation(
       }
   }
 }
+
 InitialTriangulation InitialTriangulation::UnitSquare() {
   std::vector<std::array<double, 2>> vertices = {
       {{0, 0}}, {{1, 1}}, {{1, 0}}, {{0, 1}}};

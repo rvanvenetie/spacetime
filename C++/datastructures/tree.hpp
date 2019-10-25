@@ -61,21 +61,7 @@ virtual const std::vector<std::shared_ptr<T>> &parents() const = 0;
 
 template <typename T>
 class Node : public NodeInterface<T> {
- protected:
-  int level_;
-  bool marked_ = false;
-  std::vector<std::shared_ptr<T>> parents_;
-  std::vector<std::shared_ptr<T>> children_;
-  Node() : level_(-1) {}
-
  public:
-  int level() const { return level_; }
-  bool marked() const { return marked_; }
-  void set_marked(bool value) { marked_ = value; }
-  bool is_metaroot() const { return (level_ == -1); }
-  const std::vector<std::shared_ptr<T>> &parents() const { return parents_; }
-  std::vector<std::shared_ptr<T>> &children() { return children_; }
-
   explicit Node(const std::vector<std::shared_ptr<T>> &parents)
       : parents_(parents) {
     assert(parents.size());
@@ -84,18 +70,32 @@ class Node : public NodeInterface<T> {
       assert(parent->level() == level_ - 1);
     }
   }
+
+  int level() const { return level_; }
+  bool marked() const { return marked_; }
+  void set_marked(bool value) { marked_ = value; }
+  bool is_metaroot() const { return (level_ == -1); }
+  const std::vector<std::shared_ptr<T>> &parents() const { return parents_; }
+  std::vector<std::shared_ptr<T>> &children() { return children_; }
+
+ protected:
+  int level_;
+  bool marked_ = false;
+  std::vector<std::shared_ptr<T>> parents_;
+  std::vector<std::shared_ptr<T>> children_;
+  Node() : level_(-1) {}
 };
 
 template <typename T>
 class BinaryNode : public Node<T> {
- protected:
-  using Node<T>::Node;
-
  public:
+  explicit BinaryNode(std::shared_ptr<T> parent) : Node<T>({parent}) {}
+
   bool is_full() const { return Node<T>::children_.size() == 2; }
   bool is_leaf() const { return Node<T>::children_.size() == 0; }
   std::shared_ptr<T> parent() const { return Node<T>::parents_[0]; }
 
-  explicit BinaryNode(std::shared_ptr<T> parent) : Node<T>({parent}) {}
+ protected:
+  using Node<T>::Node;
 };
 }  // namespace datastructures
