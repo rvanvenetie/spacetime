@@ -39,6 +39,23 @@ TEST(Triangulation, Refine) {
   EXPECT_THAT(vertices[8]->parents(), ElementsAre(vertices[5], vertices[7]));
 }
 
+TEST(Triangulation, Area) {
+  auto T = InitialTriangulation::UnitSquare();
+  T.elem_meta_root->UniformRefine(2);
+
+  auto elements = T.elem_meta_root->Bfs();
+  auto vertices = T.vertex_meta_root->Bfs();
+  ASSERT_EQ(elements[0]->area(), 0.5);
+  ASSERT_EQ(elements[1]->area(), 0.5);
+
+  ASSERT_EQ(elements[2]->area(), 0.25);
+  ASSERT_EQ(elements[3]->area(), 0.25);
+  ASSERT_EQ(elements[4]->area(), 0.25);
+  ASSERT_EQ(elements[5]->area(), 0.25);
+
+  ASSERT_EQ(elements[6]->area(), 0.125);
+}
+
 TEST(Triangulation, OnDomainBoundary) {
   auto init_triang = InitialTriangulation::UnitSquare();
   for (auto vertex : init_triang.vertex_meta_root->Bfs()) {
