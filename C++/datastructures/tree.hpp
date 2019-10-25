@@ -91,11 +91,13 @@ class BinaryNode : public Node<T> {
  public:
   explicit BinaryNode(std::shared_ptr<T> parent) : Node<T>({parent}) {}
 
-  bool is_full() const { return Node<T>::children_.size() == 2; }
-  bool is_leaf() const { return Node<T>::children_.size() == 0; }
-  std::shared_ptr<T> parent() const { return Node<T>::parents_[0]; }
+  bool is_full() const { return children_.size() == 2; }
+  bool is_leaf() const { return children_.size() == 0; }
+  std::shared_ptr<T> parent() const { return parents_[0]; }
 
  protected:
   using Node<T>::Node;
+  using Node<T>::parents_;
+  using Node<T>::children_;
 };
 }  // namespace datastructures
