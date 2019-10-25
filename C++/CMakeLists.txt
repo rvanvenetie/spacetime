@@ -37,3 +37,4 @@ endmacro()
 
 ## Add all the subdirectories.
 add_subdirectory(datastructures)
+add_subdirectory(space)

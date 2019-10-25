@@ -4,7 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
-#include "tree.hpp"
+#include "../datastructures/tree.hpp"
 
 namespace space {
 
