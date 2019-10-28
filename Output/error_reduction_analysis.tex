@@ -20,6 +20,7 @@
 \theoremstyle{definition}
 \newtheorem*{answer}{Answer}
 
+\newcommand{\inp}[2]{\langle #1, #2 \rangle}
 \newcommand{\bbone}{\mathds{1}}
 \DeclareMathOperator*{\diam}{diam}
 \DeclareMathOperator*{\spann}{span}
@@ -52,24 +53,29 @@ We use the system on the bottom of page 6, and compute the data integrals in the
 right-hand side using Gauss quadrature of sufficient order to be exact.
 
 Denote the $2 \times 2$ block-matrix with $M$. We use MINRES with initial guess $x_0$
-equal to the right-hand side $b$ of the system, and continue until the relative residual is `small':
+equal to the right-hand side $b$ of the system, and continue until the relative residual norm is `small':
 \[
-  \frac{\|Mx_k - b\|_2}{\|x_k\|_2} \leq 10^{-5}.
+  \frac{\|Mx_k - b\|_2}{\|b\|_2} \leq 10^{-5}.
 \]
 This gives us a discrete solution $(\mu_\delta, u_\delta)$ for which we can measure
 \[
-  E(t) := t \mapsto \|\gamma_t(u_\delta - u)\|_{L_2(\Omega)}.
+  E(t) := t \mapsto \|\gamma_t(u_\delta - u)\|_{L_2(\Omega)}
 \]
-We will use this as a proxy for the error $\|u - u_\delta\|_X$ which is difficult to measure.
+by computing
+\[
+  E(t)^2 = \inp{u(t)}{u(t)}_{L_2(\Omega)} + \inp{u_\delta(t)}{u_\delta(t)}_{L_2(\Omega)} - 2 \inp{u(t)}{u_\delta(t)}_{L_2(\Omega)}
+\]
+where we have the first term analytically, the second number can be computed by
+an applicator of the space-time mass matrix, and the final term is approximated
+using quadrature of sufficient degree. We will use this as a proxy for the error
+$\|u - u_\delta\|_X$, which is difficult to measure.
 
-Given $X_\delta$, we distinguish its dimension $\dim X_\delta$ and $\# X_\delta$,
-being the total number of \emph{degrees of freedom}, i.e., the dimension of $X_\delta$
-minus the number of Dirichlet double nodes (double nodes for which the vertex of
-$\lambda_{\text{space}}$ is not on the domain boundary).
+Given $X_\delta$, we distinguish the dimension $\dim X_\delta$ of the function space
+and $\# X_\delta$, being the total number of double nodes in the double tree.
 
 \section*{Convergence rate}
 The code right now seems to solve the problem, as can be seen by Figure~\ref{fig:time-slice}:
-Increasing $L$ (thereby increasing $\# X_\delta$, yields an error reduction.
+Increasing $L$ (thereby increasing $\dim X_\delta$, yields an error reduction.
 We discern a pre-asymptotic regime: the error hardly decreases between levels $L=1$
 and $2$. Moreover, errors seem to taper off near the final levels $L$, which may
 have something to do with our solver tolerance.
@@ -94,7 +100,7 @@ demotivating picture, in that the bottom graph is not constant. We do have to
 place an asterisk here: for small systems, the produced numbers are averaged over
 a small number of iterations, so they change a lot from run to run.
 \begin{figure}[h!]
-  \includegraphics[width=0.8\linewidth]{error_reduction_linearity.pdf}
+  \includegraphics[width=0.6\linewidth]{error_reduction_linearity.pdf}
   \caption{Top: time (s) per apply; bottom: time (ms) per apply per DoF.}
   \label{fig:linearity}
 \end{figure}
@@ -102,7 +108,8 @@ a small number of iterations, so they change a lot from run to run.
 \section*{The solver}
 As mentioned before, we use MINRES with default parameters (tolerance $10^{-5}$,
 initial guess $x_0$ equal to the RHS $b$). In Figure~\ref{fig:minres}, we show
-the residual norm $\|M x_k - b\|_2$ as a function of $k$ for a selection of solves.
+the \emph{absolute} residual norm $\|M x_k - b\|_2$ as a function of $k$ for a
+selection of solves.
 \begin{figure}[h!]
   \includegraphics[width=0.495\linewidth]{error_reduction_minres_history_semilogy.pdf}
   \includegraphics[width=0.495\linewidth]{error_reduction_minres_history_loglog.pdf}

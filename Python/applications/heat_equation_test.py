@@ -220,7 +220,9 @@ def test_heat_eq_linear():
         assert np.allclose(heat_eq.linop.matvec(v_arr), heat_eq_mat.dot(v_arr))
 
 
-def test_heat_error_reduction(max_level=6, save_results_file=None):
+def test_heat_error_reduction(max_history_level=0,
+                              max_level=6,
+                              save_results_file=None):
     # Printing options.
     np.set_printoptions(precision=4)
     np.set_printoptions(linewidth=10000)
@@ -256,7 +258,7 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
         heat_eq = HeatEquation(X_delta=X_delta)
         rhs = example_rhs(heat_eq)
 
-        if level < 10:
+        if level <= max_history_level:
             residual_norm_history = []
             callback = lambda vec: residual_norm_history.append(
                 np.linalg.norm(heat_eq.linop @ vec - rhs.to_array()))
@@ -273,7 +275,7 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
 
         # Record some stuff for posterity.
         dims.append([len(heat_eq.Y_delta.bfs()), len(X_delta.bfs())])
-        if level < 10:
+        if level <= max_history_level:
             residual_norm_histories.append(residual_norm_history)
         minres_iters.append(num_iters)
         residual_norm = np.linalg.norm(
@@ -350,6 +352,7 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
 
 if __name__ == "__main__":
     test_heat_error_reduction(
+        max_history_level=9,
         max_level=16,
         save_results_file='error_reduction.pickle',
     )

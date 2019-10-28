@@ -7,7 +7,7 @@ import numpy as np
 def make_time_slices():
     plt.figure()
     plt.title(r"Time-slice error at various time steps")
-    plt.xlabel(r"#$X_\delta$")
+    plt.xlabel(r"$\dim X_\delta$")
     plt.ylabel(r"$||\gamma_t(u - u_\delta)||_{L_2(\Omega)}$")
     for i in range(0, 9, 2):
         plt.loglog(data['dofs'], [err[i] for err in data['errors']],
@@ -45,7 +45,7 @@ def make_rates():
 def make_linearity():
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
     ax1.set_title("Time per apply")
-    ax1.set_xlabel(r"$\dim X_\delta + \dim Y_\delta$")
+    ax1.set_xlabel(r"$\# X_\delta + \# Y_\delta$")
     ax1.set_ylabel("time (s)")
     ax1.loglog(data['dofs'], [
         sum(dims) * t for (dims, t) in zip(data['dims'], data['time_per_dof'])
@@ -53,8 +53,8 @@ def make_linearity():
     ax1.tick_params(axis='y')
     ax1.grid()
 
-    ax2.set_title("Time per apply per dim")
-    ax2.set_xlabel(r"$\dim X_\delta + \dim Y_\delta$")
+    ax2.set_title("Time per apply per doublenode")
+    ax2.set_xlabel(r"$\# X_\delta + \# Y_\delta$")
     ax2.set_ylabel("time (ms)")
     ax2.semilogx(data['dofs'], [1000 * t for t in data['time_per_dof']])
     ax2.tick_params(axis='y')
@@ -69,7 +69,7 @@ def make_minres():
     histories = histories[:8]
 
     plt.figure()
-    plt.xlabel(r"$\dim X_\delta + \dim Y_\delta$")
+    plt.xlabel(r"$\# X_\delta + \# Y_\delta$")
     plt.ylabel(r"MINRES iterations")
     plt.loglog(data['dofs'], data['minres_iters'])
     plt.grid()
