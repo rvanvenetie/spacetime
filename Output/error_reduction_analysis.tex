@@ -87,16 +87,30 @@ and levels $11$ and $12$ because the convergence stagnates in this regime).
 \end{figure}
 
 \section*{Computational cost}
-Looking at computation time, we measure the time it takes to perform a single
-application of the system matrix, not taking into account the setup cost (like
+Let's measure the time it takes to perform a single application of the system
+matrix. We do not take into account the setup cost (like
 computing $\Sigma$ and $\Theta$). Figure~\ref{fig:linearity} paints a slightly
-less enthousiastic picture, but it is obvious that we need more data points
-before concluding anything.\todo{BV: meten we nou per DoF, of per dimensie?}
+demotivating picture, in that the bottom graph is not constant. We do have to
+place an asterisk here: for small systems, the produced numbers are averaged over
+a small number of iterations, so they change a lot from run to run.
 \begin{figure}[h!]
   \includegraphics[width=0.8\linewidth]{error_reduction_linearity.pdf}
   \caption{Top: time (s) per apply; bottom: time (ms) per apply per DoF.}
   \label{fig:linearity}
 \end{figure}
+
+\section*{The solver}
+As mentioned before, we use MINRES with default parameters (tolerance $10^{-5}$,
+initial guess $x_0$ equal to the RHS $b$). In Figure~\ref{fig:minres}, we show
+the residual norm $\|M x_k - b\|_2$ as a function of $k$ for a selection of solves.
+\begin{figure}[h!]
+  \includegraphics[width=0.495\linewidth]{error_reduction_minres_history_semilogy.pdf}
+  \includegraphics[width=0.495\linewidth]{error_reduction_minres_history_loglog.pdf}
+  \caption{Left: semi-log-y MINRES convergence graph for some solves. Right: Same results in log-log format.}
+  \label{fig:minres}
+\end{figure}
+We see that the number of iterations increases strongly, suggesting that we could
+definitely use a good preconditioner.
 
 
 \end{document}

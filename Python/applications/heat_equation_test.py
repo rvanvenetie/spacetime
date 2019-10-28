@@ -273,7 +273,8 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
 
         # Record some stuff for posterity.
         dims.append([len(heat_eq.Y_delta.bfs()), len(X_delta.bfs())])
-        residual_norm_histories.append(residual_norm_history)
+        if level < 10:
+            residual_norm_histories.append(residual_norm_history)
         minres_iters.append(num_iters)
         residual_norm = np.linalg.norm(
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())

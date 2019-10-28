@@ -53,11 +53,12 @@ def make_linearity():
     ax1.tick_params(axis='y')
     ax1.grid()
 
-    ax2.set_title("Time per apply per dof")
-    ax1.set_xlabel(r"$\dim X_\delta + \dim Y_\delta$")
+    ax2.set_title("Time per apply per dim")
+    ax2.set_xlabel(r"$\dim X_\delta + \dim Y_\delta$")
     ax2.set_ylabel("time (ms)")
-    ax2.loglog(data['dofs'], [1000 * t for t in data['time_per_dof']])
+    ax2.semilogx(data['dofs'], [1000 * t for t in data['time_per_dof']])
     ax2.tick_params(axis='y')
+    ax2.set_ylim((0, 3.0))
     ax2.grid()
     plt.tight_layout()
     plt.savefig("error_reduction_linearity.pdf")
@@ -65,27 +66,37 @@ def make_linearity():
 
 def make_minres():
     histories = data['residual_norm_histories']
+    histories = histories[:8]
 
     plt.figure()
-    plt.plot([len(hist) for hist in histories])
+    plt.xlabel(r"$\dim X_\delta + \dim Y_\delta$")
+    plt.ylabel(r"MINRES iterations")
+    plt.loglog(data['dofs'], data['minres_iters'])
+    plt.grid()
     plt.savefig("error_reduction_minres_iters.pdf")
 
     plt.figure()
     plt.ylim(1e-5, 1e-0)
+    plt.ylabel(r"$||M x_k - b||_2$")
+    plt.xlabel(r"MINRES iteration")
     for i, hist in enumerate(histories):
         plt.semilogy(hist, label="solve %s" % (i + 1))
+    plt.grid()
     plt.legend()
     plt.savefig("error_reduction_minres_history_semilogy.pdf")
 
     plt.figure()
     plt.ylim(1e-5, 1e-0)
+    plt.ylabel(r"$||M x_k - b||_2$")
+    plt.xlabel(r"MINRES iteration")
     for i, hist in enumerate(histories):
         plt.loglog(hist, label="solve %s" % (i + 1))
+    plt.grid()
     plt.legend()
     plt.savefig("error_reduction_minres_history_loglog.pdf")
 
 
-data = pd.read_pickle("error_reduction.pickle")
+data = pd.read_pickle("error_reduction_v2.pickle")
 print(data)
 
 make_time_slices()
