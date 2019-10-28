@@ -2,21 +2,21 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from itertools import product
 import numpy as np
-import os
 
 
 def make_time_slices():
     plt.figure()
     plt.title(r"Time-slice error at various time steps")
-    plt.xlabel(r"$\dim X_\delta$")
+    plt.xlabel(r"#$X_\delta$")
     plt.ylabel(r"$||\gamma_t(u - u_\delta)||_{L_2(\Omega)}$")
     for i in range(0, 9, 2):
         plt.loglog(data['dofs'], [err[i] for err in data['errors']],
+                   '-+',
                    label='t=%g' % (i / 8))
     plt.legend()
     plt.grid()
     plt.tight_layout()
-    plt.savefig("error_reduction_time_slices.png")
+    plt.savefig("error_reduction_time_slices.pdf")
 
 
 def make_rates():
@@ -39,7 +39,7 @@ def make_rates():
                  label="data[%g:%g]" % (start, end))
     plt.legend()
     plt.tight_layout()
-    plt.savefig("error_reduction_rates.png")
+    plt.savefig("error_reduction_rates.pdf")
 
 
 def make_linearity():
@@ -47,9 +47,9 @@ def make_linearity():
     ax1.set_title("Time per apply")
     ax1.set_xlabel(r"$\dim X_\delta + \dim Y_\delta$")
     ax1.set_ylabel("time (s)")
-    ax1.loglog(
-        data['dofs'],
-        [dofs * t for (dofs, t) in zip(data['dofs'], data['time_per_dof'])])
+    ax1.loglog(data['dofs'], [
+        sum(dims) * t for (dims, t) in zip(data['dims'], data['time_per_dof'])
+    ])
     ax1.tick_params(axis='y')
     ax1.grid()
 
@@ -60,7 +60,7 @@ def make_linearity():
     ax2.tick_params(axis='y')
     ax2.grid()
     plt.tight_layout()
-    plt.savefig("error_reduction_linearity.png")
+    plt.savefig("error_reduction_linearity.pdf")
 
 
 def make_minres():
@@ -68,26 +68,24 @@ def make_minres():
 
     plt.figure()
     plt.plot([len(hist) for hist in histories])
-    plt.savefig("error_reduction_minres_iters.png")
+    plt.savefig("error_reduction_minres_iters.pdf")
 
     plt.figure()
     plt.ylim(1e-5, 1e-0)
     for i, hist in enumerate(histories):
         plt.semilogy(hist, label="solve %s" % (i + 1))
     plt.legend()
-    plt.savefig("error_reduction_minres_history_semilogy.png")
+    plt.savefig("error_reduction_minres_history_semilogy.pdf")
 
     plt.figure()
     plt.ylim(1e-5, 1e-0)
     for i, hist in enumerate(histories):
         plt.loglog(hist, label="solve %s" % (i + 1))
     plt.legend()
-    plt.savefig("error_reduction_minres_history_loglog.png")
+    plt.savefig("error_reduction_minres_history_loglog.pdf")
 
 
-# TODO: change
-current_commit = os.popen('git rev-parse HEAD').read()[:7]
-data = pd.read_pickle("error_reduction_%s.pickle" % current_commit)
+data = pd.read_pickle("error_reduction.pickle")
 print(data)
 
 make_time_slices()
