@@ -125,11 +125,12 @@ class HeatEquation:
 
         return self.create_vector((call_quad_g, call_quad_u0))
 
-    def solve(self, rhs):
+    def solve(self, rhs, iter_callback=None):
         num_iters = 0
 
-        def call_iterations(_):
+        def call_iterations(vec):
             nonlocal num_iters
+            if iter_callback: iter_callback(vec)
             print(".", end='', flush=True)
             num_iters += 1
 

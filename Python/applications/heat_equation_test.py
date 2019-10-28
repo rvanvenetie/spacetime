@@ -220,7 +220,9 @@ def test_heat_eq_linear():
         assert np.allclose(heat_eq.linop.matvec(v_arr), heat_eq_mat.dot(v_arr))
 
 
-def test_heat_error_reduction(max_level=6, save_results_file=None):
+def test_heat_error_reduction(max_history_level=0,
+                              max_level=6,
+                              save_results_file=None):
     # Printing options.
     np.set_printoptions(precision=4)
     np.set_printoptions(linewidth=10000)
@@ -238,8 +240,12 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
     n_t = 9
     errors_quad = []
     ndofs = []
+    dims = []
     time_per_dof = []
     rates_quad = []
+    residual_norm_histories = []
+    residual_norms = []
+    minres_iters = []
     for level in range(2, max_level):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
@@ -248,25 +254,39 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
         print('X_delta: dofs time axis={}\tdofs space axis={}'.format(
             len(X_delta.project(0).bfs()), len(X_delta.project(1).bfs())))
 
+        # Create heat equation object.
+        heat_eq = HeatEquation(X_delta=X_delta)
+        rhs = example_rhs(heat_eq)
+
+        if level <= max_history_level:
+            residual_norm_history = []
+            callback = lambda vec: residual_norm_history.append(
+                np.linalg.norm(heat_eq.linop @ vec - rhs.to_array()))
+        else:
+            callback = None
+        # Now actually solve this beast!
+        sol, num_iters = heat_eq.solve(rhs, iter_callback=callback)
+
         # Count number of dofs (not on the boundary!)
         ndofs.append(
             len([
                 n for n in X_delta.bfs() if not n.nodes[1].on_domain_boundary
             ]))
 
-        # Create heat equation object.
-        heat_eq = HeatEquation(X_delta=X_delta)
-        rhs = example_rhs(heat_eq)
-
-        # Now actually solve this beast!
-        sol, num_iters = heat_eq.solve(rhs)
+        # Record some stuff for posterity.
+        dims.append([len(heat_eq.Y_delta.bfs()), len(X_delta.bfs())])
+        if level <= max_history_level:
+            residual_norm_histories.append(residual_norm_history)
+        minres_iters.append(num_iters)
         residual_norm = np.linalg.norm(
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())
+        residual_norms.append(residual_norm)
+        time_per_dof.append(heat_eq.time_per_dof())
+
         print('MINRES solved in {} iterations with a residual norm {}'.format(
             num_iters, residual_norm))
         print('Time per dof is approximately {}'.format(
             heat_eq.time_per_dof()))
-        time_per_dof.append(heat_eq.time_per_dof())
 
         u, u_order, u_slice_norm = example_solution_function()
 
@@ -302,7 +322,11 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
                 "n_t": n_t,
                 "max_level": max_level,
                 "dofs": ndofs,
+                "dims": dims,
                 "time_per_dof": time_per_dof,
+                "residual_norm_histories": residual_norm_histories,
+                "residual_norms": residual_norms,
+                "minres_iters": minres_iters,
                 "errors": errors_quad,
                 "rates": rates_quad
             }
@@ -328,6 +352,7 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
 
 if __name__ == "__main__":
     test_heat_error_reduction(
+        max_history_level=9,
         max_level=16,
         save_results_file='error_reduction.pickle',
     )
