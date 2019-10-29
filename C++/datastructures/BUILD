@@ -1,6 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "tree",
-    hdrs = ["tree.hpp"]
+    name = "datastructures",
+    hdrs = ["tree.hpp", "multi_tree_view.hpp"]
 )

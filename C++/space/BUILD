@@ -3,7 +3,7 @@ cc_library(
     srcs = ["triangulation.cpp"],
     hdrs = [ "triangulation.hpp"],
     deps = [
-            "//datastructures:tree"]
+            "//datastructures:datastructures"]
 )
 cc_test(
     name = "triangulation_test",
@@ -11,5 +11,12 @@ cc_test(
     deps = [
          ":triangulation",
         "@googletest//:gtest_main",
+    ],
+)
+cc_binary(
+    name = "triangulation_view",
+    srcs = ['triangulation_view.cpp'],
+    deps = [
+         ":triangulation",
     ],
 )
