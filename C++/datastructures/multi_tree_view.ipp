@@ -56,17 +56,18 @@ inline void MultiNodeViewInterface<I, Ts, dim>::DeepRefine(
 }
 
 template <typename I, typename Ts, size_t dim>
-template <typename FuncFilt, typename FuncPost>
+template <typename I_other, typename FuncFilt, typename FuncPost>
 inline void MultiNodeViewInterface<I, Ts, dim>::Union(
-    std::shared_ptr<I> other, const FuncFilt& call_filter,
+    std::shared_ptr<I_other> other, const FuncFilt& call_filter,
     const FuncPost& call_postprocess) {
   assert(is_root() && other->is_root());
   assert(self().nodes() == other->nodes());
-  std::queue<std::pair<std::shared_ptr<I>, std::shared_ptr<I>>> queue;
+  std::queue<std::pair<std::shared_ptr<I>, std::shared_ptr<I_other>>> queue;
   queue.emplace(self().shared_from_this(), other);
   std::vector<std::shared_ptr<I>> my_nodes;
   while (!queue.empty()) {
-    std::shared_ptr<I> my_node, other_node;
+    std::shared_ptr<I> my_node;
+    std::shared_ptr<I_other> other_node;
     std::tie(my_node, other_node) = queue.front();
     queue.pop();
     assert(my_node->nodes() == other_node->nodes());

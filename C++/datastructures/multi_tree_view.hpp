@@ -67,15 +67,15 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
                                       const Func& callback = func_noop,
                                       bool return_nodes = true);
 
-  // DeepRefine can be implemented using Bfs..
   template <typename FuncFilt = decltype(func_true),
             typename FuncPost = decltype(func_noop)>
   void DeepRefine(const FuncFilt& call_filter = func_true,
                   const FuncPost& call_postprocess = func_noop);
 
-  template <typename FuncFilt = decltype(func_true),
+  template <typename I_other = I, typename FuncFilt = decltype(func_true),
             typename FuncPost = decltype(func_noop)>
-  void Union(std::shared_ptr<I> other, const FuncFilt& call_filter = func_true,
+  void Union(std::shared_ptr<I_other> other,
+             const FuncFilt& call_filter = func_true,
              const FuncPost& call_postprocess = func_noop);
 
   template <size_t i, typename Func = decltype(func_true)>
