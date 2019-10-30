@@ -47,8 +47,15 @@ int main() {
   bfs = root_view->Bfs();
   for (auto nv : bfs) {
     std::cout << *nv << std::endl;
-    nv->Refine<0>();
   }
+
+  auto root_cpy = root_view->DeepCopy();
+  std::cout << " --- copied -- " << std::endl;
+  bfs = root_cpy->Bfs();
+  for (auto nv : bfs) {
+    std::cout << *nv << std::endl;
+  }
+
   //
   //  int x = child_view->level();
   //

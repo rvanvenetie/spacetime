@@ -102,6 +102,16 @@ inline void MultiNodeViewInterface<I, Ts, dim>::Union(
     my_node->set_marked(false);
   }
 }
+template <typename I, typename Ts, size_t dim>
+template <typename I_other, typename FuncPost>
+inline std::shared_ptr<I_other> MultiNodeViewInterface<I, Ts, dim>::DeepCopy(
+    const FuncPost& call_postprocess) {
+  assert(self().is_root());
+  auto new_root = std::make_shared<I_other>(self().nodes());
+  new_root->Union(self().shared_from_this(), /*call_filter*/ func_true,
+                  call_postprocess);
+  return new_root;
+}
 
 template <typename I, typename Ts, size_t dim>
 template <size_t i, typename Func>

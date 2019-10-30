@@ -78,6 +78,10 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
              const FuncFilt& call_filter = func_true,
              const FuncPost& call_postprocess = func_noop);
 
+  template <typename I_other = I, typename FuncPost = decltype(func_noop)>
+  std::shared_ptr<I_other> DeepCopy(
+      const FuncPost& call_postprocess = func_noop);
+
   template <size_t i, typename Func = decltype(func_true)>
   const std::vector<std::shared_ptr<I>>& Refine(
       const std::vector<std::tuple_element_t<i, Ts>>& children_i,
@@ -122,7 +126,7 @@ class MultiNodeView
   explicit MultiNodeView(const TupleNodes& nodes,
                          const ArrayVectorImpls& parents)
       : nodes_(nodes), parents_(parents) {}
-  explicit MultiNodeView(TupleNodes&& nodes) : nodes_(nodes) {
+  explicit MultiNodeView(const TupleNodes& nodes) : nodes_(nodes) {
     assert(this->is_metaroot());
   }
 
