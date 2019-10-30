@@ -38,12 +38,12 @@ template <typename I, typename Ts, size_t dim>
 template <typename FuncFilt, typename FuncPost>
 inline void MultiNodeViewInterface<I, Ts, dim>::DeepRefine(
     const FuncFilt& call_filter, const FuncPost& call_postprocess) {
-  // This callback will invoke call_postprocess, and refine accroding
+  // This callback will invoke call_postprocess, and refine according
   // to the given filter.
   auto callback = [&](const auto& node) {
     call_postprocess(node);
 
-    // now simply refine all the children, using static loop.
+    // Simply refine all the children, using static loop.
     static_for<dim>([&](auto i) {
       this->template Refine<i>(/*call_filter*/ call_filter,
                                /*make_conforming*/ true);
