@@ -77,7 +77,7 @@ and $\# X_\delta$, being the total number of double nodes in the double tree.
 The code right now seems to solve the problem, as can be seen by Figure~\ref{fig:time-slice}:
 Increasing $L$ (thereby increasing $\dim X_\delta$, yields an error reduction.
 We discern a pre-asymptotic regime: the error hardly decreases between levels $L=1$
-and $2$. Moreover, errors seem to taper off near the final levels $L$, which may
+and $2$. Moreover, errors seem to stagnate/ near the final levels $L$, which may
 have something to do with our solver tolerance.
 
 In fact, the errors decay at an algebraic rate somewhere between $0.75$ and $0.85$,
@@ -94,11 +94,11 @@ and levels $11$ and $12$ because the convergence stagnates in this regime).
 
 \section*{Computational cost}
 Let's measure the time it takes to perform a single application of the system
-matrix. We do not take into account the setup cost (like
-computing $\Sigma$ and $\Theta$). Figure~\ref{fig:linearity} paints a slightly
-demotivating picture, in that the bottom graph is not constant. We do have to
-place an asterisk here: for small systems, the produced numbers are averaged over
-a small number of iterations, so they change a lot from run to run.
+matrix. We do not take into account the setup cost (like computing $\Sigma$ and
+$\Theta$). Figure~\ref{fig:linearity} reveals a modest increase in the time spent
+per apply per doublenode, which hints at a very slight superlinearity in the
+computational cost of a single apply. However, we see only a factor-2 increase
+over the course of the simulation.
 \begin{figure}[h!]
   \includegraphics[width=0.6\linewidth]{error_reduction_linearity.pdf}
   \caption{Top: time (s) per apply; bottom: time (ms) per apply per DoF.}
