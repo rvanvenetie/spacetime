@@ -172,6 +172,8 @@ template <typename T>
 class NodeView : public MultiNodeView<NodeView<T>, T> {
  public:
   using MultiNodeView<NodeView<T>, T>::MultiNodeView;
+
+  using MultiNodeView<NodeView<T>, T>::Refine<0>;
 };
 };  // namespace datastructures
 
