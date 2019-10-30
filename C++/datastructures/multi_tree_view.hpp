@@ -106,7 +106,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
  private:
   template <size_t i, size_t j>
   std::shared_ptr<I> FindBrother(const Ts& nodes, bool make_conforming);
-};  // namespace datastructures
+};
 
 template <typename I, typename... T>
 class MultiNodeView
