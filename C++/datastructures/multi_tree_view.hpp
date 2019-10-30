@@ -23,6 +23,10 @@ constexpr void static_for(Func&& f) {
   static_for_impl(std::forward<Func>(f), std::make_index_sequence<N>{});
 }
 
+// Template arguments are as follows:
+// I - The final implementation of this class, i.e. the derived class;
+// Ts - The tuple type that represents a node;
+// dim - The dimension of this multitree.
 template <typename I, typename Ts, size_t dim = std::tuple_size_v<Ts>>
 class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
  public:
