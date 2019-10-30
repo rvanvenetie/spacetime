@@ -40,7 +40,7 @@ VertexPtr Element2D::create_new_vertex(Element2DPtr nbr) {
       std::make_shared<Vertex>((godparents[0]->x + godparents[1]->x) / 2,
                                (godparents[0]->y + godparents[1]->y) / 2,
                                nbr == nullptr, vertex_parents);
-  for (auto vertex_parent : vertex_parents)
+  for (const auto &vertex_parent : vertex_parents)
     vertex_parent->children().push_back(new_vertex);
   return new_vertex;
 }
@@ -98,18 +98,17 @@ void Element2D::bisect_with_nbr() {
 InitialTriangulation::InitialTriangulation(
     const std::vector<std::array<double, 2>> &vertices,
     const std::vector<std::array<int, 3>> &elements)
-    : vertex_meta_root(Vertex::CreateMetaroot()),
-      elem_meta_root(Element2D::CreateMetaroot()) {
+    : vertex_meta_root(new Vertex()), elem_meta_root(new Element2D()) {
   // Convenient aliases
   auto &vertex_roots = vertex_meta_root->children();
   auto &element_roots = elem_meta_root->children();
 
-  for (auto vertex : vertices) {
+  for (const auto &vertex : vertices) {
     vertex_roots.push_back(std::make_shared<Vertex>(
         vertex[0], vertex[1], false, VectorVertexPtr{vertex_meta_root}));
   }
 
-  for (auto element : elements) {
+  for (const auto &element : elements) {
     double elem_area =
         0.5 * std::abs((vertices[element[0]][0] - vertices[element[2]][0]) *
                            (vertices[element[1]][1] - vertices[element[0]][1]) -
@@ -137,17 +136,17 @@ InitialTriangulation::InitialTriangulation(
   }
 
   // Determine patches for the vertices.
-  for (auto element : element_roots) {
-    for (auto vertex : element->vertices()) {
+  for (const auto &element : element_roots) {
+    for (const auto &vertex : element->vertices()) {
       vertex->patch.push_back(element);
     }
   }
 
   // Determine vertices that are on the boundary.
-  for (auto element : element_roots) {
+  for (const auto &element : element_roots) {
     for (int i = 0; i < 3; ++i)
       if (!element->neighbours[i]) {
-        for (auto v : element->edge(i)) {
+        for (const auto &v : element->edge(i)) {
           v->on_domain_boundary = true;
         }
       }

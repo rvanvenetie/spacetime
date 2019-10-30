@@ -5,17 +5,54 @@ using namespace space;
 
 int main() {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(1);
+  T.elem_meta_root->UniformRefine(3);
 
-  datastructures::NodeView<Vertex> root_view(T.vertex_meta_root);
-  std::shared_ptr<Vertex> child = T.vertex_meta_root->children()[0];
-  auto child_view = std::make_shared<datastructures::NodeView<Vertex>>(child);
+  auto root_view =
+      std::make_shared<datastructures::NodeView<Vertex>>(T.vertex_meta_root);
 
-  root_view.children(0).push_back(child_view);
+  std::cout << root_view->level() << std::endl;
+  std::cout << root_view->is_metaroot() << std::endl;
 
-  int x = child_view->level();
+  std::cout << root_view->children(0).size() << std::endl;
+  root_view->Refine<0>();
 
-  std::cout << x << std::endl;
-  root_view.Refine<0>();
+  std::cout << root_view->children(0).size() << std::endl;
+
+  auto bfs = root_view->Bfs();
+  for (auto nv : bfs) {
+    std::cout << *nv << std::endl;
+    nv->Refine<0>();
+  }
+
+  std::cout << " ---- after uniform refinemenet --- " << std::endl;
+  bfs = root_view->Bfs();
+  for (auto nv : bfs) {
+    std::cout << *nv << std::endl;
+    nv->Refine<0>();
+  }
+
+  std::cout << " ---- after uniform refinemenet --- " << std::endl;
+  bfs = root_view->Bfs();
+  for (auto nv : bfs) {
+    std::cout << *nv << std::endl;
+    nv->Refine<0>();
+  }
+
+  auto bla_view =
+      std::make_shared<datastructures::NodeView<Vertex>>(T.vertex_meta_root);
+  bla_view->DeepRefine();
+  root_view->Union(bla_view);
+
+  std::cout << " --- after union with a deep refine -- " << std::endl;
+  bfs = root_view->Bfs();
+  for (auto nv : bfs) {
+    std::cout << *nv << std::endl;
+    nv->Refine<0>();
+  }
+  //
+  //  int x = child_view->level();
+  //
+  //  std::cout << x << std::endl;
+  //  root_view.Refine<0>();
   return 0;
 }

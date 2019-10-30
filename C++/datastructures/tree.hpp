@@ -3,17 +3,18 @@
 #include <memory>
 #include <queue>
 #include <vector>
+
 #include "cassert"
 
 namespace datastructures {
-template <typename T>
-class NodeInterface : public std::enable_shared_from_this<T> {
+template <typename I>
+class NodeInterface : public std::enable_shared_from_this<I> {
  public:
-  std::vector<std::shared_ptr<T>> Bfs(
-      bool include_metaroot, std::function<void(std::shared_ptr<T>)> callback) {
-    std::vector<std::shared_ptr<T>> nodes;
-    std::queue<std::shared_ptr<T>> queue;
-    queue.emplace(static_cast<T *>(this)->shared_from_this());
+  template <typename Func>
+  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot, Func &&callback) {
+    std::vector<std::shared_ptr<I>> nodes;
+    std::queue<std::shared_ptr<I>> queue;
+    queue.emplace(static_cast<I *>(this)->shared_from_this());
     while (!queue.empty()) {
       auto node = queue.front();
       queue.pop();
@@ -21,14 +22,14 @@ class NodeInterface : public std::enable_shared_from_this<T> {
       nodes.emplace_back(node);
       node->set_marked(true);
       callback(node);
-      for (auto child : node->children()) queue.emplace(child);
+      for (const auto &child : node->children()) queue.emplace(child);
     }
-    for (auto node : nodes) {
+    for (const auto &node : nodes) {
       node->set_marked(false);
     }
     if (!include_metaroot) {
       nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
-                                 [](const std::shared_ptr<T> &node) {
+                                 [](const std::shared_ptr<I> &node) {
                                    return node->is_metaroot();
                                  }),
                   nodes.end());
@@ -36,12 +37,12 @@ class NodeInterface : public std::enable_shared_from_this<T> {
     return nodes;
   }
 
-  std::vector<std::shared_ptr<T>> Bfs(bool include_metaroot = false) {
-    return Bfs(include_metaroot, [](std::shared_ptr<T> x) {});
+  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false) {
+    return Bfs(include_metaroot, [](std::shared_ptr<I> x) {});
   }
 
   void UniformRefine(int max_level) {
-    Bfs(true, [max_level](std::shared_ptr<T> node) {
+    Bfs(true, [max_level](std::shared_ptr<I> node) {
       if (node->level() < max_level) {
         node->refine();
       }
@@ -49,14 +50,14 @@ class NodeInterface : public std::enable_shared_from_this<T> {
   }
 };
 
-template <typename T>
-class Node : public NodeInterface<T> {
+template <typename I>
+class Node : public NodeInterface<I> {
  public:
-  explicit Node(const std::vector<std::shared_ptr<T>> &parents)
+  explicit Node(const std::vector<std::shared_ptr<I>> &parents)
       : parents_(parents) {
     assert(parents.size());
     level_ = parents[0]->level() + 1;
-    for (auto parent : parents) {
+    for (const auto &parent : parents) {
       assert(parent->level() == level_ - 1);
     }
   }
@@ -65,29 +66,29 @@ class Node : public NodeInterface<T> {
   bool marked() const { return marked_; }
   void set_marked(bool value) { marked_ = value; }
   bool is_metaroot() const { return (level_ == -1); }
-  const std::vector<std::shared_ptr<T>> &parents() const { return parents_; }
-  std::vector<std::shared_ptr<T>> &children() { return children_; }
+  const std::vector<std::shared_ptr<I>> &parents() const { return parents_; }
+  std::vector<std::shared_ptr<I>> &children() { return children_; }
 
  protected:
   int level_;
   bool marked_ = false;
-  std::vector<std::shared_ptr<T>> parents_;
-  std::vector<std::shared_ptr<T>> children_;
+  std::vector<std::shared_ptr<I>> parents_;
+  std::vector<std::shared_ptr<I>> children_;
   Node() : level_(-1) {}
 };
 
-template <typename T>
-class BinaryNode : public Node<T> {
+template <typename I>
+class BinaryNode : public Node<I> {
  public:
-  explicit BinaryNode(std::shared_ptr<T> parent) : Node<T>({parent}) {}
+  explicit BinaryNode(std::shared_ptr<I> parent) : Node<I>({parent}) {}
 
   bool is_full() const { return children_.size() == 2; }
   bool is_leaf() const { return children_.size() == 0; }
-  std::shared_ptr<T> parent() const { return parents_[0]; }
+  std::shared_ptr<I> parent() const { return parents_[0]; }
 
  protected:
-  using Node<T>::Node;
-  using Node<T>::parents_;
-  using Node<T>::children_;
+  using Node<I>::Node;
+  using Node<I>::parents_;
+  using Node<I>::children_;
 };
 }  // namespace datastructures
