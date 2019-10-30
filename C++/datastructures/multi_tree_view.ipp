@@ -102,6 +102,7 @@ inline void MultiNodeViewInterface<I, Ts, dim>::Union(
     my_node->set_marked(false);
   }
 }
+
 template <typename I, typename Ts, size_t dim>
 template <typename I_other, typename FuncPost>
 inline std::shared_ptr<I_other> MultiNodeViewInterface<I, Ts, dim>::DeepCopy(
@@ -195,10 +196,9 @@ inline std::shared_ptr<I> MultiNodeViewInterface<I, Ts, dim>::FindBrother(
     if (std::find(nodes_parent_j->children().begin(),
                   nodes_parent_j->children().end(),
                   nodes_i) != nodes_parent_j->children().end()) {
-      parent_j->template Refine<i>(
-          std::vector{nodes_i},
-          /*call_filter*/ [](const auto&) { return true; },
-          /*make_conforming*/ true);
+      parent_j->template Refine<i>(std::vector{nodes_i},
+                                   /*call_filter*/ func_true,
+                                   /*make_conforming*/ true);
     }
   }
 
