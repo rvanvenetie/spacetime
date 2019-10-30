@@ -11,6 +11,8 @@
 
 namespace datastructures {
 
+// Below are two helper functions to create a compile-time-unrolled loop.
+// It is implemented using operator folding for the comma operator.
 template <typename Func, size_t... Is>
 constexpr void static_for_impl(Func&& f, std::index_sequence<Is...>) {
   (f(std::integral_constant<size_t, Is>{}), ...);
@@ -54,7 +56,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
         self().nodes());
   }
 
-  // Returns this multinode is the root of the multi-tree. That is, whether
+  // Returns if this multinode is the root of the multi-tree. That is, whether
   // all axis hold metaroots.
   bool is_root() const {
     return std::apply(
