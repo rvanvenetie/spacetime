@@ -120,6 +120,7 @@ inline const std::vector<std::shared_ptr<I>>&
 MultiNodeViewInterface<I, Ts, dim>::Refine(
     const std::vector<std::tuple_element_t<i, Ts>>& children_i,
     const Func& call_filter, bool make_conforming) {
+  static_assert(i < dim);
   if (is_full<i>()) return self().children(i);
 
   const auto& nodes = self().nodes();

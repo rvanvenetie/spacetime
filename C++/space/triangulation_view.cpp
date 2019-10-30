@@ -13,29 +13,29 @@ int main() {
   std::cout << root_view->level() << std::endl;
   std::cout << root_view->is_metaroot() << std::endl;
 
-  std::cout << root_view->children(0).size() << std::endl;
-  root_view->Refine<0>();
+  std::cout << root_view->children().size() << std::endl;
+  root_view->Refine();
 
-  std::cout << root_view->children(0).size() << std::endl;
+  std::cout << root_view->children().size() << std::endl;
 
   auto bfs = root_view->Bfs();
   for (auto nv : bfs) {
     std::cout << *nv << std::endl;
-    nv->Refine<0>();
+    nv->Refine();
   }
 
   std::cout << " ---- after uniform refinemenet --- " << std::endl;
   bfs = root_view->Bfs();
   for (auto nv : bfs) {
     std::cout << *nv << std::endl;
-    nv->Refine<0>();
+    nv->Refine();
   }
 
   std::cout << " ---- after uniform refinemenet --- " << std::endl;
   bfs = root_view->Bfs();
   for (auto nv : bfs) {
     std::cout << *nv << std::endl;
-    nv->Refine<0>();
+    nv->Refine();
   }
 
   auto bla_view =
@@ -60,6 +60,6 @@ int main() {
   //  int x = child_view->level();
   //
   //  std::cout << x << std::endl;
-  //  root_view.Refine<0>();
+  //  root_view.Refine();
   return 0;
 }

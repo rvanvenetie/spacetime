@@ -88,7 +88,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
   std::shared_ptr<I_other> DeepCopy(
       const FuncPost& call_postprocess = func_noop);
 
-  template <size_t i = -1, typename Func = decltype(func_true)>
+  template <size_t i, typename Func = decltype(func_true)>
   const std::vector<std::shared_ptr<I>>& Refine(
       const std::vector<std::tuple_element_t<i, Ts>>& children_i,
       const Func& call_filter = func_true, bool make_conforming = false);
@@ -99,6 +99,11 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
                      bool make_conforming = false) {
     return Refine<i>(std::get<i>(self().nodes())->children(), call_filter,
                      make_conforming);
+  }
+  template <typename FuncFilt = decltype(func_true)>
+  void Refine(const FuncFilt& call_filter = func_true,
+              bool make_conforming = false) {
+    static_for<dim>([&](auto i) { Refine<i>(call_filter, make_conforming); });
   }
 
   // Some convenient debug function.
@@ -170,8 +175,15 @@ class MultiNodeView
 
 template <typename T>
 class NodeView : public MultiNodeView<NodeView<T>, T> {
+ private:
+  using Super = MultiNodeView<NodeView<T>, T>;
+
  public:
   using MultiNodeView<NodeView<T>, T>::MultiNodeView;
+
+  inline auto& children(size_t i = 0) { return Super::children(0); }
+  inline const auto& children(size_t i = 0) const { return Super::children(0); }
+  inline const auto& parents(size_t i = 0) const { return Super::parents(0); }
 };
 };  // namespace datastructures
 
