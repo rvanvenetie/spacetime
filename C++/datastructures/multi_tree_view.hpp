@@ -88,7 +88,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
   std::shared_ptr<I_other> DeepCopy(
       const FuncPost& call_postprocess = func_noop);
 
-  template <size_t i, typename Func = decltype(func_true)>
+  template <size_t i = -1, typename Func = decltype(func_true)>
   const std::vector<std::shared_ptr<I>>& Refine(
       const std::vector<std::tuple_element_t<i, Ts>>& children_i,
       const Func& call_filter = func_true, bool make_conforming = false);
