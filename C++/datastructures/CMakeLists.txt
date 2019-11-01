@@ -1,0 +1,2 @@
+package_add_test(multi_tree_view_test multi_tree_view_test.cpp)
+target_link_libraries(multi_tree_view_test triangulation)

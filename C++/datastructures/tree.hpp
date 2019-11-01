@@ -66,6 +66,7 @@ class Node : public NodeInterface<I> {
   bool marked() const { return marked_; }
   void set_marked(bool value) { marked_ = value; }
   bool is_metaroot() const { return (level_ == -1); }
+  bool is_leaf() const { return children_.size() == 0; }
   const std::vector<std::shared_ptr<I>> &parents() const { return parents_; }
   std::vector<std::shared_ptr<I>> &children() { return children_; }
 
@@ -83,7 +84,6 @@ class BinaryNode : public Node<I> {
   explicit BinaryNode(std::shared_ptr<I> parent) : Node<I>({parent}) {}
 
   bool is_full() const { return children_.size() == 2; }
-  bool is_leaf() const { return children_.size() == 0; }
   std::shared_ptr<I> parent() const { return parents_[0]; }
 
  protected:

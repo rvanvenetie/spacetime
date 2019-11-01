@@ -1,4 +1,6 @@
 #pragma once
+#include <iostream>
+
 #include "datastructures/multi_tree_view.hpp"
 
 namespace datastructures {
@@ -40,24 +42,33 @@ inline void MultiNodeViewInterface<I, Ts, dim>::DeepRefine(
     const FuncFilt& call_filter, const FuncPost& call_postprocess) {
   // This callback will invoke call_postprocess, and refine according
   // to the given filter.
-  auto callback = [&](const auto& node) {
+  auto callback = [&call_filter, &call_postprocess](const auto& node) {
     call_postprocess(node);
 
     // Simply refine all the children, using static loop.
-    static_for<dim>([&](auto i) {
-      this->template Refine<i>(/*call_filter*/ call_filter,
-                               /*make_conforming*/ true);
-    });
+    node->Refine(/*call_filter*/ call_filter,
+                 /*make_conforming*/ true);
   };
 
   // Now simply invoke Bfs.
   Bfs(/*include_metaroot*/ true, /*callback*/ callback,
       /*return_nodes*/ false);
 }
+template <typename I, typename Ts, size_t dim>
+inline void MultiNodeViewInterface<I, Ts, dim>::UniformRefine(
+    std::array<int, dim> max_levels) {
+  DeepRefine([&](const Ts& nodes) {
+    bool result = true;
+    static_for<dim>([&](auto i) {
+      result = result && (std::get<i>(nodes)->level() <= max_levels[i]);
+    });
+    return result;
+  });
+}
 
 template <typename I, typename Ts, size_t dim>
 template <typename I_other, typename FuncFilt, typename FuncPost>
-inline void MultiNodeViewInterface<I, Ts, dim>::Union(
+void MultiNodeViewInterface<I, Ts, dim>::Union(
     std::shared_ptr<I_other> other, const FuncFilt& call_filter,
     const FuncPost& call_postprocess) {
   assert(is_root() && other->is_root());
@@ -108,7 +119,7 @@ template <typename I_other, typename FuncPost>
 inline std::shared_ptr<I_other> MultiNodeViewInterface<I, Ts, dim>::DeepCopy(
     const FuncPost& call_postprocess) {
   assert(self().is_root());
-  auto new_root = std::make_shared<I_other>(self().nodes());
+  auto new_root = std::apply(I_other::CreateRoot, self().nodes());
   new_root->Union(self().shared_from_this(), /*call_filter*/ func_true,
                   call_postprocess);
   return new_root;
@@ -159,8 +170,15 @@ MultiNodeViewInterface<I, Ts, dim>::Refine(
     });
 
     // Now finally, lets create an actual child!
+#ifndef BOOST_ALLOCATOR
     auto child = std::make_shared<I>(/*nodes*/ std::move(child_nodes),
                                      /*parents*/ brothers);
+#else
+    typedef boost::fast_pool_allocator<I> BoostAlloc;
+    auto child = std::allocate_shared<I, BoostAlloc>(
+        BoostAlloc(), /*nodes*/ std::move(child_nodes),
+        /*parents*/ brothers);
+#endif
 
     // Add this child to all brothers.
     for (size_t j = 0; j < dim; ++j) {

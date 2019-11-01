@@ -9,6 +9,12 @@
 
 #include "tree.hpp"
 
+// #define BOOST_ALLOCATOR
+#ifdef BOOST_ALLOCATOR
+#define BOOST_POOL_NO_MT
+#include <boost/pool/pool_alloc.hpp>
+#endif
+
 namespace datastructures {
 
 // Below are two helper functions to create a compile-time-unrolled loop.
@@ -40,6 +46,12 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
     return std::apply([](const auto&... n) { return (n->level() + ...); },
                       self().nodes());
   }
+  std::array<int, dim> levels(const Ts& nodes) const {
+    std::array<int, dim> result;
+    static_for<dim>([&](auto i) { result[i] = std::get<i>(nodes)->level(); });
+    return result;
+  }
+  std::array<int, dim> levels() const { return levels(self().nodes()); }
 
   template <size_t i>
   bool is_full() const {
@@ -68,15 +80,24 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
         self().nodes());
   }
 
+  // Bfs can be used to retrieve the underlying nodes.
   template <typename Func = decltype(func_noop)>
   std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false,
                                       const Func& callback = func_noop,
                                       bool return_nodes = true);
 
+  // DeepRefine refines the multitree according to the underlying trees.
   template <typename FuncFilt = decltype(func_true),
             typename FuncPost = decltype(func_noop)>
   void DeepRefine(const FuncFilt& call_filter = func_true,
                   const FuncPost& call_postprocess = func_noop);
+
+  void UniformRefine(std::array<int, dim> max_levels);
+  void UniformRefine(int max_level) {
+    std::array<int, dim> arg;
+    arg.fill(max_level);
+    UniformRefine(arg);
+  }
 
   template <typename I_other = I, typename FuncFilt = decltype(func_true),
             typename FuncPost = decltype(func_noop)>
@@ -125,9 +146,9 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 
 template <typename I, typename... T>
 class MultiNodeView
-    : public MultiNodeViewInterface<I, std::tuple<std::shared_ptr<T...>>> {
+    : public MultiNodeViewInterface<I, std::tuple<std::shared_ptr<T>...>> {
  public:
-  using TupleNodes = std::tuple<std::shared_ptr<T...>>;
+  using TupleNodes = std::tuple<std::shared_ptr<T>...>;
   using ArrayVectorImpls =
       std::array<std::vector<std::shared_ptr<I>>, sizeof...(T)>;
 
@@ -137,8 +158,12 @@ class MultiNodeView
   explicit MultiNodeView(const TupleNodes& nodes,
                          const ArrayVectorImpls& parents)
       : nodes_(nodes), parents_(parents) {}
-  explicit MultiNodeView(const TupleNodes& nodes) : nodes_(nodes) {
-    assert(this->is_metaroot());
+  MultiNodeView() {}
+  static std::shared_ptr<I> CreateRoot(std::shared_ptr<T>... nodes) {
+    auto result = std::make_shared<I>();
+    result->nodes_ = std::make_tuple(nodes...);
+    assert(result->is_root());
+    return result;
   }
 
   const TupleNodes& nodes() const { return nodes_; }
@@ -171,7 +196,8 @@ class MultiNodeView
 // template <typename T, typename I = CrtpFinal>
 // class NodeView
 //    : public MultiNodeView<std::conditional_t<std::is_same_v<I, CrtpFinal>,
-//                                              NodeView<T>, NodeView<T, I>>, T
+//                                              NodeView<T>, NodeView<T, I>>,
+//                                              T
 
 template <typename T>
 class NodeView : public MultiNodeView<NodeView<T>, T> {
@@ -184,6 +210,18 @@ class NodeView : public MultiNodeView<NodeView<T>, T> {
   inline auto& children(size_t i = 0) { return Super::children(0); }
   inline const auto& children(size_t i = 0) const { return Super::children(0); }
   inline const auto& parents(size_t i = 0) const { return Super::parents(0); }
+};
+
+template <typename T1, typename T2>
+class DoubleNodeView : public MultiNodeView<DoubleNodeView<T1, T2>, T1, T2> {
+  using MultiNodeView<DoubleNodeView<T1, T2>, T1, T2>::MultiNodeView;
+};
+
+template <typename T1, typename T2, typename T3>
+class TripleNodeView
+    : public MultiNodeView<TripleNodeView<T1, T2, T3>, T1, T2, T3> {
+ public:
+  using MultiNodeView<TripleNodeView<T1, T2, T3>, T1, T2, T3>::MultiNodeView;
 };
 };  // namespace datastructures
 

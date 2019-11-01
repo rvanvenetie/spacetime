@@ -2,15 +2,17 @@ cmake_minimum_required(VERSION 3.15)
 
 project(SpaceTime)
 
+# Set the compile type to debug.
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS "-O1")
+#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
 # Compiler properties.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Set the compile type to debug.
-set(CMAKE_BUILD_TYPE Debug)
-
-# Cmake settings.
+# CMake extra options
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ### Download GoogleTest
@@ -26,6 +28,12 @@ if(NOT googletest_POPULATED)
   FetchContent_Populate(googletest)
   add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 endif()
+
+## Ensure that a proper version of boost is installed
+set(Boost_USE_STATIC_RUNTIME ON)
+set(Boost_NO_BOOST_CMAKE ON)
+find_package(Boost 1.69.0 REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
 
 ## Enable testing.
 enable_testing()
