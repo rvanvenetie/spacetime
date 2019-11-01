@@ -54,6 +54,7 @@ inline void MultiNodeViewInterface<I, Ts, dim>::DeepRefine(
   Bfs(/*include_metaroot*/ true, /*callback*/ callback,
       /*return_nodes*/ false);
 }
+
 template <typename I, typename Ts, size_t dim>
 inline void MultiNodeViewInterface<I, Ts, dim>::UniformRefine(
     std::array<int, dim> max_levels) {
@@ -63,6 +64,17 @@ inline void MultiNodeViewInterface<I, Ts, dim>::UniformRefine(
       result = result && (std::get<i>(nodes)->level() <= max_levels[i]);
     });
     return result;
+  });
+}
+
+template <typename I, typename Ts, size_t dim>
+inline void MultiNodeViewInterface<I, Ts, dim>::SparseRefine(
+    int max_level, std::array<int, dim> weights) {
+  DeepRefine([&](const Ts& nodes) {
+    auto levels = this->levels(nodes);
+    int w_level = 0;
+    for (int i = 0; i < dim; ++i) w_level += weights[i] * levels[i];
+    return w_level <= max_level;
   });
 }
 

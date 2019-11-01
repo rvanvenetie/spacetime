@@ -42,16 +42,20 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
   const I& self() const { return static_cast<const I&>(*this); }
   I& self() { return static_cast<I&>(*this); }
 
-  int level() const {
-    return std::apply([](const auto&... n) { return (n->level() + ...); },
-                      self().nodes());
-  }
-  std::array<int, dim> levels(const Ts& nodes) const {
+  // Returns an array of levels of the underlying nodes.
+  static constexpr std::array<int, dim> levels(const Ts& nodes) {
     std::array<int, dim> result;
     static_for<dim>([&](auto i) { result[i] = std::get<i>(nodes)->level(); });
     return result;
   }
   std::array<int, dim> levels() const { return levels(self().nodes()); }
+
+  // Returns the sum of the levels.
+  static constexpr int level(const Ts& nodes) {
+    return std::apply([](const auto&... l) { return (l + ...); },
+                      levels(nodes));
+  }
+  int level() const { return level(self().nodes()); }
 
   template <size_t i>
   bool is_full() const {
@@ -92,11 +96,20 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
   void DeepRefine(const FuncFilt& call_filter = func_true,
                   const FuncPost& call_postprocess = func_noop);
 
+  // Uniform refine, nodes->level() <= max_levels.
   void UniformRefine(std::array<int, dim> max_levels);
   void UniformRefine(int max_level) {
     std::array<int, dim> arg;
     arg.fill(max_level);
     UniformRefine(arg);
+  }
+
+  // Sparse refine, lin_comb(nodes->level()) <= max_level
+  void SparseRefine(int max_level, std::array<int, dim> weights);
+  void SparseRefine(int max_level) {
+    std::array<int, dim> arg;
+    arg.fill(1);
+    SparseRefine(max_level, arg);
   }
 
   template <typename I_other = I, typename FuncFilt = decltype(func_true),
