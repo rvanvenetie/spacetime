@@ -7,10 +7,10 @@ namespace datastructures {
 
 template <typename I, typename Ts, size_t dim>
 template <typename Func>
-inline std::vector<std::shared_ptr<I>> MultiNodeViewInterface<I, Ts, dim>::Bfs(
+inline VectorAlloc<std::shared_ptr<I>> MultiNodeViewInterface<I, Ts, dim>::Bfs(
     bool include_metaroot, const Func& callback, bool return_nodes) {
   assert(is_root());
-  std::vector<std::shared_ptr<I>> nodes;
+  VectorAlloc<std::shared_ptr<I>> nodes;
   std::queue<std::shared_ptr<I>> queue;
   queue.emplace(self().shared_from_this());
   while (!queue.empty()) {
@@ -87,7 +87,7 @@ void MultiNodeViewInterface<I, Ts, dim>::Union(
   assert(self().nodes() == other->nodes());
   std::queue<std::pair<std::shared_ptr<I>, std::shared_ptr<I_other>>> queue;
   queue.emplace(self().shared_from_this(), other);
-  std::vector<std::shared_ptr<I>> my_nodes;
+  VectorAlloc<std::shared_ptr<I>> my_nodes;
   while (!queue.empty()) {
     std::shared_ptr<I> my_node;
     std::shared_ptr<I_other> other_node;
@@ -103,7 +103,8 @@ void MultiNodeViewInterface<I, Ts, dim>::Union(
     // Now do the union magic in all dimensions.
     static_for<dim>([&queue, &my_node, &other_node, &call_filter](auto i) {
       // Get a list of all children of the other_node in axis `i`.
-      std::vector<std::tuple_element_t<i, Ts>> other_children_i;
+      VectorAlloc<std::tuple_element_t<i, Ts>> other_children_i;
+      other_children_i.reserve(other_node->children(i).size());
       for (const auto& other_child_i : other_node->children(i))
         other_children_i.emplace_back(std::get<i>(other_child_i->nodes()));
 
@@ -138,11 +139,11 @@ inline std::shared_ptr<I_other> MultiNodeViewInterface<I, Ts, dim>::DeepCopy(
 }
 
 template <typename I, typename Ts, size_t dim>
-template <size_t i, typename Func>
-inline const std::vector<std::shared_ptr<I>>&
-MultiNodeViewInterface<I, Ts, dim>::Refine(
-    const std::vector<std::tuple_element_t<i, Ts>>& children_i,
-    const Func& call_filter, bool make_conforming) {
+template <size_t i, typename container, typename Func>
+inline const VectorAlloc<std::shared_ptr<I>>&
+MultiNodeViewInterface<I, Ts, dim>::Refine(const container& children_i,
+                                           const Func& call_filter,
+                                           bool make_conforming) {
   static_assert(i < dim);
   if (is_full<i>()) return self().children(i);
 
@@ -168,10 +169,11 @@ MultiNodeViewInterface<I, Ts, dim>::Refine(
     if (!call_filter(child_nodes)) continue;
 
     // Collect all brothers.
-    std::array<std::vector<std::shared_ptr<I>>, dim> brothers;
+    std::array<VectorAlloc<std::shared_ptr<I>>, dim> brothers;
 
     // Find brothers in all axes, using a static for loop over j.
     static_for<dim>([make_conforming, &brothers, &child_nodes, this](auto j) {
+      brothers[j].reserve(2);
       for (const auto& child_parent_j : std::get<j>(child_nodes)->parents()) {
         // Create a copy of the child_nodes, replacing j-th index.
         auto brother_nodes{child_nodes};
@@ -227,9 +229,10 @@ inline std::shared_ptr<I> MultiNodeViewInterface<I, Ts, dim>::FindBrother(
     if (std::find(nodes_parent_j->children().begin(),
                   nodes_parent_j->children().end(),
                   nodes_i) != nodes_parent_j->children().end()) {
-      parent_j->template Refine<i>(std::vector{nodes_i},
-                                   /*call_filter*/ func_true,
-                                   /*make_conforming*/ true);
+      parent_j->template Refine<i>(
+          VectorAlloc<std::tuple_element_t<i, Ts>>{nodes_i},
+          /*call_filter*/ func_true,
+          /*make_conforming*/ true);
     }
   }
 

@@ -55,6 +55,7 @@ class Node : public NodeInterface<I> {
  public:
   explicit Node(const std::vector<std::shared_ptr<I>> &parents)
       : parents_(parents) {
+    children_.reserve(2);
     assert(parents.size());
     level_ = parents[0]->level() + 1;
     for (const auto &parent : parents) {

@@ -9,10 +9,17 @@
 
 #include "tree.hpp"
 
-// #define BOOST_ALLOCATOR
+#define BOOST_ALLOCATOR
 #ifdef BOOST_ALLOCATOR
 #define BOOST_POOL_NO_MT
 #include <boost/pool/pool_alloc.hpp>
+template <typename I>
+using VectorAlloc = std::vector<
+    I, boost::fast_pool_allocator<I, boost::default_user_allocator_new_delete,
+                                  boost::details::pool::null_mutex, 32, 0>>;
+#else
+template <typename I>
+using VectorAlloc = std::vector<I>;
 #endif
 
 namespace datastructures {
@@ -86,7 +93,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 
   // Bfs can be used to retrieve the underlying nodes.
   template <typename Func = decltype(func_noop)>
-  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false,
+  VectorAlloc<std::shared_ptr<I>> Bfs(bool include_metaroot = false,
                                       const Func& callback = func_noop,
                                       bool return_nodes = true);
 
@@ -122,10 +129,12 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
   std::shared_ptr<I_other> DeepCopy(
       const FuncPost& call_postprocess = func_noop);
 
-  template <size_t i, typename Func = decltype(func_true)>
-  const std::vector<std::shared_ptr<I>>& Refine(
-      const std::vector<std::tuple_element_t<i, Ts>>& children_i,
-      const Func& call_filter = func_true, bool make_conforming = false);
+  template <size_t i,
+            typename container = std::vector<std::tuple_element_t<i, Ts>>,
+            typename Func = decltype(func_true)>
+  const VectorAlloc<std::shared_ptr<I>>& Refine(
+      const container& children_i, const Func& call_filter = func_true,
+      bool make_conforming = false);
 
   // Define a practical overload:
   template <size_t i, typename FuncFilt = decltype(func_true)>
@@ -163,14 +172,18 @@ class MultiNodeView
  public:
   using TupleNodes = std::tuple<std::shared_ptr<T>...>;
   using ArrayVectorImpls =
-      std::array<std::vector<std::shared_ptr<I>>, sizeof...(T)>;
+      std::array<VectorAlloc<std::shared_ptr<I>>, sizeof...(T)>;
 
  public:
   static constexpr size_t dim = sizeof...(T);
 
   explicit MultiNodeView(const TupleNodes& nodes,
                          const ArrayVectorImpls& parents)
-      : nodes_(nodes), parents_(parents) {}
+      : nodes_(nodes), parents_(parents) {
+    static_for<dim>([&](auto i) {
+      children_[i].reserve(std::get<i>(nodes)->children().size());
+    });
+  }
   MultiNodeView() {}
   static std::shared_ptr<I> CreateRoot(std::shared_ptr<T>... nodes) {
     auto result = std::make_shared<I>();
@@ -182,16 +195,16 @@ class MultiNodeView
   const TupleNodes& nodes() const { return nodes_; }
   bool marked() const { return marked_; }
   void set_marked(bool value) { marked_ = value; }
-  std::vector<std::shared_ptr<I>>& children(size_t i) {
+  VectorAlloc<std::shared_ptr<I>>& children(size_t i) {
     assert(i < dim);
     return children_[i];
   }
-  const std::vector<std::shared_ptr<I>>& children(size_t i) const {
+  const VectorAlloc<std::shared_ptr<I>>& children(size_t i) const {
     assert(i < dim);
     return children_[i];
   }
 
-  const std::vector<std::shared_ptr<I>>& parents(size_t i) const {
+  const VectorAlloc<std::shared_ptr<I>>& parents(size_t i) const {
     assert(i < dim);
     return parents_[i];
   }

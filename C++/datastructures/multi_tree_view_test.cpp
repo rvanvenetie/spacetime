@@ -12,9 +12,10 @@ using namespace space;
 using namespace datastructures;
 using ::testing::ElementsAre;
 
+constexpr int max_level = 4;
+
 TEST(MultiNodeView, SingleRefine) {
   auto T = InitialTriangulation::UnitSquare();
-  int max_level = 3;
   T.elem_meta_root->UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
@@ -32,7 +33,6 @@ TEST(MultiNodeView, SingleRefine) {
 
 TEST(MultiNodeView, UniformRefine) {
   auto T = InitialTriangulation::UnitSquare();
-  int max_level = 3;
   T.elem_meta_root->UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
@@ -100,7 +100,6 @@ TEST(MultiNodeView, UniformRefine) {
 
 TEST(MultiNodeView, SparseRefine) {
   auto T = InitialTriangulation::UnitSquare();
-  int max_level = 3;
   T.elem_meta_root->UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
@@ -133,7 +132,6 @@ TEST(MultiNodeView, SparseRefine) {
 
 TEST(MultiNodeView, DeepRefine) {
   auto T = InitialTriangulation::UnitSquare();
-  int max_level = 3;
   T.elem_meta_root->UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
@@ -160,7 +158,6 @@ TEST(MultiNodeView, DeepRefine) {
 
 TEST(MultiNodeView, DeepCopy) {
   auto T = InitialTriangulation::UnitSquare();
-  int max_level = 3;
   T.elem_meta_root->UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
@@ -182,7 +179,6 @@ TEST(MultiNodeView, DeepCopy) {
 
 TEST(MultiNodeView, Union) {
   auto T = InitialTriangulation::UnitSquare();
-  int max_level = 3;
   T.elem_meta_root->UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
