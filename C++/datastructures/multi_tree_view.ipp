@@ -12,16 +12,21 @@ inline VectorAlloc<std::shared_ptr<I>> MultiNodeViewInterface<I, Ts, dim>::Bfs(
   assert(is_root());
   VectorAlloc<std::shared_ptr<I>> nodes;
   std::queue<std::shared_ptr<I>> queue;
+
   queue.emplace(self().shared_from_this());
+  self().set_marked(true);
   while (!queue.empty()) {
     auto node = queue.front();
     queue.pop();
-    if (node->marked()) continue;
+
     nodes.emplace_back(node);
-    node->set_marked(true);
     callback(node);
     for (size_t i = 0; i < dim; ++i)
-      for (const auto& child : node->children(i)) queue.emplace(child);
+      for (const auto& child : node->children(i))
+        if (!child->marked()) {
+          child->set_marked(true);
+          queue.emplace(child);
+        }
   }
   for (const auto& node : nodes) {
     node->set_marked(false);
@@ -87,24 +92,25 @@ void MultiNodeViewInterface<I, Ts, dim>::Union(
   assert(self().nodes() == other->nodes());
   std::queue<std::pair<std::shared_ptr<I>, std::shared_ptr<I_other>>> queue;
   queue.emplace(self().shared_from_this(), other);
+  self().set_marked(true);
+
   VectorAlloc<std::shared_ptr<I>> my_nodes;
   while (!queue.empty()) {
     std::shared_ptr<I> my_node;
     std::shared_ptr<I_other> other_node;
+
     std::tie(my_node, other_node) = queue.front();
     queue.pop();
-    assert(my_node->nodes() == other_node->nodes());
-    if (my_node->marked()) continue;
 
+    assert(my_node->nodes() == other_node->nodes());
     call_postprocess(my_node, other_node);
-    my_node->set_marked(true);
     my_nodes.emplace_back(my_node);
 
     // Now do the union magic in all dimensions.
     static_for<dim>([&queue, &my_node, &other_node, &call_filter](auto i) {
       // Get a list of all children of the other_node in axis `i`.
-      VectorAlloc<std::tuple_element_t<i, Ts>> other_children_i;
-      other_children_i.reserve(other_node->children(i).size());
+      static std::vector<std::tuple_element_t<i, Ts>> other_children_i;
+      other_children_i.clear();
       for (const auto& other_child_i : other_node->children(i))
         other_children_i.emplace_back(std::get<i>(other_child_i->nodes()));
 
@@ -113,12 +119,15 @@ void MultiNodeViewInterface<I, Ts, dim>::Union(
                                   /*make_conforming*/ false);
 
       // Now only put children on the queue that other_node has as well.
-      for (const auto& my_child : my_node->children(i))
+      for (const auto& my_child : my_node->children(i)) {
+        if (my_child->marked()) continue;
         for (const auto& other_child : other_node->children(i))
           if (my_child->nodes() == other_child->nodes()) {
+            my_child->set_marked(true);
             queue.emplace(my_child, other_child);
             break;
           }
+      }
     });
   }
   // Reset mark field.
@@ -173,7 +182,7 @@ MultiNodeViewInterface<I, Ts, dim>::Refine(const container& children_i,
 
     // Find brothers in all axes, using a static for loop over j.
     static_for<dim>([make_conforming, &brothers, &child_nodes, this](auto j) {
-      brothers[j].reserve(2);
+      brothers[j].reserve(std::get<j>(child_nodes)->parents().size());
       for (const auto& child_parent_j : std::get<j>(child_nodes)->parents()) {
         // Create a copy of the child_nodes, replacing j-th index.
         auto brother_nodes{child_nodes};
