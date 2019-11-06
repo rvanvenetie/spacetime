@@ -1,20 +1,24 @@
 #pragma once
 #include <algorithm>
+#include <deque>
 #include <memory>
 #include <queue>
+#include <utility>
 #include <vector>
 
 #include "cassert"
 
 namespace datastructures {
+
 template <typename I>
-class NodeInterface : public std::enable_shared_from_this<I> {
+class NodeInterface {
  public:
   template <typename Func>
-  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot, Func &&callback) {
-    std::vector<std::shared_ptr<I>> nodes;
-    std::queue<std::shared_ptr<I>> queue;
-    queue.emplace(static_cast<I *>(this)->shared_from_this());
+  std::vector<I *> Bfs(bool include_metaroot, Func &&callback,
+                       bool return_nodes = true) {
+    std::vector<I *> nodes;
+    std::queue<I *> queue;
+    queue.emplace(static_cast<I *>(this));
     while (!queue.empty()) {
       auto node = queue.front();
       queue.pop();
@@ -27,34 +31,25 @@ class NodeInterface : public std::enable_shared_from_this<I> {
     for (const auto &node : nodes) {
       node->set_marked(false);
     }
+    if (!return_nodes) return {};
     if (!include_metaroot) {
-      nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
-                                 [](const std::shared_ptr<I> &node) {
-                                   return node->is_metaroot();
-                                 }),
-                  nodes.end());
+      nodes.erase(
+          std::remove_if(nodes.begin(), nodes.end(),
+                         [](const I *node) { return node->is_metaroot(); }),
+          nodes.end());
     }
     return nodes;
   }
 
-  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false) {
-    return Bfs(include_metaroot, [](std::shared_ptr<I> x) {});
-  }
-
-  void UniformRefine(int max_level) {
-    Bfs(true, [max_level](std::shared_ptr<I> node) {
-      if (node->level() < max_level) {
-        node->refine();
-      }
-    });
+  std::vector<I *> Bfs(bool include_metaroot = false) {
+    return Bfs(include_metaroot, [](I *x) {});
   }
 };
 
 template <typename I>
 class Node : public NodeInterface<I> {
  public:
-  explicit Node(const std::vector<std::shared_ptr<I>> &parents)
-      : parents_(parents) {
+  explicit Node(const std::vector<I *> &parents) : parents_(parents) {
     children_.reserve(2);
     assert(parents.size());
     level_ = parents[0]->level() + 1;
@@ -68,28 +63,56 @@ class Node : public NodeInterface<I> {
   void set_marked(bool value) { marked_ = value; }
   bool is_metaroot() const { return (level_ == -1); }
   bool is_leaf() const { return children_.size() == 0; }
-  const std::vector<std::shared_ptr<I>> &parents() const { return parents_; }
-  std::vector<std::shared_ptr<I>> &children() { return children_; }
+  const std::vector<I *> &parents() const { return parents_; }
+  std::vector<I *> &children() { return children_; }
 
  protected:
   int level_;
   bool marked_ = false;
-  std::vector<std::shared_ptr<I>> parents_;
-  std::vector<std::shared_ptr<I>> children_;
+  std::vector<I *> parents_;
+  std::vector<I *> children_;
   Node() : level_(-1) {}
 };
 
 template <typename I>
 class BinaryNode : public Node<I> {
  public:
-  explicit BinaryNode(std::shared_ptr<I> parent) : Node<I>({parent}) {}
+  explicit BinaryNode(I *parent) : Node<I>({parent}) {}
 
   bool is_full() const { return children_.size() == 2; }
-  std::shared_ptr<I> parent() const { return parents_[0]; }
+  I *parent() const { return parents_[0]; }
 
  protected:
   using Node<I>::Node;
   using Node<I>::parents_;
   using Node<I>::children_;
 };
+
+template <typename I>
+class Tree {
+ public:
+  I *meta_root;
+
+  // This constructs the tree with a single meta_root.
+  Tree() : nodes_() { meta_root = emplace_back(); }
+
+  virtual const std::vector<I *> &Refine(I *node) = 0;
+  void UniformRefine(int max_level) {
+    meta_root->Bfs(true, [this, max_level](I *node) {
+      if (node->level() < max_level) {
+        Refine(node);
+      }
+    });
+  }
+
+  template <typename... Args>
+  inline I *emplace_back(Args &&... args) {
+    nodes_.push_back(I(std::forward<Args>(args)...));
+    return &nodes_.back();
+  }
+
+ protected:
+  std::deque<I> nodes_;
+};
+
 }  // namespace datastructures

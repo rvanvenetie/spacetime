@@ -1,4 +1,5 @@
 #pragma once
+#include <deque>
 #include <memory>
 #include <numeric>
 #include <queue>
@@ -13,10 +14,13 @@
 #ifdef BOOST_ALLOCATOR
 #define BOOST_POOL_NO_MT
 #include <boost/pool/pool_alloc.hpp>
-template <typename I>
+template <typename T>
 using VectorAlloc = std::vector<
-    I, boost::fast_pool_allocator<I, boost::default_user_allocator_new_delete,
+    T, boost::fast_pool_allocator<T, boost::default_user_allocator_new_delete,
                                   boost::details::pool::null_mutex, 32, 0>>;
+template <typename T>
+using DequeAlloc = std::deque<T, boost::fast_pool_allocator<T>>;
+
 #else
 template <typename I>
 using VectorAlloc = std::vector<I>;
@@ -35,34 +39,37 @@ template <size_t N, typename Func>
 constexpr void static_for(Func&& f) {
   static_for_impl(std::forward<Func>(f), std::make_index_sequence<N>{});
 }
+constexpr auto func_noop = [](const auto&... x) {};
+constexpr auto func_true = [](const auto&... x) { return true; };
+
+// Returns an array of levels of the underlying nodes.
+template <typename Ts, size_t dim = std::tuple_size_v<Ts>>
+constexpr std::array<int, dim> levels(const Ts& nodes) {
+  std::array<int, dim> result;
+  static_for<dim>([&](auto i) { result[i] = std::get<i>(nodes)->level(); });
+  return result;
+}
+
+// Returns the sum of the levels.
+template <typename Ts>
+constexpr int level(const Ts& nodes) {
+  return std::apply([](const auto&... l) { return (l + ...); }, levels(nodes));
+}
 
 // Template arguments are as follows:
 // I - The final implementation of this class, i.e. the derived class;
 // Ts - The tuple type that represents a node;
 // dim - The dimension of this multitree.
 template <typename I, typename Ts, size_t dim = std::tuple_size_v<Ts>>
-class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
+class MultiNodeViewInterface {
  public:
-  static constexpr auto func_noop = [](const auto&... x) {};
-  static constexpr auto func_true = [](const auto&... x) { return true; };
-
   const I& self() const { return static_cast<const I&>(*this); }
   I& self() { return static_cast<I&>(*this); }
 
-  // Returns an array of levels of the underlying nodes.
-  static constexpr std::array<int, dim> levels(const Ts& nodes) {
-    std::array<int, dim> result;
-    static_for<dim>([&](auto i) { result[i] = std::get<i>(nodes)->level(); });
-    return result;
+  std::array<int, dim> levels() {
+    return datastructures::levels(self().nodes());
   }
-  std::array<int, dim> levels() const { return levels(self().nodes()); }
-
-  // Returns the sum of the levels.
-  static constexpr int level(const Ts& nodes) {
-    return std::apply([](const auto&... l) { return (l + ...); },
-                      levels(nodes));
-  }
-  int level() const { return level(self().nodes()); }
+  int level() const { return datastructures::level(self().nodes()); }
 
   template <size_t i>
   bool is_full() const {
@@ -91,11 +98,115 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
         self().nodes());
   }
 
+  // Some convenient debug function.
+  friend std::ostream& operator<<(std::ostream& os,
+                                  const MultiNodeViewInterface<I, Ts>& bla) {
+    static_for<dim>([&os, &bla](auto i) {
+      if constexpr (i > 0) {
+        os << std::string(" x ");
+      }
+      os << *std::get<i>(bla.self().nodes());
+    });
+    return os;
+  }
+};
+
+template <typename I, typename... T>
+class MultiNodeView : public MultiNodeViewInterface<I, std::tuple<T*...>> {
+ public:
+  using Ts = std::tuple<T*...>;
+  using ArrayVectorImpls = std::array<VectorAlloc<I*>, sizeof...(T)>;
+
+ public:
+  static constexpr size_t dim = sizeof...(T);
+
+  // Constructor for a root.
+  explicit MultiNodeView(const Ts& nodes) : nodes_(nodes) {
+    assert(this->is_root());
+  }
+  explicit MultiNodeView(T*... nodes) : MultiNodeView(Ts(nodes...)) {}
+
+  // Constructor for a node.
+  explicit MultiNodeView(const Ts& nodes, const ArrayVectorImpls& parents)
+      : nodes_(nodes), parents_(parents) {
+    static_for<dim>([&](auto i) {
+      children_[i].reserve(std::get<i>(nodes)->children().size());
+    });
+  }
+
+  const Ts& nodes() const { return nodes_; }
+  bool marked() const { return marked_; }
+  void set_marked(bool value) { marked_ = value; }
+  VectorAlloc<I*>& children(size_t i) {
+    assert(i < dim);
+    return children_[i];
+  }
+  const VectorAlloc<I*>& children(size_t i) const {
+    assert(i < dim);
+    return children_[i];
+  }
+
+  const VectorAlloc<I*>& parents(size_t i) const {
+    assert(i < dim);
+    return parents_[i];
+  }
+
+ protected:
+  bool marked_ = false;
+  Ts nodes_;
+  ArrayVectorImpls parents_;
+  ArrayVectorImpls children_;
+};  // namespace datastructures
+
+template <typename... T>
+class MultiNodeViewImpl : public MultiNodeView<MultiNodeViewImpl<T...>, T...> {
+ public:
+  using MultiNodeView<MultiNodeViewImpl<T...>, T...>::MultiNodeView;
+};
+
+// Way to inherit NodeView:
+//
+// struct CrtpFinal;
+// template <typename T, typename I = CrtpFinal>
+// class NodeView
+//    : public MultiNodeView<std::conditional_t<std::is_same_v<I, CrtpFinal>,
+//                                              NodeView<T>, NodeView<T, I>>,
+//                                              T
+
+template <typename T>
+class NodeView : public MultiNodeView<NodeView<T>, T> {
+ private:
+  using Super = MultiNodeView<NodeView<T>, T>;
+
+ public:
+  using MultiNodeView<NodeView<T>, T>::MultiNodeView;
+
+  inline auto& children(size_t i = 0) { return Super::children(0); }
+  inline const auto& children(size_t i = 0) const { return Super::children(0); }
+  inline const auto& parents(size_t i = 0) const { return Super::parents(0); }
+};
+
+template <typename I>
+class MultiTree {
+ private:
+  using Ts = typename I::Ts;
+  static constexpr size_t dim = I::dim;
+
+ public:
+  I* root;
+
+  // This constructs the tree with a single meta_root.
+  template <typename... T>
+  explicit MultiTree(T... nodes) : nodes_() {
+    root = emplace_back(nodes...);
+    assert(root->is_root());
+  }
+
   // Bfs can be used to retrieve the underlying nodes.
   template <typename Func = decltype(func_noop)>
-  VectorAlloc<std::shared_ptr<I>> Bfs(bool include_metaroot = false,
-                                      const Func& callback = func_noop,
-                                      bool return_nodes = true);
+  VectorAlloc<I*> Bfs(bool include_metaroot = false,
+                      const Func& callback = func_noop,
+                      bool return_nodes = true);
 
   // DeepRefine refines the multitree according to the underlying trees.
   template <typename FuncFilt = decltype(func_true),
@@ -121,134 +232,71 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 
   template <typename I_other = I, typename FuncFilt = decltype(func_true),
             typename FuncPost = decltype(func_noop)>
-  void Union(std::shared_ptr<I_other> other,
-             const FuncFilt& call_filter = func_true,
+  void Union(I_other* other, const FuncFilt& call_filter = func_true,
              const FuncPost& call_postprocess = func_noop);
 
-  template <typename I_other = I, typename FuncPost = decltype(func_noop)>
-  std::shared_ptr<I_other> DeepCopy(
-      const FuncPost& call_postprocess = func_noop);
+  template <typename MT_other = MultiTree<I>,
+            typename FuncFilt = decltype(func_true),
+            typename FuncPost = decltype(func_noop)>
+  void Union(const MT_other& other, const FuncFilt& call_filter = func_true,
+             const FuncPost& call_postprocess = func_noop) {
+    Union(other.root);
+  }
+
+  template <typename MT_other = MultiTree<I>,
+            typename FuncPost = decltype(func_noop)>
+  MT_other DeepCopy(const FuncPost& call_postprocess = func_noop);
 
   template <size_t i,
             typename container = std::vector<std::tuple_element_t<i, Ts>>,
             typename Func = decltype(func_true)>
-  const VectorAlloc<std::shared_ptr<I>>& Refine(
-      const container& children_i, const Func& call_filter = func_true,
-      bool make_conforming = false);
+  const VectorAlloc<I*>& Refine(I* multi_node, const container& children_i,
+                                const Func& call_filter = func_true,
+                                bool make_conforming = false);
 
   // Define a practical overload:
   template <size_t i, typename FuncFilt = decltype(func_true)>
-  const auto& Refine(const FuncFilt& call_filter = func_true,
+  const auto& Refine(I* multi_node, const FuncFilt& call_filter = func_true,
                      bool make_conforming = false) {
-    return Refine<i>(std::get<i>(self().nodes())->children(), call_filter,
-                     make_conforming);
+    return Refine<i>(multi_node, std::get<i>(multi_node->nodes())->children(),
+                     call_filter, make_conforming);
   }
   template <typename FuncFilt = decltype(func_true)>
-  void Refine(const FuncFilt& call_filter = func_true,
+  void Refine(I* multi_node, const FuncFilt& call_filter = func_true,
               bool make_conforming = false) {
-    static_for<dim>([&](auto i) { Refine<i>(call_filter, make_conforming); });
+    static_for<dim>(
+        [&](auto i) { Refine<i>(multi_node, call_filter, make_conforming); });
   }
 
-  // Some convenient debug function.
-  friend std::ostream& operator<<(std::ostream& os,
-                                  const MultiNodeViewInterface<I, Ts>& bla) {
-    static_for<dim>([&os, &bla](auto i) {
-      if constexpr (i > 0) {
-        os << std::string(" x ");
-      }
-      os << *std::get<i>(bla.self().nodes());
-    });
-    return os;
+ protected:
+  VectorAlloc<std::shared_ptr<I>> nodes_;
+
+  template <typename... Args>
+  inline I* emplace_back(Args&&... args) {
+#ifndef BOOST_ALLOCATOR
+    auto child = std::make_shared<I>(std::forward<Args>(args)...);
+#else
+    typedef boost::fast_pool_allocator<I> BoostAlloc;
+    auto child = std::allocate_shared<I, BoostAlloc>(
+        BoostAlloc(), std::forward<Args>(args)...);
+#endif
+    nodes_.push_back(child);
+    return child.get();
   }
 
  private:
   template <size_t i, size_t j>
-  std::shared_ptr<I> FindBrother(const Ts& nodes, bool make_conforming);
+  I* FindBrother(I* multi_node, const Ts& nodes, bool make_conforming);
 };
 
-template <typename I, typename... T>
-class MultiNodeView
-    : public MultiNodeViewInterface<I, std::tuple<std::shared_ptr<T>...>> {
- public:
-  using TupleNodes = std::tuple<std::shared_ptr<T>...>;
-  using ArrayVectorImpls =
-      std::array<VectorAlloc<std::shared_ptr<I>>, sizeof...(T)>;
-
- public:
-  static constexpr size_t dim = sizeof...(T);
-
-  explicit MultiNodeView(const TupleNodes& nodes,
-                         const ArrayVectorImpls& parents)
-      : nodes_(nodes), parents_(parents) {
-    static_for<dim>([&](auto i) {
-      children_[i].reserve(std::get<i>(nodes)->children().size());
-    });
-  }
-  MultiNodeView() {}
-  static std::shared_ptr<I> CreateRoot(std::shared_ptr<T>... nodes) {
-    auto result = std::make_shared<I>();
-    result->nodes_ = std::make_tuple(nodes...);
-    assert(result->is_root());
-    return result;
-  }
-
-  const TupleNodes& nodes() const { return nodes_; }
-  bool marked() const { return marked_; }
-  void set_marked(bool value) { marked_ = value; }
-  VectorAlloc<std::shared_ptr<I>>& children(size_t i) {
-    assert(i < dim);
-    return children_[i];
-  }
-  const VectorAlloc<std::shared_ptr<I>>& children(size_t i) const {
-    assert(i < dim);
-    return children_[i];
-  }
-
-  const VectorAlloc<std::shared_ptr<I>>& parents(size_t i) const {
-    assert(i < dim);
-    return parents_[i];
-  }
-
- protected:
-  bool marked_ = false;
-  TupleNodes nodes_;
-  ArrayVectorImpls parents_;
-  ArrayVectorImpls children_;
-};
-
-// Way to inherit NodeView:
-//
-// struct CrtpFinal;
-// template <typename T, typename I = CrtpFinal>
-// class NodeView
-//    : public MultiNodeView<std::conditional_t<std::is_same_v<I, CrtpFinal>,
-//                                              NodeView<T>, NodeView<T, I>>,
-//                                              T
-
-template <typename T>
-class NodeView : public MultiNodeView<NodeView<T>, T> {
- private:
-  using Super = MultiNodeView<NodeView<T>, T>;
-
- public:
-  using MultiNodeView<NodeView<T>, T>::MultiNodeView;
-
-  inline auto& children(size_t i = 0) { return Super::children(0); }
-  inline const auto& children(size_t i = 0) const { return Super::children(0); }
-  inline const auto& parents(size_t i = 0) const { return Super::parents(0); }
-};
+template <typename T1>
+using TreeView = MultiTree<NodeView<T1>>;
 
 template <typename T1, typename T2>
-class DoubleNodeView : public MultiNodeView<DoubleNodeView<T1, T2>, T1, T2> {
-  using MultiNodeView<DoubleNodeView<T1, T2>, T1, T2>::MultiNodeView;
-};
+using DoubleTreeView = MultiTree<MultiNodeViewImpl<T1, T2>>;
 
 template <typename T1, typename T2, typename T3>
-class TripleNodeView
-    : public MultiNodeView<TripleNodeView<T1, T2, T3>, T1, T2, T3> {
- public:
-  using MultiNodeView<TripleNodeView<T1, T2, T3>, T1, T2, T3>::MultiNodeView;
-};
+using TripleTreeView = MultiTree<MultiNodeViewImpl<T1, T2, T3>>;
 };  // namespace datastructures
 
 #include "multi_tree_view.ipp"

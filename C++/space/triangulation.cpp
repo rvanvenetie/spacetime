@@ -12,32 +12,34 @@ ArrayVertexPtr<2> Element2D::reversed_edge(int i) const {
   return {{vertices_[(i + 2) % 3], vertices_[(i + 1) % 3]}};
 }
 
-const VectorElement2DPtr &Element2D::refine() {
-  if (!is_full()) {
-    auto nbr = neighbours[0];
-    if (!nbr) {  // Refinement edge of `elem` is on domain boundary
-      bisect();
-    } else if (nbr->edge(0) != reversed_edge(0)) {
-      nbr->refine();
-      return refine();
+const VectorElement2DPtr &Element2DTree::Refine(Element2DPtr elem) {
+  if (!elem->is_full()) {
+    auto nbr = elem->neighbours[0];
+    if (!nbr) {
+      // Refinement edge of `elem` is on domain boundary
+      auto new_vertex = CreateNewVertex(elem, nbr);
+      Bisect(elem, new_vertex);
+    } else if (nbr->edge(0) != elem->reversed_edge(0)) {
+      Refine(nbr);
+      return Refine(elem);
     } else {
-      bisect_with_nbr();
+      BisectWithNbr(elem, nbr);
     }
   }
-  return children_;
+  return elem->children_;
 }
 
-VertexPtr Element2D::create_new_vertex(Element2DPtr nbr) {
-  assert(is_leaf());
-  VectorVertexPtr vertex_parents{newest_vertex()};
+VertexPtr Element2DTree::CreateNewVertex(Element2DPtr elem, Element2DPtr nbr) {
+  assert(elem->is_leaf());
+  VectorVertexPtr vertex_parents{elem->newest_vertex()};
   if (nbr) {
-    assert(nbr->edge(0) == reversed_edge(0));
+    assert(nbr->edge(0) == elem->reversed_edge(0));
     vertex_parents.emplace_back(nbr->newest_vertex());
   }
 
-  ArrayVertexPtr<2> godparents{{vertices_[1], vertices_[2]}};
+  ArrayVertexPtr<2> godparents{{elem->vertices_[1], elem->vertices_[2]}};
   auto new_vertex =
-      std::make_shared<Vertex>((godparents[0]->x + godparents[1]->x) / 2,
+      vertex_tree.emplace_back((godparents[0]->x + godparents[1]->x) / 2,
                                (godparents[0]->y + godparents[1]->y) / 2,
                                nbr == nullptr, vertex_parents);
   for (const auto &vertex_parent : vertex_parents)
@@ -45,49 +47,46 @@ VertexPtr Element2D::create_new_vertex(Element2DPtr nbr) {
   return new_vertex;
 }
 
-ArrayElement2DPtr<2> Element2D::bisect(VertexPtr new_vertex) {
-  assert(is_leaf());
-  if (!new_vertex) {
-    new_vertex = create_new_vertex();
-  }
-  auto child1 = std::make_shared<Element2D>(
-      shared_from_this(),
-      VectorVertexPtr{{new_vertex, vertices_[0], vertices_[1]}});
-  auto child2 = std::make_shared<Element2D>(
-      shared_from_this(),
-      VectorVertexPtr{{new_vertex, vertices_[2], vertices_[0]}});
-  children_ = {{child1, child2}};
-  child1->neighbours = {{neighbours[2], nullptr, child2}};
-  child2->neighbours = {{neighbours[1], child1, nullptr}};
+ArrayElement2DPtr<2> Element2DTree::Bisect(Element2DPtr elem,
+                                           VertexPtr new_vertex) {
+  assert(elem->is_leaf());
+  auto child1 = emplace_back(
+      elem,
+      VectorVertexPtr{{new_vertex, elem->vertices_[0], elem->vertices_[1]}});
+  auto child2 = emplace_back(
+      elem,
+      VectorVertexPtr{{new_vertex, elem->vertices_[2], elem->vertices_[0]}});
+  elem->children_ = {{child1, child2}};
+  child1->neighbours = {{elem->neighbours[2], nullptr, child2}};
+  child2->neighbours = {{elem->neighbours[1], child1, nullptr}};
 
   assert(child1->edge(2) == child2->reversed_edge(1));
   new_vertex->patch.push_back(child1);
   new_vertex->patch.push_back(child2);
 
-  if (neighbours[2]) {
+  if (elem->neighbours[2]) {
     for (int i = 0; i < 3; ++i) {
-      if (neighbours[2]->neighbours[i] == shared_from_this()) {
-        neighbours[2]->neighbours[i] = child1;
+      if (elem->neighbours[2]->neighbours[i] == elem) {
+        elem->neighbours[2]->neighbours[i] = child1;
       }
     }
   }
-  if (neighbours[1]) {
+  if (elem->neighbours[1]) {
     for (int i = 0; i < 3; ++i) {
-      if (neighbours[1]->neighbours[i] == shared_from_this()) {
-        neighbours[1]->neighbours[i] = child2;
+      if (elem->neighbours[1]->neighbours[i] == elem) {
+        elem->neighbours[1]->neighbours[i] = child2;
       }
     }
   }
   return {{child1, child2}};
 }
 
-void Element2D::bisect_with_nbr() {
-  auto nbr = neighbours[0];
-  assert(edge(0) == nbr->reversed_edge(0));
+void Element2DTree::BisectWithNbr(Element2DPtr elem, Element2DPtr nbr) {
+  assert(elem->edge(0) == nbr->reversed_edge(0));
 
-  auto new_vertex = create_new_vertex(nbr);
-  auto children0 = bisect(new_vertex);
-  auto children1 = nbr->bisect(new_vertex);
+  auto new_vertex = CreateNewVertex(elem, nbr);
+  auto children0 = Bisect(elem, new_vertex);
+  auto children1 = Bisect(nbr, new_vertex);
 
   children0[0]->neighbours[1] = children1[1];
   children0[1]->neighbours[2] = children1[0];
@@ -98,14 +97,18 @@ void Element2D::bisect_with_nbr() {
 InitialTriangulation::InitialTriangulation(
     const std::vector<std::array<double, 2>> &vertices,
     const std::vector<std::array<int, 3>> &elements)
-    : vertex_meta_root(new Vertex()), elem_meta_root(new Element2D()) {
+    : vertex_tree(),
+      elem_tree(vertex_tree),
+      vertex_meta_root(vertex_tree.meta_root),
+      elem_meta_root(elem_tree.meta_root) {
   // Convenient aliases
-  auto &vertex_roots = vertex_meta_root->children();
-  auto &element_roots = elem_meta_root->children();
+  auto &vertex_roots = vertex_tree.meta_root->children();
+  auto &element_roots = elem_tree.meta_root->children();
 
   for (const auto &vertex : vertices) {
-    vertex_roots.push_back(std::make_shared<Vertex>(
-        vertex[0], vertex[1], false, VectorVertexPtr{vertex_meta_root}));
+    auto vertex_ptr = vertex_tree.emplace_back(
+        vertex[0], vertex[1], false, VectorVertexPtr{vertex_tree.meta_root});
+    vertex_roots.push_back(vertex_ptr);
   }
 
   for (const auto &element : elements) {
@@ -114,11 +117,12 @@ InitialTriangulation::InitialTriangulation(
                            (vertices[element[1]][1] - vertices[element[0]][1]) -
                        (vertices[element[0]][0] - vertices[element[1]][0]) *
                            (vertices[element[2]][1] - vertices[element[0]][1]));
-    element_roots.push_back(std::make_shared<Element2D>(
-        elem_meta_root,
+    auto elem_ptr = elem_tree.emplace_back(
+        elem_tree.meta_root,
         VectorVertexPtr{vertex_roots[element[0]], vertex_roots[element[1]],
                         vertex_roots[element[2]]},
-        elem_area));
+        elem_area);
+    element_roots.push_back(elem_ptr);
   }
 
   // Set neighbour information.

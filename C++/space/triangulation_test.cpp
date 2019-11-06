@@ -1,7 +1,9 @@
 #include "triangulation.hpp"
+
 #include <cmath>
 #include <map>
 #include <set>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -10,7 +12,7 @@ using ::testing::ElementsAre;
 
 TEST(Triangulation, Refine) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(1);
+  T.elem_tree.UniformRefine(1);
 
   auto elements = T.elem_meta_root->Bfs();
   auto vertices = T.vertex_meta_root->Bfs();
@@ -18,21 +20,21 @@ TEST(Triangulation, Refine) {
   EXPECT_THAT(vertices[0]->children(), ElementsAre(vertices[4]));
   EXPECT_THAT(vertices[1]->children(), ElementsAre(vertices[4]));
 
-  elements[2]->refine();
+  T.elem_tree.Refine(elements[2]);
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_TRUE(vertices[5]->on_domain_boundary);
   EXPECT_THAT(vertices[5]->parents(), ElementsAre(vertices[4]));
   EXPECT_THAT(vertices[4]->children(), ElementsAre(vertices[5]));
 
-  elements[4]->refine();
+  T.elem_tree.Refine(elements[4]);
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_TRUE(vertices[6]->on_domain_boundary);
   EXPECT_THAT(vertices[6]->parents(), ElementsAre(vertices[4]));
   EXPECT_THAT(vertices[4]->children(), ElementsAre(vertices[5], vertices[6]));
 
-  elements[6]->refine();
+  T.elem_tree.Refine(elements[6]);
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_FALSE(vertices[8]->on_domain_boundary);
@@ -41,7 +43,7 @@ TEST(Triangulation, Refine) {
 
 TEST(Triangulation, Area) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(2);
+  T.elem_tree.UniformRefine(2);
 
   auto elements = T.elem_meta_root->Bfs();
   auto vertices = T.vertex_meta_root->Bfs();
@@ -68,7 +70,7 @@ TEST(Triangulation, OnDomainBoundary) {
   for (int i = 0; i < 100; ++i) {
     auto elem = *leaves.begin();
     leaves.erase(leaves.begin());
-    auto children = elem->refine();
+    auto children = init_triang.elem_tree.Refine(elem);
     leaves.insert(children.begin(), children.end());
   }
 
@@ -86,7 +88,7 @@ TEST(Triangulation, UniformRefinement) {
     ASSERT_EQ(root->level(), 0);
   }
 
-  elem_meta_root->UniformRefine(5);
+  T.elem_tree.UniformRefine(5);
   ASSERT_EQ(elem_meta_root->Bfs().size(),
             (std::pow(2, 6) - 1) * elem_meta_root->children().size());
 
@@ -103,7 +105,7 @@ TEST(Triangulation, UniformRefinement) {
 
 TEST(Triangulation, VertexPatch) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(1);
+  T.elem_tree.UniformRefine(1);
 
   auto elements = T.elem_meta_root->Bfs();
   auto vertices = T.vertex_meta_root->Bfs();
@@ -120,7 +122,7 @@ TEST(Triangulation, VertexPatch) {
   for (int i = 0; i < 200; ++i) {
     auto elem = *leaves.begin();
     leaves.erase(leaves.begin());
-    auto children = elem->refine();
+    auto children = T.elem_tree.Refine(elem);
     leaves.insert(children.begin(), children.end());
   }
 
