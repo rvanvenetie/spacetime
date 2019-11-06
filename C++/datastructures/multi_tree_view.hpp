@@ -269,19 +269,12 @@ class MultiTree {
   }
 
  protected:
-  VectorAlloc<std::shared_ptr<I>> nodes_;
+  std::deque<I> nodes_;
 
   template <typename... Args>
   inline I* emplace_back(Args&&... args) {
-#ifndef BOOST_ALLOCATOR
-    auto child = std::make_shared<I>(std::forward<Args>(args)...);
-#else
-    typedef boost::fast_pool_allocator<I> BoostAlloc;
-    auto child = std::allocate_shared<I, BoostAlloc>(
-        BoostAlloc(), std::forward<Args>(args)...);
-#endif
-    nodes_.push_back(child);
-    return child.get();
+    nodes_.emplace_back(std::forward<Args>(args)...);
+    return &nodes_.back();
   }
 
  private:
