@@ -4,17 +4,22 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+
 #include "datastructures/tree.hpp"
 
 namespace space {
 
+// Forward some class names.
 class Vertex;
+class Element2D;
+class InitialTriangulation;
+
+// Define some aliases
 using VertexPtr = std::shared_ptr<Vertex>;
 using VectorVertexPtr = std::vector<VertexPtr>;
 template <size_t N>
 using ArrayVertexPtr = std::array<VertexPtr, N>;
 
-class Element2D;
 using Element2DPtr = std::shared_ptr<Element2D>;
 using VectorElement2DPtr = std::vector<Element2DPtr>;
 template <size_t N>
@@ -25,8 +30,6 @@ class Vertex : public datastructures::Node<Vertex> {
   const double x, y;
   bool on_domain_boundary;
   VectorElement2DPtr patch;
-
-  static VertexPtr CreateMetaroot() { return VertexPtr(new Vertex()); }
   Vertex(double x, double y, bool on_domain_boundary,
          const VectorVertexPtr &parents)
       : Node(parents), x(x), y(y), on_domain_boundary(on_domain_boundary) {}
@@ -37,21 +40,23 @@ class Vertex : public datastructures::Node<Vertex> {
   }
 
  protected:
+  // Protected constructor for creating a metaroot.
   Vertex() : Node(), x(NAN), y(NAN), on_domain_boundary(false) {}
+
+  friend Element2D;
+  friend InitialTriangulation;
 };
 
 class Element2D : public datastructures::BinaryNode<Element2D> {
  public:
   ArrayElement2DPtr<3> neighbours;
 
-  // Constructors.
-  static Element2DPtr CreateMetaroot() { return Element2DPtr(new Element2D()); }
+  // Constructors given the parent.
+  explicit Element2D(Element2DPtr parent, const VectorVertexPtr &vertices)
+      : Element2D(parent, vertices, parent->area() / 2.0) {}
   explicit Element2D(Element2DPtr parent, const VectorVertexPtr &vertices,
                      double area)
       : BinaryNode(parent), area_(area), vertices_(vertices) {}
-
-  explicit Element2D(Element2DPtr parent, const VectorVertexPtr &vertices)
-      : Element2D(parent, vertices, parent->area() / 2.0) {}
 
   double area() const { return area_; }
   const VectorVertexPtr &vertices() const { return vertices_; }
@@ -64,7 +69,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
 
   friend std::ostream &operator<<(std::ostream &os, const Element2D &elem) {
     os << "Element2D(" << elem.level() << ", (";
-    for (auto vertex : elem.vertices()) {
+    for (const auto &vertex : elem.vertices()) {
       if (vertex != *elem.vertices().begin()) os << ", ";
       os << *vertex;
     }
@@ -76,12 +81,14 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   double area_;
   VectorVertexPtr vertices_;
 
-  // Protected constructor for metaroot.
+  // Protected constructor for creating a metaroot.
   Element2D() : BinaryNode(), area_(-1) {}
 
   VertexPtr create_new_vertex(Element2DPtr nbr = nullptr);
   ArrayElement2DPtr<2> bisect(VertexPtr new_vertex = nullptr);
   void bisect_with_nbr();
+
+  friend InitialTriangulation;
 };
 
 class InitialTriangulation {
