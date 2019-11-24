@@ -172,7 +172,11 @@ inline const VectorAlloc<I*>& MultiTree<I>::Refine(I* multi_node,
       continue;
 
     // Also skip if the call_filter doesn't pass.
-    if (!call_filter(child_nodes)) continue;
+    if constexpr (dim == 1) {
+      if (!call_filter(child_i)) continue;
+    } else {
+      if (!call_filter(child_nodes)) continue;
+    }
 
     // Collect all brothers.
     std::array<VectorAlloc<I*>, dim> brothers;
@@ -190,20 +194,21 @@ inline const VectorAlloc<I*>& MultiTree<I>::Refine(I* multi_node,
     });
 
     // Now finally, lets create an actual child!
-    auto child = emplace_back(std::move(child_nodes), brothers);
+    auto child = emplace_back(std::move(child_nodes), std::move(brothers));
     //#ifndef BOOST_ALLOCATOR
-    //    auto child = std::make_shared<I>(/*nodes*/ std::move(child_nodes),
-    //                                     /*parents*/ brothers);
+    //    auto child =
+    //        std::make_shared < I>(/*nodes*/ std::move(child_nodes),
+    //                              /*parents*/ std::move(brothers));
     //#else
     //    typedef boost::fast_pool_allocator<I> BoostAlloc;
     //    auto child = std::allocate_shared<I, BoostAlloc>(
     //        BoostAlloc(), /*nodes*/ std::move(child_nodes),
-    //        /*parents*/ brothers);
+    //        /*parents*/ std::move(brothers));
     //#endif
 
     // Add this child to all brothers.
     for (size_t j = 0; j < dim; ++j) {
-      for (const auto& brother : brothers[j]) {
+      for (const auto& brother : child->parents(j)) {
         brother->children(j).push_back(child);
       }
     }
@@ -245,5 +250,4 @@ inline I* MultiTree<I>::FindBrother(I* multi_node, const Ts& nodes,
   // Try calling this function again.
   return FindBrother<i, j>(multi_node, nodes, /*make_conforming*/ false);
 }
-
 };  // namespace datastructures

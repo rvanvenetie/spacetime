@@ -61,7 +61,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   ArrayElement2DPtr<3> neighbours = {};
 
   double area() const { return area_; }
-  const VectorVertexPtr &vertices() const { return vertices_; }
+  const ArrayVertexPtr<3> &vertices() const { return vertices_; }
 
   VertexPtr newest_vertex() const { return vertices_[0]; }
   ArrayVertexPtr<2> edge(int i) const;
@@ -79,16 +79,16 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
 
  protected:
   double area_;
-  VectorVertexPtr vertices_;
+  ArrayVertexPtr<3> vertices_;
 
   // Constructor for creating a metaroot.
   Element2D() : BinaryNode(), area_(-1) {}
 
   // Constructors given the parent.
-  explicit Element2D(Element2DPtr parent, const VectorVertexPtr &vertices,
+  explicit Element2D(Element2DPtr parent, const ArrayVertexPtr<3> &vertices,
                      double area)
       : BinaryNode(parent), area_(area), vertices_(vertices) {}
-  explicit Element2D(Element2DPtr parent, const VectorVertexPtr &vertices)
+  explicit Element2D(Element2DPtr parent, const ArrayVertexPtr<3> &vertices)
       : Element2D(parent, vertices, parent->area() / 2.0) {}
 
   friend Element2DTree;
@@ -98,7 +98,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
 class Element2DTree : public datastructures::Tree<Element2D> {
  public:
   const VectorElement2DPtr &Refine(Element2DPtr elem) final;
-  Element2DTree(VertexTree &vertex_tree)
+  explicit Element2DTree(VertexTree &vertex_tree)
       : datastructures::Tree<Element2D>(), vertex_tree(vertex_tree) {}
 
  protected:

@@ -66,9 +66,27 @@ class Node : public NodeInterface<I> {
   const std::vector<I *> &parents() const { return parents_; }
   std::vector<I *> &children() { return children_; }
 
+  // General data field for universal storage.
+  template <typename T>
+  T *data() {
+    assert(data_ != nullptr);
+    return static_cast<T *>(data_);
+  }
+
+  template <typename T>
+  void set_data(T *value) {
+    assert(data_ == nullptr);
+    data_ = static_cast<void *>(value);
+  }
+  void reset_data() {
+    assert(data_ != nullptr);
+    data_ = nullptr;
+  }
+
  protected:
   int level_;
   bool marked_ = false;
+  void *data_ = nullptr;
   std::vector<I *> parents_;
   std::vector<I *> children_;
   Node() : level_(-1) {}

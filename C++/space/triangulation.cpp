@@ -52,10 +52,10 @@ ArrayElement2DPtr<2> Element2DTree::Bisect(Element2DPtr elem,
   assert(elem->is_leaf());
   auto child1 = emplace_back(
       elem,
-      VectorVertexPtr{{new_vertex, elem->vertices_[0], elem->vertices_[1]}});
+      ArrayVertexPtr<3>{{new_vertex, elem->vertices_[0], elem->vertices_[1]}});
   auto child2 = emplace_back(
       elem,
-      VectorVertexPtr{{new_vertex, elem->vertices_[2], elem->vertices_[0]}});
+      ArrayVertexPtr<3>{{new_vertex, elem->vertices_[2], elem->vertices_[0]}});
   elem->children_ = {{child1, child2}};
   child1->neighbours = {{elem->neighbours[2], nullptr, child2}};
   child2->neighbours = {{elem->neighbours[1], child1, nullptr}};
@@ -119,8 +119,8 @@ InitialTriangulation::InitialTriangulation(
                            (vertices[element[2]][1] - vertices[element[0]][1]));
     auto elem_ptr = elem_tree.emplace_back(
         elem_tree.meta_root,
-        VectorVertexPtr{vertex_roots[element[0]], vertex_roots[element[1]],
-                        vertex_roots[element[2]]},
+        ArrayVertexPtr<3>{vertex_roots[element[0]], vertex_roots[element[1]],
+                          vertex_roots[element[2]]},
         elem_area);
     element_roots.push_back(elem_ptr);
   }
