@@ -57,7 +57,7 @@ class TriangulationView {
       if (elem->level() <= 0 || vertex->marked()) continue;
       vertex->set_marked(true);
       assert(!elem->parents().empty());
-      history_.emplace_back(vertex, elem->parents()[0]);
+      history_.emplace_back(vertex.get(), elem->parents()[0]);
     }
 
     // Unset all the data!
@@ -69,8 +69,6 @@ class TriangulationView {
   }
   std::shared_ptr<VertexView> vertex_view_;
   std::shared_ptr<Element2DView> element_view_;
-  std::vector<
-      std::pair<std::shared_ptr<VertexView>, std::shared_ptr<Element2DView>>>
-      history_;
+  std::vector<std::pair<VertexView *, Element2DView *>> history_;
 };
 }  // namespace space
