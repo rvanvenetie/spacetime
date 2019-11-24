@@ -52,10 +52,10 @@ ArrayElement2DPtr<2> Element2D::bisect(VertexPtr new_vertex) {
   }
   auto child1 = std::make_shared<Element2D>(
       shared_from_this(),
-      VectorVertexPtr{{new_vertex, vertices_[0], vertices_[1]}});
+      ArrayVertexPtr<3>{{new_vertex, vertices_[0], vertices_[1]}});
   auto child2 = std::make_shared<Element2D>(
       shared_from_this(),
-      VectorVertexPtr{{new_vertex, vertices_[2], vertices_[0]}});
+      ArrayVertexPtr<3>{{new_vertex, vertices_[2], vertices_[0]}});
   children_ = {{child1, child2}};
   child1->neighbours = {{neighbours[2], nullptr, child2}};
   child2->neighbours = {{neighbours[1], child1, nullptr}};
@@ -116,8 +116,8 @@ InitialTriangulation::InitialTriangulation(
                            (vertices[element[2]][1] - vertices[element[0]][1]));
     element_roots.push_back(std::make_shared<Element2D>(
         elem_meta_root,
-        VectorVertexPtr{vertex_roots[element[0]], vertex_roots[element[1]],
-                        vertex_roots[element[2]]},
+        ArrayVertexPtr<3>{vertex_roots[element[0]], vertex_roots[element[1]],
+                          vertex_roots[element[2]]},
         elem_area));
   }
 

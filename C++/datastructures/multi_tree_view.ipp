@@ -9,7 +9,7 @@ template <typename I, typename Ts, size_t dim>
 template <typename Func>
 inline VectorAlloc<std::shared_ptr<I>> MultiNodeViewInterface<I, Ts, dim>::Bfs(
     bool include_metaroot, const Func& callback, bool return_nodes) {
-  assert(is_root());
+  assert(is_root() && !self().marked());
   VectorAlloc<std::shared_ptr<I>> nodes;
   std::queue<std::shared_ptr<I>> queue;
 
@@ -175,7 +175,11 @@ MultiNodeViewInterface<I, Ts, dim>::Refine(const container& children_i,
       continue;
 
     // Also skip if the call_filter doesn't pass.
-    if (!call_filter(child_nodes)) continue;
+    if constexpr (dim == 1) {
+      if (!call_filter(child_i)) continue;
+    } else {
+      if (!call_filter(child_nodes)) continue;
+    }
 
     // Collect all brothers.
     std::array<VectorAlloc<std::shared_ptr<I>>, dim> brothers;
@@ -195,23 +199,23 @@ MultiNodeViewInterface<I, Ts, dim>::Refine(const container& children_i,
     // Now finally, lets create an actual child!
 #ifndef BOOST_ALLOCATOR
     auto child = std::make_shared<I>(/*nodes*/ std::move(child_nodes),
-                                     /*parents*/ brothers);
+                                     /*parents*/ std::move(brothers));
 #else
     typedef boost::fast_pool_allocator<I> BoostAlloc;
     auto child = std::allocate_shared<I, BoostAlloc>(
         BoostAlloc(), /*nodes*/ std::move(child_nodes),
-        /*parents*/ brothers);
+        /*parents*/ std::move(brothers));
 #endif
 
     // Add this child to all brothers.
     for (size_t j = 0; j < dim; ++j) {
-      for (const auto& brother : brothers[j]) {
+      for (const auto& brother : child->parents(j)) {
         brother->children(j).push_back(child);
       }
     }
   }
   return self().children(i);
-}
+}  // namespace datastructures
 
 template <typename I, typename Ts, size_t dim>
 template <size_t i, size_t j>
@@ -248,5 +252,4 @@ inline std::shared_ptr<I> MultiNodeViewInterface<I, Ts, dim>::FindBrother(
   // Try calling this function again.
   return FindBrother<i, j>(nodes, /*make_conforming*/ false);
 }
-
 };  // namespace datastructures

@@ -15,8 +15,10 @@
 #include <boost/pool/pool_alloc.hpp>
 template <typename I>
 using VectorAlloc = std::vector<
-    I, boost::fast_pool_allocator<I, boost::default_user_allocator_new_delete,
-                                  boost::details::pool::null_mutex, 32, 0>>;
+    I, boost::pool_allocator<I>>;  //#,
+                                   // boost::default_user_allocator_new_delete,
+                                   // boost::details::pool::null_mutex,
+                                   // 32, 0>>;
 #else
 template <typename I>
 using VectorAlloc = std::vector<I>;
@@ -177,11 +179,10 @@ class MultiNodeView
  public:
   static constexpr size_t dim = sizeof...(T);
 
-  explicit MultiNodeView(const TupleNodes& nodes,
-                         const ArrayVectorImpls& parents)
-      : nodes_(nodes), parents_(parents) {
+  explicit MultiNodeView(TupleNodes&& nodes, ArrayVectorImpls&& parents)
+      : nodes_(std::move(nodes)), parents_(std::move(parents)) {
     static_for<dim>([&](auto i) {
-      children_[i].reserve(std::get<i>(nodes)->children().size());
+      children_[i].reserve(std::get<i>(nodes_)->children().size());
     });
   }
   MultiNodeView() {}
@@ -225,17 +226,24 @@ class MultiNodeView
 //                                              NodeView<T>, NodeView<T, I>>,
 //                                              T
 
-template <typename T>
-class NodeView : public MultiNodeView<NodeView<T>, T> {
+template <typename I, typename T>
+class NodeViewBase : public MultiNodeView<I, T> {
  private:
-  using Super = MultiNodeView<NodeView<T>, T>;
+  using Super = MultiNodeView<I, T>;
 
  public:
-  using MultiNodeView<NodeView<T>, T>::MultiNodeView;
+  using MultiNodeView<I, T>::MultiNodeView;
 
   inline auto& children(size_t i = 0) { return Super::children(0); }
   inline const auto& children(size_t i = 0) const { return Super::children(0); }
   inline const auto& parents(size_t i = 0) const { return Super::parents(0); }
+  inline std::shared_ptr<T> node() const { return std::get<0>(Super::nodes_); }
+};
+
+template <typename T>
+class NodeView : public NodeViewBase<NodeView<T>, T> {
+ public:
+  using NodeViewBase<NodeView<T>, T>::NodeViewBase;
 };
 
 template <typename T1, typename T2>
