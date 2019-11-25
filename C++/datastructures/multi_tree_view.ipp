@@ -7,10 +7,10 @@ namespace datastructures {
 
 template <typename I>
 template <typename Func>
-inline VectorAlloc<I*> MultiTree<I>::Bfs(bool include_metaroot,
+inline std::vector<I*> MultiTree<I>::Bfs(bool include_metaroot,
                                          const Func& callback,
                                          bool return_nodes) {
-  VectorAlloc<I*> nodes;
+  std::vector<I*> nodes;
   std::queue<I*> queue;
 
   queue.emplace(root);
@@ -92,7 +92,7 @@ void MultiTree<I>::Union(I_other* other, const FuncFilt& call_filter,
   queue.emplace(root, other);
   root->set_marked(true);
 
-  VectorAlloc<I*> my_nodes;
+  std::vector<I*> my_nodes;
   while (!queue.empty()) {
     I* my_node;
     I_other* other_node;
@@ -145,10 +145,10 @@ inline MT_other MultiTree<I>::DeepCopy(const FuncPost& call_postprocess) {
 
 template <typename I>
 template <size_t i, typename container, typename Func>
-inline const VectorAlloc<I*>& MultiTree<I>::Refine(I* multi_node,
-                                                   const container& children_i,
-                                                   const Func& call_filter,
-                                                   bool make_conforming) {
+inline const auto& MultiTree<I>::Refine(I* multi_node,
+                                        const container& children_i,
+                                        const Func& call_filter,
+                                        bool make_conforming) {
   static_assert(i < dim);
   if (multi_node->template is_full<i>()) return multi_node->children(i);
 
@@ -179,11 +179,11 @@ inline const VectorAlloc<I*>& MultiTree<I>::Refine(I* multi_node,
     }
 
     // Collect all brothers.
-    std::array<VectorAlloc<I*>, dim> brothers;
+    typename I::TParents brothers;
 
     // Find brothers in all axes, using a static for loop over j.
     static_for<dim>([&](auto j) {
-      brothers[j].reserve(std::get<j>(child_nodes)->parents().size());
+      // brothers[j].reserve(std::get<j>(child_nodes)->parents().size());
       for (const auto& child_parent_j : std::get<j>(child_nodes)->parents()) {
         // Create a copy of the child_nodes, replacing j-th index.
         auto brother_nodes{child_nodes};
@@ -195,16 +195,6 @@ inline const VectorAlloc<I*>& MultiTree<I>::Refine(I* multi_node,
 
     // Now finally, lets create an actual child!
     auto child = emplace_back(std::move(child_nodes), std::move(brothers));
-    //#ifndef BOOST_ALLOCATOR
-    //    auto child =
-    //        std::make_shared < I>(/*nodes*/ std::move(child_nodes),
-    //                              /*parents*/ std::move(brothers));
-    //#else
-    //    typedef boost::fast_pool_allocator<I> BoostAlloc;
-    //    auto child = std::allocate_shared<I, BoostAlloc>(
-    //        BoostAlloc(), /*nodes*/ std::move(child_nodes),
-    //        /*parents*/ std::move(brothers));
-    //#endif
 
     // Add this child to all brothers.
     for (size_t j = 0; j < dim; ++j) {
@@ -241,7 +231,7 @@ inline I* MultiTree<I>::FindBrother(I* multi_node, const Ts& nodes,
     if (std::find(nodes_parent_j->children().begin(),
                   nodes_parent_j->children().end(),
                   nodes_i) != nodes_parent_j->children().end()) {
-      Refine<i>(parent_j, VectorAlloc<std::tuple_element_t<i, Ts>>{nodes_i},
+      Refine<i>(parent_j, SmallVector<std::tuple_element_t<i, Ts>, 1>{nodes_i},
                 /*call_filter*/ func_true,
                 /*make_conforming*/ true);
     }

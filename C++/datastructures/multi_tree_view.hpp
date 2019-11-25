@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <deque>
 #include <memory>
 #include <numeric>
@@ -8,24 +9,8 @@
 #include <utility>
 #include <vector>
 
+#include "boost.hpp"
 #include "tree.hpp"
-
-#define BOOST_ALLOCATOR
-#ifdef BOOST_ALLOCATOR
-#define BOOST_POOL_NO_MT
-#include <boost/pool/pool_alloc.hpp>
-template <typename T>
-using VectorAlloc = std::vector<
-    T, boost::pool_allocator<T>>;  //#,
-                                   // boost::default_user_allocator_new_delete,
-                                   // boost::details::pool::null_mutex,
-                                   // 32, 0>>;
-template <typename T>
-using DequeAlloc = std::deque<T, boost::pool_allocator<T>>;
-#else
-template <typename I>
-using VectorAlloc = std::vector<I>;
-#endif
 
 namespace datastructures {
 
@@ -115,12 +100,14 @@ class MultiNodeViewInterface {
 template <typename I, typename... T>
 class MultiNodeView : public MultiNodeViewInterface<I, std::tuple<T*...>> {
  public:
+  static constexpr size_t dim = sizeof...(T);
   using Ts = std::tuple<T*...>;
-  using ArrayVectorImpls = std::array<VectorAlloc<I*>, sizeof...(T)>;
+  using TParents =
+      std::array<StaticVector<I*, std::max({T::N_parents...})>, dim>;
+  using TChildren =
+      std::array<SmallVector<I*, std::max({T::N_children...})>, dim>;
 
  public:
-  static constexpr size_t dim = sizeof...(T);
-
   // Constructor for a root.
   explicit MultiNodeView(const Ts& nodes) : nodes_(nodes) {
     assert(this->is_root());
@@ -128,26 +115,24 @@ class MultiNodeView : public MultiNodeViewInterface<I, std::tuple<T*...>> {
   explicit MultiNodeView(T*... nodes) : MultiNodeView(Ts(nodes...)) {}
 
   // Constructor for a node.
-  explicit MultiNodeView(Ts&& nodes, ArrayVectorImpls&& parents)
-      : nodes_(std::move(nodes)), parents_(std::move(parents)) {
-    static_for<dim>([&](auto i) {
-      children_[i].reserve(std::get<i>(nodes_)->children().size());
-    });
-  }
+  explicit MultiNodeView(Ts&& nodes, TParents&& parents)
+      : nodes_(std::move(nodes)), parents_(std::move(parents)) {}
+
+  MultiNodeView(const MultiNodeView&) = delete;
 
   const Ts& nodes() const { return nodes_; }
   bool marked() const { return marked_; }
   void set_marked(bool value) { marked_ = value; }
-  VectorAlloc<I*>& children(size_t i) {
+  auto& children(size_t i) {
     assert(i < dim);
     return children_[i];
   }
-  const VectorAlloc<I*>& children(size_t i) const {
+  const auto& children(size_t i) const {
     assert(i < dim);
     return children_[i];
   }
 
-  const VectorAlloc<I*>& parents(size_t i) const {
+  const auto& parents(size_t i) const {
     assert(i < dim);
     return parents_[i];
   }
@@ -155,8 +140,8 @@ class MultiNodeView : public MultiNodeViewInterface<I, std::tuple<T*...>> {
  protected:
   bool marked_ = false;
   Ts nodes_;
-  ArrayVectorImpls parents_;
-  ArrayVectorImpls children_;
+  TParents parents_;
+  TChildren children_;
 };  // namespace datastructures
 
 template <typename... T>
@@ -210,9 +195,11 @@ class MultiTree {
     assert(root->is_root());
   }
 
+  MultiTree(const MultiTree<I>&) = delete;
+
   // Bfs can be used to retrieve the underlying nodes.
   template <typename Func = decltype(func_noop)>
-  VectorAlloc<I*> Bfs(bool include_metaroot = false,
+  std::vector<I*> Bfs(bool include_metaroot = false,
                       const Func& callback = func_noop,
                       bool return_nodes = true);
 
@@ -258,9 +245,9 @@ class MultiTree {
   template <size_t i,
             typename container = std::vector<std::tuple_element_t<i, Ts>>,
             typename Func = decltype(func_true)>
-  const VectorAlloc<I*>& Refine(I* multi_node, const container& children_i,
-                                const Func& call_filter = func_true,
-                                bool make_conforming = false);
+  const auto& Refine(I* multi_node, const container& children_i,
+                     const Func& call_filter = func_true,
+                     bool make_conforming = false);
 
   // Define a practical overload:
   template <size_t i, typename FuncFilt = decltype(func_true)>
@@ -277,7 +264,7 @@ class MultiTree {
   }
 
  protected:
-  std::deque<I> nodes_;
+  boost::container::deque<I, void, deque_block_128_option_t> nodes_;
 
   template <typename... Args>
   inline I* emplace_back(Args&&... args) {

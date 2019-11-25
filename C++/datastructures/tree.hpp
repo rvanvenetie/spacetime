@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "boost.hpp"
 #include "cassert"
 
 namespace datastructures {
@@ -50,13 +51,14 @@ template <typename I>
 class Node : public NodeInterface<I> {
  public:
   explicit Node(const std::vector<I *> &parents) : parents_(parents) {
-    children_.reserve(2);
+    children_.reserve(I::N_children);
     assert(parents.size());
     level_ = parents[0]->level() + 1;
     for (const auto &parent : parents) {
       assert(parent->level() == level_ - 1);
     }
   }
+  Node(const Node &) = delete;
 
   int level() const { return level_; }
   bool marked() const { return marked_; }
@@ -64,7 +66,7 @@ class Node : public NodeInterface<I> {
   bool is_metaroot() const { return (level_ == -1); }
   bool is_leaf() const { return children_.size() == 0; }
   const std::vector<I *> &parents() const { return parents_; }
-  std::vector<I *> &children() { return children_; }
+  auto &children() { return children_; }
 
   // General data field for universal storage.
   template <typename T>
@@ -95,6 +97,9 @@ class Node : public NodeInterface<I> {
 template <typename I>
 class BinaryNode : public Node<I> {
  public:
+  static constexpr size_t N_parents = 1;
+  static constexpr size_t N_children = 2;
+
   explicit BinaryNode(I *parent) : Node<I>({parent}) {}
 
   bool is_full() const { return children_.size() == 2; }
@@ -113,6 +118,7 @@ class Tree {
 
   // This constructs the tree with a single meta_root.
   Tree() : nodes_() { meta_root = emplace_back(); }
+  Tree(const Tree &) = delete;
 
   virtual const std::vector<I *> &Refine(I *node) = 0;
   void UniformRefine(int max_level) {
@@ -125,11 +131,14 @@ class Tree {
 
   template <typename... Args>
   inline I *emplace_back(Args &&... args) {
-    nodes_.push_back(I(std::forward<Args>(args)...));
+    nodes_.emplace_back(std::forward<Args>(args)...);
     return &nodes_.back();
   }
 
  protected:
+  // typedef boost::container::deque_options<
+  //    boost::container::block_size<128>>::type block_128_option_t;
+  // boost::container::deque<I, void, block_128_option_t> nodes_;
   std::deque<I> nodes_;
 };
 
