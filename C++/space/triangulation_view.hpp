@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-#include "datastructures/multi_tree_view.hpp"
+#include "../datastructures/multi_tree_view.hpp"
 #include "triangulation.hpp"
 
 namespace space {

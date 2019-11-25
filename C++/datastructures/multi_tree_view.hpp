@@ -103,6 +103,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
             typename FuncPost = decltype(func_noop)>
   void DeepRefine(const FuncFilt& call_filter = func_true,
                   const FuncPost& call_postprocess = func_noop);
+  void DeepRefine() { DeepRefine(func_true, func_noop); }
 
   // Uniform refine, nodes->level() <= max_levels.
   void UniformRefine(std::array<int, dim> max_levels);

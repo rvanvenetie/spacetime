@@ -43,10 +43,10 @@ int main() {
   for (size_t i = 0; i < iters; ++i) {
     // Create a random subtree
     auto vertex_subtree = NodeView<Vertex>::CreateRoot(T.vertex_meta_root);
-    vertex_subtree->DeepRefine(
-        /* call_filter */ [&bsd_rnd](auto &&vertex) {
-          return vertex->level() <= 0 || bsd_rnd.rnd() % 3 != 0;
-        });
+    vertex_subtree->DeepRefine();
+    //        /* call_filter */ [&bsd_rnd](auto &&vertex) {
+    //          return vertex->level() <= 0 || bsd_rnd.rnd() % 3 != 0;
+    //        });
 
     auto T_view = TriangulationView(vertex_subtree);
     // std::cout << T_view.history_.size() << std::endl;

@@ -43,8 +43,7 @@ TEST(TriangulationView, VertexSubTree) {
 
   // Create a subtree with only vertices lying below the diagonal.
   auto vertex_subtree = NodeView<Vertex>::CreateRoot(T.vertex_meta_root);
-  vertex_subtree->DeepRefine(/* call_filter */ [](auto &&tuple_nodes) {
-    auto vertex = std::get<0>(tuple_nodes);
+  vertex_subtree->DeepRefine(/* call_filter */ [](const auto &vertex) {
     return vertex->x + vertex->y <= 1.0;
   });
   ASSERT_TRUE(vertex_subtree->Bfs().size() < T.vertex_meta_root->Bfs().size());

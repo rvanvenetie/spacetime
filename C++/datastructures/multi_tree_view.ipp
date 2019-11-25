@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-#include "datastructures/multi_tree_view.hpp"
+#include "multi_tree_view.hpp"
 
 namespace datastructures {
 
