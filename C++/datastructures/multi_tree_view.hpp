@@ -1,5 +1,6 @@
 #pragma once
 #include <boost/container/small_vector.hpp>
+#include <boost/container/static_vector.hpp>
 #include <memory>
 #include <numeric>
 #include <queue>
@@ -18,6 +19,9 @@
 
 template <typename I, size_t N>
 using SmallVector = boost::container::small_vector<I, N>;
+
+template <typename I, size_t N>
+using StaticVector = boost::container::static_vector<I, N>;
 
 namespace datastructures {
 
@@ -129,9 +133,9 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
   template <size_t i,
             typename container = std::vector<std::tuple_element_t<i, Ts>>,
             typename Func = decltype(func_true)>
-  const SmallVector<std::shared_ptr<I>, 4>& Refine(
-      const container& children_i, const Func& call_filter = func_true,
-      bool make_conforming = false);
+  const auto& Refine(const container& children_i,
+                     const Func& call_filter = func_true,
+                     bool make_conforming = false);
 
   // Define a practical overload:
   template <size_t i, typename FuncFilt = decltype(func_true)>
@@ -167,13 +171,13 @@ template <typename I, typename... T>
 class MultiNodeView
     : public MultiNodeViewInterface<I, std::tuple<std::shared_ptr<T>...>> {
  public:
+  static constexpr size_t dim = sizeof...(T);
   using TupleNodes = std::tuple<std::shared_ptr<T>...>;
+  using TParents = std::array<StaticVector<I*, 2>, dim>;
+  using TChildren = std::array<SmallVector<std::shared_ptr<I>, 4>, dim>;
 
  public:
-  static constexpr size_t dim = sizeof...(T);
-
-  explicit MultiNodeView(TupleNodes&& nodes,
-                         std::array<SmallVector<I*, 2>, dim>&& parents)
+  explicit MultiNodeView(TupleNodes&& nodes, TParents&& parents)
       : nodes_(std::move(nodes)), parents_(std::move(parents)) {
     //    static_for<dim>([&](auto i) {
     //      children_[i].reserve(std::get<i>(nodes_)->children().size());
@@ -190,16 +194,16 @@ class MultiNodeView
   const TupleNodes& nodes() const { return nodes_; }
   bool marked() const { return marked_; }
   void set_marked(bool value) { marked_ = value; }
-  SmallVector<std::shared_ptr<I>, 4>& children(size_t i) {
+  auto& children(size_t i) {
     assert(i < dim);
     return children_[i];
   }
-  const SmallVector<std::shared_ptr<I>, 4>& children(size_t i) const {
+  const auto& children(size_t i) const {
     assert(i < dim);
     return children_[i];
   }
 
-  const SmallVector<I*, 2>& parents(size_t i) const {
+  const auto& parents(size_t i) const {
     assert(i < dim);
     return parents_[i];
   }
@@ -207,8 +211,8 @@ class MultiNodeView
  protected:
   bool marked_ = false;
   TupleNodes nodes_;
-  std::array<SmallVector<I*, 2>, dim> parents_;
-  std::array<SmallVector<std::shared_ptr<I>, 4>, dim> children_;
+  TParents parents_;
+  TChildren children_;
 };
 
 // Way to inherit NodeView:

@@ -32,7 +32,7 @@ using namespace space;
 using namespace datastructures;
 
 constexpr int level = 10;
-constexpr int iters = 5000;
+constexpr int iters = 10000;
 
 int main() {
   BSD_RND bsd_rnd;

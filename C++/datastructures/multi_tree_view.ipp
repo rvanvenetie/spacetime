@@ -149,10 +149,9 @@ inline std::shared_ptr<I_other> MultiNodeViewInterface<I, Ts, dim>::DeepCopy(
 
 template <typename I, typename Ts, size_t dim>
 template <size_t i, typename container, typename Func>
-inline const SmallVector<std::shared_ptr<I>, 4>&
-MultiNodeViewInterface<I, Ts, dim>::Refine(const container& children_i,
-                                           const Func& call_filter,
-                                           bool make_conforming) {
+inline const auto& MultiNodeViewInterface<I, Ts, dim>::Refine(
+    const container& children_i, const Func& call_filter,
+    bool make_conforming) {
   static_assert(i < dim);
   if (is_full<i>()) return self().children(i);
 
@@ -182,7 +181,7 @@ MultiNodeViewInterface<I, Ts, dim>::Refine(const container& children_i,
     }
 
     // Collect all brothers.
-    std::array<SmallVector<I*, 2>, dim> brothers;
+    typename I::TParents brothers;
 
     // Find brothers in all axes, using a static for loop over j.
     static_for<dim>([make_conforming, &brothers, &child_nodes, this](auto j) {
