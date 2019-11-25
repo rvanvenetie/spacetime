@@ -203,6 +203,9 @@ class MultiTree {
                       const Func& callback = func_noop,
                       bool return_nodes = true);
 
+  // Or you can use the nodes object directly.
+  auto& nodes() { return nodes_; }
+
   // DeepRefine refines the multitree according to the underlying trees.
   template <typename FuncFilt = decltype(func_true),
             typename FuncPost = decltype(func_noop)>

@@ -49,6 +49,5 @@ int main() {
         });
 
     auto T_view = TriangulationView(vertex_subtree);
-    // std::cout << T_view.history_.size() << std::endl;
   }
 }
