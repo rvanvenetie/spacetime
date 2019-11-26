@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-#include "datastructures/tree.hpp"
+#include "../datastructures/tree.hpp"
 
 namespace space {
 
@@ -31,7 +31,7 @@ class Vertex : public datastructures::Node<Vertex> {
   bool on_domain_boundary;
   VectorElement2DPtr patch;
   Vertex(double x, double y, bool on_domain_boundary,
-         const VectorVertexPtr &parents)
+         const std::vector<Vertex *> &parents)
       : Node(parents), x(x), y(y), on_domain_boundary(on_domain_boundary) {}
 
   friend std::ostream &operator<<(std::ostream &os, const Vertex &vertex) {
@@ -52,14 +52,14 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   ArrayElement2DPtr<3> neighbours;
 
   // Constructors given the parent.
-  explicit Element2D(Element2DPtr parent, const VectorVertexPtr &vertices)
+  explicit Element2D(Element2D *parent, const ArrayVertexPtr<3> &vertices)
       : Element2D(parent, vertices, parent->area() / 2.0) {}
-  explicit Element2D(Element2DPtr parent, const VectorVertexPtr &vertices,
+  explicit Element2D(Element2D *parent, const ArrayVertexPtr<3> &vertices,
                      double area)
       : BinaryNode(parent), area_(area), vertices_(vertices) {}
 
   double area() const { return area_; }
-  const VectorVertexPtr &vertices() const { return vertices_; }
+  const ArrayVertexPtr<3> &vertices() const { return vertices_; }
 
   VertexPtr newest_vertex() const { return vertices_[0]; }
   ArrayVertexPtr<2> edge(int i) const;
@@ -79,7 +79,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
 
  protected:
   double area_;
-  VectorVertexPtr vertices_;
+  ArrayVertexPtr<3> vertices_;
 
   // Protected constructor for creating a metaroot.
   Element2D() : BinaryNode(), area_(-1) {}

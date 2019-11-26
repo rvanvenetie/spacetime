@@ -1,7 +1,9 @@
 #include "triangulation.hpp"
+
 #include <cmath>
 #include <map>
 #include <set>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -14,7 +16,8 @@ TEST(Triangulation, Refine) {
 
   auto elements = T.elem_meta_root->Bfs();
   auto vertices = T.vertex_meta_root->Bfs();
-  EXPECT_THAT(vertices[4]->parents(), ElementsAre(vertices[0], vertices[1]));
+  EXPECT_THAT(vertices[4]->parents(),
+              ElementsAre(vertices[0].get(), vertices[1].get()));
   EXPECT_THAT(vertices[0]->children(), ElementsAre(vertices[4]));
   EXPECT_THAT(vertices[1]->children(), ElementsAre(vertices[4]));
 
@@ -22,21 +25,22 @@ TEST(Triangulation, Refine) {
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_TRUE(vertices[5]->on_domain_boundary);
-  EXPECT_THAT(vertices[5]->parents(), ElementsAre(vertices[4]));
+  EXPECT_THAT(vertices[5]->parents(), ElementsAre(vertices[4].get()));
   EXPECT_THAT(vertices[4]->children(), ElementsAre(vertices[5]));
 
   elements[4]->refine();
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_TRUE(vertices[6]->on_domain_boundary);
-  EXPECT_THAT(vertices[6]->parents(), ElementsAre(vertices[4]));
+  EXPECT_THAT(vertices[6]->parents(), ElementsAre(vertices[4].get()));
   EXPECT_THAT(vertices[4]->children(), ElementsAre(vertices[5], vertices[6]));
 
   elements[6]->refine();
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_FALSE(vertices[8]->on_domain_boundary);
-  EXPECT_THAT(vertices[8]->parents(), ElementsAre(vertices[5], vertices[7]));
+  EXPECT_THAT(vertices[8]->parents(),
+              ElementsAre(vertices[5].get(), vertices[7].get()));
 }
 
 TEST(Triangulation, Area) {

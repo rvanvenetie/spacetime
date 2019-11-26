@@ -1,16 +1,16 @@
 #pragma once
 #include <iostream>
 
-#include "datastructures/multi_tree_view.hpp"
+#include "multi_tree_view.hpp"
 
 namespace datastructures {
 
 template <typename I, typename Ts, size_t dim>
 template <typename Func>
-inline VectorAlloc<std::shared_ptr<I>> MultiNodeViewInterface<I, Ts, dim>::Bfs(
+inline std::vector<std::shared_ptr<I>> MultiNodeViewInterface<I, Ts, dim>::Bfs(
     bool include_metaroot, const Func& callback, bool return_nodes) {
-  assert(is_root());
-  VectorAlloc<std::shared_ptr<I>> nodes;
+  assert(is_root() && !self().marked());
+  std::vector<std::shared_ptr<I>> nodes;
   std::queue<std::shared_ptr<I>> queue;
 
   queue.emplace(self().shared_from_this());
@@ -94,7 +94,7 @@ void MultiNodeViewInterface<I, Ts, dim>::Union(
   queue.emplace(self().shared_from_this(), other);
   self().set_marked(true);
 
-  VectorAlloc<std::shared_ptr<I>> my_nodes;
+  std::vector<std::shared_ptr<I>> my_nodes;
   while (!queue.empty()) {
     std::shared_ptr<I> my_node;
     std::shared_ptr<I_other> other_node;
@@ -149,10 +149,9 @@ inline std::shared_ptr<I_other> MultiNodeViewInterface<I, Ts, dim>::DeepCopy(
 
 template <typename I, typename Ts, size_t dim>
 template <size_t i, typename container, typename Func>
-inline const VectorAlloc<std::shared_ptr<I>>&
-MultiNodeViewInterface<I, Ts, dim>::Refine(const container& children_i,
-                                           const Func& call_filter,
-                                           bool make_conforming) {
+inline const auto& MultiNodeViewInterface<I, Ts, dim>::Refine(
+    const container& children_i, const Func& call_filter,
+    bool make_conforming) {
   static_assert(i < dim);
   if (is_full<i>()) return self().children(i);
 
@@ -174,38 +173,41 @@ MultiNodeViewInterface<I, Ts, dim>::Refine(const container& children_i,
                     }))
       continue;
 
-    // Also skip if the call_filter doesn't pass.
-    if (!call_filter(child_nodes)) continue;
+    // Skip if the call_filter doesn't pass.
+    if constexpr (dim == 1) {
+      if (!call_filter(child_i)) continue;
+    } else {
+      if (!call_filter(child_nodes)) continue;
+    }
 
     // Collect all brothers.
-    std::array<VectorAlloc<std::shared_ptr<I>>, dim> brothers;
+    typename I::TParents brothers;
 
     // Find brothers in all axes, using a static for loop over j.
     static_for<dim>([make_conforming, &brothers, &child_nodes, this](auto j) {
-      brothers[j].reserve(std::get<j>(child_nodes)->parents().size());
       for (const auto& child_parent_j : std::get<j>(child_nodes)->parents()) {
         // Create a copy of the child_nodes, replacing j-th index.
         auto brother_nodes{child_nodes};
-        std::get<j>(brother_nodes) = child_parent_j;
+        std::get<j>(brother_nodes) = child_parent_j->shared_from_this();
         brothers[j].push_back(
-            FindBrother<i, j>(brother_nodes, make_conforming));
+            FindBrother<i, j>(brother_nodes, make_conforming).get());
       }
     });
 
     // Now finally, lets create an actual child!
 #ifndef BOOST_ALLOCATOR
     auto child = std::make_shared<I>(/*nodes*/ std::move(child_nodes),
-                                     /*parents*/ brothers);
+                                     /*parents*/ std::move(brothers));
 #else
     typedef boost::fast_pool_allocator<I> BoostAlloc;
     auto child = std::allocate_shared<I, BoostAlloc>(
         BoostAlloc(), /*nodes*/ std::move(child_nodes),
-        /*parents*/ brothers);
+        /*parents*/ std::move(brothers));
 #endif
 
     // Add this child to all brothers.
     for (size_t j = 0; j < dim; ++j) {
-      for (const auto& brother : brothers[j]) {
+      for (const auto& brother : child->parents(j)) {
         brother->children(j).push_back(child);
       }
     }
@@ -238,15 +240,13 @@ inline std::shared_ptr<I> MultiNodeViewInterface<I, Ts, dim>::FindBrother(
     if (std::find(nodes_parent_j->children().begin(),
                   nodes_parent_j->children().end(),
                   nodes_i) != nodes_parent_j->children().end()) {
-      parent_j->template Refine<i>(
-          VectorAlloc<std::tuple_element_t<i, Ts>>{nodes_i},
-          /*call_filter*/ func_true,
-          /*make_conforming*/ true);
+      parent_j->template Refine<i>(std::array{nodes_i},
+                                   /*call_filter*/ func_true,
+                                   /*make_conforming*/ true);
     }
   }
 
   // Try calling this function again.
   return FindBrother<i, j>(nodes, /*make_conforming*/ false);
 }
-
 };  // namespace datastructures

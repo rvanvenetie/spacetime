@@ -53,8 +53,7 @@ class NodeInterface : public std::enable_shared_from_this<I> {
 template <typename I>
 class Node : public NodeInterface<I> {
  public:
-  explicit Node(const std::vector<std::shared_ptr<I>> &parents)
-      : parents_(parents) {
+  explicit Node(const std::vector<I *> &parents) : parents_(parents) {
     children_.reserve(2);
     assert(parents.size());
     level_ = parents[0]->level() + 1;
@@ -68,13 +67,35 @@ class Node : public NodeInterface<I> {
   void set_marked(bool value) { marked_ = value; }
   bool is_metaroot() const { return (level_ == -1); }
   bool is_leaf() const { return children_.size() == 0; }
-  const std::vector<std::shared_ptr<I>> &parents() const { return parents_; }
+  const std::vector<I *> &parents() const { return parents_; }
   std::vector<std::shared_ptr<I>> &children() { return children_; }
+
+  // General data field for universal storage.
+  template <typename T>
+  T *data() {
+    assert(data_ != nullptr);
+    return static_cast<T *>(data_);
+  }
+
+  template <typename T>
+  void set_data(T *value) {
+    assert(data_ == nullptr);
+    data_ = static_cast<void *>(value);
+  }
+  void reset_data() {
+    assert(data_ != nullptr);
+    data_ = nullptr;
+  }
+  bool has_data() { return data_ != nullptr; }
 
  protected:
   int level_;
   bool marked_ = false;
-  std::vector<std::shared_ptr<I>> parents_;
+  void *data_ = nullptr;
+
+  // Store parents as raw pointers, children as shared pointers, to avoid
+  // circular references.
+  std::vector<I *> parents_;
   std::vector<std::shared_ptr<I>> children_;
   Node() : level_(-1) {}
 };
@@ -82,10 +103,10 @@ class Node : public NodeInterface<I> {
 template <typename I>
 class BinaryNode : public Node<I> {
  public:
-  explicit BinaryNode(std::shared_ptr<I> parent) : Node<I>({parent}) {}
+  explicit BinaryNode(I *parent) : Node<I>({parent}) {}
 
   bool is_full() const { return children_.size() == 2; }
-  std::shared_ptr<I> parent() const { return parents_[0]; }
+  I *parent() const { return parents_[0]; }
 
  protected:
   using Node<I>::Node;

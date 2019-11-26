@@ -29,10 +29,10 @@ const VectorElement2DPtr &Element2D::refine() {
 
 VertexPtr Element2D::create_new_vertex(Element2DPtr nbr) {
   assert(is_leaf());
-  VectorVertexPtr vertex_parents{newest_vertex()};
+  std::vector<Vertex *> vertex_parents{newest_vertex().get()};
   if (nbr) {
     assert(nbr->edge(0) == reversed_edge(0));
-    vertex_parents.emplace_back(nbr->newest_vertex());
+    vertex_parents.emplace_back(nbr->newest_vertex().get());
   }
 
   ArrayVertexPtr<2> godparents{{vertices_[1], vertices_[2]}};
@@ -51,11 +51,9 @@ ArrayElement2DPtr<2> Element2D::bisect(VertexPtr new_vertex) {
     new_vertex = create_new_vertex();
   }
   auto child1 = std::make_shared<Element2D>(
-      shared_from_this(),
-      VectorVertexPtr{{new_vertex, vertices_[0], vertices_[1]}});
+      this, ArrayVertexPtr<3>{{new_vertex, vertices_[0], vertices_[1]}});
   auto child2 = std::make_shared<Element2D>(
-      shared_from_this(),
-      VectorVertexPtr{{new_vertex, vertices_[2], vertices_[0]}});
+      this, ArrayVertexPtr<3>{{new_vertex, vertices_[2], vertices_[0]}});
   children_ = {{child1, child2}};
   child1->neighbours = {{neighbours[2], nullptr, child2}};
   child2->neighbours = {{neighbours[1], child1, nullptr}};
@@ -105,7 +103,8 @@ InitialTriangulation::InitialTriangulation(
 
   for (const auto &vertex : vertices) {
     vertex_roots.push_back(std::make_shared<Vertex>(
-        vertex[0], vertex[1], false, VectorVertexPtr{vertex_meta_root}));
+        vertex[0], vertex[1], false,
+        std::vector<Vertex *>{vertex_meta_root.get()}));
   }
 
   for (const auto &element : elements) {
@@ -115,9 +114,9 @@ InitialTriangulation::InitialTriangulation(
                        (vertices[element[0]][0] - vertices[element[1]][0]) *
                            (vertices[element[2]][1] - vertices[element[0]][1]));
     element_roots.push_back(std::make_shared<Element2D>(
-        elem_meta_root,
-        VectorVertexPtr{vertex_roots[element[0]], vertex_roots[element[1]],
-                        vertex_roots[element[2]]},
+        elem_meta_root.get(),
+        ArrayVertexPtr<3>{vertex_roots[element[0]], vertex_roots[element[1]],
+                          vertex_roots[element[2]]},
         elem_area));
   }
 
