@@ -185,7 +185,6 @@ inline const auto& MultiNodeViewInterface<I, Ts, dim>::Refine(
 
     // Find brothers in all axes, using a static for loop over j.
     static_for<dim>([make_conforming, &brothers, &child_nodes, this](auto j) {
-      // brothers[j].reserve(std::get<j>(child_nodes)->parents().size());
       for (const auto& child_parent_j : std::get<j>(child_nodes)->parents()) {
         // Create a copy of the child_nodes, replacing j-th index.
         auto brother_nodes{child_nodes};

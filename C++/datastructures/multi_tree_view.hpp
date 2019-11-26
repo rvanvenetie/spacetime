@@ -179,11 +179,7 @@ class MultiNodeView
 
  public:
   explicit MultiNodeView(TupleNodes&& nodes, TParents&& parents)
-      : nodes_(std::move(nodes)), parents_(std::move(parents)) {
-    //    static_for<dim>([&](auto i) {
-    //      children_[i].reserve(std::get<i>(nodes_)->children().size());
-    //    });
-  }
+      : nodes_(std::move(nodes)), parents_(std::move(parents)) {}
   MultiNodeView() {}
   static std::shared_ptr<I> CreateRoot(std::shared_ptr<T>... nodes) {
     auto result = std::make_shared<I>();
