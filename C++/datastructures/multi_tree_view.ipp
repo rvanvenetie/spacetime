@@ -189,7 +189,7 @@ inline const auto& MultiNodeViewInterface<I, Ts, dim>::Refine(
       for (const auto& child_parent_j : std::get<j>(child_nodes)->parents()) {
         // Create a copy of the child_nodes, replacing j-th index.
         auto brother_nodes{child_nodes};
-        std::get<j>(brother_nodes) = child_parent_j;
+        std::get<j>(brother_nodes) = child_parent_j->shared_from_this();
         brothers[j].push_back(
             FindBrother<i, j>(brother_nodes, make_conforming).get());
       }

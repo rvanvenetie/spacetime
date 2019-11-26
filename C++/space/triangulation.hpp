@@ -31,7 +31,7 @@ class Vertex : public datastructures::Node<Vertex> {
   bool on_domain_boundary;
   VectorElement2DPtr patch;
   Vertex(double x, double y, bool on_domain_boundary,
-         const VectorVertexPtr &parents)
+         const std::vector<Vertex *> &parents)
       : Node(parents), x(x), y(y), on_domain_boundary(on_domain_boundary) {}
 
   friend std::ostream &operator<<(std::ostream &os, const Vertex &vertex) {
@@ -52,9 +52,9 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   ArrayElement2DPtr<3> neighbours;
 
   // Constructors given the parent.
-  explicit Element2D(Element2DPtr parent, const ArrayVertexPtr<3> &vertices)
+  explicit Element2D(Element2D *parent, const ArrayVertexPtr<3> &vertices)
       : Element2D(parent, vertices, parent->area() / 2.0) {}
-  explicit Element2D(Element2DPtr parent, const ArrayVertexPtr<3> &vertices,
+  explicit Element2D(Element2D *parent, const ArrayVertexPtr<3> &vertices,
                      double area)
       : BinaryNode(parent), area_(area), vertices_(vertices) {}
 

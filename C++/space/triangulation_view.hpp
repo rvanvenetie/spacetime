@@ -37,7 +37,8 @@ class TriangulationView {
     }
 
     // Now create the associated element tree
-    element_view_ = Element2DView::CreateRoot(elem_meta_root);
+    element_view_ =
+        Element2DView::CreateRoot(elem_meta_root->shared_from_this());
     element_view_->DeepRefine(
         /* call_filter */
         [](auto &&node) { return node->newest_vertex()->marked(); },
