@@ -173,7 +173,7 @@ inline const auto& MultiNodeViewInterface<I, Ts, dim>::Refine(
                     }))
       continue;
 
-    // Also skip if the call_filter doesn't pass.
+    // Skip if the call_filter doesn't pass.
     if constexpr (dim == 1) {
       if (!call_filter(child_i)) continue;
     } else {
@@ -214,7 +214,7 @@ inline const auto& MultiNodeViewInterface<I, Ts, dim>::Refine(
     }
   }
   return self().children(i);
-}  // namespace datastructures
+}
 
 template <typename I, typename Ts, size_t dim>
 template <size_t i, size_t j>
@@ -241,10 +241,9 @@ inline std::shared_ptr<I> MultiNodeViewInterface<I, Ts, dim>::FindBrother(
     if (std::find(nodes_parent_j->children().begin(),
                   nodes_parent_j->children().end(),
                   nodes_i) != nodes_parent_j->children().end()) {
-      parent_j->template Refine<i>(
-          SmallVector<std::tuple_element_t<i, Ts>, 1>{nodes_i},
-          /*call_filter*/ func_true,
-          /*make_conforming*/ true);
+      parent_j->template Refine<i>(std::array{nodes_i},
+                                   /*call_filter*/ func_true,
+                                   /*make_conforming*/ true);
     }
   }
 

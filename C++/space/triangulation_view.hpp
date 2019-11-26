@@ -17,7 +17,7 @@ class Element2DView
 
   std::shared_ptr<VertexView> newest_vertex() { return vertices_view_[0]; }
 
-  std::array<std::shared_ptr<VertexView>, 3> vertices_view_;
+  std::array<std::shared_ptr<VertexView>, 3> vertices_view_{nullptr};
 };
 
 class TriangulationView {
@@ -32,7 +32,6 @@ class TriangulationView {
     // First, we store a reference to this object in the underlying tree.
     auto vertices = vertex_view_->Bfs();
     for (auto &nv : vertices) {
-      nv->node()->set_marked(true);
       nv->node()->set_data(&nv);
     }
 
@@ -41,7 +40,7 @@ class TriangulationView {
         Element2DView::CreateRoot(elem_meta_root->shared_from_this());
     element_view_->DeepRefine(
         /* call_filter */
-        [](auto &&node) { return node->newest_vertex()->marked(); },
+        [](auto &&node) { return node->newest_vertex()->has_data(); },
         /* call_postprocess */
         [](std::shared_ptr<Element2DView> nv) {
           if (nv->is_root()) return;
@@ -64,7 +63,6 @@ class TriangulationView {
     // Unset all the data!
     for (auto &nv : vertices) {
       nv->set_marked(false);
-      nv->node()->set_marked(false);
       nv->node()->reset_data();
     }
   }

@@ -86,11 +86,15 @@ class Node : public NodeInterface<I> {
     assert(data_ != nullptr);
     data_ = nullptr;
   }
+  bool has_data() { return data_ != nullptr; }
 
  protected:
   int level_;
   bool marked_ = false;
   void *data_ = nullptr;
+
+  // Store parents as raw pointers, children as shared pointers, to avoid
+  // circular references.
   std::vector<I *> parents_;
   std::vector<std::shared_ptr<I>> children_;
   Node() : level_(-1) {}
