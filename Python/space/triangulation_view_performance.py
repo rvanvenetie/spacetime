@@ -36,7 +36,7 @@ def test_cppyy(level, iters):
         vertex_subtree = cppyy.gbl.datastructures.NodeView[
             cppyy.gbl.space.Vertex].CreateRoot(T.vertex_meta_root)
         vertex_subtree.DeepRefine()
-        T_view = cppyy.gbl.space.TriangulationView(vertex_subtree)
+        cppyy.gbl.space.TriangulationView(vertex_subtree)
 
 
 if __name__ == "__main__":
