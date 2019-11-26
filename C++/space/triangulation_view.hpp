@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-#include "datastructures/multi_tree_view.hpp"
+#include "../datastructures/multi_tree_view.hpp"
 #include "triangulation.hpp"
 
 namespace space {
@@ -32,14 +32,13 @@ class TriangulationView {
             vertex_view.root->node()->children()[0]->patch[0]->parents()[0]) {
     // First, we store a reference to this object in the underlying tree.
     for (auto &nv : vertex_view_.nodes()) {
-      nv.node()->set_marked(true);
       nv.node()->set_data(&nv);
     }
 
     // Now create the associated element tree
     element_view_.DeepRefine(
         /* call_filter */
-        [](auto &&node) { return node->newest_vertex()->marked(); },
+        [](auto &&node) { return node->newest_vertex()->has_data(); },
         /* call_postprocess */
         [](Element2DView *nv) {
           if (nv->node()->is_metaroot()) return;
@@ -65,7 +64,6 @@ class TriangulationView {
     // Unset all the data!
     for (auto &nv : vertex_view_.nodes()) {
       nv.set_marked(false);
-      nv.node()->set_marked(false);
       nv.node()->reset_data();
     }
   }

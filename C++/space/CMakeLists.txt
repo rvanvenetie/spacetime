@@ -1,7 +1,8 @@
-add_library(triangulation STATIC triangulation.cpp triangulation.hpp)
+add_library(triangulation SHARED triangulation.cpp triangulation.hpp)
 
 add_executable(triangulation_view_performance  triangulation_view_performance.cpp)
 target_link_libraries(triangulation_view_performance triangulation)
+
 # Create tests
 package_add_test(triangulation_test triangulation_test.cpp)
 target_link_libraries(triangulation_test triangulation)

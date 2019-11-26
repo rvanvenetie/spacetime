@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-#include "datastructures/tree.hpp"
+#include "../datastructures/tree.hpp"
 
 namespace space {
 
@@ -35,15 +35,10 @@ class Vertex : public datastructures::Node<Vertex> {
   bool on_domain_boundary;
   VectorElement2DPtr patch;
 
-  // Constructor for metaroot
-  Vertex() : Node(), x(NAN), y(NAN), on_domain_boundary(false) {}
-
   // Constructor given parents.
   Vertex(double x, double y, bool on_domain_boundary,
-         const VectorVertexPtr &parents)
+         const std::vector<Vertex *> &parents)
       : Node(parents), x(x), y(y), on_domain_boundary(on_domain_boundary) {}
-
-  Vertex(const Vertex &) = delete;
 
   friend std::ostream &operator<<(std::ostream &os, const Vertex &vertex) {
     os << "V(" << vertex.x << ", " << vertex.y << ")";
@@ -51,6 +46,9 @@ class Vertex : public datastructures::Node<Vertex> {
   }
 
  protected:
+  // Constructor for metaroot
+  Vertex() : Node(), x(NAN), y(NAN), on_domain_boundary(false) {}
+
   friend datastructures::Tree<Vertex>;
 };
 
@@ -65,17 +63,12 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
  public:
   ArrayElement2DPtr<3> neighbours = {};
 
-  // Constructor for creating a metaroot.
-  Element2D() : BinaryNode(), area_(-1) {}
-
   // Constructors given the parent.
   explicit Element2D(Element2DPtr parent, const ArrayVertexPtr<3> &vertices,
                      double area)
       : BinaryNode(parent), area_(area), vertices_(vertices) {}
   explicit Element2D(Element2DPtr parent, const ArrayVertexPtr<3> &vertices)
       : Element2D(parent, vertices, parent->area() / 2.0) {}
-
-  Element2D(const Element2D &) = delete;
 
   double area() const { return area_; }
   const ArrayVertexPtr<3> &vertices() const { return vertices_; }
@@ -97,6 +90,9 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
  protected:
   double area_;
   ArrayVertexPtr<3> vertices_;
+
+  // Constructor for creating a metaroot.
+  Element2D() : BinaryNode(), area_(-1) {}
 
   friend Element2DTree;
   friend datastructures::Tree<Element2D>;

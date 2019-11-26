@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-#include "datastructures/multi_tree_view.hpp"
+#include "multi_tree_view.hpp"
 
 namespace datastructures {
 
@@ -171,7 +171,7 @@ inline const auto& MultiTree<I>::Refine(I* multi_node,
                     }))
       continue;
 
-    // Also skip if the call_filter doesn't pass.
+    // Skip if the call_filter doesn't pass.
     if constexpr (dim == 1) {
       if (!call_filter(child_i)) continue;
     } else {
@@ -183,7 +183,6 @@ inline const auto& MultiTree<I>::Refine(I* multi_node,
 
     // Find brothers in all axes, using a static for loop over j.
     static_for<dim>([&](auto j) {
-      // brothers[j].reserve(std::get<j>(child_nodes)->parents().size());
       for (const auto& child_parent_j : std::get<j>(child_nodes)->parents()) {
         // Create a copy of the child_nodes, replacing j-th index.
         auto brother_nodes{child_nodes};
@@ -231,7 +230,7 @@ inline I* MultiTree<I>::FindBrother(I* multi_node, const Ts& nodes,
     if (std::find(nodes_parent_j->children().begin(),
                   nodes_parent_j->children().end(),
                   nodes_i) != nodes_parent_j->children().end()) {
-      Refine<i>(parent_j, SmallVector<std::tuple_element_t<i, Ts>, 1>{nodes_i},
+      Refine<i>(parent_j, std::array{nodes_i},
                 /*call_filter*/ func_true,
                 /*make_conforming*/ true);
     }

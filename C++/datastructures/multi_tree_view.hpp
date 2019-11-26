@@ -196,6 +196,7 @@ class MultiTree {
   }
 
   MultiTree(const MultiTree<I>&) = delete;
+  MultiTree(MultiTree<I>&&) = default;
 
   // Bfs can be used to retrieve the underlying nodes.
   template <typename Func = decltype(func_noop)>

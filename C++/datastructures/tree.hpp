@@ -59,6 +59,7 @@ class Node : public NodeInterface<I> {
     }
   }
   Node(const Node &) = delete;
+  Node(Node &&) = default;
 
   int level() const { return level_; }
   bool marked() const { return marked_; }
@@ -66,7 +67,7 @@ class Node : public NodeInterface<I> {
   bool is_metaroot() const { return (level_ == -1); }
   bool is_leaf() const { return children_.size() == 0; }
   const std::vector<I *> &parents() const { return parents_; }
-  auto &children() { return children_; }
+  std::vector<I *> &children() { return children_; }
 
   // General data field for universal storage.
   template <typename T>
@@ -84,6 +85,7 @@ class Node : public NodeInterface<I> {
     assert(data_ != nullptr);
     data_ = nullptr;
   }
+  bool has_data() { return data_ != nullptr; }
 
  protected:
   int level_;
@@ -91,6 +93,7 @@ class Node : public NodeInterface<I> {
   void *data_ = nullptr;
   std::vector<I *> parents_;
   std::vector<I *> children_;
+
   Node() : level_(-1) {}
 };
 
@@ -99,7 +102,6 @@ class BinaryNode : public Node<I> {
  public:
   static constexpr size_t N_parents = 1;
   static constexpr size_t N_children = 2;
-
   explicit BinaryNode(I *parent) : Node<I>({parent}) {}
 
   bool is_full() const { return children_.size() == 2; }
@@ -117,7 +119,7 @@ class Tree {
   I *meta_root;
 
   // This constructs the tree with a single meta_root.
-  Tree() : nodes_() { meta_root = emplace_back(); }
+  Tree() : nodes_() { meta_root = emplace_back(I()); }
   Tree(const Tree &) = delete;
 
   virtual const std::vector<I *> &Refine(I *node) = 0;
