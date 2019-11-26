@@ -40,5 +40,5 @@ def test_cppyy(level, iters):
 
 
 if __name__ == "__main__":
-    test_python(level=10, iters=500)
+    test_python(level=10, iters=1000)
     #test_cppyy(level=10, iters=10000)

@@ -20,15 +20,13 @@ using namespace space;
 using namespace datastructures;
 
 constexpr int level = 10;
-constexpr int iters = 10;
+constexpr int iters = 1000;
 
 int main() {
   auto T = InitialTriangulation::UnitSquare();
   T.elem_meta_root->UniformRefine(level);
 
   for (size_t i = 0; i < iters; ++i) {
-    std::cout << bsd_rnd() << std::endl;
-    continue;
     // Create a random subtree
     auto vertex_subtree = NodeView<Vertex>::CreateRoot(T.vertex_meta_root);
     vertex_subtree->DeepRefine(
