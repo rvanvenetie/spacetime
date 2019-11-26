@@ -2,18 +2,16 @@ from ..datastructures.tree_view import TreeView
 from .triangulation import InitialTriangulation
 from .triangulation_view import TriangulationView
 
+seed = 0
 
-def bsd_rand(seed):
-    def rand():
-        nonlocal seed
-        seed = (1103515245 * seed + 12345) & 0x7fffffff
-        return seed
 
-    return rand
+def bsd_rnd():
+    global seed
+    seed = (1103515245 * seed + 12345) & 0x7fffffff
+    return seed
 
 
 def test_python(level, iters):
-    bsd_rnd = bsd_rand(0)
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(level)
 
@@ -31,7 +29,6 @@ def test_cppyy(level, iters):
     cppyy.cppdef('extern template datastructures::NodeView<space::Vertex>;')
     cppyy.load_library('C++/build/space/libtriangulation.dylib')
     cppyy.load_library('C++/build/space/libtriangulation_view_lib.dylib')
-    bsd_rnd = bsd_rand(0)
     T = cppyy.gbl.space.InitialTriangulation.UnitSquare()
     T.elem_meta_root.UniformRefine(level)
 
