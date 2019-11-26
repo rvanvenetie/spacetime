@@ -19,7 +19,7 @@ def test_python(level, iters):
         vertex_subtree = TreeView.from_metaroot(T.vertex_meta_root)
         vertex_subtree.deep_refine(call_filter=lambda vertex: vertex.level <= 0
                                    or (bsd_rnd() % 3) != 0)
-        T_view = TriangulationView(vertex_subtree)
+        TriangulationView(vertex_subtree)
 
 
 def test_cppyy(level, iters):
