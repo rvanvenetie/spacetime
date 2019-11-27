@@ -16,13 +16,14 @@ constexpr int max_level = 4;
 
 TEST(MultiNodeView, SingleRefine) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(max_level);
+  T.elem_tree.UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
 
   // Test single refine
-  auto multi_root = TripleNodeView<Vertex, Element2D, Vertex>::CreateRoot(
+  auto multi_tree = TripleTreeView<Vertex, Element2D, Vertex>(
       T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
+  auto multi_root = multi_tree.root;
 
   multi_root->Refine();
   ASSERT_EQ(multi_root->children(0).size(),
@@ -33,17 +34,17 @@ TEST(MultiNodeView, SingleRefine) {
 
 TEST(MultiNodeView, UniformRefine) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(max_level);
+  T.elem_tree.UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
 
   // Test uniform refine
   for (int level = 0; level <= max_level; ++level) {
-    auto multi_root = TripleNodeView<Vertex, Element2D, Vertex>::CreateRoot(
+    auto multi_tree = TripleTreeView<Vertex, Element2D, Vertex>(
         T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
 
-    multi_root->UniformRefine(level);
-    auto multi_nodes = multi_root->Bfs(/*include_metaroot*/ true);
+    multi_tree.UniformRefine(level);
+    auto multi_nodes = multi_tree.Bfs(/*include_metaroot*/ true);
 
     // Check that the levels of all multi nodes are indeed <= level.
     ASSERT_TRUE(
@@ -66,14 +67,14 @@ TEST(MultiNodeView, UniformRefine) {
   // Test uniform refine in a single axis
   for (int i = 0; i < 3; ++i) {
     for (int level = 0; level <= max_level; ++level) {
-      auto multi_root = TripleNodeView<Vertex, Element2D, Vertex>::CreateRoot(
+      auto multi_tree = TripleTreeView<Vertex, Element2D, Vertex>(
           T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
 
       std::array<int, 3> levels;
       for (int i = 0; i < 3; ++i) levels[i] = -1;
       levels[i] = level;
-      multi_root->UniformRefine(levels);
-      auto multi_nodes = multi_root->Bfs(/*include_metaroot*/ true);
+      multi_tree.UniformRefine(levels);
+      auto multi_nodes = multi_tree.Bfs(/*include_metaroot*/ true);
 
       // Check that the levels of all multi nodes are indeed <= level.
       ASSERT_TRUE(
@@ -100,7 +101,7 @@ TEST(MultiNodeView, UniformRefine) {
 
 TEST(MultiNodeView, SparseRefine) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(max_level);
+  T.elem_tree.UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
 
@@ -109,11 +110,11 @@ TEST(MultiNodeView, SparseRefine) {
   for (const auto &vertex : vertices) vertices_on_level[vertex->level()] += 1;
   for (const auto &elem : elements) elements_on_level[elem->level()] += 1;
   for (int level = 0; level <= max_level; ++level) {
-    auto multi_root = TripleNodeView<Vertex, Element2D, Vertex>::CreateRoot(
+    auto multi_tree = TripleTreeView<Vertex, Element2D, Vertex>(
         T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
 
     std::array<int, 3> weights = {1, 1, 2};
-    multi_root->SparseRefine(level, weights);
+    multi_tree.SparseRefine(level, weights);
 
     // Calculate the number of elements we expect.
     int count = 0;
@@ -125,22 +126,22 @@ TEST(MultiNodeView, SparseRefine) {
                      vertices_on_level[k];
           }
 
-    auto multi_nodes = multi_root->Bfs(/*include_metaroot*/ true);
+    auto multi_nodes = multi_tree.Bfs(/*include_metaroot*/ true);
     ASSERT_EQ(multi_nodes.size(), count);
   }
 }
 
 TEST(MultiNodeView, DeepRefine) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(max_level);
+  T.elem_tree.UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
 
   // Test deep refine
-  auto multi_root = TripleNodeView<Vertex, Element2D, Vertex>::CreateRoot(
+  auto multi_tree = TripleTreeView<Vertex, Element2D, Vertex>(
       T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
-  multi_root->DeepRefine();
-  auto multi_nodes = multi_root->Bfs(/*include_metaroot*/ true);
+  multi_tree.DeepRefine();
+  auto multi_nodes = multi_tree.Bfs(/*include_metaroot*/ true);
   ASSERT_EQ(multi_nodes.size(),
             vertices.size() * elements.size() * vertices.size());
 
@@ -148,7 +149,7 @@ TEST(MultiNodeView, DeepRefine) {
   for (const auto &multi_node : multi_nodes) {
     auto [n1, n2, n3] = multi_node->nodes();
     ASSERT_EQ(multi_node->level(), n1->level() + n2->level() + n3->level());
-    ASSERT_EQ(multi_node->is_root(), multi_node == multi_root);
+    ASSERT_EQ(multi_node->is_root(), multi_node == multi_tree.root);
     ASSERT_EQ(multi_node->is_metaroot(),
               n1->is_metaroot() || n2->is_metaroot() || n3->is_metaroot());
     ASSERT_EQ(multi_node->is_leaf(),
@@ -158,19 +159,19 @@ TEST(MultiNodeView, DeepRefine) {
 
 TEST(MultiNodeView, DeepCopy) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(max_level);
+  T.elem_tree.UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
 
   // DeepRefine
-  auto multi_root = TripleNodeView<Vertex, Element2D, Vertex>::CreateRoot(
+  auto multi_tree = TripleTreeView<Vertex, Element2D, Vertex>(
       T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
-  multi_root->DeepRefine();
-  auto multi_nodes = multi_root->Bfs(/*include_metaroot*/ true);
+  multi_tree.DeepRefine();
+  auto multi_nodes = multi_tree.Bfs(/*include_metaroot*/ true);
 
   // Test Copy.
-  auto multi_root_copy = multi_root->DeepCopy();
-  auto multi_nodes_copy = multi_root_copy->Bfs(/*include_metaroot */ true);
+  auto multi_root_copy = multi_tree.DeepCopy();
+  auto multi_nodes_copy = multi_root_copy.Bfs(/*include_metaroot */ true);
   ASSERT_EQ(multi_nodes.size(), multi_nodes_copy.size());
   for (int i = 0; i < multi_nodes.size(); ++i) {
     ASSERT_EQ(multi_nodes[i]->nodes(), multi_nodes_copy[i]->nodes());
@@ -179,12 +180,12 @@ TEST(MultiNodeView, DeepCopy) {
 
 TEST(MultiNodeView, Union) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(max_level);
+  T.elem_tree.UniformRefine(max_level);
   auto vertices = T.vertex_meta_root->Bfs(/*include_metaroot*/ true);
   auto elements = T.elem_meta_root->Bfs(/*include_metaroot*/ true);
 
   // Test union
-  auto union_tree = TripleNodeView<Vertex, Element2D, Vertex>::CreateRoot(
+  auto union_tree = TripleTreeView<Vertex, Element2D, Vertex>(
       T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
 
   // Union a lot of sparse trees.
@@ -192,23 +193,22 @@ TEST(MultiNodeView, Union) {
     for (int j = -1; j <= max_level; ++j)
       for (int k = -1; k <= max_level; ++k)
         if (i + j + k <= max_level) {
-          auto multi_root =
-              TripleNodeView<Vertex, Element2D, Vertex>::CreateRoot(
-                  T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
-          multi_root->UniformRefine({i, j, k});
-          union_tree->Union(multi_root);
+          auto multi_tree = TripleTreeView<Vertex, Element2D, Vertex>(
+              T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
+          multi_tree.UniformRefine({i, j, k});
+          union_tree.root->Union(multi_tree.root);
         }
 
   // Get the union nodes.
-  auto union_nodes = union_tree->Bfs(/*include_metaroot*/ true);
+  auto union_nodes = union_tree.Bfs(/*include_metaroot*/ true);
 
   // Do the same, but now not stupid.
-  auto multi_root = TripleNodeView<Vertex, Element2D, Vertex>::CreateRoot(
+  auto multi_tree = TripleTreeView<Vertex, Element2D, Vertex>(
       T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
-  multi_root->SparseRefine(max_level);
+  multi_tree.SparseRefine(max_level);
 
   // Compare the results
-  auto multi_nodes = multi_root->Bfs(/*include_metaroot*/ true);
+  auto multi_nodes = multi_tree.Bfs(/*include_metaroot*/ true);
   ASSERT_EQ(multi_nodes.size(), union_nodes.size());
   for (int i = 0; i < multi_nodes.size(); ++i) {
     ASSERT_EQ(multi_nodes[i]->nodes(), union_nodes[i]->nodes());

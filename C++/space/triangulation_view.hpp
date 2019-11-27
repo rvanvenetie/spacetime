@@ -22,23 +22,22 @@ class Element2DView
 
 class TriangulationView {
  public:
-  TriangulationView(std::shared_ptr<VertexView> vertex_view)
-      : vertex_view_(vertex_view) {
-    assert(vertex_view_->is_root());
-    // Extract the element meta root using some dirty tricks.
-    auto elem_meta_root =
-        vertex_view_->node()->children()[0]->patch[0]->parents()[0];
-
+  // Be sure that this treeview doesn't go out of scope!
+  TriangulationView(datastructures::TreeView<Vertex> &vertex_view)
+      : vertex_view_(vertex_view),
+        element_view_(vertex_view.root->node()
+                          ->children()[0]
+                          ->patch[0]
+                          ->parents()[0]
+                          ->shared_from_this()) {
     // First, we store a reference to this object in the underlying tree.
-    auto vertices = vertex_view_->Bfs();
+    auto vertices = vertex_view_.Bfs();
     for (auto &nv : vertices) {
       nv->node()->set_data(&nv);
     }
 
     // Now create the associated element tree
-    element_view_ =
-        Element2DView::CreateRoot(elem_meta_root->shared_from_this());
-    element_view_->DeepRefine(
+    element_view_.DeepRefine(
         /* call_filter */
         [](auto &&node) { return node->newest_vertex()->has_data(); },
         /* call_postprocess */
@@ -50,7 +49,7 @@ class TriangulationView {
         });
 
     // Create a history object -- used somehow.
-    auto elements = element_view_->Bfs();
+    auto elements = element_view_.Bfs();
     history_.reserve(elements.size());
     for (auto &&elem : elements) {
       auto &&vertex = elem->newest_vertex();
@@ -66,8 +65,8 @@ class TriangulationView {
       nv->node()->reset_data();
     }
   }
-  std::shared_ptr<VertexView> vertex_view_;
-  std::shared_ptr<Element2DView> element_view_;
+  datastructures::TreeView<Vertex> &vertex_view_;
+  datastructures::MultiTree<Element2DView> element_view_;
   std::vector<std::pair<VertexView *, Element2DView *>> history_;
 };
 }  // namespace space

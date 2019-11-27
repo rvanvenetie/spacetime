@@ -27,9 +27,14 @@ using ArrayElement2DPtr = std::array<Element2DPtr, N>;
 
 class Vertex : public datastructures::Node<Vertex> {
  public:
+  static constexpr size_t N_parents = 2;
+  static constexpr size_t N_children = 4;
+
   const double x, y;
   bool on_domain_boundary;
   VectorElement2DPtr patch;
+
+  // Constructor given parents.
   Vertex(double x, double y, bool on_domain_boundary,
          const std::vector<Vertex *> &parents)
       : Node(parents), x(x), y(y), on_domain_boundary(on_domain_boundary) {}
@@ -43,8 +48,7 @@ class Vertex : public datastructures::Node<Vertex> {
   // Protected constructor for creating a metaroot.
   Vertex() : Node(), x(NAN), y(NAN), on_domain_boundary(false) {}
 
-  friend Element2D;
-  friend InitialTriangulation;
+  friend datastructures::Tree<Vertex>;
 };
 
 class Element2D : public datastructures::BinaryNode<Element2D> {
@@ -84,17 +88,21 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   // Protected constructor for creating a metaroot.
   Element2D() : BinaryNode(), area_(-1) {}
 
-  VertexPtr create_new_vertex(Element2DPtr nbr = nullptr);
-  ArrayElement2DPtr<2> bisect(VertexPtr new_vertex = nullptr);
-  void bisect_with_nbr();
+  // Refinement methods.
+  VertexPtr CreateNewVertex(Element2DPtr nbr = nullptr);
+  ArrayElement2DPtr<2> Bisect(VertexPtr new_vertex = nullptr);
+  void BisectWithNbr();
 
-  friend InitialTriangulation;
+  friend datastructures::Tree<Element2D>;
 };
 
 class InitialTriangulation {
  public:
-  VertexPtr vertex_meta_root;
-  Element2DPtr elem_meta_root;
+  datastructures::Tree<Vertex> vertex_tree;
+  datastructures::Tree<Element2D> elem_tree;
+
+  VertexPtr const vertex_meta_root;
+  Element2DPtr const elem_meta_root;
 
   InitialTriangulation(const std::vector<std::array<double, 2>> &vertices,
                        const std::vector<std::array<int, 3>> &elements);

@@ -12,7 +12,7 @@ using ::testing::ElementsAre;
 
 TEST(Triangulation, Refine) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(1);
+  T.elem_tree.UniformRefine(1);
 
   auto elements = T.elem_meta_root->Bfs();
   auto vertices = T.vertex_meta_root->Bfs();
@@ -45,7 +45,7 @@ TEST(Triangulation, Refine) {
 
 TEST(Triangulation, Area) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(2);
+  T.elem_tree.UniformRefine(2);
 
   auto elements = T.elem_meta_root->Bfs();
   auto vertices = T.vertex_meta_root->Bfs();
@@ -90,7 +90,7 @@ TEST(Triangulation, UniformRefinement) {
     ASSERT_EQ(root->level(), 0);
   }
 
-  elem_meta_root->UniformRefine(5);
+  T.elem_tree.UniformRefine(5);
   ASSERT_EQ(elem_meta_root->Bfs().size(),
             (std::pow(2, 6) - 1) * elem_meta_root->children().size());
 
@@ -107,7 +107,7 @@ TEST(Triangulation, UniformRefinement) {
 
 TEST(Triangulation, VertexPatch) {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(1);
+  T.elem_tree.UniformRefine(1);
 
   auto elements = T.elem_meta_root->Bfs();
   auto vertices = T.vertex_meta_root->Bfs();

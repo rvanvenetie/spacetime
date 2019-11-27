@@ -61,29 +61,6 @@ inline void MultiNodeViewInterface<I, Ts, dim>::DeepRefine(
 }
 
 template <typename I, typename Ts, size_t dim>
-inline void MultiNodeViewInterface<I, Ts, dim>::UniformRefine(
-    std::array<int, dim> max_levels) {
-  DeepRefine([&](const Ts& nodes) {
-    bool result = true;
-    static_for<dim>([&](auto i) {
-      result = result && (std::get<i>(nodes)->level() <= max_levels[i]);
-    });
-    return result;
-  });
-}
-
-template <typename I, typename Ts, size_t dim>
-inline void MultiNodeViewInterface<I, Ts, dim>::SparseRefine(
-    int max_level, std::array<int, dim> weights) {
-  DeepRefine([&](const Ts& nodes) {
-    auto levels = this->levels(nodes);
-    int w_level = 0;
-    for (int i = 0; i < dim; ++i) w_level += weights[i] * levels[i];
-    return w_level <= max_level;
-  });
-}
-
-template <typename I, typename Ts, size_t dim>
 template <typename I_other, typename FuncFilt, typename FuncPost>
 void MultiNodeViewInterface<I, Ts, dim>::Union(
     std::shared_ptr<I_other> other, const FuncFilt& call_filter,
@@ -134,17 +111,6 @@ void MultiNodeViewInterface<I, Ts, dim>::Union(
   for (const auto& my_node : my_nodes) {
     my_node->set_marked(false);
   }
-}
-
-template <typename I, typename Ts, size_t dim>
-template <typename I_other, typename FuncPost>
-inline std::shared_ptr<I_other> MultiNodeViewInterface<I, Ts, dim>::DeepCopy(
-    const FuncPost& call_postprocess) {
-  assert(self().is_root());
-  auto new_root = std::apply(I_other::CreateRoot, self().nodes());
-  new_root->Union(self().shared_from_this(), /*call_filter*/ func_true,
-                  call_postprocess);
-  return new_root;
 }
 
 template <typename I, typename Ts, size_t dim>
@@ -248,5 +214,36 @@ inline std::shared_ptr<I> MultiNodeViewInterface<I, Ts, dim>::FindBrother(
 
   // Try calling this function again.
   return FindBrother<i, j>(nodes, /*make_conforming*/ false);
+}
+
+template <typename I>
+inline void MultiTree<I>::UniformRefine(std::array<int, dim> max_levels) {
+  DeepRefine([&](const typename I::TupleNodes& nodes) {
+    bool result = true;
+    static_for<dim>([&](auto i) {
+      result = result && (std::get<i>(nodes)->level() <= max_levels[i]);
+    });
+    return result;
+  });
+}
+
+template <typename I>
+inline void MultiTree<I>::SparseRefine(int max_level,
+                                       std::array<int, dim> weights) {
+  DeepRefine([&](const typename I::TupleNodes& nodes) {
+    auto lvls = levels(nodes);
+    int w_level = 0;
+    for (int i = 0; i < dim; ++i) w_level += weights[i] * lvls[i];
+    return w_level <= max_level;
+  });
+}
+
+template <typename I>
+template <typename MT_other, typename FuncPost>
+inline MT_other MultiTree<I>::DeepCopy(const FuncPost& call_postprocess) {
+  assert(root->is_root());
+  MT_other new_tree(root->nodes());
+  new_tree.root->Union(root, /*call_filter*/ func_true, call_postprocess);
+  return new_tree;
 }
 };  // namespace datastructures
