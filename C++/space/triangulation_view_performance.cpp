@@ -20,7 +20,7 @@ using namespace space;
 using namespace datastructures;
 
 constexpr int level = 10;
-constexpr int iters = 100;
+constexpr int iters = 300;
 
 int main() {
   auto T = InitialTriangulation::UnitSquare();
