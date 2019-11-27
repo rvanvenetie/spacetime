@@ -151,8 +151,11 @@ class MultiNodeView
  public:
   static constexpr size_t dim = sizeof...(T);
   using TupleNodes = std::tuple<std::shared_ptr<T>...>;
-  using TParents = std::array<StaticVector<I*, 2>, dim>;
-  using TChildren = std::array<SmallVector<std::shared_ptr<I>, 4>, dim>;
+  using TParents =
+      std::array<StaticVector<I*, std::max({T::N_parents...})>, dim>;
+  using TChildren =
+      std::array<SmallVector<std::shared_ptr<I>, std::max({T::N_children...})>,
+                 dim>;
 
  public:
   // Constructor for a root.
