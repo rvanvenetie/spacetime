@@ -136,12 +136,12 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 
   // Some convenient debug function.
   friend std::ostream& operator<<(
-      std::ostream& os, const MultiNodeViewInterface<I, TupleNodes>& bla) {
-    static_for<dim>([&os, &bla](auto i) {
+      std::ostream& os, const MultiNodeViewInterface<I, TupleNodes>& mnv) {
+    static_for<dim>([&os, &mnv](auto i) {
       if constexpr (i > 0) {
         os << std::string(" x ");
       }
-      os << *std::get<i>(bla.self().nodes());
+      os << *std::get<i>(mnv.self().nodes());
     });
     return os;
   }
