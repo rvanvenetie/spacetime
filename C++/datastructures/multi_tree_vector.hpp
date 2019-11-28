@@ -8,8 +8,8 @@ namespace datastructures {
 
 class VectorElement {
  public:
-  double value() const { return value_; }
-  void set_value(double val) { value_ = val; }
+  inline double value() const { return value_; }
+  inline void set_value(double val) { value_ = val; }
 
  protected:
   double value_ = 0.0;

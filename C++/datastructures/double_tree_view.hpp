@@ -47,7 +47,7 @@ class FrozenDoubleNode
   }
 
   // Refine is handled by simply refining the underlying double node
-  template <size_t j, typename container, typename Func>
+  template <size_t j = 0, typename container, typename Func>
   bool Refine(const container& children_i, const Func& call_filter,
               bool make_conforming) {
     static_assert(j == 0);
@@ -56,8 +56,8 @@ class FrozenDoubleNode
   }
 
   // In case this is a vectoral double node.
-  double value() const { return dbl_node_->value(); }
-  void set_value(double val) { dbl_node_->set_value(val); }
+  inline double value() const { return dbl_node_->value(); }
+  inline void set_value(double val) { dbl_node_->set_value(val); }
 
  protected:
   std::shared_ptr<I_dbl_node> dbl_node_;
