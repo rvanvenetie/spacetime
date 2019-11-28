@@ -9,15 +9,19 @@
 
 namespace datastructures {
 
+namespace details {
+template <typename I_dbl_node, size_t i>
+using T_frozen =
+    std::tuple<std::tuple_element_t<i, typename I_dbl_node::TupleNodes>>;
+}
+
 template <typename I_dbl_node, size_t i>
 class FrozenDoubleNode
     : public MultiNodeViewInterface<FrozenDoubleNode<I_dbl_node, i>,
-                                    std::tuple<std::tuple_element_t<
-                                        i, typename I_dbl_node::TupleNodes>>> {
+                                    details::T_frozen<I_dbl_node, i>> {
  private:
-  using Super = MultiNodeViewInterface<
-      FrozenDoubleNode<I_dbl_node, i>,
-      std::tuple<std::tuple_element_t<i, typename I_dbl_node::TupleNodes>>>;
+  using Super = MultiNodeViewInterface<FrozenDoubleNode<I_dbl_node, i>,
+                                       details::T_frozen<I_dbl_node, i>>;
   using Self = FrozenDoubleNode<I_dbl_node, i>;
 
  public:
