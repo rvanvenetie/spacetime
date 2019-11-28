@@ -129,9 +129,8 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
   bool Refine(const FuncFilt& call_filter = func_true,
               bool make_conforming = false) {
     bool result = false;
-    static_for<dim>([&](auto i) {
-      result = Refine<i>(call_filter, make_conforming) || result;
-    });
+    static_for<dim>(
+        [&](auto i) { result |= Refine<i>(call_filter, make_conforming); });
     return result;
   }
 
