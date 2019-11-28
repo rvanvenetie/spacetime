@@ -1,2 +1,8 @@
 package_add_test(multi_tree_view_test multi_tree_view_test.cpp)
 target_link_libraries(multi_tree_view_test triangulation)
+
+package_add_test(multi_tree_vector_test multi_tree_vector_test.cpp)
+target_link_libraries(multi_tree_vector_test triangulation)
+
+package_add_test(double_tree_view_test double_tree_view_test.cpp)
+target_link_libraries(double_tree_view_test triangulation)

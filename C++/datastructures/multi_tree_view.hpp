@@ -29,35 +29,37 @@ template <size_t N, typename Func>
 constexpr void static_for(Func&& f) {
   static_for_impl(std::forward<Func>(f), std::make_index_sequence<N>{});
 }
+
+// Below are two convenient lambda functions.
 constexpr auto func_noop = [](const auto&... x) {};
 constexpr auto func_true = [](const auto&... x) { return true; };
-
 using T_func_noop = decltype(func_noop);
 using T_func_true = decltype(func_true);
 
 // Returns an array of levels of the underlying nodes.
-template <typename Ts, size_t dim = std::tuple_size_v<Ts>>
-constexpr std::array<int, dim> levels(const Ts& nodes) {
+template <typename TupleNodes, size_t dim = std::tuple_size_v<TupleNodes>>
+constexpr std::array<int, dim> levels(const TupleNodes& nodes) {
   std::array<int, dim> result;
   static_for<dim>([&](auto i) { result[i] = std::get<i>(nodes)->level(); });
   return result;
 }
 
 // Returns the sum of the levels.
-template <typename Ts>
-constexpr int level(const Ts& nodes) {
+template <typename TupleNodes>
+constexpr int level(const TupleNodes& nodes) {
   return std::apply([](const auto&... l) { return (l + ...); }, levels(nodes));
 }
 
 // Template arguments are as follows:
 // I - The final implementation of this class, i.e. the derived class;
-// Ts - The tuple type that represents a node;
-// dim - The dimension of this multitree.
-template <typename I, typename Ts, size_t dim = std::tuple_size_v<Ts>>
+// TupleNodes - The tuple type that represents a node;
+template <typename I, typename TupleNodes>
 class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
  public:
-  const I& self() const { return static_cast<const I&>(*this); }
-  I& self() { return static_cast<I&>(*this); }
+  constexpr static size_t dim = std::tuple_size_v<TupleNodes>;
+
+  inline const I& self() const { return static_cast<const I&>(*this); }
+  inline I& self() { return static_cast<I&>(*this); }
 
   std::array<int, dim> levels() {
     return datastructures::levels(self().nodes());
@@ -65,7 +67,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
   int level() const { return datastructures::level(self().nodes()); }
 
   template <size_t i>
-  bool is_full() const {
+  inline bool is_full() const {
     return self().children(i).size() ==
            std::get<i>(self().nodes())->children().size();
   }
@@ -77,7 +79,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
   }
 
   // Returns whether any of the axis is a metaroot.
-  bool is_metaroot() const {
+  inline bool is_metaroot() const {
     return std::apply(
         [](const auto&... n) { return (n->is_metaroot() || ...); },
         self().nodes());
@@ -85,7 +87,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 
   // Returns if this multinode is the root of the multi-tree. That is, whether
   // all axis hold metaroots.
-  bool is_root() const {
+  inline bool is_root() const {
     return std::apply(
         [](const auto&... n) { return (n->is_metaroot() && ...); },
         self().nodes());
@@ -108,9 +110,10 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
              const FuncFilt& call_filter = func_true,
              const FuncPost& call_postprocess = func_noop);
 
-  template <size_t i,
-            typename container = std::vector<std::tuple_element_t<i, Ts>>,
-            typename Func = T_func_true>
+  template <
+      size_t i,
+      typename container = std::vector<std::tuple_element_t<i, TupleNodes>>,
+      typename Func = T_func_true>
   const auto& Refine(const container& children_i,
                      const Func& call_filter = func_true,
                      bool make_conforming = false);
@@ -129,8 +132,8 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
   }
 
   // Some convenient debug function.
-  friend std::ostream& operator<<(std::ostream& os,
-                                  const MultiNodeViewInterface<I, Ts>& bla) {
+  friend std::ostream& operator<<(
+      std::ostream& os, const MultiNodeViewInterface<I, TupleNodes>& bla) {
     static_for<dim>([&os, &bla](auto i) {
       if constexpr (i > 0) {
         os << std::string(" x ");
@@ -142,11 +145,11 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 
  private:
   template <size_t i, size_t j>
-  std::shared_ptr<I> FindBrother(const Ts& nodes, bool make_conforming);
+  std::shared_ptr<I> FindBrother(const TupleNodes& nodes, bool make_conforming);
 };
 
 template <typename I, typename... T>
-class MultiNodeView
+class MultiNodeViewBase
     : public MultiNodeViewInterface<I, std::tuple<std::shared_ptr<T>...>> {
  public:
   static constexpr size_t dim = sizeof...(T);
@@ -159,17 +162,17 @@ class MultiNodeView
 
  public:
   // Constructor for a root.
-  explicit MultiNodeView(const TupleNodes& nodes) : nodes_(nodes) {
+  explicit MultiNodeViewBase(const TupleNodes& nodes) : nodes_(nodes) {
     assert(this->is_root());
   }
-  explicit MultiNodeView(std::shared_ptr<T>... nodes)
-      : MultiNodeView(TupleNodes(nodes...)) {}
+  explicit MultiNodeViewBase(std::shared_ptr<T>... nodes)
+      : MultiNodeViewBase(TupleNodes(nodes...)) {}
 
   // Constructor for a node.
-  explicit MultiNodeView(TupleNodes&& nodes, TParents&& parents)
+  explicit MultiNodeViewBase(TupleNodes&& nodes, TParents&& parents)
       : nodes_(std::move(nodes)), parents_(std::move(parents)) {}
 
-  MultiNodeView(const MultiNodeView&) = delete;
+  MultiNodeViewBase(const MultiNodeViewBase&) = delete;
 
   const TupleNodes& nodes() const { return nodes_; }
   bool marked() const { return marked_; }
@@ -196,9 +199,9 @@ class MultiNodeView
 };
 
 template <typename... T>
-class MultiNodeViewImpl : public MultiNodeView<MultiNodeViewImpl<T...>, T...> {
+class MultiNodeView : public MultiNodeViewBase<MultiNodeView<T...>, T...> {
  public:
-  using MultiNodeView<MultiNodeViewImpl<T...>, T...>::MultiNodeView;
+  using MultiNodeViewBase<MultiNodeView<T...>, T...>::MultiNodeViewBase;
 };
 
 // Way to inherit NodeView:
@@ -211,12 +214,12 @@ class MultiNodeViewImpl : public MultiNodeView<MultiNodeViewImpl<T...>, T...> {
 //                                              T
 
 template <typename I, typename T>
-class NodeViewBase : public MultiNodeView<I, T> {
+class NodeViewBase : public MultiNodeViewBase<I, T> {
  private:
-  using Super = MultiNodeView<I, T>;
+  using Super = MultiNodeViewBase<I, T>;
 
  public:
-  using MultiNodeView<I, T>::MultiNodeView;
+  using MultiNodeViewBase<I, T>::MultiNodeViewBase;
 
   inline auto& children(size_t i = 0) { return Super::children(0); }
   inline const auto& children(size_t i = 0) const { return Super::children(0); }
@@ -231,20 +234,21 @@ class NodeView : public NodeViewBase<NodeView<T>, T> {
 };
 
 template <typename I>
-class MultiTree {
+class MultiTreeView {
  public:
+  using Impl = I;
   static constexpr size_t dim = I::dim;
   std::shared_ptr<I> root;
 
   // This constructs the tree with a single meta_root.
   template <typename... T>
-  explicit MultiTree(T... nodes) {
+  explicit MultiTreeView(T... nodes) {
     root = std::make_shared<I>(nodes...);
     assert(root->is_root());
   }
 
-  MultiTree(const MultiTree<I>&) = delete;
-  MultiTree(MultiTree<I>&&) = default;
+  MultiTreeView(const MultiTreeView<I>&) = delete;
+  MultiTreeView(MultiTreeView<I>&&) = default;
 
   // Uniform refine, nodes->level() <= max_levels.
   void UniformRefine(std::array<int, dim> max_levels);
@@ -262,11 +266,12 @@ class MultiTree {
     SparseRefine(max_level, arg);
   }
 
-  template <typename MT_other = MultiTree<I>, typename FuncPost = T_func_noop>
-  MT_other DeepCopy(const FuncPost& call_postprocess = func_noop);
+  template <typename MT_other = MultiTreeView<I>,
+            typename FuncPost = T_func_noop>
+  MT_other DeepCopy(const FuncPost& call_postprocess = func_noop) const;
 
   // Simple helpers.
-  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false) {
+  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false) const {
     return root->Bfs(include_metaroot);
   }
   template <typename FuncFilt = T_func_true, typename FuncPost = T_func_noop>
@@ -276,14 +281,11 @@ class MultiTree {
   }
 };
 
-template <typename T1>
-using TreeView = MultiTree<NodeView<T1>>;
+template <typename T0>
+using TreeView = MultiTreeView<NodeView<T0>>;
 
-template <typename T1, typename T2>
-using DoubleTreeView = MultiTree<MultiNodeViewImpl<T1, T2>>;
-
-template <typename T1, typename T2, typename T3>
-using TripleTreeView = MultiTree<MultiNodeViewImpl<T1, T2, T3>>;
+template <typename T0, typename T1, typename T2>
+using TripleTreeView = MultiTreeView<MultiNodeView<T0, T1, T2>>;
 
 };  // namespace datastructures
 

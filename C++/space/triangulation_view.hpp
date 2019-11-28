@@ -66,7 +66,7 @@ class TriangulationView {
     }
   }
   datastructures::TreeView<Vertex> &vertex_view_;
-  datastructures::MultiTree<Element2DView> element_view_;
+  datastructures::MultiTreeView<Element2DView> element_view_;
   std::vector<std::pair<VertexView *, Element2DView *>> history_;
 };
 }  // namespace space
