@@ -9,15 +9,15 @@
 
 namespace datastructures {
 
-template <typename I_dbl_node, size_t i,
-          typename T_frozen =
-              typename std::tuple_element_t<i, typename I_dbl_node::TupleNodes>>
+template <typename I_dbl_node, size_t i>
 class FrozenDoubleNode
     : public MultiNodeViewInterface<FrozenDoubleNode<I_dbl_node, i>,
-                                    std::tuple<T_frozen>> {
+                                    std::tuple<std::tuple_element_t<
+                                        i, typename I_dbl_node::TupleNodes>>> {
  private:
-  using Super = MultiNodeViewInterface<FrozenDoubleNode<I_dbl_node, i>,
-                                       std::tuple<T_frozen>>;
+  using Super = MultiNodeViewInterface<
+      FrozenDoubleNode<I_dbl_node, i>,
+      std::tuple<std::tuple_element_t<i, typename I_dbl_node::TupleNodes>>>;
   using Self = FrozenDoubleNode<I_dbl_node, i>;
 
  public:
@@ -47,10 +47,10 @@ class FrozenDoubleNode
   }
 
   // Refine is handled by simply refining the underlying double node
-  template <size_t j = 0, typename container, typename Func>
+  template <size_t _ = 0, typename container, typename Func>
   bool Refine(const container& children_i, const Func& call_filter,
               bool make_conforming) {
-    static_assert(j == 0);
+    static_assert(_ == 0);
     return dbl_node_->template Refine<i>(children_i, call_filter,
                                          make_conforming);
   }

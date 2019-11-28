@@ -1,7 +1,6 @@
 #pragma once
 #include <boost/container/deque.hpp>
 #include <boost/container/small_vector.hpp>
-#include <boost/container/stable_vector.hpp>
 #include <boost/container/static_vector.hpp>
 
 #define BOOST_ALLOCATOR
