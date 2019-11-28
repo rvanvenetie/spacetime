@@ -20,16 +20,16 @@ using namespace space;
 using namespace datastructures;
 
 constexpr int level = 10;
-constexpr int iters = 1000;
+constexpr int iters = 300;
 
 int main() {
   auto T = InitialTriangulation::UnitSquare();
-  T.elem_meta_root->UniformRefine(level);
+  T.elem_tree.UniformRefine(::level);
 
   for (size_t i = 0; i < iters; ++i) {
     // Create a random subtree
-    auto vertex_subtree = NodeView<Vertex>::CreateRoot(T.vertex_meta_root);
-    vertex_subtree->DeepRefine(
+    auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
+    vertex_subtree.DeepRefine(
         /* call_filter */ [](auto &&vertex) {
           return vertex->level() <= 0 || bsd_rnd() % 3 != 0;
         });

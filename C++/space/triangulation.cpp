@@ -16,18 +16,18 @@ const VectorElement2DPtr &Element2D::refine() {
   if (!is_full()) {
     auto nbr = neighbours[0];
     if (!nbr) {  // Refinement edge of `elem` is on domain boundary
-      bisect();
+      Bisect();
     } else if (nbr->edge(0) != reversed_edge(0)) {
       nbr->refine();
       return refine();
     } else {
-      bisect_with_nbr();
+      BisectWithNbr();
     }
   }
   return children_;
 }
 
-VertexPtr Element2D::create_new_vertex(Element2DPtr nbr) {
+VertexPtr Element2D::CreateNewVertex(Element2DPtr nbr) {
   assert(is_leaf());
   std::vector<Vertex *> vertex_parents{newest_vertex().get()};
   if (nbr) {
@@ -45,10 +45,10 @@ VertexPtr Element2D::create_new_vertex(Element2DPtr nbr) {
   return new_vertex;
 }
 
-ArrayElement2DPtr<2> Element2D::bisect(VertexPtr new_vertex) {
+ArrayElement2DPtr<2> Element2D::Bisect(VertexPtr new_vertex) {
   assert(is_leaf());
   if (!new_vertex) {
-    new_vertex = create_new_vertex();
+    new_vertex = CreateNewVertex();
   }
   auto child1 = std::make_shared<Element2D>(
       this, ArrayVertexPtr<3>{{new_vertex, vertices_[0], vertices_[1]}});
@@ -79,13 +79,13 @@ ArrayElement2DPtr<2> Element2D::bisect(VertexPtr new_vertex) {
   return {{child1, child2}};
 }
 
-void Element2D::bisect_with_nbr() {
+void Element2D::BisectWithNbr() {
   auto nbr = neighbours[0];
   assert(edge(0) == nbr->reversed_edge(0));
 
-  auto new_vertex = create_new_vertex(nbr);
-  auto children0 = bisect(new_vertex);
-  auto children1 = nbr->bisect(new_vertex);
+  auto new_vertex = CreateNewVertex(nbr);
+  auto children0 = Bisect(new_vertex);
+  auto children1 = nbr->Bisect(new_vertex);
 
   children0[0]->neighbours[1] = children1[1];
   children0[1]->neighbours[2] = children1[0];
@@ -96,7 +96,10 @@ void Element2D::bisect_with_nbr() {
 InitialTriangulation::InitialTriangulation(
     const std::vector<std::array<double, 2>> &vertices,
     const std::vector<std::array<int, 3>> &elements)
-    : vertex_meta_root(new Vertex()), elem_meta_root(new Element2D()) {
+    : vertex_tree(),
+      elem_tree(),
+      vertex_meta_root(vertex_tree.meta_root),
+      elem_meta_root(elem_tree.meta_root) {
   // Convenient aliases
   auto &vertex_roots = vertex_meta_root->children();
   auto &element_roots = elem_meta_root->children();

@@ -15,6 +15,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # CMake extra options
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Set CCache to compile.
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+endif()
+
 ### Download GoogleTest
 include(FetchContent)
 FetchContent_Declare(

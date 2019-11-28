@@ -5,10 +5,12 @@
 
 namespace datastructures {
 
-template <typename I, typename Ts, size_t dim>
+template <typename I, typename TupleNodes>
 template <typename Func>
-inline std::vector<std::shared_ptr<I>> MultiNodeViewInterface<I, Ts, dim>::Bfs(
-    bool include_metaroot, const Func& callback, bool return_nodes) {
+inline std::vector<std::shared_ptr<I>>
+MultiNodeViewInterface<I, TupleNodes>::Bfs(bool include_metaroot,
+                                           const Func& callback,
+                                           bool return_nodes) {
   assert(is_root() && !self().marked());
   std::vector<std::shared_ptr<I>> nodes;
   std::queue<std::shared_ptr<I>> queue;
@@ -41,9 +43,9 @@ inline std::vector<std::shared_ptr<I>> MultiNodeViewInterface<I, Ts, dim>::Bfs(
   return nodes;
 }
 
-template <typename I, typename Ts, size_t dim>
+template <typename I, typename TupleNodes>
 template <typename FuncFilt, typename FuncPost>
-inline void MultiNodeViewInterface<I, Ts, dim>::DeepRefine(
+inline void MultiNodeViewInterface<I, TupleNodes>::DeepRefine(
     const FuncFilt& call_filter, const FuncPost& call_postprocess) {
   // This callback will invoke call_postprocess, and refine according
   // to the given filter.
@@ -60,32 +62,9 @@ inline void MultiNodeViewInterface<I, Ts, dim>::DeepRefine(
       /*return_nodes*/ false);
 }
 
-template <typename I, typename Ts, size_t dim>
-inline void MultiNodeViewInterface<I, Ts, dim>::UniformRefine(
-    std::array<int, dim> max_levels) {
-  DeepRefine([&](const Ts& nodes) {
-    bool result = true;
-    static_for<dim>([&](auto i) {
-      result = result && (std::get<i>(nodes)->level() <= max_levels[i]);
-    });
-    return result;
-  });
-}
-
-template <typename I, typename Ts, size_t dim>
-inline void MultiNodeViewInterface<I, Ts, dim>::SparseRefine(
-    int max_level, std::array<int, dim> weights) {
-  DeepRefine([&](const Ts& nodes) {
-    auto levels = this->levels(nodes);
-    int w_level = 0;
-    for (int i = 0; i < dim; ++i) w_level += weights[i] * levels[i];
-    return w_level <= max_level;
-  });
-}
-
-template <typename I, typename Ts, size_t dim>
+template <typename I, typename TupleNodes>
 template <typename I_other, typename FuncFilt, typename FuncPost>
-void MultiNodeViewInterface<I, Ts, dim>::Union(
+void MultiNodeViewInterface<I, TupleNodes>::Union(
     std::shared_ptr<I_other> other, const FuncFilt& call_filter,
     const FuncPost& call_postprocess) {
   assert(is_root() && other->is_root());
@@ -109,7 +88,7 @@ void MultiNodeViewInterface<I, Ts, dim>::Union(
     // Now do the union magic in all dimensions.
     static_for<dim>([&queue, &my_node, &other_node, &call_filter](auto i) {
       // Get a list of all children of the other_node in axis `i`.
-      static std::vector<std::tuple_element_t<i, Ts>> other_children_i;
+      static std::vector<std::tuple_element_t<i, TupleNodes>> other_children_i;
       other_children_i.clear();
       for (const auto& other_child_i : other_node->children(i))
         other_children_i.emplace_back(std::get<i>(other_child_i->nodes()));
@@ -136,39 +115,29 @@ void MultiNodeViewInterface<I, Ts, dim>::Union(
   }
 }
 
-template <typename I, typename Ts, size_t dim>
-template <typename I_other, typename FuncPost>
-inline std::shared_ptr<I_other> MultiNodeViewInterface<I, Ts, dim>::DeepCopy(
-    const FuncPost& call_postprocess) {
-  assert(self().is_root());
-  auto new_root = std::apply(I_other::CreateRoot, self().nodes());
-  new_root->Union(self().shared_from_this(), /*call_filter*/ func_true,
-                  call_postprocess);
-  return new_root;
-}
-
-template <typename I, typename Ts, size_t dim>
+template <typename I, typename TupleNodes>
 template <size_t i, typename container, typename Func>
-inline const auto& MultiNodeViewInterface<I, Ts, dim>::Refine(
+inline bool MultiNodeViewInterface<I, TupleNodes>::Refine(
     const container& children_i, const Func& call_filter,
     bool make_conforming) {
   static_assert(i < dim);
-  if (is_full<i>()) return self().children(i);
+  if (is_full<i>()) return false;
 
   const auto& nodes = self().nodes();
   const auto& nodes_i = std::get<i>(nodes);
+  bool refined = false;
   for (const auto& child_i : children_i) {
     // Assert that this child lies in the underlying tree.
     assert(std::find(nodes_i->children().begin(), nodes_i->children().end(),
                      child_i) != nodes_i->children().end());
 
     // Create a copy of nodes, with the i-th index replaced by child_i.
-    auto child_nodes{nodes};
+    TupleNodes child_nodes(nodes);
     std::get<i>(child_nodes) = child_i;
 
     // Skip if this child already exists.
     if (std::any_of(self().children(i).begin(), self().children(i).end(),
-                    [child_nodes](const auto& child) {
+                    [&child_nodes](const auto& child) {
                       return child->nodes() == child_nodes;
                     }))
       continue;
@@ -187,7 +156,7 @@ inline const auto& MultiNodeViewInterface<I, Ts, dim>::Refine(
     static_for<dim>([make_conforming, &brothers, &child_nodes, this](auto j) {
       for (const auto& child_parent_j : std::get<j>(child_nodes)->parents()) {
         // Create a copy of the child_nodes, replacing j-th index.
-        auto brother_nodes{child_nodes};
+        TupleNodes brother_nodes(child_nodes);
         std::get<j>(brother_nodes) = child_parent_j->shared_from_this();
         brothers[j].push_back(
             FindBrother<i, j>(brother_nodes, make_conforming).get());
@@ -211,14 +180,15 @@ inline const auto& MultiNodeViewInterface<I, Ts, dim>::Refine(
         brother->children(j).push_back(child);
       }
     }
+    refined = true;
   }
-  return self().children(i);
+  return refined;
 }
 
-template <typename I, typename Ts, size_t dim>
+template <typename I, typename TupleNodes>
 template <size_t i, size_t j>
-inline std::shared_ptr<I> MultiNodeViewInterface<I, Ts, dim>::FindBrother(
-    const Ts& nodes, bool make_conforming) {
+inline std::shared_ptr<I> MultiNodeViewInterface<I, TupleNodes>::FindBrother(
+    const TupleNodes& nodes, bool make_conforming) {
   if (nodes == self().nodes()) {
     return self().shared_from_this();
   }
@@ -248,5 +218,37 @@ inline std::shared_ptr<I> MultiNodeViewInterface<I, Ts, dim>::FindBrother(
 
   // Try calling this function again.
   return FindBrother<i, j>(nodes, /*make_conforming*/ false);
+}
+
+template <typename I>
+inline void MultiTreeView<I>::UniformRefine(std::array<int, dim> max_levels) {
+  DeepRefine([&](const typename I::TupleNodes& nodes) {
+    bool result = true;
+    static_for<dim>([&](auto i) {
+      result = result && (std::get<i>(nodes)->level() <= max_levels[i]);
+    });
+    return result;
+  });
+}
+
+template <typename I>
+inline void MultiTreeView<I>::SparseRefine(int max_level,
+                                           std::array<int, dim> weights) {
+  DeepRefine([&](const typename I::TupleNodes& nodes) {
+    auto lvls = levels(nodes);
+    int w_level = 0;
+    for (int i = 0; i < dim; ++i) w_level += weights[i] * lvls[i];
+    return w_level <= max_level;
+  });
+}
+
+template <typename I>
+template <typename MT_other, typename FuncPost>
+inline MT_other MultiTreeView<I>::DeepCopy(
+    const FuncPost& call_postprocess) const {
+  assert(root->is_root());
+  MT_other new_tree(root->nodes());
+  new_tree.root->Union(root, /*call_filter*/ func_true, call_postprocess);
+  return new_tree;
 }
 };  // namespace datastructures
