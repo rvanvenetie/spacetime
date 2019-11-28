@@ -48,11 +48,11 @@ class FrozenDoubleNode
 
   // Refine is handled by simply refining the underlying double node
   template <size_t j, typename container, typename Func>
-  const auto Refine(const container& children_i, const Func& call_filter,
-                    bool make_conforming) {
+  bool Refine(const container& children_i, const Func& call_filter,
+              bool make_conforming) {
     static_assert(j == 0);
-    dbl_node_->template Refine<i>(children_i, call_filter, make_conforming);
-    return children();
+    return dbl_node_->template Refine<i>(children_i, call_filter,
+                                         make_conforming);
   }
 
   // In case this is a vectoral double node.

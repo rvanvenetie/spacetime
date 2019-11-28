@@ -117,14 +117,15 @@ void MultiNodeViewInterface<I, TupleNodes>::Union(
 
 template <typename I, typename TupleNodes>
 template <size_t i, typename container, typename Func>
-inline const auto& MultiNodeViewInterface<I, TupleNodes>::Refine(
+inline bool MultiNodeViewInterface<I, TupleNodes>::Refine(
     const container& children_i, const Func& call_filter,
     bool make_conforming) {
   static_assert(i < dim);
-  if (is_full<i>()) return self().children(i);
+  if (is_full<i>()) return false;
 
   const auto& nodes = self().nodes();
   const auto& nodes_i = std::get<i>(nodes);
+  bool refined = false;
   for (const auto& child_i : children_i) {
     // Assert that this child lies in the underlying tree.
     assert(std::find(nodes_i->children().begin(), nodes_i->children().end(),
@@ -179,8 +180,9 @@ inline const auto& MultiNodeViewInterface<I, TupleNodes>::Refine(
         brother->children(j).push_back(child);
       }
     }
+    refined = true;
   }
-  return self().children(i);
+  return refined;
 }
 
 template <typename I, typename TupleNodes>

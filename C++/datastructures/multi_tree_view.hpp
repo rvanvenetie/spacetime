@@ -114,21 +114,25 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
       size_t i,
       typename container = std::vector<std::tuple_element_t<i, TupleNodes>>,
       typename Func = T_func_true>
-  const auto& Refine(const container& children_i,
-                     const Func& call_filter = func_true,
-                     bool make_conforming = false);
+  // Returns whether we actually created new nodes.
+  bool Refine(const container& children_i, const Func& call_filter = func_true,
+              bool make_conforming = false);
 
   // Define a practical overload:
   template <size_t i, typename FuncFilt = T_func_true>
-  const auto& Refine(const FuncFilt& call_filter = func_true,
-                     bool make_conforming = false) {
+  bool Refine(const FuncFilt& call_filter = func_true,
+              bool make_conforming = false) {
     return Refine<i>(std::get<i>(self().nodes())->children(), call_filter,
                      make_conforming);
   }
   template <typename FuncFilt = T_func_true>
-  void Refine(const FuncFilt& call_filter = func_true,
+  bool Refine(const FuncFilt& call_filter = func_true,
               bool make_conforming = false) {
-    static_for<dim>([&](auto i) { Refine<i>(call_filter, make_conforming); });
+    bool result = false;
+    static_for<dim>([&](auto i) {
+      result = Refine<i>(call_filter, make_conforming) || result;
+    });
+    return result;
   }
 
   // Some convenient debug function.
