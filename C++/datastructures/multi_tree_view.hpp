@@ -10,12 +10,6 @@
 #include "boost.hpp"
 #include "tree.hpp"
 
-template <typename I, size_t N>
-using SmallVector = boost::container::small_vector<I, N>;
-
-template <typename I, size_t N>
-using StaticVector = boost::container::static_vector<I, N>;
-
 namespace datastructures {
 
 // Below are two helper functions to create a compile-time-unrolled loop.

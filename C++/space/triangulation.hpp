@@ -69,7 +69,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   ArrayVertexPtr<2> edge(int i) const;
   ArrayVertexPtr<2> reversed_edge(int i) const;
 
-  const VectorElement2DPtr &refine();
+  bool Refine();
 
   friend std::ostream &operator<<(std::ostream &os, const Element2D &elem) {
     os << "Element2D(" << elem.level() << ", (";

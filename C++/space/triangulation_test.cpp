@@ -21,21 +21,21 @@ TEST(Triangulation, Refine) {
   EXPECT_THAT(vertices[0]->children(), ElementsAre(vertices[4]));
   EXPECT_THAT(vertices[1]->children(), ElementsAre(vertices[4]));
 
-  elements[2]->refine();
+  elements[2]->Refine();
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_TRUE(vertices[5]->on_domain_boundary);
   EXPECT_THAT(vertices[5]->parents(), ElementsAre(vertices[4].get()));
   EXPECT_THAT(vertices[4]->children(), ElementsAre(vertices[5]));
 
-  elements[4]->refine();
+  elements[4]->Refine();
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_TRUE(vertices[6]->on_domain_boundary);
   EXPECT_THAT(vertices[6]->parents(), ElementsAre(vertices[4].get()));
   EXPECT_THAT(vertices[4]->children(), ElementsAre(vertices[5], vertices[6]));
 
-  elements[6]->refine();
+  elements[6]->Refine();
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_FALSE(vertices[8]->on_domain_boundary);
@@ -72,7 +72,8 @@ TEST(Triangulation, OnDomainBoundary) {
   for (int i = 0; i < 100; ++i) {
     auto elem = *leaves.begin();
     leaves.erase(leaves.begin());
-    auto children = elem->refine();
+    elem->Refine();
+    auto children = elem->children();
     leaves.insert(children.begin(), children.end());
   }
 
@@ -124,7 +125,8 @@ TEST(Triangulation, VertexPatch) {
   for (int i = 0; i < 200; ++i) {
     auto elem = *leaves.begin();
     leaves.erase(leaves.begin());
-    auto children = elem->refine();
+    elem->Refine();
+    auto children = elem->children();
     leaves.insert(children.begin(), children.end());
   }
 

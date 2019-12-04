@@ -12,19 +12,20 @@ ArrayVertexPtr<2> Element2D::reversed_edge(int i) const {
   return {{vertices_[(i + 2) % 3], vertices_[(i + 1) % 3]}};
 }
 
-const VectorElement2DPtr &Element2D::refine() {
+bool Element2D::Refine() {
   if (!is_full()) {
     auto nbr = neighbours[0];
     if (!nbr) {  // Refinement edge of `elem` is on domain boundary
       Bisect();
     } else if (nbr->edge(0) != reversed_edge(0)) {
-      nbr->refine();
-      return refine();
+      nbr->Refine();
+      return Refine();
     } else {
       BisectWithNbr();
     }
+    return true;
   }
-  return children_;
+  return false;
 }
 
 VertexPtr Element2D::CreateNewVertex(Element2DPtr nbr) {
