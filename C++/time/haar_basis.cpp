@@ -15,7 +15,7 @@ DiscConstantScalingFn::DiscConstantScalingFn()
 }
 
 double DiscConstantScalingFn::EvalMother(double t, bool deriv) {
-  if (deriv || t < 0 || t > 1)
+  if (deriv || t < 0 || t >= 1)
     return 0;
   else
     return 1;
