@@ -63,6 +63,10 @@ class Node : public NodeInterface<I> {
   void set_marked(bool value) { marked_ = value; }
   bool is_leaf() const { return children_.size() == 0; }
   inline bool is_metaroot() const { return (level_ == -1); }
+  inline bool is_full() const {
+    assert(!is_metaroot());
+    return children_.size() == I::N_children;
+  }
   const std::vector<I *> &parents() const { return parents_; }
   std::vector<std::shared_ptr<I>> &children() { return children_; }
 
@@ -103,7 +107,6 @@ class BinaryNode : public Node<I> {
   static constexpr size_t N_children = 2;
   explicit BinaryNode(I *parent) : Node<I>({parent}) {}
 
-  bool is_full() const { return children_.size() == 2; }
   I *parent() const { return parents_[0]; }
 
  protected:
@@ -124,9 +127,22 @@ class Tree {
   void UniformRefine(int max_level) {
     meta_root->Bfs(true, [max_level](std::shared_ptr<I> node) {
       if (node->level() < max_level) {
-        node->refine();
+        node->Refine();
       }
     });
+  }
+
+  // This returns nodes in this tree, sliced by levels.
+  std::vector<std::vector<std::shared_ptr<I>>> NodesPerLevel() {
+    std::vector<std::vector<std::shared_ptr<I>>> result;
+    for (const auto &node : meta_root->Bfs()) {
+      assert(node->level() >= 0 && node->level() <= result.size());
+      if (node->level() == result.size()) {
+        result.emplace_back();
+      }
+      result[node->level()].push_back(node);
+    }
+    return result;
   }
 };
 
