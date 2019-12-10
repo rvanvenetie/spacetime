@@ -45,6 +45,8 @@ class Function : public datastructures::Node<I> {
   inline int index() const { return index_; }
   const std::vector<Element1D *> &support() const { return support_; }
 
+  virtual double Eval(double t, bool deriv = false) = 0;
+
  protected:
   // Protected constructor for creating a metaroot.
   Function() : datastructures::Node<I>(), index_(0) {}
@@ -64,7 +66,7 @@ class ScalingFn : public Function<I> {
   std::vector<std::pair<typename FunctionTrait<I>::Wavelet *, double>>
       multi_scale_;
 
-  double Eval(double t, bool deriv = false) {
+  double Eval(double t, bool deriv = false) override {
     int l = I::level_;
     int n = I::support_[0]->index();
     double chain_rule_constant = deriv ? std::pow(2, l) : 1;
@@ -114,7 +116,7 @@ class WaveletFn : public Function<I> {
     support_.erase(last, support_.end());
   }
 
-  double Eval(double t, bool deriv = false) {
+  double Eval(double t, bool deriv = false) final {
     double result = 0;
     for (auto [fn, coeff] : single_scale_) {
       result += coeff * fn->Eval(t, deriv);
