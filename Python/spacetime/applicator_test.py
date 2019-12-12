@@ -24,7 +24,7 @@ from ..time.haar_basis import HaarBasis
 from ..time.operators import mass as Mass1D
 from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointBasis
-from .applicator import Applicator, TimeIdentityApplicator
+from .applicator import Applicator, BlockDiagonalApplicator
 
 
 class FakeApplicator(Applicator):
@@ -578,7 +578,7 @@ def test_applicator_time_identity():
         (basis.metaroot_wavelet, hierarch_basis.root))
     Lambda.uniform_refine(5)
 
-    applicator = TimeIdentityApplicator(Lambda, applicator_space)
+    applicator = BlockDiagonalApplicator(Lambda, applicator_space)
     matrix = KroneckerLinearOperator(sp.eye(len(basis.metaroot_wavelet.bfs())),
                                      mass.as_linear_operator())
     # Test and apply 10 random vectors.

@@ -165,7 +165,7 @@ class Applicator(ApplicatorInterface):
                           applicator_space=self.applicator_space.transpose())
 
 
-class TimeIdentityApplicator(ApplicatorInterface):
+class BlockDiagonalApplicator(ApplicatorInterface):
     """ Class that implements R_Lambda (Id x A) I_Lambda. """
     def __init__(self, Lambda, applicator_space):
         super().__init__(Lambda_in=Lambda, Lambda_out=Lambda)
