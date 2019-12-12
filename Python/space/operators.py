@@ -1,7 +1,8 @@
 import itertools
 
 import numpy as np
-from scipy.sparse.linalg import LinearOperator
+from scipy.sparse.linalg import LinearOperator, spsolve
+from scipy.sparse import csr_matrix
 
 from .triangulation_view import TriangulationView
 
@@ -70,6 +71,21 @@ class Operator:
                 w[vi] = w[vi] - 0.5 * w[gp]
         return w
 
+    def as_sparse_matrix(self, cls=csr_matrix):
+        """ Returns this operator as a sparse matrix. """
+        n = len(self.triang.vertices)
+        rows, cols, data = [], [], []
+        I = np.eye(n)
+
+        for col in range(n):
+            for row, val in enumerate(self.apply(I[:, col])):
+                if val != 0.0:
+                    rows.append(row)
+                    cols.append(col)
+                    data.append(val)
+
+        return cls((data, (rows, cols)), shape=(n, n), dtype=float)
+
     def apply_boundary_restriction(self, v):
         """ Sets all boundary vertices to zero. """
         w = np.zeros(v.shape)
@@ -125,6 +141,33 @@ class StiffnessOperator(Operator):
             for (i, j) in itertools.product(range(3), range(3)):
                 w[Vids[j]] += element_stiff[i, j] * v[Vids[i]]
         return w
+
+
+class DirectInverseOperator(Operator):
+    """ Represents the inverse of the given operator. """
+    def __init__(self, forward_operator):
+        self.operator_cls = forward_operator.__class__
+        super().__init__(forward_operator.triang,
+                         forward_operator.dirichlet_boundary)
+
+    def apply(self, v):
+        mat = self.operator_cls(self.triang,
+                                self.dirichlet_boundary).as_sparse_matrix()
+        # If we have dirichlet BC, the matrix is singular, so we have to take
+        # a submatrix if we want to apply spsolve.
+        if self.dirichlet_boundary:
+            free_dofs = [
+                i for (i, vertex) in enumerate(self.triang.vertices)
+                if not vertex.on_domain_boundary
+            ]
+            mat = mat[np.ix_(free_dofs, free_dofs)]
+            v = v[free_dofs]
+            out = spsolve(mat, v)
+            res = np.zeros(len(self.triang.vertices))
+            res[free_dofs] = out
+            return res
+        else:
+            return spsolve(mat, v)
 
 
 def plot_hatfn():

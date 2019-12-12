@@ -3,7 +3,7 @@ from numpy.linalg import norm
 from scipy.sparse.linalg import cg
 
 from ..datastructures.tree_view import TreeView
-from .operators import MassOperator, Operator, StiffnessOperator
+from .operators import MassOperator, Operator, StiffnessOperator, DirectInverseOperator
 from .triangulation import InitialTriangulation, to_matplotlib_triangulation
 from .triangulation_view import TriangulationView
 
@@ -54,6 +54,53 @@ def test_transformation():
         assert norm(
             operators.apply_T(v + alpha * z) -
             (operators.apply_T(v) + alpha * operators.apply_T(z))) < 1e-10
+
+
+def test_as_sparse_matrix():
+    """ Tests the `as_sparse_matrix` method. """
+    # Setup the triangulation
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.bfs()[0].refine()
+    T.elem_meta_root.bfs()[4].refine()
+    T.elem_meta_root.bfs()[7].refine()
+    vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
+    vertex_view.deep_refine()
+    T_view = TriangulationView(vertex_view)
+
+    for op_cls in [MassOperator, StiffnessOperator]:
+        for dirichlet_boundary in [False, True]:
+            op = op_cls(T_view, dirichlet_boundary=dirichlet_boundary)
+            mat = op.as_sparse_matrix()
+            for _ in range(100):
+                v = np.random.rand(len(vertex_view.bfs()))
+                assert np.allclose(mat.dot(v), op.apply(v))
+
+
+def test_direct_inverse():
+    """ Tests the DirectInverseOperator class. """
+    # Setup the triangulation
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.bfs()[0].refine()
+    T.elem_meta_root.bfs()[4].refine()
+    T.elem_meta_root.bfs()[7].refine()
+    vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
+    vertex_view.deep_refine()
+    T_view = TriangulationView(vertex_view)
+
+    # An inverse for the StiffnessOperator only exists with dirichlet BC.
+    for op_cls, dirichlet_boundary in [(MassOperator, True),
+                                       (MassOperator, False),
+                                       (StiffnessOperator, True)]:
+        print(op_cls, dirichlet_boundary)
+        forward_op = op_cls(T_view, dirichlet_boundary=dirichlet_boundary)
+        inv_op = DirectInverseOperator(forward_op)
+        for _ in range(100):
+            v = np.random.rand(len(vertex_view.bfs()))
+            assert np.allclose(inv_op.apply(v),
+                               inv_op.apply(forward_op.apply(inv_op.apply(v))))
+            assert np.allclose(
+                forward_op.apply(v),
+                forward_op.apply(inv_op.apply(forward_op.apply(v))))
 
 
 def test_galerkin(plot=False):
