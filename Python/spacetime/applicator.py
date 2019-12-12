@@ -163,3 +163,28 @@ class Applicator(ApplicatorInterface):
                           Lambda_out=self.Lambda_in,
                           applicator_time=self.applicator_time.transpose(),
                           applicator_space=self.applicator_space.transpose())
+
+
+class BlockDiagonalApplicator(ApplicatorInterface):
+    """ Class that implements R_Lambda (Id x A) I_Lambda. """
+    def __init__(self, Lambda, applicator_space):
+        super().__init__(Lambda_in=Lambda, Lambda_out=Lambda)
+        self.Lambda_in.compute_fibers()
+        self.applicator_space = applicator_space
+        self.vec_out = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
+
+    def apply(self, vec):
+        self.vec_out.reset()
+
+        for psi_in_lambda in self.Lambda_out.project(0).bfs():
+            fiber_in = vec.fiber(1, psi_in_lambda)
+            fiber_out = self.vec_out.fiber(1, psi_in_lambda)
+            self.applicator_space.apply(fiber_in, fiber_out)
+
+        return self.vec_out
+
+    def transpose(self):
+        """ Transposes this spacetime bilinear formulation. """
+        return BlockDiagonalApplicator(
+            Lambda=self.Lambda,
+            applicator_space=self.applicator_space.transpose())

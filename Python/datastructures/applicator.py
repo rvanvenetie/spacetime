@@ -95,7 +95,7 @@ class ScalarApplicator(ApplicatorInterface):
         return ScalarApplicator(self.applicator.transpose(), self.scalar)
 
 
-class ComposeApplicator(ApplicatorInterface):
+class CompositeApplicator(ApplicatorInterface):
     """ Composes multiple applicators. """
     def __init__(self, applicators):
         """ Initializes this applicator composed of the given applicators.
@@ -103,8 +103,8 @@ class ComposeApplicator(ApplicatorInterface):
         First applicators[0] is applied, then applicators[1], etc.. """
         assert isinstance(applicators, (tuple, list))
         for i in range(len(applicators) - 1):
-            assert applicators[i].Lambda_out == applicators[i].Lambad_in
-        super().__init__(Lamba_in=applicators[0].Lambda_in,
+            assert applicators[i].Lambda_out == applicators[i + 1].Lambda_in
+        super().__init__(Lambda_in=applicators[0].Lambda_in,
                          Lambda_out=applicators[-1].Lambda_out)
         self.applicators = applicators
 
@@ -113,6 +113,10 @@ class ComposeApplicator(ApplicatorInterface):
         for applicator in self.applicators:
             res = applicator.apply(res)
         return res
+
+    def transpose(self):
+        return CompositeApplicator(
+            [app.transpose() for app in reversed(self.applicators)])
 
 
 class BlockApplicator(ApplicatorInterface):
@@ -161,7 +165,7 @@ class BlockApplicator(ApplicatorInterface):
         out_1 = self.applicators[1][0].apply(vec[0])
         out_1 += self.applicators[1][1].apply(vec[1])
 
-        return BlockTreeVector((out_0, out_1))
+        return BlockTreeVector([out_0, out_1])
 
     def transpose(self):
         return BlockApplicator([

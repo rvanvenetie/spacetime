@@ -2,7 +2,9 @@ from itertools import product
 
 import numpy as np
 import pytest
+import scipy.sparse as sp
 
+from ..datastructures.tree_view import TreeView
 from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.double_tree_view_test import (corner_index_tree,
@@ -15,12 +17,13 @@ from ..space.basis import HierarchicalBasisFunction
 from ..space.operators import MassOperator as Mass2D
 from ..space.operators import StiffnessOperator as Stiff2D
 from ..space.triangulation import InitialTriangulation
+from ..space.triangulation_view import TriangulationView
 from ..time.applicator import Applicator as Applicator1D
 from ..time.haar_basis import HaarBasis
 from ..time.operators import mass as Mass1D
 from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointBasis
-from .applicator import Applicator
+from .applicator import Applicator, BlockDiagonalApplicator
 
 
 class FakeApplicator(Applicator):
@@ -197,7 +200,7 @@ def test_applicator_real():
     triang = InitialTriangulation.unit_square()
     triang.elem_meta_root.uniform_refine(5)
     hierarch_basis = HierarchicalBasisFunction.from_triangulation(triang)
-    hierarch_basis.deep_refine()
+    hierarch_basis.uniform_refine()
 
     # Create space applicator
     applicator_space = Applicator2D(Mass2D())
@@ -548,3 +551,54 @@ def test_applicator_sparse_grid_time():
             vec_out = applicator.apply(vec_in)
             vec_out_ts = applicator_ts.apply(vec_in)
             assert np.allclose(vec_out.to_array(), vec_out_ts.to_array())
+
+
+def KroneckerLinearOperator(R1, R2):
+    """ Create LinOp that applies kron(A,B)x without explicit construction. """
+    N, K = R1.shape
+    M, L = R2.shape
+
+    def matvec(x):
+        X = x.reshape(K, L)
+        return R2.dot(R1.dot(X).T).T.reshape(-1)
+
+    return sp.linalg.LinearOperator(matvec=matvec, shape=(N * M, K * L))
+
+
+def test_applicator_time_identity():
+    # Create space part.
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(5)
+    vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
+    vertex_view.deep_refine()
+    T_view = TriangulationView(vertex_view)
+
+    hierarch_basis = HierarchicalBasisFunction.from_triangulation(T)
+    hierarch_basis.deep_refine()
+
+    # Create space applicator
+    mass = Mass2D(T_view)
+    applicator_space = Applicator2D(mass)
+
+    # Create time basis for Lambda_in/Lambda_out
+    basis = ThreePointBasis()
+    basis.metaroot_wavelet.uniform_refine(5)
+
+    # Create Lambda_in as full tree.
+    Lambda = DoubleTree.from_metaroots(
+        (basis.metaroot_wavelet, hierarch_basis.root))
+    Lambda.uniform_refine(5)
+
+    applicator = BlockDiagonalApplicator(Lambda, applicator_space)
+    matrix = KroneckerLinearOperator(sp.eye(len(Lambda.project(0).bfs())),
+                                     mass.as_linear_operator())
+    # Test and apply 10 random vectors.
+    for _ in range(10):
+        # Init double tree vector with random values.
+        vec_in = Lambda.deep_copy(mlt_tree_cls=DoubleTreeVector)
+        for db_node in vec_in.bfs():
+            db_node.value = np.random.rand()
+
+        # Calculate the output with both applicators and compare.
+        vec_out = applicator.apply(vec_in)
+        assert np.allclose(vec_out.to_array(), matrix @ vec_in.to_array())
