@@ -91,6 +91,12 @@ class Operator:
                 w[i] = v[i]
         return w
 
+    def free_dofs(self):
+        return [
+            i for (i, vertex) in enumerate(self.triang.vertices)
+            if not vertex.on_domain_boundary
+        ]
+
     def as_linear_operator(self):
         """ Recasts the application of a this as a scipy LinearOperator. """
         return LinearOperator(dtype=float,
@@ -166,9 +172,9 @@ class StiffnessOperator(Operator):
 class DirectInverseOperator(Operator):
     """ Represents the inverse of the given operator. """
     def __init__(self, forward_operator):
-        self.operator_cls = forward_operator.__class__
         super().__init__(forward_operator.triang,
                          forward_operator.dirichlet_boundary)
+        self.operator_cls = forward_operator.__class__
 
     def apply_HB(self, v):
         """ Application of the operator the hierarchical basis.
@@ -198,10 +204,7 @@ class DirectInverseOperator(Operator):
         # If we have dirichlet BC, the matrix is singular, so we have to take
         # a submatrix if we want to apply spsolve.
         if self.dirichlet_boundary:
-            free_dofs = [
-                i for (i, vertex) in enumerate(self.triang.vertices)
-                if not vertex.on_domain_boundary
-            ]
+            free_dofs = self.free_dofs()
             mat = mat[np.ix_(free_dofs, free_dofs)]
             v = v[free_dofs]
             out = spsolve(mat, v)

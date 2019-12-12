@@ -59,9 +59,7 @@ def test_as_SS_matrix():
     """ Tests the `SS_as_matrix` method. """
     # Setup the triangulation
     T = InitialTriangulation.unit_square()
-    T.elem_meta_root.bfs()[0].refine()
-    T.elem_meta_root.bfs()[4].refine()
-    T.elem_meta_root.bfs()[7].refine()
+    T.elem_meta_root.uniform_refine(3)
     vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
     vertex_view.deep_refine()
     T_view = TriangulationView(vertex_view)
@@ -79,9 +77,7 @@ def test_direct_inverse():
     """ Tests the `DirectInverseOperator` class. """
     # Setup the triangulation
     T = InitialTriangulation.unit_square()
-    T.elem_meta_root.bfs()[0].refine()
-    T.elem_meta_root.bfs()[4].refine()
-    T.elem_meta_root.bfs()[7].refine()
+    T.elem_meta_root.uniform_refine(3)
     vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
     vertex_view.deep_refine()
     T_view = TriangulationView(vertex_view)

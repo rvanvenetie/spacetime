@@ -201,7 +201,7 @@ def test_applicator_real():
     triang = InitialTriangulation.unit_square()
     triang.elem_meta_root.uniform_refine(5)
     hierarch_basis = HierarchicalBasisFunction.from_triangulation(triang)
-    hierarch_basis.uniform_refine(5)
+    hierarch_basis.uniform_refine()
 
     # Create space applicator
     applicator_space = Applicator2D(Mass2D())
@@ -554,16 +554,28 @@ def test_applicator_sparse_grid_time():
             assert np.allclose(vec_out.to_array(), vec_out_ts.to_array())
 
 
+def KroneckerLinearOperator(R1, R2):
+    """ Create LinOp that applies kron(A,B)x without explicit construction. """
+    N, K = R1.shape
+    M, L = R2.shape
+
+    def matvec(x):
+        X = x.reshape(K, L)
+        return R2.dot(R1.dot(X).T).T.reshape(-1)
+
+    return LinearOperator(matvec=matvec, shape=(N * M, K * L))
+
+
 def test_applicator_time_identity():
     # Create space part.
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(5)
     vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
-    vertex_view.uniform_refine(5)
+    vertex_view.deep_refine()
     T_view = TriangulationView(vertex_view)
 
     hierarch_basis = HierarchicalBasisFunction.from_triangulation(T)
-    hierarch_basis.uniform_refine(5)
+    hierarch_basis.deep_refine()
 
     # Create space applicator
     mass = Mass2D(T_view)
@@ -579,7 +591,7 @@ def test_applicator_time_identity():
     Lambda.uniform_refine(5)
 
     applicator = BlockDiagonalApplicator(Lambda, applicator_space)
-    matrix = KroneckerLinearOperator(sp.eye(len(Lambda.project(0).bfs())),
+    matrix = KroneckerLinearOperator(sp.eye(len(basis.metaroot_wavelet.bfs())),
                                      mass.as_linear_operator())
     # Test and apply 10 random vectors.
     for _ in range(10):
