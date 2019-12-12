@@ -2,6 +2,7 @@ from scipy.sparse.linalg import LinearOperator
 
 
 def KroneckerLinearOperator(R1, R2):
+    """ Create LinOp that applies kron(A,B)x without explicit construction. """
     N, K = R1.shape
     M, L = R2.shape
 
