@@ -562,7 +562,7 @@ def KroneckerLinearOperator(R1, R2):
         X = x.reshape(K, L)
         return R2.dot(R1.dot(X).T).T.reshape(-1)
 
-    return LinearOperator(matvec=matvec, shape=(N * M, K * L))
+    return sp.linalg.LinearOperator(matvec=matvec, shape=(N * M, K * L))
 
 
 def test_applicator_time_identity():
