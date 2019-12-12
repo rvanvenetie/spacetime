@@ -3,7 +3,8 @@ from numpy.linalg import norm
 from scipy.sparse.linalg import cg
 
 from ..datastructures.tree_view import TreeView
-from .operators import MassOperator, Operator, StiffnessOperator, DirectInverseOperator
+from .operators import (MassOperator, Operator, StiffnessOperator,
+                        DirectInverseOperator)
 from .triangulation import InitialTriangulation, to_matplotlib_triangulation
 from .triangulation_view import TriangulationView
 

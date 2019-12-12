@@ -185,6 +185,6 @@ class BlockDiagonalApplicator(ApplicatorInterface):
 
     def transpose(self):
         """ Transposes this spacetime bilinear formulation. """
-        return TimeIdentityApplicator(
+        return BlockDiagonalApplicator(
             Lambda=self.Lambda,
             applicator_space=self.applicator_space.transpose())
