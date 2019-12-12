@@ -55,7 +55,7 @@ def test_transformation():
                            (op.apply_T(v) + alpha * op.apply_T(z)))
 
 
-def test_SS_as_matrix():
+def test_as_SS_matrix():
     """ Tests the `SS_as_matrix` method. """
     # Setup the triangulation
     T = InitialTriangulation.unit_square()
@@ -69,7 +69,7 @@ def test_SS_as_matrix():
     for op_cls in [MassOperator, StiffnessOperator]:
         for dirichlet_boundary in [False, True]:
             op = op_cls(T_view, dirichlet_boundary=dirichlet_boundary)
-            mat = op.SS_as_matrix()
+            mat = op.as_SS_matrix()
             for _ in range(100):
                 v = np.random.rand(len(vertex_view.bfs()))
                 assert np.allclose(mat.dot(v), op.apply_SS(v))

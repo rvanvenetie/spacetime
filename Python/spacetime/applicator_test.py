@@ -201,7 +201,7 @@ def test_applicator_real():
     triang = InitialTriangulation.unit_square()
     triang.elem_meta_root.uniform_refine(5)
     hierarch_basis = HierarchicalBasisFunction.from_triangulation(triang)
-    hierarch_basis.deep_refine()
+    hierarch_basis.uniform_refine(5)
 
     # Create space applicator
     applicator_space = Applicator2D(Mass2D())
@@ -559,11 +559,11 @@ def test_applicator_time_identity():
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(5)
     vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
-    vertex_view.deep_refine()
+    vertex_view.uniform_refine(5)
     T_view = TriangulationView(vertex_view)
 
     hierarch_basis = HierarchicalBasisFunction.from_triangulation(T)
-    hierarch_basis.deep_refine()
+    hierarch_basis.uniform_refine(5)
 
     # Create space applicator
     mass = Mass2D(T_view)
@@ -579,7 +579,7 @@ def test_applicator_time_identity():
     Lambda.uniform_refine(5)
 
     applicator = BlockDiagonalApplicator(Lambda, applicator_space)
-    matrix = KroneckerLinearOperator(sp.eye(len(basis.metaroot_wavelet.bfs())),
+    matrix = KroneckerLinearOperator(sp.eye(len(Lambda.project(0).bfs())),
                                      mass.as_linear_operator())
     # Test and apply 10 random vectors.
     for _ in range(10):
