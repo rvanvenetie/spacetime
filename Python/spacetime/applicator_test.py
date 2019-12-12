@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 import scipy.sparse as sp
 
-from ..datastructures.linop import KroneckerLinearOperator
 from ..datastructures.tree_view import TreeView
 from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..datastructures.double_tree_view import DoubleTree
