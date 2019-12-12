@@ -63,22 +63,6 @@ class Operator:
                 w[gp] = w[gp] + 0.5 * w[vi]
         return w
 
-    def apply_T_inverse(self, v):
-        """Applies the single-scale-to-hierarchical transformation. """
-        w = np.copy(v)
-        for (vi, T) in reversed(self.triang.history):
-            for gp in T.refinement_edge():
-                w[vi] = w[vi] - 0.5 * w[gp]
-        return w
-
-    def apply_T_inverse_transpose(self, v):
-        """Applies the transposed single-to-hierarchical transformation. """
-        w = np.copy(v)
-        for (vi, T) in self.triang.history:
-            for gp in T.refinement_edge():
-                w[gp] = w[gp] - 0.5 * w[vi]
-        return w
-
     def as_SS_matrix(self, cls=csr_matrix):
         """ Returns this operator as a sparse matrix. """
         raise NotImplementedError('This function is not implemented')
@@ -175,6 +159,22 @@ class DirectInverseOperator(Operator):
         super().__init__(forward_operator.triang,
                          forward_operator.dirichlet_boundary)
         self.operator_cls = forward_operator.__class__
+
+    def apply_T_inverse(self, v):
+        """Applies the single-scale-to-hierarchical transformation. """
+        w = np.copy(v)
+        for (vi, T) in reversed(self.triang.history):
+            for gp in T.refinement_edge():
+                w[vi] = w[vi] - 0.5 * w[gp]
+        return w
+
+    def apply_T_inverse_transpose(self, v):
+        """Applies the transposed single-to-hierarchical transformation. """
+        w = np.copy(v)
+        for (vi, T) in self.triang.history:
+            for gp in T.refinement_edge():
+                w[gp] = w[gp] - 0.5 * w[vi]
+        return w
 
     def apply_HB(self, v):
         """ Application of the operator the hierarchical basis.

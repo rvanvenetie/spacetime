@@ -40,14 +40,6 @@ def test_transformation():
         # Test that <applyT(v), z> = <v, applyT_transpose(z)>.
         assert np.allclose(np.inner(v, op.apply_T_transpose(z)),
                            np.inner(op.apply_T(v), z))
-        # Test that T^-1 T v == v.
-        assert np.allclose(v, op.apply_T(op.apply_T_inverse(v)))
-        assert np.allclose(v, op.apply_T_inverse(op.apply_T(v)))
-        # Test that T^-T T^T v == v.
-        assert np.allclose(
-            v, op.apply_T_transpose(op.apply_T_inverse_transpose(v)))
-        assert np.allclose(
-            v, op.apply_T_inverse_transpose(op.apply_T_transpose(v)))
 
         # Test that T is a linear operator.
         alpha = np.random.rand()
@@ -88,8 +80,19 @@ def test_direct_inverse():
                                        (StiffnessOperator, True)]:
         forward_op = op_cls(T_view, dirichlet_boundary=dirichlet_boundary)
         inv_op = DirectInverseOperator(forward_op)
-        for _ in range(100):
+        for _ in range(10):
             v = np.random.rand(len(vertex_view.bfs()))
+            # Test that T^-1 T v == v.
+            assert np.allclose(v, inv_op.apply_T(inv_op.apply_T_inverse(v)))
+            assert np.allclose(v, inv_op.apply_T_inverse(inv_op.apply_T(v)))
+            # Test that T^-T T^T v == v.
+            assert np.allclose(
+                v,
+                inv_op.apply_T_transpose(inv_op.apply_T_inverse_transpose(v)))
+            assert np.allclose(
+                v,
+                inv_op.apply_T_inverse_transpose(inv_op.apply_T_transpose(v)))
+
             if dirichlet_boundary:
                 v = forward_op.apply_boundary_restriction(v)
             assert np.allclose(v, forward_op.apply(inv_op.apply(v)))
@@ -127,10 +130,6 @@ def test_galerkin(plot=False):
         mass_op.triang = T_view
         ones = np.ones(len(T_view.vertices), dtype=float)
         new_rhs = mass_op.apply_T_transpose(mass_op.apply_SS(ones))
-
-        # Test that T_inverse(T) == Id
-        assert np.allclose(mass_op.apply_T_inverse(mass_op.apply_T(new_rhs)),
-                           new_rhs)
 
         # Test that the first V elements of the right-hand side coincide -- we
         # have a hierarchic basis after all.

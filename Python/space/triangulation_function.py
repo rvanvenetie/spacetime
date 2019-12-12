@@ -12,14 +12,6 @@ class TriangulationFunction(TreeFunction):
     This is more of a convenience class, with methods that are specific to
     TreeFunctions where the underlying tree is a vertex tree.
     """
-    def interpolate_on(self, fn):
-        """ Calculates the interpolant of fn on the underlying tree. """
-        triang = TriangulationView(self)
-        result = self.deep_copy()
-        mass = MassOperator(triang, dirichlet_boundary=False)
-        nodal_eval = np.array([fn(node.node.node.xy) for node in result.bfs()])
-        return result.from_array(mass.apply_T_inverse(nodal_eval))
-
     def norm_L2(self):
         """ Calculates the L2 norm of this function. """
         triang = TriangulationView(self)
