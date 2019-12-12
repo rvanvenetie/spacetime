@@ -100,7 +100,7 @@ class MultiTreeVector(MultiTree):
 
 class BlockTreeVector:
     def __init__(self, vecs):
-        assert isinstance(vecs, (tuple, list))
+        assert isinstance(vecs, list)
         assert all(isinstance(vec, MultiTreeVector) for vec in vecs)
         self.vecs = vecs
 
@@ -109,6 +109,10 @@ class BlockTreeVector:
 
     def __getitem__(self, i):
         return self.vecs[i]
+
+    def __setitem__(self, i, vec):
+        assert isinstance(vec, MultiTreeVector)
+        self.vecs[i] = vec
 
     def __isub__(self, other):
         for i, vec in enumerate(self.vecs):

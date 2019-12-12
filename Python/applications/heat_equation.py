@@ -1,13 +1,14 @@
-import scipy
+import scipy.sparse.linalg as spla
 
 from ..datastructures.applicator import (BlockApplicator,
-                                         LinearOperatorApplicator)
+                                         LinearOperatorApplicator,
+                                         CompositeApplicator)
 from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..datastructures.multi_tree_function import DoubleTreeFunction
 from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..space import applicator as s_applicator
 from ..space import operators as s_operators
-from ..spacetime.applicator import Applicator
+from ..spacetime.applicator import Applicator, BlockDiagonalApplicator
 from ..spacetime.basis import generate_y_delta
 from ..time import applicator as t_applicator
 from ..time import operators as t_operators
@@ -62,18 +63,30 @@ class HeatEquation:
             applicator_space=applicator_space(s_operators.StiffnessOperator))
         self.B = B_1 + B_2
         self.BT = self.B.transpose()
-        self.m_gamma = -Applicator(
+        self.m_gamma = Applicator(
             Lambda_in=X_delta,
             Lambda_out=X_delta,
             applicator_time=applicator_time(t_operators.trace, time_basis_X),
             applicator_space=applicator_space(s_operators.MassOperator))
 
         self.mat = BlockApplicator([[self.A_s, self.B],
-                                    [self.BT, self.m_gamma]])
+                                    [self.BT, -self.m_gamma]])
 
         # Also turn this block applicator into a linear operator.
+        vec = self.create_vector()
         self.linop = LinearOperatorApplicator(applicator=self.mat,
-                                              input_vec=self.create_vector())
+                                              input_vec=vec)
+
+        self.P_Y = BlockDiagonalApplicator(
+            Y_delta,
+            s_applicator.Applicator(
+                s_operators.DirectInverseOperator(
+                    s_operators.StiffnessOperator(
+                        dirichlet_boundary=dirichlet_boundary))))
+        self.schur_linop = LinearOperatorApplicator(
+            applicator=CompositeApplicator([self.B, self.P_Y, self.BT]) +
+            self.m_gamma,
+            input_vec=vec[1])
 
     @staticmethod
     def enforce_dirichlet_boundary(vector):
@@ -88,12 +101,12 @@ class HeatEquation:
         if not isinstance(call_postprocess, tuple):
             call_postprocess = (call_postprocess, call_postprocess)
 
-        result = BlockTreeVector((
+        result = BlockTreeVector([
             self.Y_delta.deep_copy(mlt_tree_cls=mlt_tree_cls,
                                    call_postprocess=call_postprocess[0]),
             self.X_delta.deep_copy(mlt_tree_cls=mlt_tree_cls,
                                    call_postprocess=call_postprocess[1]),
-        ))
+        ])
         if self.dirichlet_boundary:
             self.enforce_dirichlet_boundary(result)
         return result
@@ -125,7 +138,7 @@ class HeatEquation:
 
         return self.create_vector((call_quad_g, call_quad_u0))
 
-    def solve(self, rhs, iter_callback=None):
+    def solve(self, rhs, iter_callback=None, method="cg-schur"):
         num_iters = 0
 
         def call_iterations(vec):
@@ -134,14 +147,28 @@ class HeatEquation:
             print(".", end='', flush=True)
             num_iters += 1
 
-        rhs_array = rhs.to_array()
-        result_array, info = scipy.sparse.linalg.minres(
-            self.linop, b=rhs_array, x0=rhs_array, callback=call_iterations)
+        if method == "minres":
+            result_array, info = spla.minres(self.linop,
+                                             b=rhs.to_array(),
+                                             callback=call_iterations)
+            result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
+            result_fn.from_array(result_array)
+        elif method == "cg-schur":
+            cg_rhs = self.BT.apply(self.P_Y.apply(rhs[0])).axpy(
+                rhs[1], -1.0).to_array()
+            cg_result, info = spla.cg(self.schur_linop,
+                                      b=cg_rhs,
+                                      callback=call_iterations)
+            result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
+            result_fn[1].from_array(cg_result)
+            result_fn[0] = self.P_Y.apply(rhs[0]).axpy(
+                self.B.apply(result_fn[1]), -1.0)
+        elif method == "pcg-schur":
+            pass
+        else:
+            raise NotImplementedError("Inrecognized method '%s'" % method)
         print(end='\n')
         assert info == 0
-
-        result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
-        result_fn.from_array(result_array)
         return result_fn, num_iters
 
     def time_per_dof(self):

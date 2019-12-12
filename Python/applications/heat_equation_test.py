@@ -138,12 +138,12 @@ def test_sparse_tensor_heat():
     assert np.allclose(tree_matvec.to_array(), array_matvec)
 
     # Now actually solve this beast!
-    sol, num_iters = heat_eq.solve(rhs)
-
-    # Check the error..
-    res_tree = heat_eq.mat.apply(sol)
-    res_tree -= rhs
-    assert np.linalg.norm(res_tree.to_array()) < 1e-4
+    for solver in ['minres', 'cg-schur']:
+        sol, num_iters = heat_eq.solve(rhs, solver)
+        # Check the error..
+        res_tree = heat_eq.mat.apply(sol)
+        res_tree -= rhs
+        assert np.linalg.norm(res_tree.to_array()) < 1e-4
 
 
 def test_real_tensor_heat():
@@ -167,16 +167,18 @@ def test_real_tensor_heat():
     rhs = example_rhs(heat_eq)
 
     # Now actually solve this beast!
-    sol, num_iters = heat_eq.solve(rhs)
-    error = np.linalg.norm(heat_eq.mat.apply(sol).to_array() - rhs.to_array())
-    print('MINRES solved in {} iterations with an error {}'.format(
-        num_iters, error))
+    for solver in ['minres', 'cg-schur']:
+        sol, num_iters = heat_eq.solve(rhs, method=solver)
+        error = np.linalg.norm(
+            heat_eq.mat.apply(sol).to_array() - rhs.to_array())
+        print('%s solved in {} iterations with an error {}'.format(
+            solver, num_iters, error))
 
-    # assert that minres converged.
-    assert error < 1e-4
+        # assert that solver converged.
+        assert error < 1e-4
 
-    # assert that the solution is not identically zero.
-    assert sum(abs(sol[1].to_array())) > 0
+        # assert that the solution is not identically zero.
+        assert sum(abs(sol[1].to_array())) > 0
 
     # Return heat_eq, sol for plotting purposes!
     return heat_eq, sol[1]
@@ -222,7 +224,8 @@ def test_heat_eq_linear():
 
 def test_heat_error_reduction(max_history_level=0,
                               max_level=6,
-                              save_results_file=None):
+                              save_results_file=None,
+                              solver='minres'):
     # Printing options.
     np.set_printoptions(precision=4)
     np.set_printoptions(linewidth=10000)
@@ -245,7 +248,7 @@ def test_heat_error_reduction(max_history_level=0,
     rates_quad = []
     residual_norm_histories = []
     residual_norms = []
-    minres_iters = []
+    solver_iters = []
     for level in range(2, max_level):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
@@ -265,7 +268,9 @@ def test_heat_error_reduction(max_history_level=0,
         else:
             callback = None
         # Now actually solve this beast!
-        sol, num_iters = heat_eq.solve(rhs, iter_callback=callback)
+        sol, num_iters = heat_eq.solve(rhs,
+                                       iter_callback=callback,
+                                       method=solver)
 
         # Count number of dofs (not on the boundary!)
         ndofs.append(
@@ -277,14 +282,14 @@ def test_heat_error_reduction(max_history_level=0,
         dims.append([len(heat_eq.Y_delta.bfs()), len(X_delta.bfs())])
         if level <= max_history_level:
             residual_norm_histories.append(residual_norm_history)
-        minres_iters.append(num_iters)
+        solver_iters.append(num_iters)
         residual_norm = np.linalg.norm(
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())
         residual_norms.append(residual_norm)
         time_per_dof.append(heat_eq.time_per_dof())
 
-        print('MINRES solved in {} iterations with a residual norm {}'.format(
-            num_iters, residual_norm))
+        print('%s solved in {} iterations with a residual norm {}'.format(
+            solver, num_iters, residual_norm))
         print('Time per dof is approximately {}'.format(
             heat_eq.time_per_dof()))
 
