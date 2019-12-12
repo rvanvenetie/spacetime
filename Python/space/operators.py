@@ -71,20 +71,17 @@ class Operator:
                 w[vi] = w[vi] - 0.5 * w[gp]
         return w
 
+    def apply_T_inverse_transpose(self, v):
+        """Applies the transposed single-to-hierarchical transformation. """
+        w = np.copy(v)
+        for (vi, T) in self.triang.history:
+            for gp in T.refinement_edge():
+                w[gp] = w[gp] - 0.5 * w[vi]
+        return w
+
     def as_sparse_matrix(self, cls=csr_matrix):
         """ Returns this operator as a sparse matrix. """
-        n = len(self.triang.vertices)
-        rows, cols, data = [], [], []
-        I = np.eye(n)
-
-        for col in range(n):
-            for row, val in enumerate(self.apply(I[:, col])):
-                if val != 0.0:
-                    rows.append(row)
-                    cols.append(col)
-                    data.append(val)
-
-        return cls((data, (rows, cols)), shape=(n, n), dtype=float)
+        raise NotImplementedError('This function is not implemented')
 
     def apply_boundary_restriction(self, v):
         """ Sets all boundary vertices to zero. """
@@ -111,15 +108,29 @@ class Operator:
 
 
 class MassOperator(Operator):
-    """ Mass operator.  """
+    """ Mass operator. """
+    def as_sparse_matrix(self, cls=csr_matrix):
+        element_mass = 1.0 / 12.0 * np.array([[2, 1, 1], [1, 2, 1], [1, 1, 2]])
+
+        n = len(self.triang.vertices)
+        rows, cols, data = [], [], []
+
+        for elem in self.triang.elements:
+            if not elem.is_leaf(): continue
+            Vids = elem.vertices_view_idx
+            for (row, col) in itertools.product(range(3), range(3)):
+                rows.append(Vids[row])
+                cols.append(Vids[col])
+                data.append(element_mass[row, col] * elem.area)
+
+        return cls((data, (rows, cols)), shape=(n, n), dtype=float)
+
     def apply_SS(self, v):
-        """ Applies the single-scale mass matrix.  """
+        """ Applies the single-scale mass matrix. """
         element_mass = 1.0 / 12.0 * np.array([[2, 1, 1], [1, 2, 1], [1, 1, 2]])
         w = np.zeros(v.shape)
         for elem in self.triang.elements:
-            if not elem.is_leaf():
-                continue
-
+            if not elem.is_leaf(): continue
             Vids = elem.vertices_view_idx
             for (i, j) in itertools.product(range(3), range(3)):
                 w[Vids[j]] += element_mass[i, j] * elem.area * v[Vids[i]]
@@ -128,6 +139,23 @@ class MassOperator(Operator):
 
 class StiffnessOperator(Operator):
     """ Stiffness operator. """
+    def as_sparse_matrix(self, cls=csr_matrix):
+        n = len(self.triang.vertices)
+        rows, cols, data = [], [], []
+
+        for elem in self.triang.elements:
+            if not elem.is_leaf(): continue
+            Vids = elem.vertices_view_idx
+            V = elem.node.vertex_array()
+            D = np.array([V[2] - V[1], V[0] - V[2], V[1] - V[0]]).T
+            element_stiff = (D.T @ D) / (4 * elem.area)
+            for (row, col) in itertools.product(range(3), range(3)):
+                rows.append(Vids[row])
+                cols.append(Vids[col])
+                data.append(element_stiff[row, col])
+
+        return cls((data, (rows, cols)), shape=(n, n), dtype=float)
+
     def apply_SS(self, v):
         """ Applies the single-scale stiffness matrix. """
         w = np.zeros(v.shape)
@@ -150,7 +178,29 @@ class DirectInverseOperator(Operator):
         super().__init__(forward_operator.triang,
                          forward_operator.dirichlet_boundary)
 
-    def apply(self, v):
+    def apply_HB(self, v):
+        """ Application of the operator the hierarchical basis.
+
+        Args:
+           v: a `np.array` of length len(self.triang.vertices).
+
+        Returns:
+            w: a `np.array` of length len(self.triang.vertices).
+        """
+        assert len(v) == len(self.triang.vertices)
+        if self.dirichlet_boundary:
+            v = self.apply_boundary_restriction(v)
+
+        v = self.apply_T_inverse_transpose(v)
+        v = self.apply_SS(v)
+        v = self.apply_T_inverse(v)
+
+        if self.dirichlet_boundary:
+            v = self.apply_boundary_restriction(v)
+
+        return v
+
+    def apply_SS(self, v):
         mat = self.operator_cls(self.triang,
                                 self.dirichlet_boundary).as_sparse_matrix()
         # If we have dirichlet BC, the matrix is singular, so we have to take

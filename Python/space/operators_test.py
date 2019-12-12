@@ -23,37 +23,36 @@ def test_transformation():
     vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
     vertex_view.deep_refine()
     T_view = TriangulationView(vertex_view)
-    operators = Operator(T_view)
+    op = Operator(T_view)
     v = np.array([0, 0, 0, 1, 0, 0, 0, 0], dtype=float)
     w = np.array([0, 0, 0, 1, 0.5, 0.5, 0.5, 0.75], dtype=float)
-    w2 = operators.apply_T(v)
+    w2 = op.apply_T(v)
     assert norm(w - w2) < 1e-10
 
     v = np.array([0, 0, 0, 0, 0, 0, 0, 1], dtype=float)
     w = np.array([0, 0, 0.25, 0.75, 0.5, 0, 0, 1], dtype=float)
-    w2 = operators.apply_T_transpose(v)
+    w2 = op.apply_T_transpose(v)
     assert norm(w - w2) < 1e-10
 
     for _ in range(10):
         v = np.random.rand(8)
         z = np.random.rand(8)
         # Test that <applyT(v), z> = <v, applyT_transpose(z)>.
-        assert norm(
-            np.inner(v, operators.apply_T_transpose(z)) -
-            np.inner(operators.apply_T(v), z)) < 1e-10
-        assert norm(v -
-                    operators.apply_T(operators.apply_T_inverse(v))) < 1e-10
-        assert norm(v -
-                    operators.apply_T_inverse(operators.apply_T(v))) < 1e-10
-
-        # Test that T_inverse(T) == Id
-        assert np.allclose(operators.apply_T_inverse(operators.apply_T(v)), v)
+        assert np.allclose(np.inner(v, op.apply_T_transpose(z)),
+                           np.inner(op.apply_T(v), z))
+        # Test that T^-1 T v == v.
+        assert np.allclose(v, op.apply_T(op.apply_T_inverse(v)))
+        assert np.allclose(v, op.apply_T_inverse(op.apply_T(v)))
+        # Test that T^-T T^T v == v.
+        assert np.allclose(
+            v, op.apply_T_transpose(op.apply_T_inverse_transpose(v)))
+        assert np.allclose(
+            v, op.apply_T_inverse_transpose(op.apply_T_transpose(v)))
 
         # Test that T is a linear operator.
         alpha = np.random.rand()
-        assert norm(
-            operators.apply_T(v + alpha * z) -
-            (operators.apply_T(v) + alpha * operators.apply_T(z))) < 1e-10
+        assert np.allclose(op.apply_T(v + alpha * z),
+                           (op.apply_T(v) + alpha * op.apply_T(z)))
 
 
 def test_as_sparse_matrix():
@@ -73,7 +72,7 @@ def test_as_sparse_matrix():
             mat = op.as_sparse_matrix()
             for _ in range(100):
                 v = np.random.rand(len(vertex_view.bfs()))
-                assert np.allclose(mat.dot(v), op.apply(v))
+                assert np.allclose(mat.dot(v), op.apply_SS(v))
 
 
 def test_direct_inverse():
@@ -96,11 +95,10 @@ def test_direct_inverse():
         inv_op = DirectInverseOperator(forward_op)
         for _ in range(100):
             v = np.random.rand(len(vertex_view.bfs()))
-            assert np.allclose(inv_op.apply(v),
-                               inv_op.apply(forward_op.apply(inv_op.apply(v))))
-            assert np.allclose(
-                forward_op.apply(v),
-                forward_op.apply(inv_op.apply(forward_op.apply(v))))
+            if dirichlet_boundary:
+                v = forward_op.apply_boundary_restriction(v)
+            assert np.allclose(v, forward_op.apply(inv_op.apply(v)))
+            assert np.allclose(v, inv_op.apply(forward_op.apply(v)))
 
 
 def test_galerkin(plot=False):
