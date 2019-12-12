@@ -1,5 +1,4 @@
 from scipy.sparse.linalg import LinearOperator
-import numpy as np
 
 
 def KroneckerLinearOperator(R1, R2):
