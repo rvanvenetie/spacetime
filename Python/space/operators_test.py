@@ -55,8 +55,8 @@ def test_transformation():
                            (op.apply_T(v) + alpha * op.apply_T(z)))
 
 
-def test_as_sparse_matrix():
-    """ Tests the `as_sparse_matrix` method. """
+def test_SS_as_matrix():
+    """ Tests the `SS_as_matrix` method. """
     # Setup the triangulation
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.bfs()[0].refine()
@@ -69,14 +69,14 @@ def test_as_sparse_matrix():
     for op_cls in [MassOperator, StiffnessOperator]:
         for dirichlet_boundary in [False, True]:
             op = op_cls(T_view, dirichlet_boundary=dirichlet_boundary)
-            mat = op.as_sparse_matrix()
+            mat = op.SS_as_matrix()
             for _ in range(100):
                 v = np.random.rand(len(vertex_view.bfs()))
                 assert np.allclose(mat.dot(v), op.apply_SS(v))
 
 
 def test_direct_inverse():
-    """ Tests the DirectInverseOperator class. """
+    """ Tests the `DirectInverseOperator` class. """
     # Setup the triangulation
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.bfs()[0].refine()
@@ -90,7 +90,6 @@ def test_direct_inverse():
     for op_cls, dirichlet_boundary in [(MassOperator, True),
                                        (MassOperator, False),
                                        (StiffnessOperator, True)]:
-        print(op_cls, dirichlet_boundary)
         forward_op = op_cls(T_view, dirichlet_boundary=dirichlet_boundary)
         inv_op = DirectInverseOperator(forward_op)
         for _ in range(100):
@@ -144,7 +143,7 @@ def test_galerkin(plot=False):
 
     rhs = mass_op.apply_boundary_restriction(rhs)
     stiff_op = StiffnessOperator(T_view)
-    stiff_op_scipy = stiff_op.as_boundary_restricted_linear_operator()
+    stiff_op_scipy = stiff_op.as_linear_operator()
     sol_HB, _ = cg(stiff_op_scipy, rhs, atol=0, tol=1e-8)
     sol_SS = stiff_op.apply_T(sol_HB)
 

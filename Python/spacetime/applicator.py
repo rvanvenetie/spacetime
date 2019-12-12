@@ -177,8 +177,14 @@ class TimeIdentityApplicator(ApplicatorInterface):
         self.vec_out.reset()
 
         for psi_in_lambda in self.Lambda_out.project(0).bfs():
-            fiber_in = vec_in.fiber(1, psi_in_lambda)
-            fiber_out = self.vec_out.fiber(1, psi_out_lambda)
+            fiber_in = vec.fiber(1, psi_in_lambda)
+            fiber_out = self.vec_out.fiber(1, psi_in_lambda)
             self.applicator_space.apply(fiber_in, fiber_out)
 
         return self.vec_out
+
+    def transpose(self):
+        """ Transposes this spacetime bilinear formulation. """
+        return TimeIdentityApplicator(
+            Lambda=self.Lambda,
+            applicator_space=self.applicator_space.transpose())

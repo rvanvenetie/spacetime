@@ -79,7 +79,7 @@ class Operator:
                 w[gp] = w[gp] - 0.5 * w[vi]
         return w
 
-    def as_sparse_matrix(self, cls=csr_matrix):
+    def SS_as_matrix(self, cls=csr_matrix):
         """ Returns this operator as a sparse matrix. """
         raise NotImplementedError('This function is not implemented')
 
@@ -98,18 +98,10 @@ class Operator:
                                      len(self.triang.vertices)),
                               matvec=lambda vec: self.apply(vec))
 
-    def as_boundary_restricted_linear_operator(self):
-        """ Recasts the application of a method as a scipy LinearOperator. """
-        return LinearOperator(dtype=float,
-                              shape=(len(self.triang.vertices),
-                                     len(self.triang.vertices)),
-                              matvec=lambda vec: self.
-                              apply_boundary_restriction(self.apply(vec)))
-
 
 class MassOperator(Operator):
     """ Mass operator. """
-    def as_sparse_matrix(self, cls=csr_matrix):
+    def SS_as_matrix(self, cls=csr_matrix):
         element_mass = 1.0 / 12.0 * np.array([[2, 1, 1], [1, 2, 1], [1, 1, 2]])
 
         n = len(self.triang.vertices)
@@ -139,7 +131,7 @@ class MassOperator(Operator):
 
 class StiffnessOperator(Operator):
     """ Stiffness operator. """
-    def as_sparse_matrix(self, cls=csr_matrix):
+    def SS_as_matrix(self, cls=csr_matrix):
         n = len(self.triang.vertices)
         rows, cols, data = [], [], []
 
@@ -202,7 +194,7 @@ class DirectInverseOperator(Operator):
 
     def apply_SS(self, v):
         mat = self.operator_cls(self.triang,
-                                self.dirichlet_boundary).as_sparse_matrix()
+                                self.dirichlet_boundary).SS_as_matrix()
         # If we have dirichlet BC, the matrix is singular, so we have to take
         # a submatrix if we want to apply spsolve.
         if self.dirichlet_boundary:
