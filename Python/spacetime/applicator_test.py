@@ -590,7 +590,7 @@ def test_applicator_time_identity():
     Lambda.uniform_refine(5)
 
     applicator = BlockDiagonalApplicator(Lambda, applicator_space)
-    matrix = KroneckerLinearOperator(sp.eye(len(basis.metaroot_wavelet.bfs())),
+    matrix = KroneckerLinearOperator(sp.eye(len(Lambda.project(0).bfs())),
                                      mass.as_linear_operator())
     # Test and apply 10 random vectors.
     for _ in range(10):
