@@ -158,7 +158,6 @@ class BlockApplicator(ApplicatorInterface):
         Arguments:
             vec: (vec_0, vec_1) a block-vector on Z_0 x Z_1.
         """
-        print(vec)
         assert isinstance(vec, BlockTreeVector)
         out_0 = self.applicators[0][0].apply(vec[0])
         out_0 += self.applicators[0][1].apply(vec[1])

@@ -140,7 +140,6 @@ def test_sparse_tensor_heat():
         assert np.allclose(tree_matvec.to_array(), array_matvec)
 
         # Now actually solve this beast!
-        print("solver", solver)
         sol, num_iters = heat_eq.solve(rhs)
         # Check the error..
         res_tree = heat_eq.mat.apply(sol)
