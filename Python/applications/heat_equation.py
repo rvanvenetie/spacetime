@@ -162,12 +162,12 @@ class HeatEquation:
             result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
             u = self.X_delta.deep_copy(
                 mlt_tree_cls=DoubleTreeFunction).from_array(cg_result)
-            labda = self.P_Y.apply(rhs[0]).axpy(self.B.apply(u), -1.0)
-            result_fn = BlockTreeVector((u, labda))
+            labda = self.P_Y.apply(rhs[0].axpy(self.B.apply(u), -1.0))
+            result_fn = BlockTreeVector((labda, u))
         elif method == "pcg-schur":
             pass
         else:
-            raise NotImplementedError("Inrecognized method '%s'" % method)
+            raise NotImplementedError("Unrecognized method '%s'" % method)
         print(end='\n')
         assert info == 0
         return result_fn, num_iters
