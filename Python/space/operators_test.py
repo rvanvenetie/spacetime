@@ -79,8 +79,8 @@ def test_direct_inverse():
     for op_cls, dirichlet_boundary in [(MassOperator, True),
                                        (MassOperator, False),
                                        (StiffnessOperator, True)]:
-        forward_op = op_cls(T_view, dirichlet_boundary=dirichlet_boundary)
-        inv_op = DirectInverseOperator(forward_op)
+        forward_op = op_cls(T_view, dirichlet_boundary)
+        inv_op = DirectInverseOperator(op_cls, T_view, dirichlet_boundary)
         for _ in range(10):
             v = np.random.rand(len(vertex_view.bfs()))
             # Test that T^-1 T v == v.
