@@ -128,7 +128,7 @@ def test_sparse_tensor_heat():
     X_delta.sparse_refine(2)
 
     # Create heat equation object.
-    for solver in ['cg-schur', 'minres']:
+    for solver in ['minres', 'cg-schur']:
         heat_eq = HeatEquation(X_delta=X_delta, solver=solver)
         rhs = random_rhs(heat_eq)
 
@@ -141,7 +141,7 @@ def test_sparse_tensor_heat():
 
         # Now actually solve this beast!
         print("solver", solver)
-        sol, num_iters = heat_eq.solve(rhs, method=solver)
+        sol, num_iters = heat_eq.solve(rhs)
         # Check the error..
         res_tree = heat_eq.mat.apply(sol)
         res_tree -= rhs
@@ -180,10 +180,11 @@ def test_real_tensor_heat():
         assert error < 1e-4
 
         # assert that the solution is not identically zero.
-        assert sum(abs(sol[1].to_array())) > 0
+        u_sol = sol[1] if solver == 'minres' else sol
+        assert sum(abs(sol.to_array())) > 0
 
     # Return heat_eq, sol for plotting purposes!
-    return heat_eq, sol[1]
+    return heat_eq, u_sol
 
 
 def test_heat_eq_linear():
@@ -335,7 +336,7 @@ def test_heat_error_reduction(max_history_level=0,
                 "time_per_dof": time_per_dof,
                 "residual_norm_histories": residual_norm_histories,
                 "residual_norms": residual_norms,
-                "minres_iters": minres_iters,
+                "solver_iters": solver_iters,
                 "errors": errors_quad,
                 "rates": rates_quad
             }

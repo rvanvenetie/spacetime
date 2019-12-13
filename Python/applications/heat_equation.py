@@ -1,4 +1,3 @@
-import numpy as np
 import scipy.sparse.linalg as spla
 
 from ..datastructures.applicator import (BlockApplicator,
@@ -80,9 +79,7 @@ class HeatEquation:
                                         [self.BT, -self.m_gamma]])
 
             # Also turn this block applicator into a linear operator.
-            self.linop = LinearOperatorApplicator(
-                applicator=self.mat, input_vec=self.create_vector())
-        if solver == 'cg-schur':
+        elif solver == 'cg-schur':
             self.P_Y = BlockDiagonalApplicator(
                 Y_delta,
                 applicator_space=applicator_space(
@@ -90,8 +87,10 @@ class HeatEquation:
                     forward_cls=s_operators.StiffnessOperator))
             self.mat = CompositeApplicator([self.B, self.P_Y, self.BT
                                             ]) + self.m_gamma
-            self.linop = LinearOperatorApplicator(
-                applicator=self.mat, input_vec=self.create_vector())
+        else:
+            raise NotImplementedError("Unknown method " % solver)
+        self.linop = LinearOperatorApplicator(applicator=self.mat,
+                                              input_vec=self.create_vector())
 
     @staticmethod
     def enforce_dirichlet_boundary(vector):
@@ -165,15 +164,14 @@ class HeatEquation:
             solver = spla.minres
         elif self.solver == "cg-schur":
             solver = spla.cg
-        #elif self.solver == "pcg-schur":
-        #    pass
         else:
-            raise NotImplementedError("Unrecognized method '%s'" % method)
+            raise NotImplementedError("Unrecognized method '%s'" % self.solver)
         result_array, info = solver(self.linop,
                                     b=rhs.to_array(),
                                     callback=call_iterations)
-        result_fn = self.create_vector(
-            mlt_tree_cls=DoubleTreeFunction).from_array(result_array)
+        result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
+        result_fn.from_array(result_array)
+        print('in solve', result_fn)
         print(end='\n')
         assert info == 0
         return result_fn, num_iters
