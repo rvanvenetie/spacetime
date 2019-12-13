@@ -101,12 +101,12 @@ class HeatEquation:
         if not isinstance(call_postprocess, tuple):
             call_postprocess = (call_postprocess, call_postprocess)
 
-        result = BlockTreeVector([
+        result = BlockTreeVector((
             self.Y_delta.deep_copy(mlt_tree_cls=mlt_tree_cls,
                                    call_postprocess=call_postprocess[0]),
             self.X_delta.deep_copy(mlt_tree_cls=mlt_tree_cls,
                                    call_postprocess=call_postprocess[1]),
-        ])
+        ))
         if self.dirichlet_boundary:
             self.enforce_dirichlet_boundary(result)
         return result
@@ -160,9 +160,10 @@ class HeatEquation:
                                       b=cg_rhs,
                                       callback=call_iterations)
             result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
-            result_fn[1].from_array(cg_result)
-            result_fn[0] = self.P_Y.apply(rhs[0]).axpy(
-                self.B.apply(result_fn[1]), -1.0)
+            u = self.X_delta.deep_copy(
+                mlt_tree_cls=DoubleTreeFunction).from_array(cg_result)
+            labda = self.P_Y.apply(rhs[0]).axpy(self.B.apply(u), -1.0)
+            result_fn = BlockTreeVector((u, labda))
         elif method == "pcg-schur":
             pass
         else:
