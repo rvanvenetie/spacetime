@@ -1,3 +1,4 @@
+import numpy as np
 import scipy.sparse.linalg as spla
 
 from ..datastructures.applicator import (BlockApplicator,
@@ -18,13 +19,18 @@ from ..time.three_point_basis import ThreePointBasis
 
 class HeatEquation:
     """ Simple solution class. """
-    def __init__(self, X_delta, Y_delta=None, dirichlet_boundary=True):
+    def __init__(self,
+                 X_delta,
+                 Y_delta=None,
+                 dirichlet_boundary=True,
+                 solver='minres'):
         if Y_delta is None:
             Y_delta = generate_y_delta(X_delta)
 
         self.X_delta = X_delta
         self.Y_delta = Y_delta
         self.dirichlet_boundary = dirichlet_boundary
+        self.solver = solver
 
         print('HeatEquation with #(Y_delta, X_delta)=({}, {})'.format(
             len(Y_delta.bfs()), len(X_delta.bfs())))
@@ -39,10 +45,10 @@ class HeatEquation:
                                            basis_in=basis_in,
                                            basis_out=basis_out)
 
-        def applicator_space(operator):
+        def applicator_space(operator, **kwargs):
             """ Helper function to generate a space applicator. """
             return s_applicator.Applicator(
-                operator(dirichlet_boundary=dirichlet_boundary))
+                operator(dirichlet_boundary=dirichlet_boundary, **kwargs))
 
         self.A_s = Applicator(
             Lambda_in=Y_delta,
@@ -69,24 +75,23 @@ class HeatEquation:
             applicator_time=applicator_time(t_operators.trace, time_basis_X),
             applicator_space=applicator_space(s_operators.MassOperator))
 
-        self.mat = BlockApplicator([[self.A_s, self.B],
-                                    [self.BT, -self.m_gamma]])
+        if solver == 'minres':
+            self.mat = BlockApplicator([[self.A_s, self.B],
+                                        [self.BT, -self.m_gamma]])
 
-        # Also turn this block applicator into a linear operator.
-        vec = self.create_vector()
-        self.linop = LinearOperatorApplicator(applicator=self.mat,
-                                              input_vec=vec)
-
-        self.P_Y = BlockDiagonalApplicator(
-            Y_delta,
-            s_applicator.Applicator(
-                s_operators.DirectInverseOperator(
-                    s_operators.StiffnessOperator(
-                        dirichlet_boundary=dirichlet_boundary))))
-        self.schur_linop = LinearOperatorApplicator(
-            applicator=CompositeApplicator([self.B, self.P_Y, self.BT]) +
-            self.m_gamma,
-            input_vec=vec[1])
+            # Also turn this block applicator into a linear operator.
+            self.linop = LinearOperatorApplicator(
+                applicator=self.mat, input_vec=self.create_vector())
+        if solver == 'cg-schur':
+            self.P_Y = BlockDiagonalApplicator(
+                Y_delta,
+                applicator_space=applicator_space(
+                    s_operators.DirectInverseOperator,
+                    forward_cls=s_operators.StiffnessOperator))
+            self.mat = CompositeApplicator([self.B, self.P_Y, self.BT
+                                            ]) + self.m_gamma
+            self.linop = LinearOperatorApplicator(
+                applicator=self.mat, input_vec=self.create_vector())
 
     @staticmethod
     def enforce_dirichlet_boundary(vector):
@@ -97,16 +102,20 @@ class HeatEquation:
 
     def create_vector(self,
                       call_postprocess=None,
-                      mlt_tree_cls=DoubleTreeVector):
-        if not isinstance(call_postprocess, tuple):
-            call_postprocess = (call_postprocess, call_postprocess)
-
-        result = BlockTreeVector((
-            self.Y_delta.deep_copy(mlt_tree_cls=mlt_tree_cls,
-                                   call_postprocess=call_postprocess[0]),
-            self.X_delta.deep_copy(mlt_tree_cls=mlt_tree_cls,
-                                   call_postprocess=call_postprocess[1]),
-        ))
+                      mlt_tree_cls=DoubleTreeVector,
+                      both_spaces=False):
+        if self.solver == 'minres' or both_spaces:
+            if not isinstance(call_postprocess, tuple):
+                call_postprocess = (call_postprocess, call_postprocess)
+            result = BlockTreeVector(
+                (self.Y_delta.deep_copy(mlt_tree_cls=mlt_tree_cls,
+                                        call_postprocess=call_postprocess[0]),
+                 self.X_delta.deep_copy(mlt_tree_cls=mlt_tree_cls,
+                                        call_postprocess=call_postprocess[1])))
+        else:
+            assert not isinstance(call_postprocess, tuple)
+            result = self.X_delta.deep_copy(mlt_tree_cls=mlt_tree_cls,
+                                            call_postprocess=call_postprocess)
         if self.dirichlet_boundary:
             self.enforce_dirichlet_boundary(result)
         return result
@@ -136,9 +145,14 @@ class HeatEquation:
             nv.value = -nv.nodes[0].eval(0) * nv.nodes[1].inner_quad(
                 u0, g_order=u0_order)
 
-        return self.create_vector((call_quad_g, call_quad_u0))
+        if self.solver == 'minres':
+            return self.create_vector((call_quad_g, call_quad_u0))
+        else:
+            rhs = self.create_vector((call_quad_g, call_quad_u0),
+                                     both_spaces=True)
+            return self.BT.apply(self.P_Y.apply(rhs[0])).axpy(rhs[1], -1.0)
 
-    def solve(self, rhs, iter_callback=None, method="cg-schur"):
+    def solve(self, rhs, iter_callback=None):
         num_iters = 0
 
         def call_iterations(vec):
@@ -147,27 +161,19 @@ class HeatEquation:
             print(".", end='', flush=True)
             num_iters += 1
 
-        if method == "minres":
-            result_array, info = spla.minres(self.linop,
-                                             b=rhs.to_array(),
-                                             callback=call_iterations)
-            result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
-            result_fn.from_array(result_array)
-        elif method == "cg-schur":
-            cg_rhs = self.BT.apply(self.P_Y.apply(rhs[0])).axpy(
-                rhs[1], -1.0).to_array()
-            cg_result, info = spla.cg(self.schur_linop,
-                                      b=cg_rhs,
-                                      callback=call_iterations)
-            result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
-            u = self.X_delta.deep_copy(
-                mlt_tree_cls=DoubleTreeFunction).from_array(cg_result)
-            labda = self.P_Y.apply(rhs[0].axpy(self.B.apply(u), -1.0))
-            result_fn = BlockTreeVector((labda, u))
-        elif method == "pcg-schur":
-            pass
+        if self.solver == "minres":
+            solver = spla.minres
+        elif self.solver == "cg-schur":
+            solver = spla.cg
+        #elif self.solver == "pcg-schur":
+        #    pass
         else:
             raise NotImplementedError("Unrecognized method '%s'" % method)
+        result_array, info = solver(self.linop,
+                                    b=rhs.to_array(),
+                                    callback=call_iterations)
+        result_fn = self.create_vector(
+            mlt_tree_cls=DoubleTreeFunction).from_array(result_array)
         print(end='\n')
         assert info == 0
         return result_fn, num_iters

@@ -155,10 +155,9 @@ class StiffnessOperator(Operator):
 
 class DirectInverseOperator(Operator):
     """ Represents the inverse of the given operator. """
-    def __init__(self, forward_operator):
-        super().__init__(forward_operator.triang,
-                         forward_operator.dirichlet_boundary)
-        self.operator_cls = forward_operator.__class__
+    def __init__(self, forward_cls, triang=None, dirichlet_boundary=True):
+        super().__init__(triang, dirichlet_boundary)
+        self.forward_cls = forward_cls
 
     def apply_T_inverse(self, v):
         """Applies the single-scale-to-hierarchical transformation. """
@@ -199,8 +198,8 @@ class DirectInverseOperator(Operator):
         return v
 
     def apply_SS(self, v):
-        mat = self.operator_cls(self.triang,
-                                self.dirichlet_boundary).as_SS_matrix()
+        mat = self.forward_cls(self.triang,
+                               self.dirichlet_boundary).as_SS_matrix()
         # If we have dirichlet BC, the matrix is singular, so we have to take
         # a submatrix if we want to apply spsolve.
         if self.dirichlet_boundary:
