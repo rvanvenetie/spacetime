@@ -194,6 +194,23 @@ class Preconditioner(Operator):
         return v
 
 
+class StiffPlusScaledMassOperator(Operator):
+    def __init__(self, triang=None, dirichlet_boundary=True, labda=None):
+        super().__init__(triang, dirichlet_boundary)
+        self.labda = labda
+        self.stiff = StiffnessOperator(triang, dirichlet_boundary)
+        self.mass = MassOperator(triang, dirichlet_boundary)
+
+    def as_SS_matrix(self, labda):
+        return self.stiff.as_SS_matrix(
+        ) + 2**labda.level * self.mass.as_SS_matrix()
+
+    def apply_SS(self, v, labda):
+        self.stiff.triang = self.triang
+        self.mass.triang = self.triang
+        return self.stiff.apply_SS(v) + 2**labda.level * self.mass.apply_SS(v)
+
+
 class DirectInverse(Preconditioner):
     def __init__(self, forward_cls, triang=None, dirichlet_boundary=True):
         super().__init__(triang, dirichlet_boundary)
@@ -214,23 +231,6 @@ class DirectInverse(Preconditioner):
             return res
         else:
             return spsolve(mat, v)
-
-
-class StiffPlusScaledMassOperator(Operator):
-    def __init__(self, triang=None, dirichlet_boundary=True, labda=None):
-        super().__init__(triang, dirichlet_boundary)
-        self.labda = labda
-        self.stiff = StiffnessOperator(triang, dirichlet_boundary)
-        self.mass = MassOperator(triang, dirichlet_boundary)
-
-    def as_SS_matrix(self, labda):
-        return self.stiff.as_SS_matrix(
-        ) + 2**labda.level * self.mass.as_SS_matrix()
-
-    def apply_SS(self, v, labda):
-        self.stiff.triang = self.triang
-        self.mass.triang = self.triang
-        return self.stiff.apply_SS(v) + 2**labda.level * self.mass.apply_SS(v)
 
 
 class XPreconditioner(Preconditioner):

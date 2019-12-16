@@ -66,9 +66,9 @@ class SumApplicator(ApplicatorInterface):
         self.applicator_a = applicator_a
         self.applicator_b = applicator_b
 
-    def apply(self, vec_in):
-        result = self.applicator_a.apply(vec_in)
-        result += self.applicator_b.apply(vec_in)
+    def apply(self, *args):
+        result = self.applicator_a.apply(*args)
+        result += self.applicator_b.apply(*args)
         return result
 
     def transpose(self):
@@ -110,11 +110,11 @@ class CompositeApplicator(ApplicatorInterface):
                          Lambda_out=applicators[-1].Lambda_out)
         self.applicators = applicators
 
-    def apply(self, vec_in, vec_out=None, **kwargs):
+    def apply(self, vec_in, **kwargs):
         prev_vec = vec_in
-        for i, applicator in enumerate(self.applicators[:-1]):
+        for i, applicator in enumerate(self.applicators):
             prev_vec = applicator.apply(vec_in=prev_vec, **kwargs)
-        return self.applicators[-1].apply(vec_in=prev_vec, **kwargs)
+        return prev_vec
 
     def transpose(self):
         return CompositeApplicator(
