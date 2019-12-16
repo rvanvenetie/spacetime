@@ -5,7 +5,6 @@ import numpy as np
 import scipy
 import scipy.sparse.linalg
 
-from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..datastructures.multi_tree_vector import BlockTreeVector
 
 
