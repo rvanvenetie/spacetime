@@ -77,7 +77,7 @@ class HeatEquation:
         if solver == 'minres':
             self.mat = BlockApplicator([[self.A_s, self.B],
                                         [self.BT, -self.m_gamma]])
-        elif 'cg-schur' in solver:
+        elif solver in ['cg-schur', 'pcg-schur']:
             self.P_Y = BlockDiagonalApplicator(
                 Y_delta,
                 applicator_space=applicator_space(
@@ -85,13 +85,13 @@ class HeatEquation:
                     forward_cls=s_operators.StiffnessOperator))
             self.mat = CompositeApplicator([self.B, self.P_Y, self.BT
                                             ]) + self.m_gamma
+            if solver == 'pcg-schur':
+                self.P_X = BlockDiagonalApplicator(
+                    X_delta,
+                    applicator_space=applicator_space(
+                        s_operators.DirectInverseXPreconditioner))
         else:
             raise NotImplementedError("Unknown method " % solver)
-        if solver == 'pcg-schur':
-            self.P_X = BlockDiagonalApplicator(
-                X_delta,
-                applicator_space=applicator_space(
-                    s_operators.DirectInverseXPreconditioner))
         self.linop = LinearOperatorApplicator(applicator=self.mat,
                                               input_vec=self.create_vector())
 
