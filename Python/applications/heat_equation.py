@@ -81,7 +81,7 @@ class HeatEquation:
             self.P_Y = BlockDiagonalApplicator(
                 Y_delta,
                 applicator_space=applicator_space(
-                    s_operators.DirectInverseOperator,
+                    s_operators.DirectInverse,
                     forward_cls=s_operators.StiffnessOperator))
             self.mat = CompositeApplicator([self.B, self.P_Y, self.BT
                                             ]) + self.m_gamma
@@ -89,7 +89,8 @@ class HeatEquation:
                 self.P_X = BlockDiagonalApplicator(
                     X_delta,
                     applicator_space=applicator_space(
-                        s_operators.DirectInverseXPreconditioner))
+                        s_operators.XPreconditioner,
+                        precond_cls=s_operators.DirectInverse))
         else:
             raise NotImplementedError("Unknown method " % solver)
         self.linop = LinearOperatorApplicator(applicator=self.mat,

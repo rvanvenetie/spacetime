@@ -66,12 +66,9 @@ class SumApplicator(ApplicatorInterface):
         self.applicator_a = applicator_a
         self.applicator_b = applicator_b
 
-    def apply(self, vec_in, vec_out=None):
+    def apply(self, vec_in):
         result = self.applicator_a.apply(vec_in)
         result += self.applicator_b.apply(vec_in)
-        if vec_out is not None:
-            vec_out.reset()
-            vec_out += result
         return result
 
     def transpose(self):
@@ -107,24 +104,17 @@ class CompositeApplicator(ApplicatorInterface):
         First applicators[0] is applied, then applicators[1], etc.. """
         assert isinstance(applicators, (tuple, list))
         for i in range(len(applicators) - 1):
-            assert applicators[i].Lambda_out == applicators[i + 1].Lambda_in
+            assert applicators[i].Lambda_out is applicators[i + 1].Lambda_in
+        assert all(app.Lambda_out is not None for app in applicators)
         super().__init__(Lambda_in=applicators[0].Lambda_in,
                          Lambda_out=applicators[-1].Lambda_out)
         self.applicators = applicators
-        assert all(app.Lambda_out is not None for app in self.applicators)
-        self.vecs = [
-            app.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
-            for app in applicators[:-1]
-        ]
 
     def apply(self, vec_in, vec_out=None, **kwargs):
         prev_vec = vec_in
         for i, applicator in enumerate(self.applicators[:-1]):
-            applicator.apply(vec_in=prev_vec, vec_out=self.vecs[i], **kwargs)
-            prev_vec = self.vecs[i]
-        return self.applicators[-1].apply(vec_in=prev_vec,
-                                          vec_out=vec_out,
-                                          **kwargs)
+            prev_vec = applicator.apply(vec_in=prev_vec, **kwargs)
+        return self.applicators[-1].apply(vec_in=prev_vec, **kwargs)
 
     def transpose(self):
         return CompositeApplicator(
@@ -164,12 +154,11 @@ class BlockApplicator(ApplicatorInterface):
 
         return tuple(result)
 
-    def apply(self, vec_in, vec_out=None):
+    def apply(self, vec_in):
         """ Applies this block-bilinear form the given input vectors.
 
         Arguments:
             vec_in: (vec_0, vec_1) a block-vector on Z_0 x Z_1.
-            vec_out: a block-vector on Z_0 x Z_1.
         """
         assert isinstance(vec_in, BlockTreeVector)
         out_0 = self.applicators[0][0].apply(vec_in[0])
@@ -177,12 +166,6 @@ class BlockApplicator(ApplicatorInterface):
 
         out_1 = self.applicators[1][0].apply(vec_in[0])
         out_1 += self.applicators[1][1].apply(vec_in[1])
-
-        if vec_out is not None:
-            vec_out[0].reset()
-            vec_out[0] += out_0
-            vec_out[1].reset()
-            vec_out[1] += out_1
 
         return BlockTreeVector([out_0, out_1])
 

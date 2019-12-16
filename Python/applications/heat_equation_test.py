@@ -360,7 +360,7 @@ def test_heat_error_reduction(max_history_level=0,
 
 
 if __name__ == "__main__":
-    test_heat_error_reduction(max_history_level=6,
-                              max_level=6,
+    test_heat_error_reduction(max_history_level=12,
+                              max_level=12,
                               save_results_file=None,
-                              solver='cg-schur')
+                              solver='pcg-schur')
