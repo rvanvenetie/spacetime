@@ -77,9 +77,7 @@ class HeatEquation:
         if solver == 'minres':
             self.mat = BlockApplicator([[self.A_s, self.B],
                                         [self.BT, -self.m_gamma]])
-
-            # Also turn this block applicator into a linear operator.
-        elif solver == 'cg-schur':
+        elif 'cg-schur' in solver:
             self.P_Y = BlockDiagonalApplicator(
                 Y_delta,
                 applicator_space=applicator_space(
@@ -89,6 +87,11 @@ class HeatEquation:
                                             ]) + self.m_gamma
         else:
             raise NotImplementedError("Unknown method " % solver)
+        if solver == 'pcg-schur':
+            self.P_X = BlockDiagonalApplicator(
+                X_delta,
+                applicator_space=applicator_space(
+                    s_operators.DirectInverseXPreconditioner))
         self.linop = LinearOperatorApplicator(applicator=self.mat,
                                               input_vec=self.create_vector())
 
@@ -164,6 +167,13 @@ class HeatEquation:
             solver = spla.minres
         elif self.solver == "cg-schur":
             solver = spla.cg
+        elif self.solver == "pcg-schur":
+            solver = lambda S, b, callback: spla.cg(
+                S,
+                b=b,
+                M=LinearOperatorApplicator(applicator=self.P_X,
+                                           input_vec=self.create_vector()),
+                callback=callback)
         else:
             raise NotImplementedError("Unrecognized method '%s'" % self.solver)
         result_array, info = solver(self.linop,

@@ -5,6 +5,7 @@ import numpy as np
 import scipy
 import scipy.sparse.linalg
 
+from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..datastructures.multi_tree_vector import BlockTreeVector
 
 
@@ -65,9 +66,12 @@ class SumApplicator(ApplicatorInterface):
         self.applicator_a = applicator_a
         self.applicator_b = applicator_b
 
-    def apply(self, *args):
-        result = self.applicator_a.apply(*args)
-        result += self.applicator_b.apply(*args)
+    def apply(self, vec_in, vec_out=None):
+        result = self.applicator_a.apply(vec_in)
+        result += self.applicator_b.apply(vec_in)
+        if vec_out is not None:
+            vec_out.reset()
+            vec_out += result
         return result
 
     def transpose(self):
@@ -107,12 +111,20 @@ class CompositeApplicator(ApplicatorInterface):
         super().__init__(Lambda_in=applicators[0].Lambda_in,
                          Lambda_out=applicators[-1].Lambda_out)
         self.applicators = applicators
+        assert all(app.Lambda_out is not None for app in self.applicators)
+        self.vecs = [
+            app.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
+            for app in applicators[:-1]
+        ]
 
-    def apply(self, v):
-        res = v
-        for applicator in self.applicators:
-            res = applicator.apply(res)
-        return res
+    def apply(self, vec_in, vec_out=None, **kwargs):
+        prev_vec = vec_in
+        for i, applicator in enumerate(self.applicators[:-1]):
+            applicator.apply(vec_in=prev_vec, vec_out=self.vecs[i], **kwargs)
+            prev_vec = self.vecs[i]
+        return self.applicators[-1].apply(vec_in=prev_vec,
+                                          vec_out=vec_out,
+                                          **kwargs)
 
     def transpose(self):
         return CompositeApplicator(
@@ -152,18 +164,25 @@ class BlockApplicator(ApplicatorInterface):
 
         return tuple(result)
 
-    def apply(self, vec):
+    def apply(self, vec_in, vec_out=None):
         """ Applies this block-bilinear form the given input vectors.
 
         Arguments:
-            vec: (vec_0, vec_1) a block-vector on Z_0 x Z_1.
+            vec_in: (vec_0, vec_1) a block-vector on Z_0 x Z_1.
+            vec_out: a block-vector on Z_0 x Z_1.
         """
-        assert isinstance(vec, BlockTreeVector)
-        out_0 = self.applicators[0][0].apply(vec[0])
-        out_0 += self.applicators[0][1].apply(vec[1])
+        assert isinstance(vec_in, BlockTreeVector)
+        out_0 = self.applicators[0][0].apply(vec_in[0])
+        out_0 += self.applicators[0][1].apply(vec_in[1])
 
-        out_1 = self.applicators[1][0].apply(vec[0])
-        out_1 += self.applicators[1][1].apply(vec[1])
+        out_1 = self.applicators[1][0].apply(vec_in[0])
+        out_1 += self.applicators[1][1].apply(vec_in[1])
+
+        if vec_out is not None:
+            vec_out[0].reset()
+            vec_out[0] += out_0
+            vec_out[1].reset()
+            vec_out[1] += out_1
 
         return BlockTreeVector([out_0, out_1])
 
