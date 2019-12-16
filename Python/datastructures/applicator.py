@@ -111,6 +111,8 @@ class CompositeApplicator(ApplicatorInterface):
         self.applicators = applicators
 
     def apply(self, vec_in, **kwargs):
+        assert 'vec_out' not in kwargs
+
         prev_vec = vec_in
         for i, applicator in enumerate(self.applicators):
             prev_vec = applicator.apply(vec_in=prev_vec, **kwargs)

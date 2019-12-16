@@ -168,21 +168,19 @@ class BlockDiagonalApplicator(ApplicatorInterface):
         super().__init__(Lambda_in=Lambda, Lambda_out=Lambda)
         self.Lambda_in.compute_fibers()
         self.applicator_space = applicator_space
+        self.vec_out = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
 
-    def apply(self, vec_in, vec_out=None):
-        if vec_out is None:
-            vec_out = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
-        else:
-            vec_out.reset()
+    def apply(self, vec_in):
+        self.vec_out.reset()
 
         for psi_in_lambda in self.Lambda_out.project(0).bfs():
             fiber_in = vec_in.fiber(1, psi_in_lambda)
-            fiber_out = vec_out.fiber(1, psi_in_lambda)
+            fiber_out = self.vec_out.fiber(1, psi_in_lambda)
             self.applicator_space.apply(vec_in=fiber_in,
                                         vec_out=fiber_out,
                                         labda=psi_in_lambda.node)
 
-        return vec_out
+        return self.vec_out
 
     def transpose(self):
         """ Transposes this spacetime bilinear formulation. """
