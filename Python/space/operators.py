@@ -195,9 +195,8 @@ class Preconditioner(Operator):
 
 
 class StiffPlusScaledMassOperator(Operator):
-    def __init__(self, triang=None, dirichlet_boundary=True, labda=None):
+    def __init__(self, triang=None, dirichlet_boundary=True):
         super().__init__(triang, dirichlet_boundary)
-        self.labda = labda
         self.stiff = StiffnessOperator(triang, dirichlet_boundary)
         self.mass = MassOperator(triang, dirichlet_boundary)
 

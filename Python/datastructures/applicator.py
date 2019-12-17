@@ -116,7 +116,6 @@ class CompositeApplicator(ApplicatorInterface):
 
         prev_vec = vec_in
         for i, applicator in enumerate(self.applicators):
-            print(applicator)
             prev_vec = applicator.apply(vec_in=prev_vec, **kwargs)
         return prev_vec
 
