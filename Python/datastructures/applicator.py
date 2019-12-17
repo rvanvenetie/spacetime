@@ -65,9 +65,10 @@ class SumApplicator(ApplicatorInterface):
         self.applicator_a = applicator_a
         self.applicator_b = applicator_b
 
-    def apply(self, *args):
-        result = self.applicator_a.apply(*args)
-        result += self.applicator_b.apply(*args)
+    def apply(self, vec_in, **kwargs):
+        assert 'vec_out' not in kwargs
+        result = self.applicator_a.apply(vec_in, **kwargs)
+        result += self.applicator_b.apply(vec_in, **kwargs)
         return result
 
     def transpose(self):
@@ -86,8 +87,9 @@ class ScalarApplicator(ApplicatorInterface):
         self.applicator = applicator
         self.scalar = scalar
 
-    def apply(self, *args):
-        result = self.applicator.apply(*args)
+    def apply(self, vec_in, **kwargs):
+        assert 'vec_out' not in kwargs
+        result = self.applicator.apply(vec_in, **kwargs)
         result *= self.scalar
         return result
 
@@ -114,6 +116,7 @@ class CompositeApplicator(ApplicatorInterface):
 
         prev_vec = vec_in
         for i, applicator in enumerate(self.applicators):
+            print(applicator)
             prev_vec = applicator.apply(vec_in=prev_vec, **kwargs)
         return prev_vec
 
