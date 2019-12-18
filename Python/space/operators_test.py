@@ -4,7 +4,7 @@ from scipy.sparse.linalg import cg
 
 from ..datastructures.tree_view import TreeView
 from .operators import (MassOperator, Operator, StiffnessOperator,
-                        DirectInverseOperator)
+                        DirectInverse)
 from .triangulation import InitialTriangulation, to_matplotlib_triangulation
 from .triangulation_view import TriangulationView
 
@@ -67,7 +67,7 @@ def test_as_SS_matrix():
 
 
 def test_direct_inverse():
-    """ Tests the `DirectInverseOperator` class. """
+    """ Tests the `DirectInverse` class. """
     # Setup the triangulation
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(3)
@@ -80,7 +80,7 @@ def test_direct_inverse():
                                        (MassOperator, False),
                                        (StiffnessOperator, True)]:
         forward_op = op_cls(T_view, dirichlet_boundary)
-        inv_op = DirectInverseOperator(op_cls, T_view, dirichlet_boundary)
+        inv_op = DirectInverse(op_cls, T_view, dirichlet_boundary)
         for _ in range(10):
             v = np.random.rand(len(vertex_view.bfs()))
             # Test that T^-1 T v == v.

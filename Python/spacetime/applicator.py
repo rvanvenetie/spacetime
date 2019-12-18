@@ -113,14 +113,11 @@ class Applicator(ApplicatorInterface):
         theta.compute_fibers()
         return theta
 
-    def apply(self, vec):
+    def apply(self, vec_in):
         """ Apply the tensor product applicator to the given vector. """
         # Assert that vec is defined on Lambda_in
         assert all(n1.nodes == n2.nodes
-                   for n1, n2 in zip(vec.bfs(), self.Lambda_in.bfs()))
-
-        # Shortcut for clarity.
-        vec_in = vec
+                   for n1, n2 in zip(vec_in.bfs(), self.Lambda_in.bfs()))
 
         # Empty the necessary vectors.
         self.vec_out_low.reset()
@@ -173,13 +170,15 @@ class BlockDiagonalApplicator(ApplicatorInterface):
         self.applicator_space = applicator_space
         self.vec_out = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
 
-    def apply(self, vec):
+    def apply(self, vec_in):
         self.vec_out.reset()
 
         for psi_in_lambda in self.Lambda_out.project(0).bfs():
-            fiber_in = vec.fiber(1, psi_in_lambda)
+            fiber_in = vec_in.fiber(1, psi_in_lambda)
             fiber_out = self.vec_out.fiber(1, psi_in_lambda)
-            self.applicator_space.apply(fiber_in, fiber_out)
+            self.applicator_space.apply(vec_in=fiber_in,
+                                        vec_out=fiber_out,
+                                        labda=psi_in_lambda.node)
 
         return self.vec_out
 
