@@ -45,7 +45,8 @@ class Functional:
     def _finalize(self, Lambda_out):
         """ Helper function to finalize the results.
 
-        This also copies the data from the single trees into vec_out. """
+        Returns:
+          A copy of the data from the single trees into a output vector."""
 
         if isinstance(Lambda_out, MultiscaleFunctions):
             vec_out = SparseVector(Lambda_out, np.zeros(len(Lambda_out)))
@@ -76,14 +77,8 @@ class Functional:
 
         Arguments:
             l: the current level
-            Pi_in: a collection of singlescale indices on level l-1.
             Pi_out: a collection of singlescale indices on level l-1.
-            d: a vector in ell_2(Pi_in).
-            c: a vector in ell_2(Lambda_{l up}_in).
 
-        Output:
-            e: a vector in ell_2(Pi_bar_out)
-            f: a vector in ell_2(Lambda_{l+1 up}_out).
         """
         Lambda_l_out = self.Lambda_out.on_level(l)
         if len(Pi_out) + len(Lambda_l_out) > 0:
