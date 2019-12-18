@@ -83,16 +83,21 @@ class HeatEquation:
         if solver == 'minres':
             self.mat = BlockApplicator([[self.A_s, self.B],
                                         [self.BT, -self.m_gamma]])
-
-            # Also turn this block applicator into a linear operator.
-        elif solver == 'cg-schur':
+        elif solver in ['cg-schur', 'pcg-schur']:
             self.P_Y = BlockDiagonalApplicator(
                 Y_delta,
                 applicator_space=applicator_space(
-                    s_operators.DirectInverseOperator,
-                    forward_cls=s_operators.StiffnessOperator))
+                    s_operators.DirectInverse,
+                    forward_op_ctor=s_operators.StiffnessOperator))
             self.mat = CompositeApplicator([self.B, self.P_Y, self.BT
                                             ]) + self.m_gamma
+            if solver == 'pcg-schur':
+                self.P_X = BlockDiagonalApplicator(
+                    X_delta,
+                    applicator_space=applicator_space(
+                        s_operators.XPreconditioner,
+                        precond_cls=s_operators.DirectInverse,
+                        alpha=0.35))
         else:
             raise NotImplementedError("Unknown method " % solver)
         self.linop = LinearOperatorApplicator(applicator=self.mat,
@@ -198,6 +203,13 @@ class HeatEquation:
             solver = spla.minres
         elif self.solver == "cg-schur":
             solver = spla.cg
+        elif self.solver == "pcg-schur":
+            solver = lambda S, b, callback: spla.cg(
+                S,
+                b=b,
+                M=LinearOperatorApplicator(applicator=self.P_X,
+                                           input_vec=self.create_vector()),
+                callback=callback)
         else:
             raise NotImplementedError("Unrecognized method '%s'" % self.solver)
         result_array, info = solver(self.linop,

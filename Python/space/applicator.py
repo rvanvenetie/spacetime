@@ -16,8 +16,8 @@ class Applicator(ApplicatorInterface):
         super().__init__()
         self.operator = singlescale_operator
 
-    def apply(self, vec_in, vec_out):
-        """ Apply the multiscale operator.  """
+    def apply(self, vec_in, vec_out, **kwargs):
+        """ Apply the multiscale operator. """
         vec_in_nodes = vec_in.bfs()
         vec_out_nodes = vec_out.bfs()
         if len(vec_in_nodes) == 0 or len(vec_out_nodes) == 0: return
@@ -25,7 +25,7 @@ class Applicator(ApplicatorInterface):
             # This is the case where vec_in == vec_out, i.e. symmetric.
             self.operator.triang = TriangulationView(vec_in)
             np_vec_in = vec_in.to_array()
-            np_vec_out = self.operator.apply(np_vec_in)
+            np_vec_out = self.operator.apply(np_vec_in, **kwargs)
             vec_out.from_array(np_vec_out)
             return vec_out
 
