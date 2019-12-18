@@ -82,7 +82,7 @@ class HeatEquation:
                 Y_delta,
                 applicator_space=applicator_space(
                     s_operators.DirectInverse,
-                    forward_cls=s_operators.StiffnessOperator))
+                    forward_op_ctor=s_operators.StiffnessOperator))
             self.mat = CompositeApplicator([self.B, self.P_Y, self.BT
                                             ]) + self.m_gamma
             if solver == 'pcg-schur':
@@ -90,7 +90,8 @@ class HeatEquation:
                     X_delta,
                     applicator_space=applicator_space(
                         s_operators.XPreconditioner,
-                        precond_cls=s_operators.DirectInverse))
+                        precond_cls=s_operators.DirectInverse,
+                        alpha=0.35))
         else:
             raise NotImplementedError("Unknown method " % solver)
         self.linop = LinearOperatorApplicator(applicator=self.mat,

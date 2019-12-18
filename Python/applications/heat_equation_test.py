@@ -361,7 +361,7 @@ def test_heat_error_reduction(max_history_level=0,
     if max_level >= 8: assert all(rates_quad[-1] > 0.5)
 
 
-def test_preconditioned_eigenvalues(max_level=10, sparse_grid=True):
+def test_preconditioned_eigenvalues(max_level=6, sparse_grid=True):
     # Create space part.
     triang = InitialTriangulation.unit_square()
     triang.vertex_meta_root.uniform_refine(max_level)
@@ -372,7 +372,6 @@ def test_preconditioned_eigenvalues(max_level=10, sparse_grid=True):
     basis_time = ThreePointBasis()
     basis_time.metaroot_wavelet.uniform_refine(max_level)
 
-    max_level = 10
     for level in range(2, max_level):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
@@ -390,11 +389,13 @@ def test_preconditioned_eigenvalues(max_level=10, sparse_grid=True):
         Sinv = LinearOperatorApplicator(applicator=heat_eq.P_X,
                                         input_vec=heat_eq.create_vector())
         l = Lanczos(S, Sinv)
-        print(l.lmin, l.lmax, l.cond())
+        assert l.cond() < 10
+        print("Level {} with {} DoFs; l_min = {}; l_max = {}; kappa_2 = {}".
+              format(level, len(X_delta.bfs()), l.lmin, l.lmax, l.cond()))
 
 
 if __name__ == "__main__":
-    #test_preconditioned_eigenvalues(max_level=12, sparse_grid=True)
+    test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
     test_heat_error_reduction(max_history_level=16,
                               max_level=16,
                               save_results_file=None,

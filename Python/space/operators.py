@@ -213,13 +213,13 @@ class StiffPlusScaledMassOperator(Operator):
 
 
 class DirectInverse(Preconditioner):
-    def __init__(self, forward_cls, triang=None, dirichlet_boundary=True):
+    def __init__(self, forward_op_ctor, triang=None, dirichlet_boundary=True):
         super().__init__(triang, dirichlet_boundary)
-        self.forward_cls = forward_cls
+        self.forward_op_ctor = forward_op_ctor
 
     def apply_SS(self, v, **kwargs):
-        mat = self.forward_cls(self.triang,
-                               self.dirichlet_boundary).as_SS_matrix(**kwargs)
+        mat = self.forward_op_ctor(
+            self.triang, self.dirichlet_boundary).as_SS_matrix(**kwargs)
         # If we have dirichlet BC, the matrix is singular, so we have to take
         # a submatrix if we want to apply spsolve.
         if self.dirichlet_boundary:
@@ -238,9 +238,17 @@ class XPreconditioner(Preconditioner):
     def __init__(self,
                  precond_cls=DirectInverse,
                  triang=None,
-                 dirichlet_boundary=True):
+                 dirichlet_boundary=True,
+                 alpha=0.35):
         super().__init__(triang, dirichlet_boundary)
-        self.C = precond_cls(forward_cls=StiffPlusScaledMassOperator,
+
+        def C_ctor(_triang, _dirichlet_boundary):
+            return StiffPlusScaledMassOperator(
+                triang=_triang,
+                dirichlet_boundary=_dirichlet_boundary,
+                alpha=alpha)
+
+        self.C = precond_cls(forward_op_ctor=C_ctor,
                              triang=triang,
                              dirichlet_boundary=dirichlet_boundary)
         self.A = StiffnessOperator(triang=triang,
