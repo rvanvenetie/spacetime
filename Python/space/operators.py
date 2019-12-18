@@ -195,19 +195,21 @@ class Preconditioner(Operator):
 
 
 class StiffPlusScaledMassOperator(Operator):
-    def __init__(self, triang=None, dirichlet_boundary=True):
+    def __init__(self, triang=None, dirichlet_boundary=True, alpha=0.35):
         super().__init__(triang, dirichlet_boundary)
+        self.alpha = alpha
         self.stiff = StiffnessOperator(triang, dirichlet_boundary)
         self.mass = MassOperator(triang, dirichlet_boundary)
 
     def as_SS_matrix(self, labda):
-        return self.stiff.as_SS_matrix(
+        return self.alpha * self.stiff.as_SS_matrix(
         ) + 2**labda.level * self.mass.as_SS_matrix()
 
     def apply_SS(self, v, labda):
         self.stiff.triang = self.triang
         self.mass.triang = self.triang
-        return self.stiff.apply_SS(v) + 2**labda.level * self.mass.apply_SS(v)
+        return self.alpha * self.stiff.apply_SS(
+            v) + 2**labda.level * self.mass.apply_SS(v)
 
 
 class DirectInverse(Preconditioner):

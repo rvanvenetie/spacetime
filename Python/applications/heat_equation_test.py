@@ -4,6 +4,8 @@ import numpy as np
 
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_vector import TreeVector
+from ..datastructures.applicator import LinearOperatorApplicator
+from ..linalg.lanczos import Lanczos
 from ..space.basis import HierarchicalBasisFunction
 from ..space.operators import Operator
 from ..space.triangulation import (InitialTriangulation,
@@ -254,7 +256,7 @@ def test_heat_error_reduction(max_history_level=0,
     residual_norm_histories = []
     residual_norms = []
     solver_iters = []
-    for level in range(2, max_level):
+    for level in range(12, max_level):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
@@ -359,8 +361,41 @@ def test_heat_error_reduction(max_history_level=0,
     if max_level >= 8: assert all(rates_quad[-1] > 0.5)
 
 
+def test_preconditioned_eigenvalues(max_level=10, sparse_grid=True):
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.vertex_meta_root.uniform_refine(max_level)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(max_level)
+
+    max_level = 10
+    for level in range(2, max_level):
+        # Create X^\delta as a sparse grid.
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
+        if sparse_grid:
+            X_delta.sparse_refine(level, weights=[2, 1])
+        else:
+            X_delta.uniform_refine([level, 2 * level])
+        print('X_delta: dofs time axis={}\tdofs space axis={}'.format(
+            len(X_delta.project(0).bfs()), len(X_delta.project(1).bfs())))
+
+        # Create heat equation object.
+        heat_eq = HeatEquation(X_delta=X_delta, solver='pcg-schur')
+        S = heat_eq.linop
+        Sinv = LinearOperatorApplicator(applicator=heat_eq.P_X,
+                                        input_vec=heat_eq.create_vector())
+        l = Lanczos(S, Sinv)
+        print(l.lmin, l.lmax, l.cond())
+
+
 if __name__ == "__main__":
-    test_heat_error_reduction(max_history_level=12,
-                              max_level=12,
+    #test_preconditioned_eigenvalues(max_level=12, sparse_grid=True)
+    test_heat_error_reduction(max_history_level=16,
+                              max_level=16,
                               save_results_file=None,
                               solver='pcg-schur')
