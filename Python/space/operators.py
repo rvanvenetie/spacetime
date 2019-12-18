@@ -1,9 +1,10 @@
 import itertools
 
 import numpy as np
-from scipy.sparse.linalg import LinearOperator, spsolve
 from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import LinearOperator, spsolve
 
+from .basis import _get_quadrature_scheme, _hat_function_eval
 from .triangulation_view import TriangulationView
 
 
@@ -212,6 +213,46 @@ class DirectInverseOperator(Operator):
             return res
         else:
             return spsolve(mat, v)
+
+
+class QuadratureOperator:
+    def __init__(self,
+                 g,
+                 g_order=2,
+                 deriv=False,
+                 dirichlet_boundary=True,
+                 triang=None):
+        self.g = g
+        self.g_order = g_order
+        self.deriv = deriv
+        self.dirichlet_boundary = dirichlet_boundary
+        self.triang = triang
+
+    def apply(self):
+        quad_ss = np.zeros(len(self.triang.vertices))
+        scheme = _get_quadrature_scheme(self.g_order + 1)
+        for elem in self.triang.elements:
+            if not elem.is_leaf():
+                continue
+            Vids = elem.vertices_view_idx
+            triangle = elem.node.vertex_array()
+            for i in range(3):
+                nodal_eval = lambda xy: _hat_function_eval(support=[elem.node],
+                                                           vertex=self.triang.
+                                                           vertices[Vids[i]],
+                                                           xy=xy,
+                                                           deriv=self.deriv)
+
+                if self.deriv:
+                    ip_func = lambda xy: (nodal_eval(xy) * self.g(xy)).sum(axis
+                                                                           =0)
+                else:
+                    ip_func = lambda xy: nodal_eval(xy) * self.g(xy)
+
+                quad_ss[Vids[i]] += scheme.integrate(ip_func, triangle)
+        operator = Operator(triang=self.triang,
+                            dirichlet_boundary=self.dirichlet_boundary)
+        return operator.apply_T_transpose(quad_ss)
 
 
 def plot_hatfn():

@@ -51,6 +51,8 @@ class LinearOperator(object):
             assert indices_in is None
             for labda_out in indices_out:
                 for labda_in, coeff_in in row_op(labda_out):
+                    #                    print('Writing to ', labda_out, ' from ', labda_in,
+                    #                          ' with value ', coeff_in * labda_in.coeff[read])
                     labda_out.coeff[write] += labda_in.coeff[read] * coeff_in
 
     def matvec(self, vec, indices_in=None, indices_out=None):
