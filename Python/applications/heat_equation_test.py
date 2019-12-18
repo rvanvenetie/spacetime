@@ -2,9 +2,9 @@ import random
 
 import numpy as np
 
+from ..datastructures.applicator import LinearOperatorApplicator
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_vector import TreeVector
-from ..datastructures.applicator import LinearOperatorApplicator
 from ..linalg.lanczos import Lanczos
 from ..space.basis import HierarchicalBasisFunction
 from ..space.operators import Operator

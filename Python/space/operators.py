@@ -1,8 +1,8 @@
 import itertools
 
 import numpy as np
-from scipy.sparse.linalg import LinearOperator, spsolve
 from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import LinearOperator, spsolve
 
 from .triangulation_view import TriangulationView
 
@@ -195,7 +195,7 @@ class Preconditioner(Operator):
 
 
 class StiffPlusScaledMassOperator(Operator):
-    def __init__(self, triang=None, dirichlet_boundary=True, alpha=0.35):
+    def __init__(self, triang=None, dirichlet_boundary=True, alpha=1.0):
         super().__init__(triang, dirichlet_boundary)
         self.alpha = alpha
         self.stiff = StiffnessOperator(triang, dirichlet_boundary)
@@ -239,7 +239,7 @@ class XPreconditioner(Preconditioner):
                  precond_cls=DirectInverse,
                  triang=None,
                  dirichlet_boundary=True,
-                 alpha=0.35):
+                 alpha=1.0):
         super().__init__(triang, dirichlet_boundary)
 
         def C_ctor(_triang, _dirichlet_boundary):
