@@ -1,9 +1,7 @@
 import itertools
 
-import numpy as np
 from pytest import approx
 
-from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..datastructures.double_tree_view import DoubleTree
 from ..space.basis import HierarchicalBasisFunction
 from ..space.functional import Functional as FunctionalSpace

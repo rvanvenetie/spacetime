@@ -19,6 +19,6 @@ class Functional:
         vec_out.union(Lambda)
 
         self.operator.triang = TriangulationView(vec_out)
-        np_vec_out = self.operator.apply()
+        np_vec_out = self.operator.eval()
         vec_out.from_array(np_vec_out)
         return vec_out

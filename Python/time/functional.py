@@ -1,7 +1,6 @@
 import numpy as np
 
 from ..datastructures.tree_vector import TreeVector
-from ..datastructures.tree_view import NodeViewInterface
 from .basis import MultiscaleFunctions
 from .sparse_vector import SparseVector
 
