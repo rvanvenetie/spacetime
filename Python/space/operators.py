@@ -1,8 +1,8 @@
 import itertools
 
 import numpy as np
-from scipy.sparse.linalg import LinearOperator, spsolve
 from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import LinearOperator, spsolve
 
 from .triangulation_view import TriangulationView
 
@@ -195,29 +195,31 @@ class Preconditioner(Operator):
 
 
 class StiffPlusScaledMassOperator(Operator):
-    def __init__(self, triang=None, dirichlet_boundary=True):
+    def __init__(self, triang=None, dirichlet_boundary=True, alpha=1.0):
         super().__init__(triang, dirichlet_boundary)
+        self.alpha = alpha
         self.stiff = StiffnessOperator(triang, dirichlet_boundary)
         self.mass = MassOperator(triang, dirichlet_boundary)
 
     def as_SS_matrix(self, labda):
-        return self.stiff.as_SS_matrix(
+        return self.alpha * self.stiff.as_SS_matrix(
         ) + 2**labda.level * self.mass.as_SS_matrix()
 
     def apply_SS(self, v, labda):
         self.stiff.triang = self.triang
         self.mass.triang = self.triang
-        return self.stiff.apply_SS(v) + 2**labda.level * self.mass.apply_SS(v)
+        return self.alpha * self.stiff.apply_SS(
+            v) + 2**labda.level * self.mass.apply_SS(v)
 
 
 class DirectInverse(Preconditioner):
-    def __init__(self, forward_cls, triang=None, dirichlet_boundary=True):
+    def __init__(self, forward_op_ctor, triang=None, dirichlet_boundary=True):
         super().__init__(triang, dirichlet_boundary)
-        self.forward_cls = forward_cls
+        self.forward_op_ctor = forward_op_ctor
 
     def apply_SS(self, v, **kwargs):
-        mat = self.forward_cls(self.triang,
-                               self.dirichlet_boundary).as_SS_matrix(**kwargs)
+        mat = self.forward_op_ctor(
+            self.triang, self.dirichlet_boundary).as_SS_matrix(**kwargs)
         # If we have dirichlet BC, the matrix is singular, so we have to take
         # a submatrix if we want to apply spsolve.
         if self.dirichlet_boundary:
@@ -236,9 +238,17 @@ class XPreconditioner(Preconditioner):
     def __init__(self,
                  precond_cls=DirectInverse,
                  triang=None,
-                 dirichlet_boundary=True):
+                 dirichlet_boundary=True,
+                 alpha=1.0):
         super().__init__(triang, dirichlet_boundary)
-        self.C = precond_cls(forward_cls=StiffPlusScaledMassOperator,
+
+        def C_ctor(_triang, _dirichlet_boundary):
+            return StiffPlusScaledMassOperator(
+                triang=_triang,
+                dirichlet_boundary=_dirichlet_boundary,
+                alpha=alpha)
+
+        self.C = precond_cls(forward_op_ctor=C_ctor,
                              triang=triang,
                              dirichlet_boundary=dirichlet_boundary)
         self.A = StiffnessOperator(triang=triang,
