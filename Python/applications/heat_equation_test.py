@@ -256,7 +256,7 @@ def test_heat_error_reduction(max_history_level=0,
     residual_norm_histories = []
     residual_norms = []
     solver_iters = []
-    for level in range(12, max_level):
+    for level in range(2, max_level):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
@@ -395,7 +395,7 @@ def test_preconditioned_eigenvalues(max_level=6, sparse_grid=True):
 
 
 if __name__ == "__main__":
-    test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
+    # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
     test_heat_error_reduction(max_history_level=16,
                               max_level=16,
                               save_results_file=None,

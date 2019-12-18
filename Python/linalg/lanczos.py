@@ -88,7 +88,7 @@ class Lanczos:
         self.beta = np.zeros(maxIterations - 1)
         self.converged = True
 
-        if P == None:
+        if P is None:
             P = sp.identity(A.shape[0])
 
         # Measure start time
@@ -155,7 +155,7 @@ class Lanczos:
     def __str__(self):
 
         convText = "converged"
-        if self.converged == False:
+        if not self.converged:
             convText = "NOT " + convText
         return '{}\tits={}\tlmax={}\tlmin={}\tkappa={}\ttime={} s'.format(
             convText, self.iterations, self.lmax, self.lmin, self.cond(),
