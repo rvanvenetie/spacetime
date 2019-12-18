@@ -251,6 +251,15 @@ class InitialTriangulation:
         elements = [[0, 2, 3], [1, 3, 2]]
         return InitialTriangulation(vertices, elements)
 
+    @staticmethod
+    def l_shape():
+        """ Returns a (coarse) triangulation of the L shaped domain. """
+        vertices = [[0, 0], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1],
+                    [0, -1]]
+        elements = [[1, 0, 2], [3, 2, 0], [3, 0, 4], [5, 4, 0], [5, 0, 6],
+                    [7, 6, 0]]
+        return InitialTriangulation(vertices, elements)
+
     def _compute_area(self, elem):
         """ Computes the area of the element spanned by `vertex_ids`. """
         v1, v2, v3 = elem.vertex_array()
