@@ -268,7 +268,7 @@ class XPreconditioner(Preconditioner):
                                labda=labda)
 
 
-class QuadratureOperator:
+class QuadratureFunctional:
     def __init__(self,
                  g,
                  g_order=2,

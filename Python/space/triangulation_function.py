@@ -33,7 +33,7 @@ class TriangulationFunction(TreeFunction):
         # Evaluate <g, Psi>.
         quad_tree = functional.eval(self)
 
-        # Calculate <g, self> as a product of the above and sel.
+        # Calculate <g, self> as a product of the above and self.
         quad_tree *= self
         quad_tree_sum = quad_tree.sum()
 

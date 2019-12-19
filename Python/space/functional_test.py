@@ -2,7 +2,7 @@ from pytest import approx
 
 from .basis import HierarchicalBasisFunction
 from .functional import Functional
-from .operators import QuadratureOperator
+from .operators import QuadratureFunctional
 from .triangulation import InitialTriangulation
 
 
@@ -32,7 +32,7 @@ def test_functional_quadrature():
                                   (lambda xy: xy[0] * xy[1] -
                                    (xy[0] + xy[1]) / 2, 2, False),
                                   (lambda xy: xy * xy * xy, 3, True)]:
-            operator = QuadratureOperator(g=g, g_order=g_order, deriv=deriv)
+            operator = QuadratureFunctional(g=g, g_order=g_order, deriv=deriv)
             functional = Functional(operator)
 
             inner_g_vec = functional.eval(Lambda)

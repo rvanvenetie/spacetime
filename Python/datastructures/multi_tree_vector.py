@@ -89,10 +89,11 @@ class MultiTreeVector(MultiTree):
         """ Recursive `mul` operator. """
         if isinstance(x, MultiTreeVector):
 
-            def call_product(my_node, other_node):
-                my_node.value *= other_node.value
-
-            self.root._union(x.root, call_postprocess=call_product)
+            my_nodes = self.bfs()
+            x_nodes = x.bfs()
+            for my_node, x_node in zip(my_nodes, x_nodes):
+                assert my_node.nodes == x_node.nodes
+                my_node.value *= x_node.value
         else:
             for node in self.bfs():
                 node.value *= x

@@ -156,8 +156,8 @@ class HeatEquation:
                 basis=self.time_basis_Y,
             )
             functional_space = s_functional.Functional(
-                s_operators.QuadratureOperator(g=g_space,
-                                               g_order=g_space_order))
+                s_operators.QuadratureFunctional(g=g_space,
+                                                 g_order=g_space_order))
 
             functional = TensorFunctional(functional_time=functional_time,
                                           functional_space=functional_space)
@@ -171,8 +171,8 @@ class HeatEquation:
                 basis=self.time_basis_X,
             )
             functional_space = s_functional.Functional(
-                s_operators.QuadratureOperator(g=g_space,
-                                               g_order=g_space_order))
+                s_operators.QuadratureFunctional(g=g_space,
+                                                 g_order=g_space_order))
 
             functional = TensorFunctional(functional_time=functional_time,
                                           functional_space=functional_space)
@@ -188,7 +188,9 @@ class HeatEquation:
         if self.solver == 'minres':
             return rhs
         else:
-            return self.BT.apply(self.P_Y.apply(rhs[0])).axpy(rhs[1], -1.0)
+            f = self.BT.apply(self.P_Y.apply(rhs[0]))
+            f -= rhs[1]
+            return f
 
     def solve(self, rhs, iter_callback=None):
         num_iters = 0
