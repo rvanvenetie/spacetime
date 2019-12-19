@@ -19,7 +19,7 @@ class MultiTreeFunction(MultiTreeVector):
         assert isinstance(coords, tuple)
         assert len(coords) == self.root.dim
         # If the input coords are arrays, return an array, else a number.
-        if any(isinstance(coord, np.ndarray) for coord in coords):
+        if isinstance(coords[0], np.ndarray) and len(coords[0].shape) > 1:
             assert all(coords[0].shape[-1] == coord.shape[-1]
                        for coord in coords)
             result = np.zeros(coords[0].shape[-1])

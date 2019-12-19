@@ -59,12 +59,13 @@ class NodeInterface(ABC):
 
 class NodeAbstract(NodeInterface):
     """ Partial impl. of NodeInterface, using variables for the properties. """
-    __slots__ = ['parents', 'children', 'marked']
+    __slots__ = ['parents', 'children', 'marked', 'data']
 
     def __init__(self, parents=None, children=None):
         self.parents = parents if parents else []
         self.children = children if children else []
         self.marked = False
+        self.data = None
 
     def is_metaroot(self):
         """ This is a real node. """

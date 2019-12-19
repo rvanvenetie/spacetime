@@ -15,6 +15,33 @@ def _get_quadrature_scheme(order):
     return quadpy.nsimplex.grundmann_moeller(2, order // 2)
 
 
+def _hat_function_eval(support, vertex, xy, deriv=False):
+    """ Evaluate hat function on a number of points `xy` at once.  """
+    assert xy.shape[0] == 2
+    # If we input a single vector xy, we expect a number out.
+    if len(xy.shape) == 1:
+        result = np.zeros(xy.shape) if deriv else np.zeros(1)
+    else:
+        result = np.zeros(xy.shape) if deriv else np.zeros(xy.shape[1])
+    for elem in support:
+        i = elem.vertices.index(vertex)
+        bary = elem.to_barycentric_coordinates(xy)
+        # mask[j] == True exactly when point xy[:,j] is inside elem.
+        mask = np.all(bary >= 0, axis=0)
+        if not any(mask):
+            continue
+        if not deriv:
+            result[mask] = bary[i, mask]
+        else:
+            V = elem.vertex_array().T
+            opp_edge = V[:, (i - 1) % 3] - V[:, (i + 1) % 3]
+            normal = np.array([-opp_edge[1], opp_edge[0]])
+            normal = -normal / (2 * elem.area)
+            result[:, mask] = normal.reshape(2, 1)
+    # Return singular float if the input was a singular vector xy.
+    return result if len(xy.shape) == 2 else result[0]
+
+
 class HierarchicalBasisFunction(FunctionInterface, NodeView):
     order = 1
 
@@ -39,29 +66,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
 
     def eval(self, xy, deriv=False):
         """ Evaluate hat function on a number of points `xy` at once. """
-        assert xy.shape[0] == 2
-        # If we input a single vector xy, we expect a number out.
-        if len(xy.shape) == 1:
-            result = np.zeros(xy.shape) if deriv else np.zeros(1)
-        else:
-            result = np.zeros(xy.shape) if deriv else np.zeros(xy.shape[1])
-        for elem in self.support:
-            i = elem.vertices.index(self.node)
-            bary = elem.to_barycentric_coordinates(xy)
-            # mask[j] == True exactly when point xy[:,j] is inside elem.
-            mask = np.all(bary >= 0, axis=0)
-            if not any(mask):
-                continue
-            if not deriv:
-                result[mask] = bary[i, mask]
-            else:
-                V = elem.vertex_array().T
-                opp_edge = V[:, (i - 1) % 3] - V[:, (i + 1) % 3]
-                normal = np.array([-opp_edge[1], opp_edge[0]])
-                normal = -normal / (2 * elem.area)
-                result[:, mask] = normal.reshape(2, 1)
-        # Return singular float if the input was a singular vector xy.
-        return result if len(xy.shape) == 2 else result[0]
+        return _hat_function_eval(self.support, self.node, xy, deriv)
 
     def inner_quad(self, g, g_order=2, deriv=False):
         """ Computes <g, self> or <g, grad self> by quadrature. """
