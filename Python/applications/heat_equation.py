@@ -1,16 +1,18 @@
 import scipy.sparse.linalg as spla
 
-from ..datastructures.applicator import (BlockApplicator,
-                                         LinearOperatorApplicator,
-                                         CompositeApplicator)
+from ..datastructures.applicator import (BlockApplicator, CompositeApplicator,
+                                         LinearOperatorApplicator)
 from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..datastructures.multi_tree_function import DoubleTreeFunction
 from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..space import applicator as s_applicator
+from ..space import functional as s_functional
 from ..space import operators as s_operators
 from ..spacetime.applicator import Applicator, BlockDiagonalApplicator
 from ..spacetime.basis import generate_y_delta
+from ..spacetime.functional import TensorFunctional
 from ..time import applicator as t_applicator
+from ..time import functional as t_functional
 from ..time import operators as t_operators
 from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointBasis
@@ -34,8 +36,8 @@ class HeatEquation:
         print('HeatEquation with #(Y_delta, X_delta)=({}, {})'.format(
             len(Y_delta.bfs()), len(X_delta.bfs())))
 
-        time_basis_X = ThreePointBasis()
-        time_basis_Y = OrthonormalBasis()
+        self.time_basis_X = ThreePointBasis()
+        self.time_basis_Y = OrthonormalBasis()
 
         def applicator_time(operator, basis_in, basis_out=None):
             """ Helper function to generate a time applicator. """
@@ -52,26 +54,30 @@ class HeatEquation:
         self.A_s = Applicator(
             Lambda_in=Y_delta,
             Lambda_out=Y_delta,
-            applicator_time=applicator_time(t_operators.mass, time_basis_Y),
+            applicator_time=applicator_time(t_operators.mass,
+                                            self.time_basis_Y),
             applicator_space=applicator_space(s_operators.StiffnessOperator))
         B_1 = Applicator(
             Lambda_in=X_delta,
             Lambda_out=Y_delta,
             applicator_time=applicator_time(t_operators.transport,
-                                            time_basis_X, time_basis_Y),
+                                            self.time_basis_X,
+                                            self.time_basis_Y),
             applicator_space=applicator_space(s_operators.MassOperator))
         B_2 = Applicator(
             Lambda_in=X_delta,
             Lambda_out=Y_delta,
-            applicator_time=applicator_time(t_operators.mass, time_basis_X,
-                                            time_basis_Y),
+            applicator_time=applicator_time(t_operators.mass,
+                                            self.time_basis_X,
+                                            self.time_basis_Y),
             applicator_space=applicator_space(s_operators.StiffnessOperator))
         self.B = B_1 + B_2
         self.BT = self.B.transpose()
         self.m_gamma = Applicator(
             Lambda_in=X_delta,
             Lambda_out=X_delta,
-            applicator_time=applicator_time(t_operators.trace, time_basis_X),
+            applicator_time=applicator_time(t_operators.trace,
+                                            self.time_basis_X),
             applicator_space=applicator_space(s_operators.MassOperator))
 
         if solver == 'minres':
@@ -106,9 +112,9 @@ class HeatEquation:
 
     def create_vector(self,
                       call_postprocess=None,
-                      mlt_tree_cls=DoubleTreeVector,
-                      both_spaces=False):
-        if self.solver == 'minres' or both_spaces:
+                      mlt_tree_cls=DoubleTreeVector):
+        """ Creates a (empty) solution block vector. """
+        if self.solver == 'minres':
             if not isinstance(call_postprocess, tuple):
                 call_postprocess = (call_postprocess, call_postprocess)
             result = BlockTreeVector(
@@ -122,39 +128,69 @@ class HeatEquation:
                                             call_postprocess=call_postprocess)
         if self.dirichlet_boundary:
             self.enforce_dirichlet_boundary(result)
+
         return result
 
-    def calculate_rhs_vector(self, g, g_order, u0, u0_order):
-        """ Generates a rhs vector for the given rhs g and initial cond u_0 .
+    def calculate_tensor_rhs_vector(self, g, g_order, u0, u0_order):
+        """ Generates a rhs vector for a seperable rhs g and initial cond u_0 .
 
         This assumes that g is given as a sum of seperable functions.
 
         Args:
           g: the rhs of the heat equation. Given as list of tuples,
             where each tuple (f_t, f_xy) represents the tensor product f_tf_xy.
-          g_order: a tuple describing the time/space polynomial degree of g.
+          g_order: a list of tuples describing the
+            time/space polynomial degree of g.
           u0: a function of space that represents the initial condition.
           u0_order: the degree of u0.
         """
-        def call_quad_g(nv, _):
-            """ Helper function to do the quadrature for the rhs g. """
-            if nv.is_metaroot(): return
-            nv.value = sum(nv.nodes[0].inner_quad(g0, g_order=g_order[0]) *
-                           nv.nodes[1].inner_quad(g1, g_order=g_order[1])
-                           for g0, g1 in g)
+        assert isinstance(g, list) and isinstance(g_order, list)
+        assert isinstance(u0, list) and isinstance(u0_order, list)
 
-        def call_quad_u0(nv, _):
-            """ Helper function to do the quadrature for the rhs u0. """
-            if nv.is_metaroot(): return
-            nv.value = -nv.nodes[0].eval(0) * nv.nodes[1].inner_quad(
-                u0, g_order=u0_order)
+        # Create the right hand side g, the spacetime mass inner product.
+        rhs_g = self.Y_delta.deep_copy(mlt_tree_cls=DoubleTreeVector)
+        for ((g_time, g_space), (g_time_order,
+                                 g_space_order)) in zip(g, g_order):
+            functional_time = t_functional.Functional(
+                t_operators.quadrature(g=g_time, g_order=g_time_order),
+                basis=self.time_basis_Y,
+            )
+            functional_space = s_functional.Functional(
+                s_operators.QuadratureFunctional(g=g_space,
+                                                 g_order=g_space_order))
+
+            functional = TensorFunctional(functional_time=functional_time,
+                                          functional_space=functional_space)
+            rhs_g += functional.eval(self.Y_delta)
+
+        # Calculate -gamma_0'u_0, eval in time, mass in space.
+        rhs_u0 = self.X_delta.deep_copy(mlt_tree_cls=DoubleTreeVector)
+        for u0, u0_order in zip(u0, u0_order):
+            functional_time = t_functional.Functional(
+                t_operators.evaluation(t=0),
+                basis=self.time_basis_X,
+            )
+            functional_space = s_functional.Functional(
+                s_operators.QuadratureFunctional(g=g_space,
+                                                 g_order=g_space_order))
+
+            functional = TensorFunctional(functional_time=functional_time,
+                                          functional_space=functional_space)
+            rhs_u0 -= functional.eval(self.X_delta)
+
+        # Put the vectors in a block.
+        rhs = BlockTreeVector((rhs_g, rhs_u0))
+
+        # Ensure the dirichlet boundary conditions.
+        if self.dirichlet_boundary:
+            self.enforce_dirichlet_boundary(rhs)
 
         if self.solver == 'minres':
-            return self.create_vector((call_quad_g, call_quad_u0))
+            return rhs
         else:
-            rhs = self.create_vector((call_quad_g, call_quad_u0),
-                                     both_spaces=True)
-            return self.BT.apply(self.P_Y.apply(rhs[0])).axpy(rhs[1], -1.0)
+            f = self.BT.apply(self.P_Y.apply(rhs[0]))
+            f -= rhs[1]
+            return f
 
     def solve(self, rhs, iter_callback=None):
         num_iters = 0

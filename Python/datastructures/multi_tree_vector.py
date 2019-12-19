@@ -83,18 +83,22 @@ class MultiTreeVector(MultiTree):
 
     def __isub__(self, other):
         """ Subtract a double tree. """
-        assert isinstance(other, MultiTreeVector)
-
-        def call_sub(my_node, other_node):
-            my_node.value -= other_node.value
-
-        self.root._union(other.root, call_postprocess=call_sub)
-        return self
+        return self.axpy(other, -1)
 
     def __imul__(self, x):
         """ Recursive `mul` operator. """
-        for node in self.bfs():
-            node.value *= x
+        if isinstance(x, MultiTreeVector):
+
+            my_nodes = self.bfs()
+            x_nodes = x.bfs()
+            assert len(my_nodes) == len(x_nodes)
+            for my_node, x_node in zip(my_nodes, x_nodes):
+                assert my_node.nodes == x_node.nodes
+                my_node.value *= x_node.value
+        else:
+            for node in self.bfs():
+                node.value *= x
+
         return self
 
 

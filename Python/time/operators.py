@@ -270,3 +270,13 @@ def transport(basis_in, basis_out):
         raise TypeError(
             'Transport operator for ({}, {}) is not implemented (yet).'.format(
                 basis_in.__class__.__name__, basis_out.__class__.__name__))
+
+
+def quadrature(g, g_order=2, deriv=False):
+    """ Functional that returns the inner product <g, phi> using quadrature. """
+    return lambda phi: phi.inner_quad(g, g_order, deriv)
+
+
+def evaluation(t):
+    """ Functional that evaluates the given phi on a fixed time point. """
+    return lambda phi: phi.eval(t)
