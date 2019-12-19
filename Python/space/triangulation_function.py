@@ -2,7 +2,7 @@ import numpy as np
 
 from ..datastructures.multi_tree_function import TreeFunction
 from ..space.functional import Functional
-from ..space.operators import MassOperator, Operator, QuadratureOperator
+from ..space.operators import MassOperator, Operator, QuadratureFunctional
 from ..space.triangulation import to_matplotlib_triangulation
 from ..space.triangulation_view import TriangulationView
 
@@ -27,8 +27,8 @@ class TriangulationFunction(TreeFunction):
           g_norm_L2: the L2 norm of g.
           g_quad_order: the polynomial order of g, neccessary for quad.
         """
-        operator = QuadratureOperator(g=g, g_order=g_quad_order)
-        functional = Functional(operator)
+        functional = Functional(QuadratureFunctional(g=g,
+                                                     g_order=g_quad_order))
 
         # Evaluate <g, Psi>.
         quad_tree = functional.eval(self)
