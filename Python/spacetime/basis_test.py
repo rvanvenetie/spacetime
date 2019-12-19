@@ -83,22 +83,26 @@ def test_x_delta_underscore():
 
     # Tryout various levels.
     for max_level, refine_lambda in [
-        (5, lambda X, k: X.uniform_refine([k, 2 * k])),
-        (10, lambda X, k: X.sparse_refine(k, weights=[2, 1]))
+        (6, lambda X, k: X.uniform_refine([k, 2 * k])),
+        (12, lambda X, k: X.sparse_refine(k, weights=[2, 1]))
     ]:
-        for l in range(max_level):
+        for l in range(2, max_level):
             # Create X^\delta
             X_delta = DoubleTree.from_metaroots(
                 (basis_time.metaroot_wavelet, basis_space.root))
             refine_lambda(X_delta, l)
-            X_delta_underscore = generate_x_delta_underscore(X_delta)
+            X_delta_underscore, I_delta = generate_x_delta_underscore(X_delta)
 
             X_delta_refined = DoubleTree.from_metaroots(
                 (basis_time.metaroot_wavelet, basis_space.root))
             refine_lambda(X_delta_refined, l + 2)
 
-            assert len(X_delta.bfs()) <= len(X_delta_underscore.bfs())
-            assert len(X_delta_underscore.bfs()) <= len(X_delta_refined.bfs())
-            print(len(X_delta.bfs()), len(X_delta_underscore.bfs()),
-                  len(X_delta_refined.bfs()))
-    assert False
+            assert all(dblnode.nodes[0].level <= (l + 1)
+                       and dblnode.nodes[1].level <= (2 * (l + 1))
+                       for dblnode in X_delta_underscore.bfs())
+            N_Xd = len(X_delta.bfs())
+            N_Xdu = len(X_delta_underscore.bfs())
+            N_Xdr = len(X_delta_refined.bfs())
+            assert N_Xd < N_Xdu < N_Xdr
+            # This fails right now :<
+            # assert len(I_delta) == N_Xdu - N_Xd
