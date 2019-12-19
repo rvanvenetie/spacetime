@@ -198,7 +198,6 @@ class HeatEquation:
             u0_functionals.append(
                 TensorFunctional(functional_time=functional_time,
                                  functional_space=functional_space))
-            print(u0_functionals[-1].eval(self.X_delta).to_array())
         u0_functional = SumFunctional(u0_functionals)
         return g_functional, u0_functional
 
@@ -238,7 +237,6 @@ class HeatEquation:
                                     callback=call_iterations)
         result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
         result_fn.from_array(result_array)
-        print('in solve', result_fn)
         print(end='\n')
         assert info == 0
         return result_fn, num_iters

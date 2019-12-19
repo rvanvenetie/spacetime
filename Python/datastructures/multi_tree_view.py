@@ -408,7 +408,7 @@ class MultiTree:
 
     @classmethod
     def make_conforming(cls, nodes):
-        """ Creates a conforming multitree containing the given nodes. """
+        """ Creates the smallest conf. mt. tree containing the given nodes. """
         # We will mark all the multinodes that should be in the tree.
         queue = deque(nodes)
         marked_nodes = []
@@ -416,7 +416,9 @@ class MultiTree:
         while queue:
             node = queue.popleft()
             if node.marked: continue
-            if node.is_root(): root = node
+            if node.is_root():
+                assert root is None
+                root = node
             node.marked = True
             marked_nodes.append(node)
             for i in range(node.dim):
@@ -428,7 +430,10 @@ class MultiTree:
         result = cls.from_metaroots(root.nodes)
 
         # Only copy in nodes that are marked.
-        result.root._union(root, call_filter=lambda mlt_node: mlt_node.marked)
+        def call_filter(mlt_node):
+            return mlt_node.marked
+
+        result.root._union(root, call_filter=call_filter)
 
         # Unmark the items.
         for node in marked_nodes:

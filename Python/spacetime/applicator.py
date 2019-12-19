@@ -150,8 +150,9 @@ class Applicator(ApplicatorInterface):
             self.applicator_space.apply(fiber_in, fiber_out)
 
         # Sum and return the results.
-        vec_out = self.vec_out_low
-        vec_out += self.vec_out_upp
+        vec_out = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
+        vec_out.from_array(self.vec_out_low.to_array() +
+                           self.vec_out_upp.to_array())
         return vec_out
 
     def transpose(self):
@@ -168,19 +169,19 @@ class BlockDiagonalApplicator(ApplicatorInterface):
         super().__init__(Lambda_in=Lambda, Lambda_out=Lambda)
         self.Lambda_in.compute_fibers()
         self.applicator_space = applicator_space
-        self.vec_out = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
 
     def apply(self, vec_in):
-        self.vec_out.reset()
+        vec_out = self.Lambda_out.deep_copy(
+            mlt_tree_cls=DoubleTreeVector, call_postprocess=lambda _, __: None)
 
         for psi_in_lambda in self.Lambda_out.project(0).bfs():
             fiber_in = vec_in.fiber(1, psi_in_lambda)
-            fiber_out = self.vec_out.fiber(1, psi_in_lambda)
+            fiber_out = vec_out.fiber(1, psi_in_lambda)
             self.applicator_space.apply(vec_in=fiber_in,
                                         vec_out=fiber_out,
                                         labda=psi_in_lambda.node)
 
-        return self.vec_out
+        return vec_out
 
     def transpose(self):
         """ Transposes this spacetime bilinear formulation. """

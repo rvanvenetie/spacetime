@@ -16,7 +16,7 @@ def generate_x_delta_underscore(x_delta):
     dblnodes = x_delta_underscore.bfs()
     new_dblnodes = []
     for dblnode in dblnodes:
-        if len(dblnode.children[0]) == 0:
+        if len(dblnode.children[0]) == 0 and dblnode.nodes[1].level == 0:
             # Refine in time-axis...
             dblnode.nodes[0].refine()
             new_dblnodes.extend(dblnode.refine(i=0, make_conforming=True))

@@ -119,11 +119,15 @@ class BlockTreeVector:
         return self.vecs[i]
 
     def __isub__(self, other):
+        assert isinstance(other, BlockTreeVector) and len(other.vecs) == len(
+            self.vecs)
         for i, vec in enumerate(self.vecs):
             vec -= other[i]
         return self
 
     def __iadd__(self, other):
+        assert isinstance(other, BlockTreeVector) and len(other.vecs) == len(
+            self.vecs)
         for i, vec in enumerate(self.vecs):
             vec += other[i]
         return self
