@@ -7,7 +7,7 @@ from pytest import approx
 from ..datastructures.multi_tree_function import TreeFunction
 from .basis import HierarchicalBasisFunction
 from .functional import Functional
-from .operators import InterpolantOperator, QuadratureOperator
+from .operators import InterpolantFunctional, QuadratureFunctional
 from .triangulation import InitialTriangulation
 
 
@@ -37,7 +37,7 @@ def test_functional_quadrature():
                                   (lambda xy: xy[0] * xy[1] -
                                    (xy[0] + xy[1]) / 2, 2, False),
                                   (lambda xy: xy * xy * xy, 3, True)]:
-            operator = QuadratureOperator(g=g, g_order=g_order, deriv=deriv)
+            operator = QuadratureFunctional(g=g, g_order=g_order, deriv=deriv)
             functional = Functional(operator)
 
             inner_g_vec = functional.eval(Lambda)
@@ -78,7 +78,7 @@ def test_functional_interpolant():
                     False) or not vertex.node.on_domain_boundary:
                 vertex.value = random.random()
         functional = Functional(
-            InterpolantOperator(g=lambda xy: func_tree.eval(xy),
-                                dirichlet_boundary=dirichlet_boundary))
+            InterpolantFunctional(g=lambda xy: func_tree.eval(xy),
+                                  dirichlet_boundary=dirichlet_boundary))
         interpolant = functional.eval(Lambda)
         assert np.allclose(func_tree.to_array(), interpolant.to_array())

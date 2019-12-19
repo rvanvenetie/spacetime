@@ -274,7 +274,7 @@ class XPreconditioner(Preconditioner):
                                labda=labda)
 
 
-class QuadratureOperator:
+class QuadratureFunctional:
     def __init__(self,
                  g,
                  g_order=2,
@@ -314,7 +314,7 @@ class QuadratureOperator:
         return operator.apply_T_transpose(quad_ss)
 
 
-class InterpolantOperator:
+class InterpolantFunctional:
     def __init__(self, g, dirichlet_boundary=True, triang=None):
         self.g = g
         self.dirichlet_boundary = dirichlet_boundary

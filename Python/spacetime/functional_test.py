@@ -5,7 +5,7 @@ from pytest import approx
 from ..datastructures.double_tree_view import DoubleTree
 from ..space.basis import HierarchicalBasisFunction
 from ..space.functional import Functional as FunctionalSpace
-from ..space.operators import QuadratureOperator as QuadratureSpace
+from ..space.operators import QuadratureFunctional as QuadratureSpace
 from ..space.triangulation import InitialTriangulation
 from ..time.functional import Functional as FunctionalTime
 from ..time.haar_basis import HaarBasis

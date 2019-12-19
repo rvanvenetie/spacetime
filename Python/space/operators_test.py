@@ -5,7 +5,7 @@ from scipy.sparse.linalg import cg
 
 from ..datastructures.tree_view import TreeView
 from .basis import HierarchicalBasisFunction
-from .operators import (DirectInverse, InterpolantOperator, MassOperator,
+from .operators import (DirectInverse, InterpolantFunctional, MassOperator,
                         Operator, StiffnessOperator)
 from .triangulation import InitialTriangulation, to_matplotlib_triangulation
 from .triangulation_view import TriangulationView
@@ -103,7 +103,7 @@ def test_direct_inverse():
 
 
 def test_interpolant():
-    """ Tests the `InterpolantOperator` class. """
+    """ Tests the `InterpolantFunctional` class. """
     # Setup the triangulation
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(3)
@@ -117,9 +117,9 @@ def test_interpolant():
     # the same hierarhical basis function.
     for dirichlet_boundary in [False, True]:
         for i, psi in enumerate(vertex_view.bfs()):
-            op = InterpolantOperator(g=lambda xy: psi.eval(xy),
-                                     dirichlet_boundary=dirichlet_boundary,
-                                     triang=T_view)
+            op = InterpolantFunctional(g=lambda xy: psi.eval(xy),
+                                       dirichlet_boundary=dirichlet_boundary,
+                                       triang=T_view)
 
             if dirichlet_boundary and psi.node.on_domain_boundary:
                 with pytest.raises(AssertionError):
