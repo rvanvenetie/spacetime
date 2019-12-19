@@ -76,10 +76,13 @@ def test_x_delta_underscore():
 
     # Create time part for X^\delta
     basis_time = ThreePointBasis()
-    basis_time.metaroot_wavelet.uniform_refine(1)
-
-    # Refine the orthonormal basis
-    OrthonormalBasis.metaroot_wavelet.uniform_refine(1)
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    X_delta.uniform_refine(0)
+    assert len(X_delta.bfs()) == 8
+    X_delta_underscore, I_delta = generate_x_delta_underscore(X_delta)
+    assert len(X_delta_underscore.bfs()) == 22
+    assert len(I_delta) == 22 - 8
 
     # Tryout various levels.
     for max_level, refine_lambda in [
