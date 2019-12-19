@@ -26,7 +26,7 @@ def example_solution_function():
     return u, u_order, u_slice_norm_l2
 
 
-def example_rhs(heat_eq):
+def example_rhs_functional(heat_eq):
     g = [(
         lambda t: -2 * (1 + t**2),
         lambda xy: (xy[0] - 1) * xy[0] + (xy[1] - 1) * xy[1],
@@ -39,10 +39,18 @@ def example_rhs(heat_eq):
     u0 = [lambda xy: u[0](0) * u[1](xy)]
     u0_order = [u_order[1]]
 
-    result = heat_eq.calculate_tensor_rhs_vector(g=g,
-                                                 g_order=g_order,
-                                                 u0=u0,
-                                                 u0_order=u0_order)
+    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
+                                                        g_order=g_order,
+                                                        u0=u0,
+                                                        u0_order=u0_order)
+
+
+def example_rhs(heat_eq):
+    g_functional, u0_functional = example_rhs_functional(heat_eq)
+
+    result = heat_eq.calculate_rhs_vector(g_functional=g_functional,
+                                          u0_functional=u0_functional)
+
     # Check that the vector != 0.
     assert sum(abs(result.to_array())) > 0.0001
 

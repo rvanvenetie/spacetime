@@ -202,13 +202,6 @@ class HeatEquation:
         u0_functional = SumFunctional(u0_functionals)
         return g_functional, u0_functional
 
-    def calculate_tensor_rhs_vector(self, g, g_order, u0, u0_order):
-        """ Convenience function. """
-        g_functional, u0_functional = self.calculate_rhs_functionals_quadrature(
-            g, g_order, u0, u0_order)
-        return self.calculate_rhs_vector(g_functional=g_functional,
-                                         u0_functional=u0_functional)
-
     def solve(self, rhs, solver=None, iter_callback=None):
         # Set a default value for solver.
         if solver is None:

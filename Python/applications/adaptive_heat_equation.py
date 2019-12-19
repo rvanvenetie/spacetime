@@ -38,7 +38,7 @@ class AdaptiveHeatEquation:
 
         return u_dd_d, residual
 
-    def solve(self, iters, eps=1e-5, solver='pcg'):
+    def solve(self, eps=1e-5, solver='pcg'):
         u_dd_d, residual = self.solve_step(solver)
 
         errors = [residual.norm()]
