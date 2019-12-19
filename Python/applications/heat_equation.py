@@ -104,6 +104,12 @@ class HeatEquation:
         self.linop = LinearOperatorApplicator(applicator=self.mat,
                                               input_vec=self.create_vector())
 
+    def _validate_boundary_dofs(self, vec):
+        if self.dirichlet_boundary:
+            for nv in vec.bfs():
+                if nv.nodes[1].on_domain_boundary:
+                    assert nv.value == 0
+
     @staticmethod
     def enforce_dirichlet_boundary(vector):
         """ This sets all the dofs belonging to dirichlet conditions to 0. """
@@ -150,6 +156,8 @@ class HeatEquation:
         else:
             f = self.BT.apply(self.P_Y.apply(rhs[0]))
             f -= rhs[1]
+
+            self._validate_boundary_dofs(f)
             return f
 
     def calculate_rhs_functionals_quadrature(self, g, g_order, u0, u0_order):
@@ -202,6 +210,7 @@ class HeatEquation:
         return g_functional, u0_functional
 
     def solve(self, rhs, solver=None, iter_callback=None):
+        self._validate_boundary_dofs(rhs)
         # Set a default value for solver.
         if solver is None:
             solver = {'saddle': 'minres', 'schur': 'cg'}[self.formulation]
@@ -239,6 +248,7 @@ class HeatEquation:
         result_fn.from_array(result_array)
         print(end='\n')
         assert info == 0
+        self._validate_boundary_dofs(result_fn)
         return result_fn, num_iters
 
     def time_per_dof(self):

@@ -19,6 +19,7 @@ class AdaptiveHeatEquation:
         self.g_functional = g_functional
         self.u0_functional = u0_functional
         self.theta = theta
+        self.dirichlet_boundary = dirichlet_boundary
 
     def solve_step(self, solver='pcg'):
         X_dd, I_d_dd = generate_x_delta_underscore(self.X_delta)
@@ -29,11 +30,12 @@ class AdaptiveHeatEquation:
         # Calculate the solution using X_delta and Y_delta_hat.
         heat_dd_d = HeatEquation(X_delta=self.X_delta,
                                  Y_delta=Y_dd,
-                                 formulation='schur')
-        rhs_dd_d = heat_dd_d.calculate_rhs_vector(
+                                 formulation='schur',
+                                 dirichlet_boundary=self.dirichlet_boundary)
+        f_dd_d = heat_dd_d.calculate_rhs_vector(
             g_functional=self.g_functional, u0_functional=self.u0_functional)
 
-        u_dd_d, num_iters = heat_dd_d.solve(rhs_dd_d, solver=solver)
+        u_dd_d, num_iters = heat_dd_d.solve(f_dd_d, solver=solver)
 
         residual, residual_X_d, residual_X_d_dd = self.residual(u_dd_d=u_dd_d,
                                                                 X_dd=X_dd,
@@ -85,7 +87,8 @@ class AdaptiveHeatEquation:
         # Create operator/rhs for (X_dd, Y_dd).
         heat_dd_dd = HeatEquation(X_delta=X_dd,
                                   Y_delta=Y_dd,
-                                  formulation='schur')
+                                  formulation='schur',
+                                  dirichlet_boundary=self.dirichlet_boundary)
         f_dd_dd = heat_dd_dd.calculate_rhs_vector(
             g_functional=self.g_functional, u0_functional=self.u0_functional)
 

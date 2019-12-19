@@ -19,20 +19,31 @@ def generate_x_delta_underscore(x_delta):
         if len(dblnode.children[0]) == 0 and dblnode.nodes[1].level == 0:
             # Refine in time-axis...
             dblnode.nodes[0].refine()
-            new_dblnodes.extend(dblnode.refine(i=0, make_conforming=True))
+            dblnode.refine(i=0, make_conforming=True)
+
         if len(dblnode.children[1]) == 0:
             # and double-refine in space-axis.
             dblnode.nodes[1].node.refine()
             dblnode.nodes[1].refine(make_conforming=True)
             children = dblnode.refine(i=1, make_conforming=True)
-            new_dblnodes.extend(children)
             for child in children:
                 child.nodes[1].node.refine()
                 child.nodes[1].refine(make_conforming=True)
-                new_dblnodes.extend(child.refine(i=1, make_conforming=True))
+                child.refine(i=1, make_conforming=True)
+
+    dblnodes_underscore = x_delta_underscore.bfs()
+    for dblnode in dblnodes:
+        dblnode.marked = True
+
+    new_dblnodes = []
+    for dblnode in dblnodes_underscore:
+        if not dblnode.marked:
+            new_dblnodes.append(dblnode)
+        else:
+            dblnode.marked = False
 
     # TODO: list(set(x)) whoops
-    return x_delta_underscore, list(set(new_dblnodes))
+    return x_delta_underscore, new_dblnodes
 
 
 def generate_y_delta(x_delta):
