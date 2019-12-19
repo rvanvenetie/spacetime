@@ -135,7 +135,7 @@ class HeatEquation:
     def calculate_rhs_vector(self, g_functional, u0_functional):
         """ Generates a rhs vector for a general rhs g and initial cond u_0. """
         rhs_g = g_functional.eval(self.Y_delta)
-        rhs_u0 = g_functional.eval(self.X_delta)
+        rhs_u0 = u0_functional.eval(self.X_delta)
         rhs_u0 *= -1
 
         # Put the vectors in a block.
@@ -198,6 +198,7 @@ class HeatEquation:
             u0_functionals.append(
                 TensorFunctional(functional_time=functional_time,
                                  functional_space=functional_space))
+            print(u0_functionals[-1].eval(self.X_delta).to_array())
         u0_functional = SumFunctional(u0_functionals)
         return g_functional, u0_functional
 
