@@ -82,6 +82,12 @@ class Operator:
             if not vertex.on_domain_boundary
         ]
 
+    def boundary_dofs(self):
+        return [
+            i for (i, vertex) in enumerate(self.triang.vertices)
+            if vertex.on_domain_boundary
+        ]
+
     def as_linear_operator(self):
         """ Recasts the application of a this as a scipy LinearOperator. """
         return LinearOperator(dtype=float,
@@ -306,6 +312,25 @@ class QuadratureFunctional:
         operator = Operator(triang=self.triang,
                             dirichlet_boundary=self.dirichlet_boundary)
         return operator.apply_T_transpose(quad_ss)
+
+
+class InterpolantFunctional:
+    def __init__(self, g, dirichlet_boundary=True, triang=None):
+        self.g = g
+        self.dirichlet_boundary = dirichlet_boundary
+        self.triang = triang
+
+    def eval(self):
+        op = Preconditioner(triang=self.triang,
+                            dirichlet_boundary=self.dirichlet_boundary)
+        eval_ss = np.array(
+            [self.g(vertex.xy) for vertex in self.triang.vertices])
+
+        if self.dirichlet_boundary:
+            bdr_dofs = op.boundary_dofs()
+            assert np.allclose(eval_ss[bdr_dofs], 0)
+
+        return op.apply_T_inverse(eval_ss)
 
 
 def plot_hatfn():
