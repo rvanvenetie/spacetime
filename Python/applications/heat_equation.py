@@ -193,8 +193,7 @@ class HeatEquation:
                 basis=self.time_basis_X,
             )
             functional_space = s_functional.Functional(
-                s_operators.QuadratureFunctional(g=g_space,
-                                                 g_order=g_space_order))
+                s_operators.QuadratureFunctional(g=u0, g_order=u0_order))
 
             u0_functionals.append(
                 TensorFunctional(functional_time=functional_time,
