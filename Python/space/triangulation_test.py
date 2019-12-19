@@ -161,3 +161,17 @@ def test_element_barycentric():
 
             # Convert barycentric back to normal
             assert np.allclose(V @ bary, xy)
+
+
+def test_l_shape():
+    T = InitialTriangulation.l_shape()
+    assert len(T.elem_meta_root.bfs()) == 6
+    assert len(T.vertex_meta_root.bfs()) == 8
+
+    T.elem_meta_root.uniform_refine(1)
+    assert len(T.elem_meta_root.bfs()) == 12 + 6
+    assert len(T.vertex_meta_root.bfs()) == 11
+
+    for k in range(2, 7):
+        T.elem_meta_root.uniform_refine(k)
+        assert len(T.elem_meta_root.bfs()) == 6 * (2**(k + 1) - 1)
