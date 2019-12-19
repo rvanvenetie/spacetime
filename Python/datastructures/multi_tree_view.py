@@ -61,6 +61,10 @@ class MultiNodeViewInterface(NodeInterface):
         """ Returns whether node in any the axes represents a metaroot. """
         return any(self.nodes[i].is_metaroot() for i in range(self.dim))
 
+    def is_root(self):
+        """ Returns whether this multi node view is the root of the mt tree. """
+        return all(self.nodes[i].is_metaroot() for i in range(self.dim))
+
     def coarsen(self):
         return self._coarsen()
 
@@ -200,6 +204,7 @@ class MultiNodeViewInterface(NodeInterface):
               second arg will hold a ref to the second tree.
         """
         if call_postprocess is None: call_postprocess = lambda _, __: None
+        if call_filter is None: call_filter = lambda _: True
         assert isinstance(other, MultiNodeViewInterface)
         assert self.nodes == other.nodes and self.dim == other.dim
         queue = deque([(self, other)])
@@ -214,11 +219,12 @@ class MultiNodeViewInterface(NodeInterface):
             my_nodes.append(my_node)
 
             for i in range(self.dim):
-                # Refine according to the call_filter.
+                filtered_children = list(
+                    filter(call_filter, other_node._children[i]))
+
+                # Refine according to the filtered children.
                 my_node._refine(
-                    i=i,
-                    children=[c.nodes[i] for c in other_node._children[i]],
-                    call_filter=call_filter)
+                    i=i, children=[c.nodes[i] for c in filtered_children])
 
                 # Only put children that other_node has as well into the queue.
                 for my_child in my_node._children[i]:
@@ -338,7 +344,7 @@ class MultiTree:
 
     def __init__(self, root):
         assert isinstance(root, self.mlt_node_cls)
-        assert all(root.nodes[i].is_metaroot() for i in range(root.dim))
+        assert root.is_root()
         self.root = root
 
     @classmethod
@@ -399,3 +405,33 @@ class MultiTree:
     def deep_refine(self, call_filter=None, call_postprocess=None):
         """ Deep refines the root of this multi tree view. """
         self.root._deep_refine(call_filter, call_postprocess)
+
+    @classmethod
+    def make_conforming(cls, nodes):
+        """ Creates a conforming multitree containing the given nodes. """
+        # We will mark all the multinodes that should be in the tree.
+        queue = deque(nodes)
+        marked_nodes = []
+        root = None
+        while queue:
+            node = queue.popleft()
+            if node.marked: continue
+            if node.is_root(): root = node
+            node.marked = True
+            marked_nodes.append(node)
+            for i in range(node.dim):
+                queue.extend(node._parents[i])
+
+        assert root is not None
+
+        # Create a new tree.
+        result = cls.from_metaroots(root.nodes)
+
+        # Only copy in nodes that are marked.
+        result.root._union(root, call_filter=lambda mlt_node: mlt_node.marked)
+
+        # Unmark the items.
+        for node in marked_nodes:
+            node.marked = False
+
+        return result
