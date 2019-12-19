@@ -1,11 +1,12 @@
 import numpy as np
 
+from ..datastructures.functional import FunctionalInterface
 from ..datastructures.tree_vector import TreeVector
 from .basis import MultiscaleFunctions
 from .sparse_vector import SparseVector
 
 
-class Functional:
+class Functional(FunctionalInterface):
     """ Class that can evaluate a functional on a multiscale basis. """
     def __init__(self, singlescale_operator, basis):
         """ Initialize the functional.

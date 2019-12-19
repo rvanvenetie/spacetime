@@ -101,8 +101,8 @@ def test_full_tensor_heat():
     X_delta.uniform_refine(4)
 
     # Create heat equation object.
-    for solver in ['minres', 'cg-schur']:
-        heat_eq = HeatEquation(X_delta=X_delta, solver=solver)
+    for formulation in ['saddle', 'schur']:
+        heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
         rhs = random_rhs(heat_eq)
 
         # Try and apply the heat_eq block matrix to this rhs.
@@ -130,8 +130,8 @@ def test_sparse_tensor_heat():
     X_delta.sparse_refine(2)
 
     # Create heat equation object.
-    for solver in ['minres', 'cg-schur']:
-        heat_eq = HeatEquation(X_delta=X_delta, solver=solver)
+    for formulation in ['saddle', 'schur']:
+        heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
         rhs = random_rhs(heat_eq)
 
         # Try and apply the heat_eq block matrix to this rhs.
@@ -166,8 +166,8 @@ def test_real_tensor_heat():
     X_delta.sparse_refine(3)
 
     # Create heat equation object.
-    for solver in ['minres', 'cg-schur']:
-        heat_eq = HeatEquation(X_delta=X_delta, solver=solver)
+    for formulation in ['saddle', 'schur']:
+        heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
         rhs = example_rhs(heat_eq)
 
         # Now actually solve this beast!
@@ -175,13 +175,13 @@ def test_real_tensor_heat():
         error = np.linalg.norm(
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())
         print('%s solved in {} iterations with an error {}'.format(
-            solver, num_iters, error))
+            formulation, num_iters, error))
 
         # assert that solver converged.
         assert error < 1e-4
 
         # assert that the solution is not identically zero.
-        u_sol = sol[1] if solver == 'minres' else sol
+        u_sol = sol[1] if formulation == 'saddle' else sol
         assert sum(abs(sol.to_array())) > 0
 
     # Return heat_eq, sol for plotting purposes!
@@ -205,8 +205,8 @@ def test_heat_eq_linear():
     X_delta.sparse_refine(2)
 
     # Create heat equation object.
-    for solver in ['minres', 'cg-schur']:
-        heat_eq = HeatEquation(X_delta=X_delta)
+    for formulation in ['saddle', 'schur']:
+        heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
         heat_eq_mat = heat_eq.linop.to_matrix()
 
         # Check that the heat_eq linear operator is linear.
@@ -232,6 +232,7 @@ def test_heat_eq_linear():
 def test_heat_error_reduction(max_history_level=0,
                               max_level=6,
                               save_results_file=None,
+                              formulation='saddle',
                               solver='minres'):
     # Printing options.
     np.set_printoptions(precision=4)
@@ -265,7 +266,7 @@ def test_heat_error_reduction(max_history_level=0,
             len(X_delta.project(0).bfs()), len(X_delta.project(1).bfs())))
 
         # Create heat equation object.
-        heat_eq = HeatEquation(X_delta=X_delta, solver=solver)
+        heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
         rhs = example_rhs(heat_eq)
 
         if level <= max_history_level:
@@ -274,8 +275,11 @@ def test_heat_error_reduction(max_history_level=0,
                 np.linalg.norm(heat_eq.linop @ vec - rhs.to_array()))
         else:
             callback = None
+
         # Now actually solve this beast!
-        sol, num_iters = heat_eq.solve(rhs, iter_callback=callback)
+        sol, num_iters = heat_eq.solve(rhs,
+                                       solver=solver,
+                                       iter_callback=callback)
 
         # Count number of dofs (not on the boundary!)
         ndofs.append(
@@ -301,7 +305,7 @@ def test_heat_error_reduction(max_history_level=0,
         u, u_order, u_slice_norm = example_solution_function()
 
         cur_errors_quad = np.ones(n_t)
-        u_sol = sol[1] if solver == 'minres' else sol
+        u_sol = sol[1] if formulation == 'saddle' else sol
         for i, t in enumerate(np.linspace(0, 1, n_t)):
             sol_slice = u_sol.slice(i=0,
                                     coord=t,
@@ -384,7 +388,7 @@ def test_preconditioned_eigenvalues(max_level=6, sparse_grid=True):
             len(X_delta.project(0).bfs()), len(X_delta.project(1).bfs())))
 
         # Create heat equation object.
-        heat_eq = HeatEquation(X_delta=X_delta, solver='pcg-schur')
+        heat_eq = HeatEquation(X_delta=X_delta, formulation='schur')
         S = heat_eq.linop
         Sinv = LinearOperatorApplicator(applicator=heat_eq.P_X,
                                         input_vec=heat_eq.create_vector())
@@ -399,4 +403,5 @@ if __name__ == "__main__":
     test_heat_error_reduction(max_history_level=16,
                               max_level=16,
                               save_results_file=None,
-                              solver='pcg-schur')
+                              formulation='schur',
+                              solver='pcg')

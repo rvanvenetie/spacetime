@@ -3,6 +3,7 @@ import scipy.sparse.linalg as spla
 from ..datastructures.applicator import (BlockApplicator, CompositeApplicator,
                                          LinearOperatorApplicator)
 from ..datastructures.double_tree_vector import DoubleTreeVector
+from ..datastructures.functional import SumFunctional
 from ..datastructures.multi_tree_function import DoubleTreeFunction
 from ..datastructures.multi_tree_vector import BlockTreeVector
 from ..space import applicator as s_applicator
@@ -24,14 +25,14 @@ class HeatEquation:
                  X_delta,
                  Y_delta=None,
                  dirichlet_boundary=True,
-                 solver='minres'):
+                 formulation='saddle'):
         if Y_delta is None:
             Y_delta = generate_y_delta(X_delta)
 
         self.X_delta = X_delta
         self.Y_delta = Y_delta
         self.dirichlet_boundary = dirichlet_boundary
-        self.solver = solver
+        self.formulation = formulation
 
         print('HeatEquation with #(Y_delta, X_delta)=({}, {})'.format(
             len(Y_delta.bfs()), len(X_delta.bfs())))
@@ -80,26 +81,26 @@ class HeatEquation:
                                             self.time_basis_X),
             applicator_space=applicator_space(s_operators.MassOperator))
 
-        if solver == 'minres':
+        if formulation == 'saddle':
             self.mat = BlockApplicator([[self.A_s, self.B],
                                         [self.BT, -self.m_gamma]])
-        elif solver in ['cg-schur', 'pcg-schur']:
+        elif formulation == 'schur':
             self.P_Y = BlockDiagonalApplicator(
                 Y_delta,
                 applicator_space=applicator_space(
                     s_operators.DirectInverse,
                     forward_op_ctor=s_operators.StiffnessOperator))
+            self.P_X = BlockDiagonalApplicator(
+                X_delta,
+                applicator_space=applicator_space(
+                    s_operators.XPreconditioner,
+                    precond_cls=s_operators.DirectInverse,
+                    alpha=0.35))
+
             self.mat = CompositeApplicator([self.B, self.P_Y, self.BT
                                             ]) + self.m_gamma
-            if solver == 'pcg-schur':
-                self.P_X = BlockDiagonalApplicator(
-                    X_delta,
-                    applicator_space=applicator_space(
-                        s_operators.XPreconditioner,
-                        precond_cls=s_operators.DirectInverse,
-                        alpha=0.35))
         else:
-            raise NotImplementedError("Unknown method " % solver)
+            raise NotImplementedError("Unknown method " % formulation)
         self.linop = LinearOperatorApplicator(applicator=self.mat,
                                               input_vec=self.create_vector())
 
@@ -114,7 +115,7 @@ class HeatEquation:
                       call_postprocess=None,
                       mlt_tree_cls=DoubleTreeVector):
         """ Creates a (empty) solution block vector. """
-        if self.solver == 'minres':
+        if self.formulation == 'saddle':
             if not isinstance(call_postprocess, tuple):
                 call_postprocess = (call_postprocess, call_postprocess)
             result = BlockTreeVector(
@@ -131,8 +132,28 @@ class HeatEquation:
 
         return result
 
-    def calculate_tensor_rhs_vector(self, g, g_order, u0, u0_order):
-        """ Generates a rhs vector for a seperable rhs g and initial cond u_0 .
+    def calculate_rhs_vector(self, g_functional, u0_functional):
+        """ Generates a rhs vector for a general rhs g and initial cond u_0. """
+        rhs_g = g_functional.eval(self.Y_delta)
+        rhs_u0 = g_functional.eval(self.X_delta)
+        rhs_u0 *= -1
+
+        # Put the vectors in a block.
+        rhs = BlockTreeVector((rhs_g, rhs_u0))
+
+        # Ensure the dirichlet boundary conditions.
+        if self.dirichlet_boundary:
+            self.enforce_dirichlet_boundary(rhs)
+
+        if self.formulation == 'saddle':
+            return rhs
+        else:
+            f = self.BT.apply(self.P_Y.apply(rhs[0]))
+            f -= rhs[1]
+            return f
+
+    def calculate_rhs_functionals_quadrature(self, g, g_order, u0, u0_order):
+        """ Generates a rhs functional for a seperable rhs g and initial cond u_0 .
 
         This assumes that g is given as a sum of seperable functions.
 
@@ -148,7 +169,7 @@ class HeatEquation:
         assert isinstance(u0, list) and isinstance(u0_order, list)
 
         # Create the right hand side g, the spacetime mass inner product.
-        rhs_g = self.Y_delta.deep_copy(mlt_tree_cls=DoubleTreeVector)
+        g_functionals = []
         for ((g_time, g_space), (g_time_order,
                                  g_space_order)) in zip(g, g_order):
             functional_time = t_functional.Functional(
@@ -158,13 +179,14 @@ class HeatEquation:
             functional_space = s_functional.Functional(
                 s_operators.QuadratureFunctional(g=g_space,
                                                  g_order=g_space_order))
+            g_functionals.append(
+                TensorFunctional(functional_time=functional_time,
+                                 functional_space=functional_space))
 
-            functional = TensorFunctional(functional_time=functional_time,
-                                          functional_space=functional_space)
-            rhs_g += functional.eval(self.Y_delta)
+        g_functional = SumFunctional(functionals=g_functionals)
 
         # Calculate -gamma_0'u_0, eval in time, mass in space.
-        rhs_u0 = self.X_delta.deep_copy(mlt_tree_cls=DoubleTreeVector)
+        u0_functionals = []
         for u0, u0_order in zip(u0, u0_order):
             functional_time = t_functional.Functional(
                 t_operators.evaluation(t=0),
@@ -174,25 +196,29 @@ class HeatEquation:
                 s_operators.QuadratureFunctional(g=g_space,
                                                  g_order=g_space_order))
 
-            functional = TensorFunctional(functional_time=functional_time,
-                                          functional_space=functional_space)
-            rhs_u0 -= functional.eval(self.X_delta)
+            u0_functionals.append(
+                TensorFunctional(functional_time=functional_time,
+                                 functional_space=functional_space))
+        u0_functional = SumFunctional(u0_functionals)
+        return g_functional, u0_functional
 
-        # Put the vectors in a block.
-        rhs = BlockTreeVector((rhs_g, rhs_u0))
+    def calculate_tensor_rhs_vector(self, g, g_order, u0, u0_order):
+        """ Convenience function. """
+        g_functional, u0_functional = self.calculate_rhs_functionals_quadrature(
+            g, g_order, u0, u0_order)
+        return self.calculate_rhs_vector(g_functional=g_functional,
+                                         u0_functional=u0_functional)
 
-        # Ensure the dirichlet boundary conditions.
-        if self.dirichlet_boundary:
-            self.enforce_dirichlet_boundary(rhs)
+    def solve(self, rhs, solver=None, iter_callback=None):
+        # Set a default value for solver.
+        if solver is None:
+            solver = {'saddle': 'minres', 'schur': 'cg'}[self.formulation]
 
-        if self.solver == 'minres':
-            return rhs
-        else:
-            f = self.BT.apply(self.P_Y.apply(rhs[0]))
-            f -= rhs[1]
-            return f
+        # Check input of solver.
+        if self.formulation == 'saddle': assert solver == 'minres'
+        if self.formulation == 'schur':
+            assert solver in ['cg', 'pcg']
 
-    def solve(self, rhs, iter_callback=None):
         num_iters = 0
 
         def call_iterations(vec):
@@ -201,11 +227,11 @@ class HeatEquation:
             print(".", end='', flush=True)
             num_iters += 1
 
-        if self.solver == "minres":
+        if solver == "minres":
             solver = spla.minres
-        elif self.solver == "cg-schur":
+        elif solver == "cg":
             solver = spla.cg
-        elif self.solver == "pcg-schur":
+        elif solver == "pcg":
             solver = lambda S, b, callback: spla.cg(
                 S,
                 b=b,

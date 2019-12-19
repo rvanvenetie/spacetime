@@ -71,6 +71,10 @@ class MultiTreeVector(MultiTree):
     def sum(self):
         return sum(nv.value for nv in self.bfs())
 
+    def norm(self):
+        """ Returns the l2 norm of this vector. """
+        return np.linalg.norm(self.to_array(), 2)
+
     def reset(self):
         """ Resets all the values in the underlying tree to zero. """
         for node in self.bfs():

@@ -1,8 +1,9 @@
+from ..datastructures.functional import FunctionalInterface
 from ..datastructures.tree_vector import TreeVector
 from .triangulation_view import TriangulationView
 
 
-class Functional:
+class Functional(FunctionalInterface):
     """ Class can evaluate a functional on the hierarchical basis. """
     def __init__(self, singlescale_functional):
         """ Initialize the functional.
