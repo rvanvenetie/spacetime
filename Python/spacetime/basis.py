@@ -13,33 +13,23 @@ def generate_x_delta_underscore(x_delta):
 
     x_delta_underscore = x_delta.deep_copy()
 
-    def time_filter(child_nodes):
-        # Refine the time-axis tree.
-        child_nodes[0].refine()
-        return True
-
-    def space_filter(child_nodes):
-        # Refine the triangulation of the space-axis twice.
-        for child in child_nodes[1].node.refine():
-            child.refine()
-
-        # Refine the hierarchical basis function tree twice.
-        for child in child_nodes[1].refine():
-            child.refine()
-
-        # Now we may refine the spacetime doubletree.
-        return True
-
     dblnodes = x_delta_underscore.bfs()
     for dblnode in dblnodes:
-        # Stupidly call refine in time-axis...
-        dblnode.refine(i=0, call_filter=time_filter, make_conforming=True)
+        if not dblnode.is_leaf(): continue
+        if len(dblnode.children[0]) == 0:
+            # Refine in time-axis...
+            dblnode.nodes[0].refine()
+            dblnode.refine(i=0, make_conforming=True)
+
         # and double-refine in space-axis.
-        children = dblnode.refine(i=1,
-                                  call_filter=space_filter,
-                                  make_conforming=True)
+        dblnode.nodes[1].node.refine()
+        dblnode.nodes[1].refine(make_conforming=True)
+        children = dblnode.refine(i=1, make_conforming=True)
         for child in children:
+            child.nodes[1].node.refine()
+            child.nodes[1].refine(make_conforming=True)
             child.refine(i=1, make_conforming=True)
+
     return x_delta_underscore
 
 

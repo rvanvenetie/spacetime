@@ -82,11 +82,23 @@ def test_x_delta_underscore():
     OrthonormalBasis.metaroot_wavelet.uniform_refine(1)
 
     # Tryout various levels.
-    for l in range(6):
-        # Create X^\delta
-        X_delta = DoubleTree.from_metaroots(
-            (basis_time.metaroot_wavelet, basis_space.root))
-        X_delta.uniform_refine([l, 2 * l])
-        X_delta_underscore = generate_x_delta_underscore(X_delta)
+    for max_level, refine_lambda in [
+        (5, lambda X, k: X.uniform_refine([k, 2 * k])),
+        (10, lambda X, k: X.sparse_refine(k, weights=[2, 1]))
+    ]:
+        for l in range(max_level):
+            # Create X^\delta
+            X_delta = DoubleTree.from_metaroots(
+                (basis_time.metaroot_wavelet, basis_space.root))
+            refine_lambda(X_delta, l)
+            X_delta_underscore = generate_x_delta_underscore(X_delta)
 
+            X_delta_refined = DoubleTree.from_metaroots(
+                (basis_time.metaroot_wavelet, basis_space.root))
+            refine_lambda(X_delta_refined, l + 2)
+
+            assert len(X_delta.bfs()) <= len(X_delta_underscore.bfs())
+            assert len(X_delta_underscore.bfs()) <= len(X_delta_refined.bfs())
+            print(len(X_delta.bfs()), len(X_delta_underscore.bfs()),
+                  len(X_delta_refined.bfs()))
     assert False
