@@ -88,10 +88,5 @@ def test_x_delta_underscore():
             (basis_time.metaroot_wavelet, basis_space.root))
         X_delta.uniform_refine([l, 2 * l])
         X_delta_underscore = generate_x_delta_underscore(X_delta)
-        print([id(v) for v in triang.vertex_meta_root.bfs()])
-        print([id(v) for v in basis_space.bfs()])
-        print(l, len(triang.elem_meta_root.bfs()),
-              len(triang.vertex_meta_root.bfs()),
-              len(X_delta.project(1).bfs()), len(X_delta_underscore.bfs()))
 
     assert False
