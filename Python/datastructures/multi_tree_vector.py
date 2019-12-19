@@ -91,6 +91,7 @@ class MultiTreeVector(MultiTree):
 
             my_nodes = self.bfs()
             x_nodes = x.bfs()
+            assert len(my_nodes) == len(x_nodes)
             for my_node, x_node in zip(my_nodes, x_nodes):
                 assert my_node.nodes == x_node.nodes
                 my_node.value *= x_node.value
