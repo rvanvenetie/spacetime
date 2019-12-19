@@ -108,7 +108,7 @@ class AdaptiveHeatEquation:
         def call_postprocess(res_node, other_node):
             # This node is in X_d, res_node.value should be zero.
             if not other_node.marked:
-                abs(res_node.value) < 1e-5
+                assert abs(res_node.value) < 1e-5
                 residual_X_d.append(res_node)
                 return
             residual_X_d_dd.append(res_node)
