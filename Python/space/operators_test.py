@@ -1,10 +1,12 @@
 import numpy as np
+import pytest
 from numpy.linalg import norm
 from scipy.sparse.linalg import cg
 
 from ..datastructures.tree_view import TreeView
-from .operators import (MassOperator, Operator, StiffnessOperator,
-                        DirectInverse)
+from .basis import HierarchicalBasisFunction
+from .operators import (DirectInverse, InterpolantOperator, MassOperator,
+                        Operator, StiffnessOperator)
 from .triangulation import InitialTriangulation, to_matplotlib_triangulation
 from .triangulation_view import TriangulationView
 
@@ -98,6 +100,33 @@ def test_direct_inverse():
                 v = forward_op.apply_boundary_restriction(v)
             assert np.allclose(v, forward_op.apply(inv_op.apply(v)))
             assert np.allclose(v, inv_op.apply(forward_op.apply(v)))
+
+
+def test_interpolant():
+    """ Tests the `InterpolantOperator` class. """
+    # Setup the triangulation
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(3)
+    vertex_view = HierarchicalBasisFunction.from_triangulation(T)
+    vertex_view.deep_refine()
+    T_view = TriangulationView(vertex_view)
+
+    eye = np.eye(len(T_view.vertices))
+
+    # Check that the interpolant of a hierarhical basis function is again
+    # the same hierarhical basis function.
+    for dirichlet_boundary in [False, True]:
+        for i, psi in enumerate(vertex_view.bfs()):
+            op = InterpolantOperator(g=lambda xy: psi.eval(xy),
+                                     dirichlet_boundary=dirichlet_boundary,
+                                     triang=T_view)
+
+            if dirichlet_boundary and psi.node.on_domain_boundary:
+                with pytest.raises(AssertionError):
+                    op.eval()
+            else:
+                interp_g = op.eval()
+                assert np.allclose(interp_g, eye[:, i])
 
 
 def test_galerkin(plot=False):
