@@ -4,8 +4,39 @@ from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointWavelet
 
 
+def generate_x_delta_underscore(x_delta):
+    """ Generates X^{underline delta} as in p.27 from followup3.pdf. """
+    assert isinstance(x_delta, DoubleTree)
+    assert isinstance(x_delta.root.nodes[0].children[0], ThreePointWavelet)
+    assert isinstance(x_delta.root.nodes[1].children[0],
+                      HierarchicalBasisFunction)
+
+    x_delta_underscore = x_delta.deep_copy()
+
+    dblnodes = x_delta_underscore.bfs()
+    new_dblnodes = []
+    for dblnode in dblnodes:
+        if len(dblnode.children[0]) == 0:
+            # Refine in time-axis...
+            dblnode.nodes[0].refine()
+            new_dblnodes.extend(dblnode.refine(i=0, make_conforming=True))
+        if len(dblnode.children[1]) == 0:
+            # and double-refine in space-axis.
+            dblnode.nodes[1].node.refine()
+            dblnode.nodes[1].refine(make_conforming=True)
+            children = dblnode.refine(i=1, make_conforming=True)
+            new_dblnodes.extend(children)
+            for child in children:
+                child.nodes[1].node.refine()
+                child.nodes[1].refine(make_conforming=True)
+                new_dblnodes.extend(child.refine(i=1, make_conforming=True))
+
+    # TODO: list(set(x)) whoops
+    return x_delta_underscore, list(set(new_dblnodes))
+
+
 def generate_y_delta(x_delta):
-    """ This generates the Y^\delta from X^\delta as given in followup1.pdf  """
+    """ Generates Y^\delta from X^\delta as p.6 from followup3.pdf. """
 
     assert isinstance(x_delta, DoubleTree)
     assert isinstance(x_delta.root.nodes[0].children[0], ThreePointWavelet)
