@@ -394,6 +394,39 @@ def test_preconditioned_eigenvalues(max_level=6, sparse_grid=True):
               format(level, len(X_delta.bfs()), l.lmin, l.lmax, l.cond()))
 
 
+def test_adaptive_loop(max_level=16, sparse_grid=True):
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.vertex_meta_root.uniform_refine(max_level)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(max_level)
+
+    for level in range(2, max_level):
+        # Create X^\delta as a sparse grid.
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
+        if sparse_grid:
+            X_delta.sparse_refine(level, weights=[2, 1])
+        else:
+            X_delta.uniform_refine([level, 2 * level])
+        print('X_delta: dofs time axis={}\tdofs space axis={}'.format(
+            len(X_delta.project(0).bfs()), len(X_delta.project(1).bfs())))
+
+        # Create heat equation object.
+        heat_eq = HeatEquation(X_delta=X_delta, solver='pcg-schur')
+        S = heat_eq.linop
+        Sinv = LinearOperatorApplicator(applicator=heat_eq.P_X,
+                                        input_vec=heat_eq.create_vector())
+        l = Lanczos(S, Sinv)
+        assert l.cond() < 10
+        print("Level {} with {} DoFs; l_min = {}; l_max = {}; kappa_2 = {}".
+              format(level, len(X_delta.bfs()), l.lmin, l.lmax, l.cond()))
+
+
 if __name__ == "__main__":
     # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
     test_heat_error_reduction(max_history_level=16,

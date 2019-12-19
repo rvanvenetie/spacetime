@@ -3,7 +3,7 @@ from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointBasis
-from .basis import generate_y_delta
+from .basis import generate_x_delta_underscore, generate_y_delta
 
 
 def test_full_tensor_y_delta():
@@ -65,3 +65,33 @@ def test_sparse_tensor_y_delta():
         Y_delta_tensor.sparse_refine(l)
 
         assert len(Y_delta.bfs()) == len(Y_delta_tensor.bfs())
+
+
+def test_x_delta_underscore():
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.elem_meta_root.uniform_refine(1)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(1)
+
+    # Refine the orthonormal basis
+    OrthonormalBasis.metaroot_wavelet.uniform_refine(1)
+
+    # Tryout various levels.
+    for l in range(6):
+        # Create X^\delta
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
+        X_delta.uniform_refine([l, 2 * l])
+        X_delta_underscore = generate_x_delta_underscore(X_delta)
+        print([id(v) for v in triang.vertex_meta_root.bfs()])
+        print([id(v) for v in basis_space.bfs()])
+        print(l, len(triang.elem_meta_root.bfs()),
+              len(triang.vertex_meta_root.bfs()),
+              len(X_delta.project(1).bfs()), len(X_delta_underscore.bfs()))
+
+    assert False
