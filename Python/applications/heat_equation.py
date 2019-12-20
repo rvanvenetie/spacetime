@@ -209,7 +209,7 @@ class HeatEquation:
         u0_functional = SumFunctional(u0_functionals)
         return g_functional, u0_functional
 
-    def solve(self, b, x0, solver=None, iter_callback=None):
+    def solve(self, b, x0=None, solver=None, iter_callback=None):
         self._validate_boundary_dofs(b)
         if x0:
             self._validate_boundary_dofs(x0)

@@ -272,7 +272,7 @@ class MultiNodeViewInterface(NodeInterface):
         """
         if call_postprocess is None: call_postprocess = lambda _: None
         my_nodes = []
-        queue = deque([self])
+        queue = deque(self.refine())
         while queue:
             my_node = queue.popleft()
             if my_node.marked: continue

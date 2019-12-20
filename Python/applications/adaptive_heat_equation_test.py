@@ -38,5 +38,5 @@ def test_heat_error_reduction(theta=0.7):
                                             theta=theta)
 
     # Solve
-    sol, errors = adaptive_heat_eq.solve()
+    sol, errors = adaptive_heat_eq.solve(max_iters=2)
     print(errors)
