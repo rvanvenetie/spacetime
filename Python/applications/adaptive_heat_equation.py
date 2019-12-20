@@ -21,7 +21,7 @@ class AdaptiveHeatEquation:
         self.theta = theta
         self.dirichlet_boundary = dirichlet_boundary
 
-    def solve_step(self, solver='pcg'):
+    def solve_step(self, x0=None, solver='pcg'):
         X_dd, I_d_dd = generate_x_delta_underscore(self.X_delta)
         Y_dd = generate_y_delta(X_dd)
         print('Number of funtions in X_delta_underscore \ X_delta {}'.format(
@@ -35,7 +35,12 @@ class AdaptiveHeatEquation:
         f_dd_d = heat_dd_d.calculate_rhs_vector(
             g_functional=self.g_functional, u0_functional=self.u0_functional)
 
-        u_dd_d, num_iters = heat_dd_d.solve(f_dd_d, solver=solver)
+        # If we have an initial guess, interpolate it into X_dd.
+        if x0:
+            x0 = x0.deep_copy()
+            x0.union(self.X_delta, call_postprocess=None)
+
+        u_dd_d, num_iters = heat_dd_d.solve(b=f_dd_d, x0=x0, solver=solver)
 
         residual, residual_X_d, residual_X_d_dd = self.residual(u_dd_d=u_dd_d,
                                                                 X_dd=X_dd,
@@ -60,7 +65,7 @@ class AdaptiveHeatEquation:
         errors = [residual.norm()]
 
         while errors[-1] > eps:
-            u_dd_d, residual = self.solve_step(solver)
+            u_dd_d, residual = self.solve_step(x0=u_dd_d, solver=solver)
             errors.append(residual.norm())
 
         return u_dd_d, errors
@@ -126,11 +131,11 @@ class AdaptiveHeatEquation:
             # This is a new time wavelet, scale with 2^(-|labda|)
             if not other_node.nodes[0].marked:
                 assert other_node.nodes[1].level == 0
-                res_node.value *= 2**-other_node.nodes[0].level
+                res_node.value /= 2**(other_node.nodes[0].level)
             # This is a refined mesh function, scale with 1 + 4^|labda|-lvl(v).
             else:
                 lvl_diff = other_node.nodes[0].level - other_node.nodes[1].level
-                res_node.value *= 1 + 4**(lvl_diff)
+                res_node.value /= (1.0 + 4**(lvl_diff))
 
         # Apply the basis transformation
         residual.union(X_dd, call_postprocess=call_postprocess)

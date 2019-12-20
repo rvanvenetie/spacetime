@@ -209,8 +209,11 @@ class HeatEquation:
         u0_functional = SumFunctional(u0_functionals)
         return g_functional, u0_functional
 
-    def solve(self, rhs, solver=None, iter_callback=None):
-        self._validate_boundary_dofs(rhs)
+    def solve(self, b, x0, solver=None, iter_callback=None):
+        self._validate_boundary_dofs(b)
+        if x0:
+            self._validate_boundary_dofs(x0)
+
         # Set a default value for solver.
         if solver is None:
             solver = {'saddle': 'minres', 'schur': 'cg'}[self.formulation]
@@ -233,16 +236,18 @@ class HeatEquation:
         elif solver == "cg":
             solver = spla.cg
         elif solver == "pcg":
-            solver = lambda S, b, callback: spla.cg(
+            solver = lambda S, b, x0, callback: spla.cg(
                 S,
                 b=b,
+                x0=x0,
                 M=LinearOperatorApplicator(applicator=self.P_X,
                                            input_vec=self.create_vector()),
                 callback=callback)
         else:
             raise NotImplementedError("Unrecognized method '%s'" % self.solver)
         result_array, info = solver(self.linop,
-                                    b=rhs.to_array(),
+                                    x0=x0.to_array() if x0 else None,
+                                    b=b.to_array(),
                                     callback=call_iterations)
         result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
         result_fn.from_array(result_array)
