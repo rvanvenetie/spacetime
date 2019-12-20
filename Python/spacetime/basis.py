@@ -26,7 +26,8 @@ def generate_x_delta_underscore(x_delta):
             # and double-refine in space-axis.
             dblnode.nodes[1].node.refine()
             dblnode.nodes[1].refine(make_conforming=True)
-            children = dblnode.refine(i=1, make_conforming=True)
+            dblnode.refine(i=1, make_conforming=True)
+            children = dblnode.children[1]
             for child in children:
                 child.nodes[1].node.refine()
                 child.nodes[1].refine(make_conforming=True)

@@ -57,9 +57,12 @@ class MultiNodeViewInterface(NodeInterface):
         else:
             return len(self._children[i]) == len(self.nodes[i].children)
 
-    def is_metaroot(self):
+    def is_metaroot(self, i=None):
         """ Returns whether node in any the axes represents a metaroot. """
-        return any(self.nodes[i].is_metaroot() for i in range(self.dim))
+        if i is None:
+            return any(self.is_metaroot(i) for i in range(self.dim))
+        else:
+            return self.nodes[i].is_metaroot
 
     def is_root(self):
         """ Returns whether this multi node view is the root of the mt tree. """
@@ -156,14 +159,29 @@ class MultiNodeViewInterface(NodeInterface):
                     for child_parent_j in child_nodes[j].parents
                 ])
 
+            # Create child.
             child = self.__class__(nodes=child_nodes, parents=brothers)
+
+            # Add child to brothers.
             for j in range(self.dim):
                 for brother in brothers[j]:
                     brother._children[j].append(child)
 
-        if self.nodes[i].is_metaroot() and not self.is_full(i):
-            print(self, i, self.children[i])
-            assert self.is_full(i)
+            # Check whether this becomes a child of a metaroot.
+            for j in range(self.dim):
+                for brother in brothers[j]:
+                    if brother.is_metaroot(j) and brother != self:
+                        if make_conforming: brother.refine(j)
+                        else: assert False
+
+        # Assert metaroot constraint.
+        for j in range(self.dim):
+            if self.is_metaroot(j) and len(self._children[j]) not in [
+                    0, len(self.nodes[j].children)
+            ]:
+                print('This is a violation of the double tree constraint.')
+                print(self, j, self.children[j])
+                assert False
 
         return self._children[i]
 

@@ -26,7 +26,7 @@ def test_heat_error_reduction(theta=0.7):
     # Create X^\delta as a sparse grid.
     X_delta = DoubleTree.from_metaroots(
         (basis_time.metaroot_wavelet, basis_space.root))
-    X_delta.uniform_refine([0, 1])
+    X_delta.uniform_refine(0)
 
     # Create rhs functionals
     g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
