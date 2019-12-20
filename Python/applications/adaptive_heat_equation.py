@@ -61,7 +61,12 @@ class AdaptiveHeatEquation:
             len([n for n in residual_X_d if not n.is_metaroot()]),
             len(self.X_delta.bfs())))
 
-        return u_dd_d, residual
+        return u_dd_d, residual, {
+            'num_iters': num_iters,
+            'n_marked': len(marked_nodes),
+            'res_norm': residual.norm(),
+            'dim_X_delta': len(self.X_delta.bfs())
+        }
 
     def solve(self, eps=1e-5, solver='pcg'):
         u_dd_d, residual = self.solve_step(solver=solver)

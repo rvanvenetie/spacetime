@@ -9,14 +9,15 @@ from .heat_equation import HeatEquation
 from .heat_equation_test import example_rhs_functional
 
 
-def test_heat_error_reduction(theta=0.7):
+def test_heat_error_reduction(theta=0.7,
+                              results_file=None,
+                              rhs_factory=example_rhs_functional):
     # Printing options.
     np.set_printoptions(precision=4)
     np.set_printoptions(linewidth=10000)
 
     # Create space part.
     triang = InitialTriangulation.unit_square(initial_refinement=1)
-    triang.elem_meta_root.uniform_refine(1)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
@@ -29,14 +30,27 @@ def test_heat_error_reduction(theta=0.7):
     X_delta.uniform_refine(0)
 
     # Create rhs functionals
-    g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
+    g_functional, u0_functional = rhs_factory(HeatEquation(X_delta))
 
     # Create adaptive heat equation object.
     adaptive_heat_eq = AdaptiveHeatEquation(X_init=X_delta,
                                             g_functional=g_functional,
                                             u0_functional=u0_functional,
                                             theta=theta)
+    results = []
+    prev_u_dd_d = None
+    while True:
+        u_dd_d, residual, info = adaptive_heat_eq.solve_step(x0=prev_u_dd_d,
+                                                             solver='pcg')
+        prev_u_dd_d = u_dd_d
+        info.update({'u_delta': u_dd_d})
+        results.append(info)
+        print(results[-1])
+        if results_file is not None:
+            import pickle
+            pickle.dump(results, open(results_file, 'wb'))
 
-    # Solve
-    sol, errors = adaptive_heat_eq.solve()
-    print(errors)
+
+if __name__ == "__main__":
+    # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
+    test_heat_error_reduction(results_file='smooth_solution_adaptive.pkl')

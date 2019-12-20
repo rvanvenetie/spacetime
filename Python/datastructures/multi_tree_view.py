@@ -62,7 +62,7 @@ class MultiNodeViewInterface(NodeInterface):
         if i is None:
             return any(self.is_metaroot(i) for i in range(self.dim))
         else:
-            return self.nodes[i].is_metaroot
+            return self.nodes[i].is_metaroot()
 
     def is_root(self):
         """ Returns whether this multi node view is the root of the mt tree. """
@@ -170,9 +170,8 @@ class MultiNodeViewInterface(NodeInterface):
             # Check whether this becomes a child of a metaroot.
             for j in range(self.dim):
                 for brother in brothers[j]:
-                    if brother.is_metaroot(j) and brother != self:
-                        if make_conforming: brother.refine(j)
-                        else: assert False
+                    if brother.is_metaroot(j):
+                        brother.refine(j)
 
         # Assert metaroot constraint.
         for j in range(self.dim):
