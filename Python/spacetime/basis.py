@@ -4,8 +4,51 @@ from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointWavelet
 
 
+def generate_x_delta_underscore(x_delta):
+    """ Generates X^{underline delta} as in p.27 from followup3.pdf. """
+    assert isinstance(x_delta, DoubleTree)
+    assert isinstance(x_delta.root.nodes[0].children[0], ThreePointWavelet)
+    assert isinstance(x_delta.root.nodes[1].children[0],
+                      HierarchicalBasisFunction)
+
+    x_delta_underscore = x_delta.deep_copy()
+
+    dblnodes = x_delta_underscore.bfs()
+    for dblnode in dblnodes:
+        # The first part of this if-statement fends off the situation where
+        # dblnode.children[i] has 0 < n < full elements as a result of adaptive
+        # refinement in X_delta.
+        if (not dblnode.children[0]
+                or not dblnode.is_full(0)) and dblnode.nodes[1].level == 0:
+            # Refine in time-axis...
+            dblnode.nodes[0].refine()
+            dblnode.refine(i=0, make_conforming=True)
+        if not dblnode.children[1] or not dblnode.is_full(1):
+            # and double-refine in space-axis.
+            dblnode.nodes[1].node.refine()
+            dblnode.nodes[1].refine(make_conforming=True)
+            children = dblnode.refine(i=1, make_conforming=True)
+            for child in children:
+                child.nodes[1].node.refine()
+                child.nodes[1].refine(make_conforming=True)
+                child.refine(i=1, make_conforming=True)
+
+    dblnodes_underscore = x_delta_underscore.bfs()
+    for dblnode in dblnodes:
+        dblnode.marked = True
+
+    new_dblnodes = []
+    for dblnode in dblnodes_underscore:
+        if dblnode.marked:
+            dblnode.marked = False
+        else:
+            new_dblnodes.append(dblnode)
+
+    return x_delta_underscore, new_dblnodes
+
+
 def generate_y_delta(x_delta):
-    """ This generates the Y^\delta from X^\delta as given in followup1.pdf  """
+    """ Generates Y^\delta from X^\delta as p.6 from followup3.pdf. """
 
     assert isinstance(x_delta, DoubleTree)
     assert isinstance(x_delta.root.nodes[0].children[0], ThreePointWavelet)
