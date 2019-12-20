@@ -20,12 +20,7 @@ class AdaptiveHeatEquation:
         self.dirichlet_boundary = dirichlet_boundary
 
     def solve_step(self, x0=None, solver='pcg'):
-        from pprint import pprint
-        #print('X_delta')
-        #pprint(self.X_delta.bfs(include_meta_root=True))
         X_dd, I_d_dd = generate_x_delta_underscore(self.X_delta)
-        #print('X_delta_underscore')
-        #pprint(X_dd.bfs(include_meta_root=True))
         Y_dd = generate_y_delta(X_dd)
         print('Number of funtions in X_delta_underscore \ X_delta {}'.format(
             len(I_d_dd)))
