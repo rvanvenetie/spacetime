@@ -87,9 +87,9 @@ def test_x_delta_underscore():
     # Tryout various levels.
     for max_level, refine_lambda in [
         (6, lambda X, k: X.uniform_refine([k, 2 * k])),
-        (12, lambda X, k: X.sparse_refine(k, weights=[2, 1]))
+        (10, lambda X, k: X.sparse_refine(k, weights=[2, 1]))
     ]:
-        for l in range(2, max_level):
+        for l in range(1, max_level):
             # Create X^\delta
             X_delta = DoubleTree.from_metaroots(
                 (basis_time.metaroot_wavelet, basis_space.root))
@@ -107,5 +107,4 @@ def test_x_delta_underscore():
             N_Xdu = len(X_delta_underscore.bfs())
             N_Xdr = len(X_delta_refined.bfs())
             assert N_Xd < N_Xdu < N_Xdr
-            # This fails right now :<
-            # assert len(I_delta) == N_Xdu - N_Xd
+            assert len(I_delta) == N_Xdu - N_Xd
