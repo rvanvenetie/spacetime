@@ -175,3 +175,13 @@ def test_l_shape():
     for k in range(2, 7):
         T.elem_meta_root.uniform_refine(k)
         assert len(T.elem_meta_root.bfs()) == 6 * (2**(k + 1) - 1)
+
+
+def test_init_refinement():
+    for k in range(4):
+        T = InitialTriangulation.unit_square(initial_refinement=k)
+        assert T.elem_meta_root.is_full()
+        for elem in T.elem_meta_root.bfs():
+            assert elem.level == 0
+        print(k, T.elem_meta_root.bfs())
+        assert len(T.elem_meta_root.bfs()) == 2**(k + 1)

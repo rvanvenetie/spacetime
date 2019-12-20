@@ -204,12 +204,13 @@ class Element2D(BinaryNodeAbstract):
 
 
 class InitialTriangulation:
-    def __init__(self, vertices, elements):
+    def __init__(self, vertices, elements, initial_refinement=0):
         """ Instantiates the triangulation given the (vertices, elements).
 
         Arguments:
             vertices: Vx2 matrix of floats: the coordinates of the vertices.
             elements: Tx3 matrix of integers: indices inside the vertices array.
+            initial_refinement: integer: how many times must we refine the mesh.
         """
         self.vertex_roots = [
             Vertex(0, *vert, on_domain_boundary=False)
@@ -244,21 +245,38 @@ class InitialTriangulation:
                     for v in elem.edge(i):
                         v.on_domain_boundary = True
 
+        # Recursively call this constructor..
+        if initial_refinement:
+            self.elem_meta_root.uniform_refine(initial_refinement)
+            vertices = self.vertex_meta_root.bfs()
+            v2idx = {vtx: i for i, vtx in enumerate(vertices)}
+
+            # Create flattened arrays
+            vertices = [vertex.xy for vertex in vertices]
+            elements = [[v2idx[v] for v in elem.vertices]
+                        for elem in self.elem_meta_root.bfs()
+                        if elem.is_leaf()]
+            self.__init__(vertices, elements)
+
     @staticmethod
-    def unit_square():
+    def unit_square(initial_refinement=0):
         """ Returns a (coarse) triangulation of the unit square. """
         vertices = [[0, 0], [1, 1], [1, 0], [0, 1]]
         elements = [[0, 2, 3], [1, 3, 2]]
-        return InitialTriangulation(vertices, elements)
+        return InitialTriangulation(vertices,
+                                    elements,
+                                    initial_refinement=initial_refinement)
 
     @staticmethod
-    def l_shape():
+    def l_shape(initial_refinement=0):
         """ Returns a (coarse) triangulation of the L shaped domain. """
         vertices = [[0, 0], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1],
                     [0, -1]]
         elements = [[1, 0, 2], [3, 2, 0], [3, 0, 4], [5, 4, 0], [5, 0, 6],
                     [7, 6, 0]]
-        return InitialTriangulation(vertices, elements)
+        return InitialTriangulation(vertices,
+                                    elements,
+                                    initial_refinement=initial_refinement)
 
     def _compute_area(self, elem):
         """ Computes the area of the element spanned by `vertex_ids`. """
