@@ -183,5 +183,4 @@ def test_init_refinement():
         assert T.elem_meta_root.is_full()
         for elem in T.elem_meta_root.bfs():
             assert elem.level == 0
-        print(k, T.elem_meta_root.bfs())
         assert len(T.elem_meta_root.bfs()) == 2**(k + 1)
