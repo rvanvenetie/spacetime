@@ -15,7 +15,7 @@ def test_heat_error_reduction(theta=0.7):
     np.set_printoptions(linewidth=10000)
 
     # Create space part.
-    triang = InitialTriangulation.unit_square()
+    triang = InitialTriangulation.unit_square(initial_refinement=1)
     triang.elem_meta_root.uniform_refine(1)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()

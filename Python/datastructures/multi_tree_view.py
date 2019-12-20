@@ -161,6 +161,10 @@ class MultiNodeViewInterface(NodeInterface):
                 for brother in brothers[j]:
                     brother._children[j].append(child)
 
+        if self.nodes[i].is_metaroot() and not self.is_full(i):
+            print(self, i, self.children[i])
+            assert self.is_full(i)
+
         return self._children[i]
 
     def _coarsen(self):
