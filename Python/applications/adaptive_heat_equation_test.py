@@ -43,7 +43,7 @@ def test_heat_error_reduction(theta=0.7,
         u_dd_d, residual, info = adaptive_heat_eq.solve_step(x0=prev_u_dd_d,
                                                              solver='pcg')
         prev_u_dd_d = u_dd_d
-        info.update({'u_delta': u_dd_d})
+        info.update({'u_delta': u_dd_d.to_array(), 'res': residual.to_array()})
         results.append(info)
         print(results[-1])
         if results_file is not None:
