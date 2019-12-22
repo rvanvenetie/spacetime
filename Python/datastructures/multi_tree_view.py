@@ -159,26 +159,30 @@ class MultiNodeViewInterface(NodeInterface):
                     for child_parent_j in child_nodes[j].parents
                 ])
 
-            # Create child.
+            # Create the actual child object.
             child = self.__class__(nodes=child_nodes, parents=brothers)
 
-            # Add child to brothers.
+            # Add it as a child to the correct brothers.
             for j in range(self.dim):
                 for brother in brothers[j]:
                     brother._children[j].append(child)
 
-            # Check whether this becomes a child of a metaroot.
-            for j in range(self.dim):
-                for brother in brothers[j]:
-                    if brother.is_metaroot(j):
-                        brother.refine(j)
+            # Check whether we added this child to a metaroot. If this is the
+            # case, and make_conforming is set, then we should now create
+            # all children of this metaroot.
+            if make_conforming:
+                for j in range(self.dim):
+                    for brother in brothers[j]:
+                        if brother.is_metaroot(j) and brother != self:
+                            brother.refine(j)
 
         # Assert metaroot constraint.
         for j in range(self.dim):
             if self.is_metaroot(j) and len(self._children[j]) not in [
                     0, len(self.nodes[j].children)
             ]:
-                print('This is a violation of the double tree constraint.')
+                print(
+                    'This node violates the (metaroot) double tree constraint')
                 print(self, j, self.children[j])
                 assert False
 
@@ -268,7 +272,7 @@ class MultiNodeViewInterface(NodeInterface):
         """
         if call_postprocess is None: call_postprocess = lambda _: None
         my_nodes = []
-        queue = deque([self])
+        queue = deque(self.refine())
         while queue:
             my_node = queue.popleft()
             if my_node.marked: continue
@@ -437,24 +441,33 @@ class MultiTree:
         while queue:
             node = queue.popleft()
             if node.marked: continue
+
+            # This is the root of the double tree.
             if node.is_root():
                 assert root is None
                 root = node
+
             node.marked = True
             marked_nodes.append(node)
             for i in range(node.dim):
-                queue.extend(node._parents[i])
 
-        assert root is not None
+                # Add all parents in the `i`-axis.
+                for parent in node._parents[i]:
+                    queue.append(parent)
+
+                    # If the parent is a metaroot, include all its children.
+                    # This is to ensure that all roots are in the db tree.
+                    if parent.is_metaroot(i):
+                        queue.extend(parent._children[i])
 
         # Create a new tree.
+        assert root is not None
         result = cls.from_metaroots(root.nodes)
+        result.root.refine()
 
-        # Only copy in nodes that are marked.
-        def call_filter(mlt_node):
-            return mlt_node.marked
-
-        result.root._union(root, call_filter=call_filter)
+        # Now take a union of the original double root, but only copy in all
+        # the nodes that we've marked.
+        result.root._union(root, call_filter=lambda mlt_node: mlt_node.marked)
 
         # Unmark the items.
         for node in marked_nodes:

@@ -87,9 +87,10 @@ class TriangulationView:
 
         if not (len(self.history) == len(self.vertices) -
                 len(self.vertices[0].parents[0].children)):
-            print('history', self.history)
-            print('vertices', self.vertices)
-            print('roots', self.vertices[0].parents[0].children)
+            print('Invalid triangulation view object created.')
+            print('\thistory = ', self.history)
+            print('\tvertices = ', self.vertices)
+            print('\troots = ', self.vertices[0].parents[0].children)
             assert False
 
         # Undo marking.
