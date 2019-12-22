@@ -5,6 +5,7 @@ class FunctionalInterface(ABC):
     @abstractmethod
     def eval(self, Lambda_out):
         """ Evaluates this functional on the given index set.  """
+
     def __neg__(self):
         """ Returns a negated operator. """
         return ScalarFunctional(self, scalar=-1)

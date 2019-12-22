@@ -1,4 +1,3 @@
-
 from ..space.triangulation import InitialTriangulation
 from .tree_view import TreeView
 

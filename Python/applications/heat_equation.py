@@ -101,6 +101,7 @@ class HeatEquation:
                                             ]) + self.m_gamma
         else:
             raise NotImplementedError("Unknown method " % formulation)
+
         self.linop = LinearOperatorApplicator(applicator=self.mat,
                                               input_vec=self.create_vector())
 
@@ -209,7 +210,7 @@ class HeatEquation:
         u0_functional = SumFunctional(u0_functionals)
         return g_functional, u0_functional
 
-    def solve(self, b, x0=None, solver=None, iter_callback=None):
+    def solve(self, b, x0=None, solver=None, tol=1e-5, iter_callback=None):
         self._validate_boundary_dofs(b)
         if x0:
             self._validate_boundary_dofs(x0)
@@ -231,30 +232,35 @@ class HeatEquation:
             print(".", end='', flush=True)
             num_iters += 1
 
+        M = None
         if solver == "minres":
             solver = spla.minres
         elif solver == "cg":
             solver = spla.cg
         elif solver == "pcg":
-            solver = lambda S, b, x0, callback: spla.cg(
-                S,
-                b=b,
-                x0=x0,
-                M=LinearOperatorApplicator(applicator=self.P_X,
-                                           input_vec=self.create_vector()),
-                callback=callback)
+            solver = spla.cg
+            M = LinearOperatorApplicator(applicator=self.P_X,
+                                         input_vec=self.create_vector())
         else:
             raise NotImplementedError("Unrecognized method '%s'" % self.solver)
+
         result_array, info = solver(self.linop,
                                     x0=x0.to_array() if x0 else None,
                                     b=b.to_array(),
+                                    M=M,
+                                    tol=tol,
                                     callback=call_iterations)
         result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
         result_fn.from_array(result_array)
         print(end='\n')
         assert info == 0
         self._validate_boundary_dofs(result_fn)
-        return result_fn, num_iters
 
-    def time_per_dof(self):
-        return self.linop.time_per_dof()
+        info = {
+            'num_iters': num_iters,
+            'time_per_dof': self.linop.time_per_dof()
+        }
+        if M:
+            info['P_time_per_dof'] = M.time_per_dof()
+
+        return result_fn, info

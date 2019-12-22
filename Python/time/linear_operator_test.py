@@ -1,4 +1,3 @@
-
 import numpy as np
 
 from .sparse_vector import SparseVector
