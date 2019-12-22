@@ -157,7 +157,7 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
         self.coeff = [0, 0]
 
     def center(self):
-        return (sum(self.interval) / 2, self.level)
+        return (float(sum(self.interval) / 2), self.level)
 
     def support_contains(self, t):
         a, b = self.interval()

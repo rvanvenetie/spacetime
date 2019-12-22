@@ -53,10 +53,9 @@ def make_linearity():
     ax1.tick_params(axis='y')
     ax1.grid()
 
-    print(
-        np.polyfit(np.log(data['dofs']),
-                   np.log([t for t in data['time_per_dof']]),
-                   deg=2))
+    print(np.polyfit(np.log(data['dofs']),
+                     np.log([t for t in data['time_per_dof']]),
+                     deg=2))
     ax2.set_title("Time per apply per doublenode")
     ax2.set_xlabel(r"$\# X_\delta + \# Y_\delta$")
     ax2.set_ylabel("time (ms)")
