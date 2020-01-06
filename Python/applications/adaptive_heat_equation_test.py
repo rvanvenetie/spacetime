@@ -9,6 +9,20 @@ from .adaptive_heat_equation import AdaptiveHeatEquation
 from .heat_equation import HeatEquation
 from .heat_equation_test import example_rhs_functional
 
+def singular_rhs_functional(heat_eq):
+    g = [(
+        lambda t: 0,
+        lambda xy: 0,
+    )]
+    g_order = [(0, 0)]
+    u0 = [lambda xy: 1]
+    u0_order = [1]
+
+    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
+                                                        g_order=g_order,
+                                                        u0=u0,
+                                                        u0_order=u0_order)
+
 
 def test_heat_error_reduction(theta=0.7,
                               results_file=None,
@@ -19,7 +33,7 @@ def test_heat_error_reduction(theta=0.7,
     np.set_printoptions(linewidth=10000)
 
     # Create space part.
-    triang = InitialTriangulation.unit_square(initial_refinement=1)
+    triang = InitialTriangulation.l_shape(initial_refinement=1)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
@@ -83,4 +97,5 @@ def test_heat_error_reduction(theta=0.7,
 
 if __name__ == "__main__":
     # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
-    test_heat_error_reduction(results_file='smooth_solution_adaptive.pkl')
+    test_heat_error_reduction(results_file='singular_solution_adaptive_lshape.pkl',
+    rhs_factory=singular_rhs_functional)
