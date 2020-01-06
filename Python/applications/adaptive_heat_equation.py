@@ -1,3 +1,5 @@
+from math import sqrt
+
 import numpy as np
 
 from ..datastructures.double_tree_view import DoubleTree
@@ -135,10 +137,10 @@ class AdaptiveHeatEquation:
             if not other_node.nodes[0].marked:
                 assert other_node.nodes[1].level == 0
                 res_node.value /= 2**(other_node.nodes[0].level)
-            # This is a refined mesh function, scale with 1 + 4^|labda|-lvl(v).
+            # This is a ref. space fn, scale with sqrt(1 + 4^|labda|-lvl(v)).
             else:
                 lvl_diff = other_node.nodes[0].level - other_node.nodes[1].level
-                res_node.value /= (1.0 + 4**(lvl_diff))
+                res_node.value /= sqrt(1.0 + 4**(lvl_diff))
 
         # Apply the basis transformation
         residual.union(X_dd, call_postprocess=call_postprocess)
