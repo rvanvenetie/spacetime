@@ -1,4 +1,5 @@
 import os
+import time
 from pprint import pprint
 
 import numpy as np
@@ -64,7 +65,9 @@ def test_heat_error_reduction(theta=0.7,
         'sol_info': [],
     }
     u_dd_d = None
+    time_start = time.time()
     while True:
+        time_start_iteration = time.time()
         step_info = {}
         # Calculate a new solution.
         u_dd_d, solve_info = adaptive_heat_eq.solve_step(x0=u_dd_d,
@@ -91,6 +94,8 @@ def test_heat_error_reduction(theta=0.7,
         # Store total memory consumption.
         process = psutil.Process(os.getpid())
         step_info['memory'] = process.memory_info().rss
+        step_info['time_iteration'] = time.time() - time_start_iteration
+        step_info['time_since_start'] = time.time() - time_start
 
         # Debug.
         print('\n\nstep_info')
