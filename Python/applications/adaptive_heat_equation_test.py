@@ -1,5 +1,8 @@
-import numpy as np
+import os
 from pprint import pprint
+
+import numpy as np
+import psutil
 
 from ..datastructures.double_tree_view import DoubleTree
 from ..space.basis import HierarchicalBasisFunction
@@ -8,6 +11,7 @@ from ..time.three_point_basis import ThreePointBasis
 from .adaptive_heat_equation import AdaptiveHeatEquation
 from .heat_equation import HeatEquation
 from .heat_equation_test import example_rhs_functional
+
 
 def singular_rhs_functional(heat_eq):
     g = [(
@@ -55,7 +59,6 @@ def test_heat_error_reduction(theta=0.7,
                                             theta=theta)
     info = {
         'theta': adaptive_heat_eq.theta,
-        'rhs_factory': rhs_factory,
         'solver_tol': solver_tol,
         'step_info': [],
         'sol_info': [],
@@ -85,6 +88,10 @@ def test_heat_error_reduction(theta=0.7,
         step_info.update(mark_info)
         sol_info['residual'] = residual.to_array()
 
+        # Store total memory consumption.
+        process = psutil.Process(os.getpid())
+        step_info['memory'] = process.memory_info().rss
+
         # Debug.
         print('\n\nstep_info')
         pprint(step_info)
@@ -97,5 +104,6 @@ def test_heat_error_reduction(theta=0.7,
 
 if __name__ == "__main__":
     # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
-    test_heat_error_reduction(results_file='singular_solution_adaptive_lshape.pkl',
-    rhs_factory=singular_rhs_functional)
+    test_heat_error_reduction(
+        results_file='singular_solution_adaptive_lshape.pkl',
+        rhs_factory=singular_rhs_functional)
