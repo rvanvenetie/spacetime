@@ -1,3 +1,5 @@
+from math import sqrt
+
 import numpy as np
 
 from ..datastructures.double_tree_view import DoubleTree
