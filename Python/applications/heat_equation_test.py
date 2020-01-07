@@ -1,6 +1,10 @@
+import os
 import random
+import time
 
 import numpy as np
+
+import psutil
 
 from ..datastructures.applicator import LinearOperatorApplicator
 from ..datastructures.double_tree_view import DoubleTree
@@ -12,8 +16,10 @@ from ..space.triangulation import (InitialTriangulation,
                                    to_matplotlib_triangulation)
 from ..space.triangulation_function import TriangulationFunction
 from ..space.triangulation_view import TriangulationView
+from ..spacetime.basis import generate_x_delta_underscore, generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
 from .heat_equation import HeatEquation
+from .residual_error_estimator import ResidualErrorEstimator
 
 
 def example_solution_function():
@@ -26,7 +32,7 @@ def example_solution_function():
     return u, u_order, u_slice_norm_l2
 
 
-def example_rhs_functional(heat_eq):
+def example_rhs(heat_eq):
     g = [(
         lambda t: -2 * (1 + t**2),
         lambda xy: (xy[0] - 1) * xy[0] + (xy[1] - 1) * xy[1],
@@ -39,22 +45,9 @@ def example_rhs_functional(heat_eq):
     u0 = [lambda xy: u[0](0) * u[1](xy)]
     u0_order = [u_order[1]]
 
-    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
-                                                        g_order=g_order,
-                                                        u0=u0,
-                                                        u0_order=u0_order)
-
-
-def example_rhs(heat_eq):
-    g_functional, u0_functional = example_rhs_functional(heat_eq)
-
-    result = heat_eq.calculate_rhs_vector(g_functional=g_functional,
-                                          u0_functional=u0_functional)
-
-    # Check that the vector != 0.
-    assert sum(abs(result.to_array())) > 0.0001
-
-    return result
+    return heat_eq.calculate_rhs_vector(
+        *heat_eq.calculate_rhs_functionals_quadrature(
+            g=g, g_order=g_order, u0=u0, u0_order=u0_order))
 
 
 def random_rhs(heat_eq):
@@ -404,6 +397,51 @@ def test_preconditioned_eigenvalues(max_level=6, sparse_grid=True):
         assert l.cond() < 10
         print("Level {} with {} DoFs; l_min = {}; l_max = {}; kappa_2 = {}".
               format(level, len(X_delta.bfs()), l.lmin, l.lmax, l.cond()))
+
+
+def test_residual_error_estimator_rate():
+    # Create space part.
+    triang = InitialTriangulation.l_shape(initial_refinement=1)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+
+    max_level = 100
+    rhs_factory = example_rhs
+    sol = None
+    time_start = time.time()
+    for level in range(0, max_level):
+        time_start_iteration = time.time()
+        # Create X^\delta as a sparse grid.
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
+        X_delta.sparse_refine(level, weights=[2, 1])
+        X_dd, I_d_dd = generate_x_delta_underscore(X_delta)
+        Y_dd = generate_y_delta(X_dd)
+        heat_eq = HeatEquation(X_delta=X_delta,
+                               Y_delta=Y_dd,
+                               formulation='schur')
+        rhs = rhs_factory(heat_eq)
+        if sol:
+            sol = sol.deep_copy()
+            sol.union(X_delta, call_postprocess=None)
+        sol, solve_info = heat_eq.solve(b=rhs, solver='pcg', x0=sol)
+        error_estimator = ResidualErrorEstimator.FromDoubleTrees(
+            u_dd_d=sol,
+            rhs_factory=rhs_factory,
+            X_d=X_delta,
+            X_dd=X_dd,
+            Y_dd=Y_dd,
+            I_d_dd=I_d_dd)
+        process = psutil.Process(os.getpid())
+        print(len(X_delta.bfs()),
+              process.memory_info().rss,
+              time.time() - time_start_iteration,
+              time.time() - time_start, error_estimator.res_dd_d.norm())
+        if process.memory_info().rss > 10 * 10**9:
+            break
 
 
 if __name__ == "__main__":
