@@ -19,7 +19,7 @@ def test_dorfler_marking():
         def __lt__(self, other):
             return self.value < other.value
 
-    n = 200
+    n = 100
     nodes = [FakeNode(random.random()) for _ in range(n)]
     l2_norm = np.sqrt(sum(fn.value**2 for fn in nodes))
 
@@ -32,7 +32,7 @@ def test_dorfler_marking():
 
     for theta in [0.3, 0.5, 0.7]:
         bulk_nodes = AdaptiveHeatEquation.dorfler_marking(nodes, theta)
-        assert len(bulk_nodes) < theta**2 * len(nodes)
+        assert len(bulk_nodes) < len(nodes)
 
         bulk_l2_norm = np.sqrt(sum(fn.value**2 for fn in bulk_nodes))
         assert bulk_l2_norm >= theta * l2_norm
