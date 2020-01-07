@@ -3,8 +3,7 @@ import random
 import time
 
 import numpy as np
-
-import psutil
+import pytest
 
 from ..datastructures.applicator import LinearOperatorApplicator
 from ..datastructures.double_tree_view import DoubleTree
@@ -399,7 +398,9 @@ def test_preconditioned_eigenvalues(max_level=6, sparse_grid=True):
               format(level, len(X_delta.bfs()), l.lmin, l.lmax, l.cond()))
 
 
+@pytest.mark.slow
 def test_residual_error_estimator_rate():
+    import psutil
     # Create space part.
     triang = InitialTriangulation.l_shape(initial_refinement=1)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
