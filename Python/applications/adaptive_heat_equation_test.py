@@ -1,15 +1,16 @@
-import numpy as np
 from pprint import pprint
+
+import numpy as np
 
 from ..datastructures.double_tree_view import DoubleTree
 from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..time.three_point_basis import ThreePointBasis
 from .adaptive_heat_equation import AdaptiveHeatEquation
-from .heat_equation import HeatEquation
-from .heat_equation_test import example_rhs_functional
+from .heat_equation_test import example_rhs
 
-def singular_rhs_functional(heat_eq):
+
+def singular_rhs(heat_eq):
     g = [(
         lambda t: 0,
         lambda xy: 0,
@@ -18,15 +19,14 @@ def singular_rhs_functional(heat_eq):
     u0 = [lambda xy: 1]
     u0_order = [1]
 
-    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
-                                                        g_order=g_order,
-                                                        u0=u0,
-                                                        u0_order=u0_order)
+    return heat_eq.calculate_rhs_vector(
+        *heat_eq.calculate_rhs_functionals_quadrature(
+            g=g, g_order=g_order, u0=u0, u0_order=u0_order))
 
 
 def test_heat_error_reduction(theta=0.7,
                               results_file=None,
-                              rhs_factory=example_rhs_functional,
+                              rhs_factory=example_rhs,
                               solver_tol='1e-7'):
     # Printing options.
     np.set_printoptions(precision=4)
@@ -45,13 +45,9 @@ def test_heat_error_reduction(theta=0.7,
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.uniform_refine(0)
 
-    # Create rhs functionals
-    g_functional, u0_functional = rhs_factory(HeatEquation(X_delta))
-
     # Create adaptive heat equation object.
     adaptive_heat_eq = AdaptiveHeatEquation(X_init=X_delta,
-                                            g_functional=g_functional,
-                                            u0_functional=u0_functional,
+                                            rhs_factory=rhs_factory,
                                             theta=theta)
     info = {
         'theta': adaptive_heat_eq.theta,
@@ -97,5 +93,6 @@ def test_heat_error_reduction(theta=0.7,
 
 if __name__ == "__main__":
     # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
-    test_heat_error_reduction(results_file='singular_solution_adaptive_lshape.pkl',
-    rhs_factory=singular_rhs_functional)
+    test_heat_error_reduction(
+        results_file='singular_solution_adaptive_lshape.pkl',
+        rhs_factory=singular_rhs)
