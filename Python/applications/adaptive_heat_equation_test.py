@@ -46,6 +46,39 @@ def test_dorfler_marking():
         assert AdaptiveHeatEquation.dorfler_marking(nodes, theta) == bulk_nodes
 
 
+def test_heat_error_reduction(theta=0.7):
+    """ Simple test that applies the adaptive loop for a few iterations. """
+
+    # Create space part.
+    triang = InitialTriangulation.unit_square(initial_refinement=1)
+    triang.elem_meta_root.uniform_refine(1)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+
+    # Create X^\delta containing only the roots.
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    X_delta.uniform_refine(0)
+
+    # Create rhs functionals
+    g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
+
+    # Create adaptive heat equation object.
+    adaptive_heat_eq = AdaptiveHeatEquation(X_init=X_delta,
+                                            g_functional=g_functional,
+                                            u0_functional=u0_functional,
+                                            theta=theta)
+
+    # Solve.
+    sol, info = adaptive_heat_eq.solve(max_iters=2)
+
+    # Some check that seems to hold.
+    assert info['errors'][-1] < 0.1
+
+
 def singular_rhs_functional(heat_eq):
     g = [(
         lambda t: 0,
@@ -61,16 +94,26 @@ def singular_rhs_functional(heat_eq):
                                                         u0_order=u0_order)
 
 
-def test_heat_error_reduction(theta=0.7,
-                              results_file=None,
-                              rhs_factory=example_rhs_functional,
-                              solver_tol='1e-7'):
+def run_adaptive_loop(initial_triangulation='square',
+                      theta=0.7,
+                      results_file=None,
+                      initial_refinement=1,
+                      rhs_factory=singular_rhs_functional,
+                      solver_tol='1e-7'):
     # Printing options.
     np.set_printoptions(precision=4)
     np.set_printoptions(linewidth=10000)
 
     # Create space part.
-    triang = InitialTriangulation.l_shape(initial_refinement=1)
+    if initial_triangulation in ['unit_squaer', 'square']:
+        triang = InitialTriangulation.unit_square(
+            initial_refinement=initial_refinement)
+    elif initial_triangulation in ['lshape', 'l_shape']:
+        triang = InitialTriangulation.l_shape(
+            initial_refinement=initial_refinement)
+    else:
+        assert False
+
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
@@ -140,7 +183,6 @@ def test_heat_error_reduction(theta=0.7,
 
 
 if __name__ == "__main__":
-    # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
-    test_heat_error_reduction(
-        results_file='singular_solution_adaptive_lshape.pkl',
-        rhs_factory=singular_rhs_functional)
+    run_adaptive_loop(rhs_factory=singular_rhs_functional,
+                      initial_triangulation='lshape',
+                      results_file='singular_solution_adaptive_lshape.pkl')
