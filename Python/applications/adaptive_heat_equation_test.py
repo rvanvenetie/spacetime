@@ -180,7 +180,8 @@ def run_adaptive_loop(initial_triangulation='square',
         if results_file is not None:
             import pickle
             pickle.dump(info, open(results_file, 'wb'))
-        if step_info['memory'] > 50*10**9:
+
+        if step_info['memory'] > 50 * 10**9:
             break
 
 
