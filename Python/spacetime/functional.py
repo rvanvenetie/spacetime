@@ -1,7 +1,8 @@
 from ..datastructures.double_tree_vector import DoubleTreeVector
+from ..datastructures.functional import FunctionalInterface
 
 
-class TensorFunctional:
+class TensorFunctional(FunctionalInterface):
     """ Class implements a tensor product functional on a double-tree basis. """
     def __init__(self, functional_time, functional_space):
         """ Initialize the spacetime tensor functional.

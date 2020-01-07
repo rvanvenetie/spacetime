@@ -23,11 +23,13 @@ def generate_x_delta_underscore(x_delta):
             # Refine in time-axis...
             dblnode.nodes[0].refine()
             dblnode.refine(i=0, make_conforming=True)
+
         if not dblnode.children[1] or not dblnode.is_full(1):
             # and double-refine in space-axis.
             dblnode.nodes[1].node.refine()
             dblnode.nodes[1].refine(make_conforming=True)
             children = dblnode.refine(i=1, make_conforming=True)
+
             for child in children:
                 child.nodes[1].node.refine()
                 child.nodes[1].refine(make_conforming=True)

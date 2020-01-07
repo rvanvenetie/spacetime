@@ -34,10 +34,15 @@ class MultiNodeVector(MultiNodeVectorInterface, MultiNodeView):
 class MultiTreeVector(MultiTree):
     def to_array(self):
         """ Transforms a multi tree vector to a numpy vector, in kron order. """
-        return np.array([node.value for node in self.bfs_kron()], dtype=float)
+        result = np.array([node.value for node in self.bfs_kron()],
+                          dtype=float)
+        assert len(result.shape) == 1
+        return result
 
     def from_array(self, array):
         """ Loads the values from an array in bfs kron order. """
+        array = array.squeeze()
+        assert len(array.shape) == 1
         nodes = self.bfs_kron()
         assert len(nodes) == len(array)
         for idx, node in enumerate(nodes):
@@ -70,6 +75,10 @@ class MultiTreeVector(MultiTree):
 
     def sum(self):
         return sum(nv.value for nv in self.bfs())
+
+    def norm(self):
+        """ Returns the l2 norm of this vector. """
+        return np.linalg.norm(self.to_array(), 2)
 
     def reset(self):
         """ Resets all the values in the underlying tree to zero. """
@@ -115,11 +124,15 @@ class BlockTreeVector:
         return self.vecs[i]
 
     def __isub__(self, other):
+        assert isinstance(other, BlockTreeVector) and len(other.vecs) == len(
+            self.vecs)
         for i, vec in enumerate(self.vecs):
             vec -= other[i]
         return self
 
     def __iadd__(self, other):
+        assert isinstance(other, BlockTreeVector) and len(other.vecs) == len(
+            self.vecs)
         for i, vec in enumerate(self.vecs):
             vec += other[i]
         return self
