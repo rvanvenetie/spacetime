@@ -190,7 +190,7 @@ class AdaptiveHeatEquation:
         for node in I_d_dd:
             node.marked = False
 
-        # Also unmark all the time wavelets that exited in X_d.
+        # Also unmark all the time wavelets that already existed in X_d.
         for node in self.X_delta.project(0).bfs():
             node.node.marked = False
 
