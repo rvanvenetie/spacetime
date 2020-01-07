@@ -105,7 +105,7 @@ def run_adaptive_loop(initial_triangulation='square',
     np.set_printoptions(linewidth=10000)
 
     # Create space part.
-    if initial_triangulation in ['unit_squaer', 'square']:
+    if initial_triangulation in ['unit_square', 'square']:
         triang = InitialTriangulation.unit_square(
             initial_refinement=initial_refinement)
     elif initial_triangulation in ['lshape', 'l_shape']:
@@ -180,6 +180,8 @@ def run_adaptive_loop(initial_triangulation='square',
         if results_file is not None:
             import pickle
             pickle.dump(info, open(results_file, 'wb'))
+        if step_info['memory'] > 50*10**9:
+            break
 
 
 if __name__ == "__main__":
