@@ -38,7 +38,7 @@ def test_heat_error_reduction(theta=0.7,
     np.set_printoptions(linewidth=10000)
 
     # Create space part.
-    triang = InitialTriangulation.l_shape(initial_refinement=1)
+    triang = InitialTriangulation.unit_square(initial_refinement=1)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
@@ -105,10 +105,12 @@ def test_heat_error_reduction(theta=0.7,
         if results_file is not None:
             import pickle
             pickle.dump(info, open(results_file, 'wb'))
+        if step_info['memory'] > 50*10**9:
+            break
 
 
 if __name__ == "__main__":
     # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
     test_heat_error_reduction(
-        results_file='singular_solution_adaptive_lshape.pkl',
-        rhs_factory=singular_rhs_functional)
+        results_file='smooth_solution_adaptive.pkl',
+        rhs_factory=example_rhs_functional)
