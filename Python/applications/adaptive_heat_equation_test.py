@@ -182,6 +182,7 @@ def run_adaptive_loop(initial_triangulation='square',
             pickle.dump(info, open(results_file, 'wb'))
 
         if step_info['memory'] > 50 * 10**9:
+            print('Memory limit reached! Stopping adaptive loop.')
             break
 
 
