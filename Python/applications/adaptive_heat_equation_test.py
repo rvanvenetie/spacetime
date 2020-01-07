@@ -1,4 +1,5 @@
 import os
+import random
 import time
 from pprint import pprint
 
@@ -12,6 +13,70 @@ from ..time.three_point_basis import ThreePointBasis
 from .adaptive_heat_equation import AdaptiveHeatEquation
 from .heat_equation import HeatEquation
 from .heat_equation_test import example_rhs_functional
+
+
+def test_dorfler_marking():
+    class FakeNode:
+        def __init__(self, value):
+            self.value = value
+
+        def __lt__(self, other):
+            return self.value < other.value
+
+    n = 100
+    nodes = [FakeNode(random.random()) for _ in range(n)]
+    l2_norm = np.sqrt(sum(fn.value**2 for fn in nodes))
+
+    # Test theta == 0.
+    assert len(AdaptiveHeatEquation.dorfler_marking(nodes, 0)) == 0
+
+    # Test theta == 1
+    assert AdaptiveHeatEquation.dorfler_marking(nodes,
+                                                1) == sorted(nodes)[::-1]
+
+    for theta in [0.3, 0.5, 0.7]:
+        bulk_nodes = AdaptiveHeatEquation.dorfler_marking(nodes, theta)
+        assert len(bulk_nodes) < len(nodes)
+
+        bulk_l2_norm = np.sqrt(sum(fn.value**2 for fn in bulk_nodes))
+        assert bulk_l2_norm >= theta * l2_norm
+
+        # Check that shuffled gives same results
+        random.shuffle(nodes)
+        assert AdaptiveHeatEquation.dorfler_marking(nodes, theta) == bulk_nodes
+
+
+def test_heat_error_reduction(theta=0.7):
+    """ Simple test that applies the adaptive loop for a few iterations. """
+
+    # Create space part.
+    triang = InitialTriangulation.unit_square(initial_refinement=1)
+    triang.elem_meta_root.uniform_refine(1)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+
+    # Create X^\delta containing only the roots.
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    X_delta.uniform_refine(0)
+
+    # Create rhs functionals
+    g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
+
+    # Create adaptive heat equation object.
+    adaptive_heat_eq = AdaptiveHeatEquation(X_init=X_delta,
+                                            g_functional=g_functional,
+                                            u0_functional=u0_functional,
+                                            theta=theta)
+
+    # Solve.
+    sol, info = adaptive_heat_eq.solve(max_iters=2)
+
+    # Some check that seems to hold.
+    assert info['errors'][-1] < 0.1
 
 
 def singular_rhs_functional(heat_eq):
@@ -29,16 +94,26 @@ def singular_rhs_functional(heat_eq):
                                                         u0_order=u0_order)
 
 
-def test_heat_error_reduction(theta=0.7,
-                              results_file=None,
-                              rhs_factory=example_rhs_functional,
-                              solver_tol='1e-7'):
+def run_adaptive_loop(initial_triangulation='square',
+                      theta=0.7,
+                      results_file=None,
+                      initial_refinement=1,
+                      rhs_factory=singular_rhs_functional,
+                      solver_tol='1e-7'):
     # Printing options.
     np.set_printoptions(precision=4)
     np.set_printoptions(linewidth=10000)
 
     # Create space part.
-    triang = InitialTriangulation.unit_square(initial_refinement=1)
+    if initial_triangulation in ['unit_square', 'square']:
+        triang = InitialTriangulation.unit_square(
+            initial_refinement=initial_refinement)
+    elif initial_triangulation in ['lshape', 'l_shape']:
+        triang = InitialTriangulation.l_shape(
+            initial_refinement=initial_refinement)
+    else:
+        assert False
+
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
@@ -110,7 +185,6 @@ def test_heat_error_reduction(theta=0.7,
 
 
 if __name__ == "__main__":
-    # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
-    test_heat_error_reduction(
-        results_file='smooth_solution_adaptive.pkl',
-        rhs_factory=example_rhs_functional)
+    run_adaptive_loop(rhs_factory=singular_rhs_functional,
+                      initial_triangulation='lshape',
+                      results_file='singular_solution_adaptive_lshape.pkl')
