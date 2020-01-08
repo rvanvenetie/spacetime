@@ -25,8 +25,9 @@ class AdaptiveHeatEquation:
         self.I_d_dd = None
         self.Y_dd = None
 
-    def solve_step(self, x0=None, solver='pcg', tol=1e-5):
+    def solve_step(self, x0=None, solver='pcg', solver_tol=1e-6):
         info = {'dim_X_delta': len(self.X_delta.bfs())}
+
         print('\n\nAdaptive step for X_delta having {} nodes'.format(
             info['dim_X_delta']))
 
@@ -52,7 +53,7 @@ class AdaptiveHeatEquation:
         u_dd_d, solve_info = heat_dd_d.solve(b=f_dd_d,
                                              x0=x0,
                                              solver=solver,
-                                             tol=tol)
+                                             tol=solver_tol)
         info.update(solve_info)
         print('Solved in {} iterations.'.format(info['num_iters']))
         return u_dd_d, info
