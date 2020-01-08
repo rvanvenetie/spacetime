@@ -20,6 +20,10 @@ class Applicator(ApplicatorInterface):
         super().__init__()
         self.operator = singlescale_operator
 
+    @staticmethod
+    def reset_cache():
+        Applicator._triang_view_cache = {}
+
     def apply(self, vec_in, vec_out, **kwargs):
         """ Apply the multiscale operator. """
         vec_in_nodes = tuple(n.node for n in vec_in.bfs())

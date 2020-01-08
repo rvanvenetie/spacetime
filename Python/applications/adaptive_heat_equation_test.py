@@ -118,9 +118,6 @@ def run_adaptive_loop(initial_triangulation='square',
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
-    # Use a dictionary cache for triangulationviews..
-    SpaceApplicator._use_cache = True
-
     # Create time part for X^\delta
     basis_time = ThreePointBasis()
 
@@ -146,6 +143,10 @@ def run_adaptive_loop(initial_triangulation='square',
     u_dd_d = None
     time_start = time.time()
     while True:
+        # Use a dictionary cache for triangulationviews..
+        SpaceApplicator.reset_cache()
+        SpaceApplicator._use_cache = True
+
         time_start_iteration = time.time()
         step_info = {}
         # Calculate a new solution.
