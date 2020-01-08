@@ -6,6 +6,10 @@ from .triangulation_view import TriangulationView
 
 
 class Applicator(ApplicatorInterface):
+    # If _use_cache is set to true, this will fill the cache dict for *every*
+    # initial triangulation used throughout the program.
+    _use_cache = False
+    _triang_view_cache = {}
     """ Class that can apply operators on the hierarchical basis. """
     def __init__(self, singlescale_operator):
         """ Initialize the applicator.
@@ -18,12 +22,25 @@ class Applicator(ApplicatorInterface):
 
     def apply(self, vec_in, vec_out, **kwargs):
         """ Apply the multiscale operator. """
-        vec_in_nodes = vec_in.bfs()
-        vec_out_nodes = vec_out.bfs()
+        vec_in_nodes = tuple(n.node for n in vec_in.bfs())
+        if vec_out is vec_in:
+            vec_out_nodes = vec_in_nodes
+        else:
+            vec_out_nodes = tuple(n.node for n in vec_out.bfs())
         if len(vec_in_nodes) == 0 or len(vec_out_nodes) == 0: return
-        if [n.node for n in vec_in_nodes] == [n.node for n in vec_out_nodes]:
+        if vec_in_nodes == vec_out_nodes:
             # This is the case where vec_in == vec_out, i.e. symmetric.
-            self.operator.triang = TriangulationView(vec_in)
+
+            # Create a triangulation view object.
+            if not self._use_cache:
+                self.operator.triang = TriangulationView(vec_in)
+            else:
+                # Cache triangulation view objects..
+                if vec_in_nodes not in self._triang_view_cache:
+                    self._triang_view_cache[vec_in_nodes] = TriangulationView(
+                        vec_in)
+                self.operator.triang = self._triang_view_cache[vec_in_nodes]
+
             np_vec_in = vec_in.to_array()
             np_vec_out = self.operator.apply(np_vec_in, **kwargs)
             vec_out.from_array(np_vec_out)
@@ -32,24 +49,18 @@ class Applicator(ApplicatorInterface):
         # This is the case where vec_in != vec_out.
         # We can handle this by enlarging vec_in and vec_out.
         def call_copy(my_node, other_node):
-            if not my_node.is_metaroot():
-                my_node.value = other_node.value
+            my_node.value = other_node.value
 
         # If that's not the case, create an enlarged vec_in.
         vec_in_new = TreeVector.from_metaroot(vec_in.node)
         vec_in_new.union(vec_in, call_postprocess=call_copy)
         vec_in_new.union(vec_out, call_postprocess=None)
 
-        # Also create an enlarge vec_out.
-        vec_out_new = TreeVector.from_metaroot(vec_in.node)
-        vec_out_new.union(vec_in, call_postprocess=None)
-        vec_out_new.union(vec_out, call_postprocess=None)
-
-        # Apply for these enlarged vectors.
-        self.apply(vec_in_new, vec_out_new)
+        # Apply the operator, and store result in the same vector.
+        self.apply(vec_in_new, vec_in_new)
 
         # Now copy only specific parts back into vec_out, mark these nodes.
-        vec_out.union(vec_out_new,
+        vec_out.union(vec_in_new,
                       call_filter=lambda _: False,
                       call_postprocess=call_copy)
 

@@ -7,6 +7,7 @@ import numpy as np
 import psutil
 
 from ..datastructures.double_tree_view import DoubleTree
+from ..space.applicator import Applicator as SpaceApplicator
 from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..time.three_point_basis import ThreePointBasis
@@ -117,6 +118,9 @@ def run_adaptive_loop(initial_triangulation='square',
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
+    # Use a dictionary cache for triangulationviews..
+    SpaceApplicator._use_cache = True
+
     # Create time part for X^\delta
     basis_time = ThreePointBasis()
 
@@ -155,8 +159,6 @@ def run_adaptive_loop(initial_triangulation='square',
         sol_info = {
             'X_delta': [(n.nodes[0].center(), n.nodes[1].center())
                         for n in adaptive_heat_eq.X_delta.bfs_kron()],
-            'X_delta_underscore': [(n.nodes[0].center(), n.nodes[1].center())
-                                   for n in adaptive_heat_eq.X_dd.bfs_kron()],
             'u_delta':
             u_dd_d.to_array(),
         }
