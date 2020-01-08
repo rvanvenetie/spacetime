@@ -418,7 +418,7 @@ def test_residual_error_estimator_rate():
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
-        X_delta.sparse_refine(level, weights=[2, 1])
+        X_delta.sparse_refine(2 * level, weights=[2, 1])
         X_dd, I_d_dd = generate_x_delta_underscore(X_delta)
         Y_dd = generate_y_delta(X_dd)
         heat_eq = HeatEquation(X_delta=X_delta,
@@ -437,7 +437,7 @@ def test_residual_error_estimator_rate():
             Y_dd=Y_dd,
             I_d_dd=I_d_dd)
         process = psutil.Process(os.getpid())
-        print(len(X_delta.bfs()),
+        print(len(X_delta.bfs()), len(X_dd.bfs()),
               process.memory_info().rss,
               time.time() - time_start_iteration,
               time.time() - time_start, error_estimator.res_dd_d.norm())
@@ -446,6 +446,7 @@ def test_residual_error_estimator_rate():
 
 
 if __name__ == "__main__":
+    test_residual_error_estimator_rate()
     # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
     test_heat_error_reduction(max_history_level=16,
                               max_level=16,
