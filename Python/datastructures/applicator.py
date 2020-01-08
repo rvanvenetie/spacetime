@@ -41,9 +41,11 @@ class ApplicatorInterface(ABC):
         Returns:
             self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
+
     @abstractmethod
     def transpose(self):
         """ Returns the transpose of this bilinear form. """
+
     def __neg__(self):
         """ Returns a negated operator. """
         return ScalarApplicator(self, scalar=-1)

@@ -231,7 +231,7 @@ class DirectInverse(Preconditioner):
         # a submatrix if we want to apply spsolve.
         if self.dirichlet_boundary:
             free_dofs = self.free_dofs()
-            mat = mat[np.ix_(free_dofs, free_dofs)]
+            mat = mat[free_dofs, :].tocsc()[:, free_dofs]
             v = v[free_dofs]
             out = spsolve(mat, v)
             res = np.zeros(len(self.triang.vertices))

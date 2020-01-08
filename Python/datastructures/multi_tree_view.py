@@ -30,6 +30,7 @@ class MultiNodeViewInterface(NodeInterface):
     @abstractmethod
     def _children(self):
         """ This should return the children as a tuple of length self.dim. """
+
     @property
     @abstractmethod
     def _parents(self):
