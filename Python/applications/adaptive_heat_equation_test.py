@@ -49,6 +49,7 @@ def test_dorfler_marking():
 
 
 def test_heat_error_reduction(theta=0.7,
+                              max_iters=3,
                               solver_tol=1e-5,
                               save_results_file=None):
     """ Simple test that applies the adaptive loop for a few iterations. """
@@ -82,7 +83,6 @@ def test_heat_error_reduction(theta=0.7,
     # Solve.
     n_t = 9
     times = np.linspace(0, 1, n_t)
-    max_iters = 100
     u_dd_d = None
     n_dofs = []
     dims = []
@@ -146,18 +146,16 @@ def test_heat_error_reduction(theta=0.7,
             }
             pickle.dump(results, open(save_results_file, "wb"))
 
-        continue
-
         # Do some assertion checks.
         if it > 2:
             # Assert that at least 50% of the time steps have error reduction.
             assert sum(slice_errors[-1] <= slice_errors[-2]) > 0.5 * n_t
-        if it > 4:
-            # Assert that at least 80% of the time steps have error reduction.
-            assert sum(slice_errors[-1] <= slice_errors[-3]) > 0.8 * n_t
 
             # Assert that the residual norm has reduced.
             assert res_errors[-1] < 0.1
+        if it > 4:
+            # Assert that at least 80% of the time steps have error reduction.
+            assert sum(slice_errors[-1] <= slice_errors[-3]) > 0.8 * n_t
         if it > 6:
             # Assert that the residual norm has reduced even futher.
             assert res_errors[-1] < 0.08
@@ -281,8 +279,10 @@ def run_adaptive_loop(initial_triangulation='square',
 
 
 if __name__ == "__main__":
-    #run_adaptive_loop(rhs_factory=singular_rhs_functional,
-    #                  initial_triangulation='lshape',
-    #                  results_file='singular_solution_adaptive_lshape.pkl')
+    # run_adaptive_loop(rhs_factory=singular_rhs_functional,
+    #                   initial_triangulation='lshape',
+    #                   results_file='singular_solution_adaptive_lshape.pkl')
     test_heat_error_reduction(
-        save_results_file='slice_errors_adaptive_low_tol.pkl', solver_tol=1e-9)
+        save_results_file='slice_errors_adaptive_low_tol.pkl',
+        solver_tol=1e-9,
+        max_iters=9999)
