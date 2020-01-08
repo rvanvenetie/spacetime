@@ -399,7 +399,7 @@ def test_preconditioned_eigenvalues(max_level=6, sparse_grid=True):
 def test_residual_error_estimator_rate():
     import psutil
     # Create space part.
-    triang = InitialTriangulation.l_shape(initial_refinement=1)
+    triang = InitialTriangulation.unit_square(initial_refinement=1)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
@@ -410,12 +410,14 @@ def test_residual_error_estimator_rate():
     rhs_factory = example_rhs
     sol = None
     time_start = time.time()
-    for level in range(0, max_level):
+    for level in range(1, max_level):
         time_start_iteration = time.time()
-        # Create X^\delta as a sparse grid.
+        # Create X^\delta as a full grid.
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
-        X_delta.sparse_refine(2 * level, weights=[2, 1])
+        X_delta.uniform_refine(level)
+        print([(n.nodes[0].level, n.nodes[1].level) for n in X_delta.bfs()
+               if n.is_leaf()])
         X_dd, I_d_dd = generate_x_delta_underscore(X_delta)
         Y_dd = generate_y_delta(X_dd)
         heat_eq = HeatEquation(X_delta=X_delta,
@@ -438,7 +440,7 @@ def test_residual_error_estimator_rate():
               process.memory_info().rss,
               time.time() - time_start_iteration,
               time.time() - time_start, error_estimator.res_dd_d.norm())
-        if process.memory_info().rss > 10 * 10**9:
+        if process.memory_info().rss > 40 * 10**9:
             break
 
 
