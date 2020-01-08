@@ -23,7 +23,7 @@ def generate_x_delta_underscore(x_delta):
         if not dblnode.nodes[1].node.is_full() or not dblnode.nodes[1].is_full(
         ):
             dblnode.nodes[1].node.refine()
-            dblnode.nodes[1].refine()
+            dblnode.nodes[1].refine(make_conforming=True)
 
         # The first part of this if-statement fends off the situation where
         # dblnode.children[i] has 0 < n < full elements as a result of adaptive

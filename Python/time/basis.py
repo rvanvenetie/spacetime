@@ -157,10 +157,10 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
         self.coeff = [0, 0]
 
     def center(self):
-        return (float(sum(self.interval) / 2), self.level)
+        return (float(sum(self.interval) / 2), self.level, self.index)
 
     def support_contains(self, t):
-        a, b = self.interval()
+        a, b = self.interval
         return float(a) <= t <= float(b)
 
     def inner_quad(self, g, g_order=2, deriv=False):
@@ -186,7 +186,6 @@ class Scaling(CoefficientFunction1D):
 
     def prolongate(self):
         """ Returns a list of pairs with the corresponding coefficients. """
-
     def restrict(self):
         """ The adjoint of transposing. """
 

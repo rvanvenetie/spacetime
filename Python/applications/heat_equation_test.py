@@ -142,7 +142,7 @@ def test_sparse_tensor_heat():
         assert np.allclose(tree_matvec.to_array(), array_matvec)
 
         # Now actually solve this beast!
-        sol, num_iters = heat_eq.solve(rhs)
+        sol, info = heat_eq.solve(rhs)
         # Check the error..
         res_tree = heat_eq.mat.apply(sol)
         res_tree -= rhs
@@ -171,11 +171,11 @@ def test_real_tensor_heat():
         rhs = example_rhs(heat_eq)
 
         # Now actually solve this beast!
-        sol, num_iters = heat_eq.solve(rhs)
+        sol, info = heat_eq.solve(rhs)
         error = np.linalg.norm(
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())
         print('%s solved in {} iterations with an error {}'.format(
-            formulation, num_iters, error))
+            formulation, info['num_iters'], error))
 
         # assert that solver converged.
         assert error < 1e-4
@@ -277,9 +277,7 @@ def test_heat_error_reduction(max_history_level=0,
             callback = None
 
         # Now actually solve this beast!
-        sol, num_iters = heat_eq.solve(rhs,
-                                       solver=solver,
-                                       iter_callback=callback)
+        sol, info = heat_eq.solve(rhs, solver=solver, iter_callback=callback)
 
         # Count number of dofs (not on the boundary!)
         ndofs.append(
@@ -291,16 +289,15 @@ def test_heat_error_reduction(max_history_level=0,
         dims.append([len(heat_eq.Y_delta.bfs()), len(X_delta.bfs())])
         if level <= max_history_level:
             residual_norm_histories.append(residual_norm_history)
-        solver_iters.append(num_iters)
+        solver_iters.append(info['num_iters'])
         residual_norm = np.linalg.norm(
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())
         residual_norms.append(residual_norm)
-        time_per_dof.append(heat_eq.time_per_dof())
+        time_per_dof.append(info['time_per_dof'])
 
         print('{} solved in {} iterations with a residual norm {}'.format(
-            solver, num_iters, residual_norm))
-        print('Time per dof is approximately {}'.format(
-            heat_eq.time_per_dof()))
+            solver, info['num_iters'], residual_norm))
+        print('Time per dof is approximately {}'.format(info['time_per_dof']))
 
         u, u_order, u_slice_norm = example_solution_function()
 
