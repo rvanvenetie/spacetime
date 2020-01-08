@@ -50,6 +50,7 @@ def test_dorfler_marking():
 
 def test_heat_error_reduction(theta=0.7,
                               max_iters=3,
+                              initial_refinement=1,
                               solver_tol=1e-5,
                               save_results_file=None):
     """ Simple test that applies the adaptive loop for a few iterations. """
@@ -58,7 +59,8 @@ def test_heat_error_reduction(theta=0.7,
     np.set_printoptions(linewidth=10000)
 
     # Create space part.
-    triang = InitialTriangulation.unit_square(initial_refinement=1)
+    triang = InitialTriangulation.unit_square(
+        initial_refinement=initial_refinement)
     triang.elem_meta_root.uniform_refine(1)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
@@ -145,6 +147,7 @@ def test_heat_error_reduction(theta=0.7,
                 "slice_errors": slice_errors,
             }
             pickle.dump(results, open(save_results_file, "wb"))
+        continue
 
         # Do some assertion checks.
         if it > 2:
@@ -153,6 +156,7 @@ def test_heat_error_reduction(theta=0.7,
 
             # Assert that the residual norm has reduced.
             assert res_errors[-1] < 0.1
+
         if it > 4:
             # Assert that at least 80% of the time steps have error reduction.
             assert sum(slice_errors[-1] <= slice_errors[-3]) > 0.8 * n_t
@@ -283,6 +287,7 @@ if __name__ == "__main__":
     #                   initial_triangulation='lshape',
     #                   results_file='singular_solution_adaptive_lshape.pkl')
     test_heat_error_reduction(
-        save_results_file='slice_errors_adaptive_low_tol.pkl',
-        solver_tol=1e-9,
+        save_results_file='slice_errors_adaptive_initial_ref_5.pkl',
+        solver_tol=1e-6,
+        initial_refinement=5,
         max_iters=9999)
