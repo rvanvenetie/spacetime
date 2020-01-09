@@ -17,6 +17,11 @@ class ErrorEstimator:
         self.dirichlet_boundary = dirichlet_boundary
 
 
+class AuxiliaryErrorEstimator(ErrorEstimator):
+    def estimate(self):
+        pass
+
+
 class ResidualErrorEstimator(ErrorEstimator):
     def estimate(self, u_dd_d, X_d, X_dd, Y_dd, I_d_dd):
         """ The residual error estimator of Proposition 5.7.
