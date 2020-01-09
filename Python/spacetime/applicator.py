@@ -113,7 +113,7 @@ class Applicator(ApplicatorInterface):
         theta.compute_fibers()
         return theta
 
-    def apply(self, vec_in):
+    def apply(self, vec_in, vec_out=None):
         """ Apply the tensor product applicator to the given vector. """
         # Assert that vec is defined on Lambda_in
         assert all(n1.nodes == n2.nodes
@@ -150,7 +150,8 @@ class Applicator(ApplicatorInterface):
             self.applicator_space.apply(fiber_in, fiber_out)
 
         # Sum and return the results.
-        vec_out = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
+        if not vec_out:
+            vec_out = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
         vec_out.from_array(self.vec_out_low.to_array() +
                            self.vec_out_upp.to_array())
         return vec_out
