@@ -6,23 +6,20 @@ from .triangulation_view import TriangulationView
 
 
 class Applicator(ApplicatorInterface):
-    # If _use_cache is set to true, this will fill the cache dict for *every*
-    # initial triangulation used throughout the program.
-    _use_cache = False
-    _triang_view_cache = {}
     """ Class that can apply operators on the hierarchical basis. """
-    def __init__(self, singlescale_operator):
+    def __init__(self, singlescale_operator, use_cache=False):
         """ Initialize the applicator.
 
         Arguments:
             singlescale_operator: an instance of operators.Operator.
+            use_cache: this caches TriangulationView objects, use only if you
+              evaluate this applicator multiple times.
         """
         super().__init__()
         self.operator = singlescale_operator
 
-    @staticmethod
-    def reset_cache():
-        Applicator._triang_view_cache = {}
+        self.use_cache = use_cache
+        self.triang_view_cache = {}
 
     def apply(self, vec_in, vec_out, **kwargs):
         """ Apply the multiscale operator. """
@@ -36,14 +33,14 @@ class Applicator(ApplicatorInterface):
             # This is the case where vec_in == vec_out, i.e. symmetric.
 
             # Create a triangulation view object.
-            if not self._use_cache:
+            if not self.use_cache:
                 self.operator.triang = TriangulationView(vec_in)
             else:
                 # Cache triangulation view objects..
-                if vec_in_nodes not in self._triang_view_cache:
-                    self._triang_view_cache[vec_in_nodes] = TriangulationView(
+                if vec_in_nodes not in self.triang_view_cache:
+                    self.triang_view_cache[vec_in_nodes] = TriangulationView(
                         vec_in)
-                self.operator.triang = self._triang_view_cache[vec_in_nodes]
+                self.operator.triang = self.triang_view_cache[vec_in_nodes]
 
             np_vec_in = vec_in.to_array()
             np_vec_out = self.operator.apply(np_vec_in, **kwargs)

@@ -23,6 +23,7 @@ class HeatEquation:
                  X_delta,
                  Y_delta=None,
                  dirichlet_boundary=True,
+                 use_space_cache=True,
                  formulation='saddle'):
         if Y_delta is None:
             Y_delta = generate_y_delta(X_delta)
@@ -48,7 +49,10 @@ class HeatEquation:
         def applicator_space(operator, **kwargs):
             """ Helper function to generate a space applicator. """
             return s_applicator.Applicator(
-                operator(dirichlet_boundary=dirichlet_boundary, **kwargs))
+                singlescale_operator=operator(
+                    dirichlet_boundary=dirichlet_boundary, **kwargs),
+                use_cache=use_space_cache,
+            )
 
         self.A_s = Applicator(
             Lambda_in=Y_delta,
