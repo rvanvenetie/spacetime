@@ -32,15 +32,14 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
         self.u0_slice_norm = u0_slice_norm
         self.u0_order = u0_order
 
-    def estimate(self, u_dd_d, X_d, Y_dd, tol=1e-5, heat_dd_d=None):
-        if heat_dd_d is None:
-            heat_dd_d = HeatEquation(
-                X_delta=X_d,
-                Y_delta=Y_dd,
-                formulation='schur',
-                dirichlet_boundary=self.dirichlet_boundary)
+    def estimate(
+            self,
+            heat_dd_d,
+            u_dd_d,
+            tol=1e-5,
+    ):
         Bu_minus_g = heat_dd_d.B.apply(u_dd_d)
-        Bu_minus_g -= self.g_functional.eval(Y_dd)
+        Bu_minus_g -= self.g_functional.eval(heat_dd_d.Y_delta)
         heat_dd_d.enforce_dirichlet_boundary(Bu_minus_g)
         Bu_minus_g_array = Bu_minus_g.to_array()
         A_s = LinearOperatorApplicator(applicator=heat_dd_d.A_s,
