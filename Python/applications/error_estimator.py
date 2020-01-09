@@ -57,8 +57,8 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
             self.u0_slice_norm,
             self.u0_order,
         )
-        terms = (Bu_minus_g_array.dot(result), zero_slice_error**2)
-        return np.sqrt(sum(terms)), terms
+        terms = (np.sqrt(Bu_minus_g_array.dot(result)), zero_slice_error)
+        return np.sqrt(sum([t**2 for t in terms])), terms
 
 
 class ResidualErrorEstimator(ErrorEstimator):
