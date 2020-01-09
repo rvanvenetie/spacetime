@@ -1,5 +1,3 @@
-import scipy.sparse.linalg as spla
-
 from ..datastructures.applicator import (BlockApplicator, CompositeApplicator,
                                          LinearOperatorApplicator)
 from ..datastructures.double_tree_vector import DoubleTreeVector
@@ -25,6 +23,7 @@ class HeatEquation:
                  X_delta,
                  Y_delta=None,
                  dirichlet_boundary=True,
+                 use_space_cache=True,
                  formulation='saddle'):
         if Y_delta is None:
             Y_delta = generate_y_delta(X_delta)
@@ -50,7 +49,10 @@ class HeatEquation:
         def applicator_space(operator, **kwargs):
             """ Helper function to generate a space applicator. """
             return s_applicator.Applicator(
-                operator(dirichlet_boundary=dirichlet_boundary, **kwargs))
+                singlescale_operator=operator(
+                    dirichlet_boundary=dirichlet_boundary, **kwargs),
+                use_cache=use_space_cache,
+            )
 
         self.A_s = Applicator(
             Lambda_in=Y_delta,
@@ -221,46 +223,23 @@ class HeatEquation:
 
         # Check input of solver.
         if self.formulation == 'saddle': assert solver == 'minres'
-        if self.formulation == 'schur':
-            assert solver in ['cg', 'pcg']
+        if self.formulation == 'schur': assert solver in ['cg', 'pcg']
 
-        num_iters = 0
-
-        def call_iterations(vec):
-            nonlocal num_iters
-            if iter_callback: iter_callback(vec)
-            print(".", end='', flush=True)
-            num_iters += 1
-
-        M = None
-        if solver == "minres":
-            solver = spla.minres
-        elif solver == "cg":
-            solver = spla.cg
-        elif solver == "pcg":
-            solver = spla.cg
+        if solver == "pcg":
             M = LinearOperatorApplicator(applicator=self.P_X,
                                          input_vec=self.create_vector())
         else:
-            raise NotImplementedError("Unrecognized method '%s'" % self.solver)
+            M = None
 
-        result_array, info = solver(self.linop,
-                                    x0=x0.to_array() if x0 else None,
-                                    b=b.to_array(),
-                                    M=M,
-                                    tol=tol,
-                                    callback=call_iterations)
+        result_array, info = self.linop.solve(solver=solver,
+                                              b=b.to_array(),
+                                              x0=x0.to_array() if x0 else None,
+                                              M=M,
+                                              tol=tol,
+                                              iter_callback=iter_callback)
+
         result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
         result_fn.from_array(result_array)
-        print(end='\n')
-        assert info == 0
         self._validate_boundary_dofs(result_fn)
-
-        info = {
-            'num_iters': num_iters,
-            'time_per_dof': self.linop.time_per_dof()
-        }
-        if M:
-            info['P_time_per_dof'] = M.time_per_dof()
 
         return result_fn, info

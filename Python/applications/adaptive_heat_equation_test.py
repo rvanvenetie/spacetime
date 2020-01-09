@@ -156,8 +156,6 @@ def run_adaptive_loop(initial_triangulation='square',
         sol_info = {
             'X_delta': [(n.nodes[0].center(), n.nodes[1].center())
                         for n in adaptive_heat_eq.X_delta.bfs_kron()],
-            'X_delta_underscore': [(n.nodes[0].center(), n.nodes[1].center())
-                                   for n in adaptive_heat_eq.X_dd.bfs_kron()],
             'u_delta':
             u_dd_d.to_array(),
         }
