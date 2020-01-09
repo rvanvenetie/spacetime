@@ -10,9 +10,15 @@ from .residual_error_estimator import ResidualErrorEstimator
 
 class AdaptiveHeatEquation:
     """ Class for solving the heat equation using an adaptive loop. """
-    def __init__(self, X_init, rhs_factory, theta, dirichlet_boundary=True):
+    def __init__(self,
+                 X_init,
+                 g_functional,
+                 u0_functional,
+                 theta,
+                 dirichlet_boundary=True):
         self.X_delta = X_init
-        self.rhs_factory = rhs_factory
+        self.g_functional = g_functional
+        self.u0_functional = u0_functional
         self.theta = theta
         self.dirichlet_boundary = dirichlet_boundary
 
@@ -36,7 +42,8 @@ class AdaptiveHeatEquation:
                                  Y_delta=self.Y_dd,
                                  formulation='schur',
                                  dirichlet_boundary=self.dirichlet_boundary)
-        f_dd_d = self.rhs_factory(heat_dd_d)
+        f_dd_d = heat_dd_d.calculate_rhs_vector(
+            g_functional=self.g_functional, u0_functional=self.u0_functional)
 
         # If we have an initial guess, interpolate it into X_delta.
         if x0:
@@ -54,7 +61,8 @@ class AdaptiveHeatEquation:
     def mark_refine(self, u_dd_d):
         error_estimator = ResidualErrorEstimator.FromDoubleTrees(
             u_dd_d=u_dd_d,
-            rhs_factory=self.rhs_factory,
+            g_functional=self.g_functional,
+            u0_functional=self.u0_functional,
             X_d=self.X_delta,
             X_dd=self.X_dd,
             Y_dd=self.Y_dd,

@@ -66,7 +66,8 @@ class ResidualErrorEstimator:
 
     @staticmethod
     def FromDoubleTrees(u_dd_d,
-                        rhs_factory,
+                        g_functional,
+                        u0_functional,
                         X_d,
                         X_dd,
                         Y_dd,
@@ -81,7 +82,7 @@ class ResidualErrorEstimator:
                                   Y_delta=Y_dd,
                                   formulation='schur',
                                   dirichlet_boundary=dirichlet_boundary)
-        f_dd_dd = rhs_factory(heat_dd_dd)
+        f_dd_dd = heat_dd_dd.calculate_rhs_vector(g_functional, u0_functional)
 
         # Calculate the residual wrt X_dd, i.e.  f_dd_dd - S_dd_dd(u_dd_d).
         residual_vector = f_dd_dd

@@ -111,21 +111,22 @@ def test_x_delta_underscore():
 
 
 def test_x_delta_underscore_equal_to_sparse_grid():
+    max_level = 5
+
     # Create space part.
     triang = InitialTriangulation.unit_square()
-    triang.elem_meta_root.uniform_refine(10)
+    triang.elem_meta_root.uniform_refine(2 * max_level)
     basis_space = HierarchicalBasisFunction.from_triangulation(triang)
     basis_space.deep_refine()
 
     # Create time part for X^\delta
     basis_time = ThreePointBasis()
-    basis_time.metaroot_wavelet.uniform_refine(6)
+    basis_time.metaroot_wavelet.uniform_refine(max_level)
     X_delta = DoubleTree.from_metaroots(
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.uniform_refine(0)
 
     # Tryout various levels.
-    max_level = 6
     for l in range(1, max_level):
         # Create X^\delta
         X_delta = DoubleTree.from_metaroots(

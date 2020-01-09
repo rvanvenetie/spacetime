@@ -12,7 +12,8 @@ from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..time.three_point_basis import ThreePointBasis
 from .adaptive_heat_equation import AdaptiveHeatEquation
-from .heat_equation_test import example_rhs
+from .heat_equation import HeatEquation
+from .heat_equation_test import example_rhs_functional
 
 
 def test_dorfler_marking():
@@ -63,9 +64,13 @@ def test_heat_error_reduction(theta=0.7):
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.uniform_refine(0)
 
+    # Create rhs functionals
+    g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
+
     # Create adaptive heat equation object.
     adaptive_heat_eq = AdaptiveHeatEquation(X_init=X_delta,
-                                            rhs_factory=example_rhs,
+                                            g_functional=g_functional,
+                                            u0_functional=u0_functional,
                                             theta=theta)
 
     # Solve.
@@ -75,7 +80,7 @@ def test_heat_error_reduction(theta=0.7):
     assert info['errors'][-1] < 0.1
 
 
-def singular_rhs(heat_eq):
+def singular_rhs_functional(heat_eq):
     g = [(
         lambda t: 0,
         lambda xy: 0,
@@ -84,16 +89,17 @@ def singular_rhs(heat_eq):
     u0 = [lambda xy: 1]
     u0_order = [1]
 
-    return heat_eq.calculate_rhs_vector(
-        *heat_eq.calculate_rhs_functionals_quadrature(
-            g=g, g_order=g_order, u0=u0, u0_order=u0_order))
+    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
+                                                        g_order=g_order,
+                                                        u0=u0,
+                                                        u0_order=u0_order)
 
 
 def run_adaptive_loop(initial_triangulation='square',
                       theta=0.7,
                       results_file=None,
                       initial_refinement=1,
-                      rhs_factory=singular_rhs,
+                      rhs_functional_factory=singular_rhs_functional,
                       solver_tol='1e-7'):
     # Printing options.
     np.set_printoptions(precision=4)
@@ -120,9 +126,13 @@ def run_adaptive_loop(initial_triangulation='square',
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.uniform_refine(0)
 
+    # Create rhs functionals
+    g_functional, u0_functional = rhs_functional_factory(HeatEquation(X_delta))
+
     # Create adaptive heat equation object.
     adaptive_heat_eq = AdaptiveHeatEquation(X_init=X_delta,
-                                            rhs_factory=rhs_factory,
+                                            g_functional=g_functional,
+                                            u0_functional=u0_functional,
                                             theta=theta)
     info = {
         'theta': adaptive_heat_eq.theta,
@@ -178,6 +188,6 @@ def run_adaptive_loop(initial_triangulation='square',
 
 
 if __name__ == "__main__":
-    run_adaptive_loop(rhs_factory=singular_rhs,
+    run_adaptive_loop(rhs_functional_factory=singular_rhs_functional,
                       initial_triangulation='lshape',
                       results_file='singular_solution_adaptive_lshape.pkl')

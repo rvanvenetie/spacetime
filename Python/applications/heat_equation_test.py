@@ -31,7 +31,7 @@ def example_solution_function():
     return u, u_order, u_slice_norm_l2
 
 
-def example_rhs(heat_eq):
+def example_rhs_functional(heat_eq):
     g = [(
         lambda t: -2 * (1 + t**2),
         lambda xy: (xy[0] - 1) * xy[0] + (xy[1] - 1) * xy[1],
@@ -44,9 +44,10 @@ def example_rhs(heat_eq):
     u0 = [lambda xy: u[0](0) * u[1](xy)]
     u0_order = [u_order[1]]
 
-    return heat_eq.calculate_rhs_vector(
-        *heat_eq.calculate_rhs_functionals_quadrature(
-            g=g, g_order=g_order, u0=u0, u0_order=u0_order))
+    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
+                                                        g_order=g_order,
+                                                        u0=u0,
+                                                        u0_order=u0_order)
 
 
 def random_rhs(heat_eq):
@@ -168,7 +169,7 @@ def test_real_tensor_heat():
     # Create heat equation object.
     for formulation in ['saddle', 'schur']:
         heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
-        rhs = example_rhs(heat_eq)
+        rhs = heat_eq.calculate_rhs_vector(*example_rhs_functional(heat_eq))
 
         # Now actually solve this beast!
         sol, info = heat_eq.solve(rhs)
@@ -257,6 +258,10 @@ def test_heat_error_reduction(max_history_level=0,
     residual_norm_histories = []
     residual_norms = []
     solver_iters = []
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    X_delta.sparse_refine(0)
+    g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
     for level in range(2, max_level):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
@@ -267,7 +272,7 @@ def test_heat_error_reduction(max_history_level=0,
 
         # Create heat equation object.
         heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
-        rhs = example_rhs(heat_eq)
+        rhs = heat_eq.calculate_rhs_vector(g_functional, u0_functional)
 
         if level <= max_history_level:
             residual_norm_history = []
@@ -407,30 +412,32 @@ def test_residual_error_estimator_rate():
     basis_time = ThreePointBasis()
 
     max_level = 100
-    rhs_factory = example_rhs
     sol = None
     time_start = time.time()
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    X_delta.uniform_refine(0)
+    g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
     for level in range(1, max_level):
         time_start_iteration = time.time()
         # Create X^\delta as a full grid.
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
-        X_delta.uniform_refine(level)
-        print([(n.nodes[0].level, n.nodes[1].level) for n in X_delta.bfs()
-               if n.is_leaf()])
+        X_delta.uniform_refine([level, 2 * level])
         X_dd, I_d_dd = generate_x_delta_underscore(X_delta)
         Y_dd = generate_y_delta(X_dd)
         heat_eq = HeatEquation(X_delta=X_delta,
                                Y_delta=Y_dd,
                                formulation='schur')
-        rhs = rhs_factory(heat_eq)
+        rhs = heat_eq.calculate_rhs_vector(g_functional, u0_functional)
         if sol:
             sol = sol.deep_copy()
             sol.union(X_delta, call_postprocess=None)
         sol, solve_info = heat_eq.solve(b=rhs, solver='pcg', x0=sol)
         error_estimator = ResidualErrorEstimator.FromDoubleTrees(
             u_dd_d=sol,
-            rhs_factory=rhs_factory,
+            g_functional=g_functional,
+            u0_functional=u0_functional,
             X_d=X_delta,
             X_dd=X_dd,
             Y_dd=Y_dd,
