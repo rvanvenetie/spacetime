@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import scipy
-import scipy.sparse.linalg
+import scipy.sparse.linalg as spla
 
 from ..datastructures.multi_tree_vector import BlockTreeVector
 
@@ -41,11 +41,9 @@ class ApplicatorInterface(ABC):
         Returns:
             self.operator(Psi_{Lambda_in})(Psi_{Lambda_out}) vec.
         """
-
     @abstractmethod
     def transpose(self):
         """ Returns the transpose of this bilinear form. """
-
     def __neg__(self):
         """ Returns a negated operator. """
         return ScalarApplicator(self, scalar=-1)
@@ -217,3 +215,44 @@ class LinearOperatorApplicator(scipy.sparse.linalg.LinearOperator):
     def time_per_dof(self):
         """ Returns an estimated time per dof. """
         return self.total_time / (self.total_applies * self.shape[1])
+
+    def solve(self, solver, b, x0=None, M=None, tol=1e-5, iter_callback=None):
+        assert solver in ['minres', 'cg', 'pcg']
+
+        if solver == "minres":
+            solver = spla.minres
+        elif solver == 'cg':
+            solver = spla.cg
+        elif solver == 'pcg':
+            solver = spla.cg
+            assert M
+
+        num_iters = 0
+
+        def call_iterations(vec):
+            nonlocal num_iters
+            if iter_callback: iter_callback(vec)
+            print(".", end='', flush=True)
+            num_iters += 1
+
+        # Gather timing results for this solve step.
+        self.total_time = 0
+        self.total_applies = 0
+        if M:
+            M.total_time = 0
+            M.total_applies = 0
+
+        # Actually solve.
+        result_array, info = solver(self,
+                                    x0=x0,
+                                    b=b,
+                                    M=M,
+                                    tol=tol,
+                                    callback=call_iterations)
+        print(end='\n')
+        assert info == 0
+        info = {'num_iters': num_iters, 'time_per_dof': self.time_per_dof()}
+        if M:
+            info['P_time_per_dof'] = M.time_per_dof()
+
+        return result_array, info
