@@ -311,7 +311,11 @@ class QuadratureFunctional:
                 quad_ss[Vids[i]] += scheme.integrate(ip_func, triangle)
         operator = Operator(triang=self.triang,
                             dirichlet_boundary=self.dirichlet_boundary)
-        return operator.apply_T_transpose(quad_ss)
+        result = operator.apply_T_transpose(quad_ss)
+        if self.dirichlet_boundary:
+            result = operator.apply_boundary_restriction(result)
+
+        return result
 
 
 class InterpolantFunctional:
@@ -330,7 +334,11 @@ class InterpolantFunctional:
             bdr_dofs = op.boundary_dofs()
             assert np.allclose(eval_ss[bdr_dofs], 0)
 
-        return op.apply_T_inverse(eval_ss)
+        result = op.apply_T_inverse(eval_ss)
+        if self.dirichlet_boundary:
+            result = op.apply_boundary_restriction(result)
+
+        return result
 
 
 def plot_hatfn():

@@ -42,9 +42,12 @@ def test_functional_quadrature():
 
             inner_g_vec = functional.eval(Lambda)
             for psi in inner_g_vec.bfs():
-                true_ip = HierarchicalBasisFunction(psi.node).inner_quad(
-                    g=g, g_order=g_order, deriv=deriv)
-                assert true_ip == approx(psi.value)
+                if psi.node.on_domain_boundary:
+                    assert psi.value == 0
+                else:
+                    true_ip = HierarchicalBasisFunction(psi.node).inner_quad(
+                        g=g, g_order=g_order, deriv=deriv)
+                    assert true_ip == approx(psi.value)
 
 
 def test_functional_interpolant():

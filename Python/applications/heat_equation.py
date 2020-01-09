@@ -150,10 +150,6 @@ class HeatEquation:
         # Put the vectors in a block.
         rhs = BlockTreeVector((rhs_g, rhs_u0))
 
-        # Ensure the dirichlet boundary conditions.
-        if self.dirichlet_boundary:
-            self.enforce_dirichlet_boundary(rhs)
-
         if self.formulation == 'saddle':
             return rhs
         else:
@@ -188,8 +184,10 @@ class HeatEquation:
                 basis=self.time_basis_Y,
             )
             functional_space = s_functional.Functional(
-                s_operators.QuadratureFunctional(g=g_space,
-                                                 g_order=g_space_order))
+                s_operators.QuadratureFunctional(
+                    g=g_space,
+                    g_order=g_space_order,
+                    dirichlet_boundary=self.dirichlet_boundary))
             g_functionals.append(
                 TensorFunctional(functional_time=functional_time,
                                  functional_space=functional_space))
@@ -204,7 +202,10 @@ class HeatEquation:
                 basis=self.time_basis_X,
             )
             functional_space = s_functional.Functional(
-                s_operators.QuadratureFunctional(g=u0, g_order=u0_order))
+                s_operators.QuadratureFunctional(
+                    g=u0,
+                    g_order=u0_order,
+                    dirichlet_boundary=self.dirichlet_boundary))
 
             u0_functionals.append(
                 TensorFunctional(functional_time=functional_time,
