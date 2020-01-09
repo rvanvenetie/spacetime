@@ -4,6 +4,13 @@ from .heat_equation import HeatEquation
 
 
 class ErrorEstimator:
+    """ An abstract error estimator.
+
+    Arguments:
+        g_functional: the functional of the data g.
+        u0_functional: the functional of the data u0.
+        dirichlet_boundary: whether or not to enforce Dirichlet BC.
+    """
     def __init__(self, g_functional, u0_functional, dirichlet_boundary=True):
         self.g_functional = g_functional
         self.u0_functional = u0_functional
@@ -16,13 +23,10 @@ class ResidualErrorEstimator(ErrorEstimator):
 
         Arguments:
             u_dd_d: the solution vector.
-            g_functional: the functional of the data g.
-            u0_functional: the functional of the data u0.
             X_d: the doubletree `X_delta`.
             X_dd: the doubletree `X_{underscore delta}`.
             Y_dd: the doubletree `Y_{underscore delta}`.
             I_d_dd: the nodes in `X_dd setminus X_d` in list format.
-            dirichlet_boundary: whether or not to enforce Dirichlet BC.
         """
         # First lift u_dd_d onto X_dd.
         u_dd_dd = u_dd_d.deep_copy()
