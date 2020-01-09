@@ -1,5 +1,7 @@
 import numpy as np
 
+from ..datastructures.applicator import LinearOperatorApplicator
+from ..space.triangulation_function import TriangulationFunction
 from .heat_equation import HeatEquation
 
 
@@ -18,8 +20,46 @@ class ErrorEstimator:
 
 
 class AuxiliaryErrorEstimator(ErrorEstimator):
-    def estimate(self):
-        pass
+    def __init__(self,
+                 g_functional,
+                 u0_functional,
+                 u0,
+                 u0_slice_norm,
+                 u0_order,
+                 dirichlet_boundary=True):
+        self.g_functional = g_functional
+        self.u0_functional = u0_functional
+        self.u0 = u0
+        self.u0_slice_norm = u0_slice_norm
+        self.u0_order = u0_order
+        self.dirichlet_boundary = dirichlet_boundary
+
+    def estimate(self, u_dd_d, X_d, Y_dd, tol=1e-5):
+        heat_dd_d = HeatEquation(X_delta=X_d,
+                                 Y_delta=Y_dd,
+                                 formulation='schur',
+                                 dirichlet_boundary=self.dirichlet_boundary)
+        Bu_minus_g = heat_dd_d.B.apply(u_dd_d)
+        Bu_minus_g -= self.g_functional.eval(Y_dd)
+        heat_dd_d.enforce_dirichlet_boundary(Bu_minus_g)
+        Bu_minus_g_array = Bu_minus_g.to_array()
+        A_s = LinearOperatorApplicator(applicator=heat_dd_d.A_s,
+                                       input_vec=Bu_minus_g)
+        result, _ = A_s.solve(solver='cg',
+                              b=Bu_minus_g_array,
+                              M=LinearOperatorApplicator(
+                                  applicator=heat_dd_d.P_Y,
+                                  input_vec=Bu_minus_g),
+                              tol=tol)
+        u_dd_d_0 = u_dd_d.slice(i=0,
+                                coord=0.0,
+                                slice_cls=TriangulationFunction)
+        zero_slice_error = u_dd_d_0.error_L2(
+            lambda xy: self.u0(xy),
+            self.u0_slice_norm,
+            self.u0_order,
+        )
+        return np.sqrt(Bu_minus_g_array.dot(result) + zero_slice_error**2)
 
 
 class ResidualErrorEstimator(ErrorEstimator):

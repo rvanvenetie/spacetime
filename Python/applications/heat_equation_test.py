@@ -17,7 +17,7 @@ from ..space.triangulation_function import TriangulationFunction
 from ..space.triangulation_view import TriangulationView
 from ..spacetime.basis import generate_x_delta_underscore, generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
-from .error_estimator import ResidualErrorEstimator
+from .error_estimator import AuxiliaryErrorEstimator, ResidualErrorEstimator
 from .heat_equation import HeatEquation
 
 
@@ -418,8 +418,12 @@ def test_residual_error_estimator_rate():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.uniform_refine(0)
     g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
+    u, u_order, u_slice_norm = example_solution_function()
     residual_error_estimator = ResidualErrorEstimator(g_functional,
                                                       u0_functional)
+    aux_error_estimator = AuxiliaryErrorEstimator(
+        g_functional, u0_functional, lambda xy: u[0](0) * u[1](xy),
+        u_slice_norm(0), u_order[1])
     for level in range(1, max_level):
         time_start_iteration = time.time()
         # Create X^\delta as a full grid.
@@ -441,11 +445,14 @@ def test_residual_error_estimator_rate():
                                                            X_dd=X_dd,
                                                            Y_dd=Y_dd,
                                                            I_d_dd=I_d_dd)
+        res_aux = aux_error_estimator.estimate(u_dd_d=sol,
+                                               X_d=X_delta,
+                                               Y_dd=Y_dd)
         process = psutil.Process(os.getpid())
         print(len(X_delta.bfs()), len(X_dd.bfs()),
               process.memory_info().rss,
               time.time() - time_start_iteration,
-              time.time() - time_start, res_dd_d.norm())
+              time.time() - time_start, res_dd_d.norm(), res_aux)
         if process.memory_info().rss > 40 * 10**9:
             break
 
