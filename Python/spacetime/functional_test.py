@@ -63,7 +63,10 @@ def test_tensor_functional_quadrature():
                 basis=basis_time,
             )
             functional_space = FunctionalSpace(
-                QuadratureSpace(g=g_space, g_order=g_space_order, deriv=deriv))
+                QuadratureSpace(g=g_space,
+                                g_order=g_space_order,
+                                deriv=deriv,
+                                dirichlet_boundary=False))
 
             functional = TensorFunctional(functional_time=functional_time,
                                           functional_space=functional_space)
