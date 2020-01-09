@@ -20,6 +20,9 @@ class AdaptiveHeatEquation:
         self.theta = theta
         self.dirichlet_boundary = dirichlet_boundary
 
+        self.residual_error_estimator = ResidualErrorEstimator(
+            self.g_functional, self.u0_functional, self.dirichlet_boundary)
+
         self.X_dd = None
         self.I_d_dd = None
         self.Y_dd = None
@@ -57,38 +60,30 @@ class AdaptiveHeatEquation:
         return u_dd_d, info
 
     def mark_refine(self, u_dd_d):
-        error_estimator = ResidualErrorEstimator(
+        res, res_d, res_d_dd = self.residual_error_estimator.estimate(
             u_dd_d=u_dd_d,
-            g_functional=self.g_functional,
-            u0_functional=self.u0_functional,
             X_d=self.X_delta,
             X_dd=self.X_dd,
             Y_dd=self.Y_dd,
-            I_d_dd=self.I_d_dd,
-            dirichlet_boundary=self.dirichlet_boundary)
-        residual = error_estimator.res_dd_d
-        residual_X_d = error_estimator.res_d
-        residual_X_d_dd = error_estimator.res_dd_min_d
+            I_d_dd=self.I_d_dd)
         info = {
-            'res_norm': residual.norm(),
-            'res_X_d_norm': np.linalg.norm([n.value for n in residual_X_d]),
-            'res_X_d_dd_norm':
-            np.linalg.norm([n.value for n in residual_X_d_dd]),
+            'res_norm': res.norm(),
+            'res_X_d_norm': np.linalg.norm([n.value for n in res_d]),
+            'res_X_d_dd_norm': np.linalg.norm([n.value for n in res_d_dd]),
         }
         print('Residual norm is {}.'.format(info['res_norm']))
 
-        marked_nodes = self.dorfler_marking(residual_X_d_dd, self.theta)
+        marked_nodes = self.dorfler_marking(res_d_dd, self.theta)
         info['n_marked'] = len(marked_nodes)
         print('Dorfler marked {} nodes'.format(len(marked_nodes)))
 
         # Create the new X_delta.
-        self.X_delta = DoubleTree.make_conforming(residual_X_d + marked_nodes)
+        self.X_delta = DoubleTree.make_conforming(res_d + marked_nodes)
         info['dim_X_delta_ref'] = len(self.X_delta.bfs())
         print('X_delta grew from {} to {}.'.format(
-            sum(not n.is_metaroot() for n in residual_X_d),
-            info['dim_X_delta_ref']))
+            sum(not n.is_metaroot() for n in res_d), info['dim_X_delta_ref']))
 
-        return residual, info
+        return res, info
 
     def solve(self, eps=1e-5, solver='pcg', max_iters=99999999):
         info = {

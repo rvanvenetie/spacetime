@@ -418,6 +418,8 @@ def test_residual_error_estimator_rate():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.uniform_refine(0)
     g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
+    residual_error_estimator = ResidualErrorEstimator(g_functional,
+                                                      u0_functional)
     for level in range(1, max_level):
         time_start_iteration = time.time()
         # Create X^\delta as a full grid.
@@ -434,18 +436,16 @@ def test_residual_error_estimator_rate():
             sol = sol.deep_copy()
             sol.union(X_delta, call_postprocess=None)
         sol, solve_info = heat_eq.solve(b=rhs, solver='pcg', x0=sol)
-        error_estimator = ResidualErrorEstimator(u_dd_d=sol,
-                                                 g_functional=g_functional,
-                                                 u0_functional=u0_functional,
-                                                 X_d=X_delta,
-                                                 X_dd=X_dd,
-                                                 Y_dd=Y_dd,
-                                                 I_d_dd=I_d_dd)
+        res_dd_d, _, _ = residual_error_estimator.estimate(u_dd_d=sol,
+                                                           X_d=X_delta,
+                                                           X_dd=X_dd,
+                                                           Y_dd=Y_dd,
+                                                           I_d_dd=I_d_dd)
         process = psutil.Process(os.getpid())
         print(len(X_delta.bfs()), len(X_dd.bfs()),
               process.memory_info().rss,
               time.time() - time_start_iteration,
-              time.time() - time_start, error_estimator.res_dd_d.norm())
+              time.time() - time_start, res_dd_d.norm())
         if process.memory_info().rss > 40 * 10**9:
             break
 
