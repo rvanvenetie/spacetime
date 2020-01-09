@@ -7,7 +7,6 @@ import numpy as np
 import psutil
 
 from ..datastructures.double_tree_view import DoubleTree
-from ..space.applicator import Applicator as SpaceApplicator
 from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..time.three_point_basis import ThreePointBasis
@@ -143,10 +142,6 @@ def run_adaptive_loop(initial_triangulation='square',
     u_dd_d = None
     time_start = time.time()
     while True:
-        # Use a dictionary cache for triangulationviews..
-        SpaceApplicator.reset_cache()
-        SpaceApplicator._use_cache = True
-
         time_start_iteration = time.time()
         step_info = {}
         # Calculate a new solution.
