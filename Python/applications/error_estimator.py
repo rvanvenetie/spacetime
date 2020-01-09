@@ -27,12 +27,10 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
                  u0_slice_norm,
                  u0_order,
                  dirichlet_boundary=True):
-        self.g_functional = g_functional
-        self.u0_functional = u0_functional
+        super().__init__(g_functional, u0_functional, dirichlet_boundary)
         self.u0 = u0
         self.u0_slice_norm = u0_slice_norm
         self.u0_order = u0_order
-        self.dirichlet_boundary = dirichlet_boundary
 
     def estimate(self, u_dd_d, X_d, Y_dd, tol=1e-5):
         heat_dd_d = HeatEquation(X_delta=X_d,
