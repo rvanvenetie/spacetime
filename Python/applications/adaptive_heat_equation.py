@@ -59,7 +59,7 @@ class AdaptiveHeatEquation:
         return u_dd_d, info
 
     def mark_refine(self, u_dd_d):
-        error_estimator = ResidualErrorEstimator.FromDoubleTrees(
+        error_estimator = ResidualErrorEstimator(
             u_dd_d=u_dd_d,
             g_functional=self.g_functional,
             u0_functional=self.u0_functional,

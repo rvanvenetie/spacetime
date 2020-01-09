@@ -434,14 +434,13 @@ def test_residual_error_estimator_rate():
             sol = sol.deep_copy()
             sol.union(X_delta, call_postprocess=None)
         sol, solve_info = heat_eq.solve(b=rhs, solver='pcg', x0=sol)
-        error_estimator = ResidualErrorEstimator.FromDoubleTrees(
-            u_dd_d=sol,
-            g_functional=g_functional,
-            u0_functional=u0_functional,
-            X_d=X_delta,
-            X_dd=X_dd,
-            Y_dd=Y_dd,
-            I_d_dd=I_d_dd)
+        error_estimator = ResidualErrorEstimator(u_dd_d=sol,
+                                                 g_functional=g_functional,
+                                                 u0_functional=u0_functional,
+                                                 X_d=X_delta,
+                                                 X_dd=X_dd,
+                                                 Y_dd=Y_dd,
+                                                 I_d_dd=I_d_dd)
         process = psutil.Process(os.getpid())
         print(len(X_delta.bfs()), len(X_dd.bfs()),
               process.memory_info().rss,

@@ -7,12 +7,39 @@ class ResidualErrorEstimator:
     """ Implements the residual error estimator of Proposition 5.7.
 
     Arguments:
-        residual_vector: the doubletree vector `f_dd_dd - S_dd_dd u_dd_d`.
+        u_dd_d: the solution vector.
+        g_functional: the functional of the data g.
+        u0_functional: the functional of the data u0.
         X_d: the doubletree `X_delta`.
         X_dd: the doubletree `X_{underscore delta}`.
+        Y_dd: the doubletree `Y_{underscore delta}`.
         I_d_dd: the nodes in `X_dd setminus X_d` in list format.
+        dirichlet_boundary: whether or not to enforce Dirichlet BC.
     """
-    def __init__(self, residual_vector, X_d, X_dd, I_d_dd):
+    def __init__(self,
+                 u_dd_d,
+                 g_functional,
+                 u0_functional,
+                 X_d,
+                 X_dd,
+                 Y_dd,
+                 I_d_dd,
+                 dirichlet_boundary=True):
+        # First lift u_dd_d onto X_dd.
+        u_dd_dd = u_dd_d.deep_copy()
+        u_dd_dd.union(X_dd, call_postprocess=None)
+
+        # Create operator/rhs for (X_dd, Y_dd).
+        heat_dd_dd = HeatEquation(X_delta=X_dd,
+                                  Y_delta=Y_dd,
+                                  formulation='schur',
+                                  dirichlet_boundary=dirichlet_boundary)
+        f_dd_dd = heat_dd_dd.calculate_rhs_vector(g_functional, u0_functional)
+
+        # Calculate the residual wrt X_dd, i.e.  f_dd_dd - S_dd_dd(u_dd_d).
+        residual_vector = f_dd_dd
+        residual_vector -= heat_dd_dd.mat.apply(u_dd_dd)
+
         # First, we will mark all the items that are in X_dd\X_d.
         for node in I_d_dd:
             node.marked = True
@@ -63,28 +90,3 @@ class ResidualErrorEstimator:
         # Also unmark all the time wavelets that exited in X_d.
         for node in X_d.project(0).bfs():
             node.node.marked = False
-
-    @staticmethod
-    def FromDoubleTrees(u_dd_d,
-                        g_functional,
-                        u0_functional,
-                        X_d,
-                        X_dd,
-                        Y_dd,
-                        I_d_dd,
-                        dirichlet_boundary=True):
-        # First lift u_dd_d onto X_dd.
-        u_dd_dd = u_dd_d.deep_copy()
-        u_dd_dd.union(X_dd, call_postprocess=None)
-
-        # Create operator/rhs for (X_dd, Y_dd).
-        heat_dd_dd = HeatEquation(X_delta=X_dd,
-                                  Y_delta=Y_dd,
-                                  formulation='schur',
-                                  dirichlet_boundary=dirichlet_boundary)
-        f_dd_dd = heat_dd_dd.calculate_rhs_vector(g_functional, u0_functional)
-
-        # Calculate the residual wrt X_dd, i.e.  f_dd_dd - S_dd_dd(u_dd_d).
-        residual_vector = f_dd_dd
-        residual_vector -= heat_dd_dd.mat.apply(u_dd_dd)
-        return ResidualErrorEstimator(residual_vector, X_d, X_dd, I_d_dd)
