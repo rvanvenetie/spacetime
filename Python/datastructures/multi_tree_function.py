@@ -47,6 +47,8 @@ class DoubleTreeFunction(MultiTreeFunction, DoubleTreeVector):
         for nv in self.project(i).bfs():
             # Check if t is contained inside support of time wavelet.
             if nv.node.support_contains(coord):
-                result.axpy(nv.frozen_other_axis(), nv.node.eval(coord))
+                val = nv.node.eval(coord)
+                if val != 0:
+                    result.axpy(nv.frozen_other_axis(), val)
 
         return result
