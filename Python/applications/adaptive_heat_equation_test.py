@@ -86,7 +86,7 @@ def singular_u0_unit_square_data():
 
 
 def singular_u0_lshape_data():
-    return (lambda xy: 1, 1, 1.0)
+    return (lambda xy: 1, 1, np.sqrt(3.0))
 
 
 def singular_rhs_functional(heat_eq):
