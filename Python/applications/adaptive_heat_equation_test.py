@@ -4,6 +4,7 @@ import time
 from pprint import pprint
 
 import numpy as np
+
 import psutil
 
 from ..datastructures.double_tree_view import DoubleTree
@@ -98,7 +99,7 @@ def run_adaptive_loop(initial_triangulation='square',
                       theta=0.7,
                       results_file=None,
                       initial_refinement=1,
-                      rhs_factory=singular_rhs_functional,
+                      rhs_functional_factory=singular_rhs_functional,
                       solver_tol='1e-7'):
     # Printing options.
     np.set_printoptions(precision=4)
@@ -126,7 +127,7 @@ def run_adaptive_loop(initial_triangulation='square',
     X_delta.uniform_refine(0)
 
     # Create rhs functionals
-    g_functional, u0_functional = rhs_factory(HeatEquation(X_delta))
+    g_functional, u0_functional = rhs_functional_factory(HeatEquation(X_delta))
 
     # Create adaptive heat equation object.
     adaptive_heat_eq = AdaptiveHeatEquation(X_init=X_delta,
@@ -187,6 +188,6 @@ def run_adaptive_loop(initial_triangulation='square',
 
 
 if __name__ == "__main__":
-    run_adaptive_loop(rhs_factory=singular_rhs_functional,
+    run_adaptive_loop(rhs_functional_factory=singular_rhs_functional,
                       initial_triangulation='lshape',
                       results_file='singular_solution_adaptive_lshape.pkl')
