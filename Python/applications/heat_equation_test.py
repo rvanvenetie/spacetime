@@ -17,7 +17,7 @@ from ..space.triangulation_function import TriangulationFunction
 from ..space.triangulation_view import TriangulationView
 from ..spacetime.basis import generate_x_delta_underscore, generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
-from .error_estimator import ResidualErrorEstimator
+from .error_estimator import AuxiliaryErrorEstimator, ResidualErrorEstimator
 from .heat_equation import HeatEquation
 
 
@@ -29,6 +29,11 @@ def example_solution_function():
     u_order = (2, 4)
     u_slice_norm_l2 = lambda t: (1 + t**2) / 30
     return u, u_order, u_slice_norm_l2
+
+
+def example_u0_data():
+    u, u_order, u_slice_norm_l2 = example_solution_function()
+    return lambda xy: u[0](0.0) * u[1](xy), u_order[1], u_slice_norm_l2(0.0)
 
 
 def example_rhs_functional(heat_eq):
@@ -420,6 +425,8 @@ def test_residual_error_estimator_rate():
     g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
     residual_error_estimator = ResidualErrorEstimator(g_functional,
                                                       u0_functional)
+    aux_error_estimator = AuxiliaryErrorEstimator(g_functional, u0_functional,
+                                                  *example_u0_data())
     for level in range(1, max_level):
         time_start_iteration = time.time()
         # Create X^\delta as a full grid.
@@ -441,11 +448,12 @@ def test_residual_error_estimator_rate():
                                                            X_dd=X_dd,
                                                            Y_dd=Y_dd,
                                                            I_d_dd=I_d_dd)
+        res_aux, _ = aux_error_estimator.estimate(heat_eq, sol)
         process = psutil.Process(os.getpid())
         print(len(X_delta.bfs()), len(X_dd.bfs()),
               process.memory_info().rss,
               time.time() - time_start_iteration,
-              time.time() - time_start, res_dd_d.norm())
+              time.time() - time_start, res_dd_d.norm(), res_aux)
         if process.memory_info().rss > 40 * 10**9:
             break
 

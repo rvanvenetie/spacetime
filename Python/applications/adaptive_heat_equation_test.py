@@ -12,8 +12,9 @@ from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..time.three_point_basis import ThreePointBasis
 from .adaptive_heat_equation import AdaptiveHeatEquation
+from .error_estimator import AuxiliaryErrorEstimator
 from .heat_equation import HeatEquation
-from .heat_equation_test import example_rhs_functional
+from .heat_equation_test import example_rhs_functional, example_u0_data
 
 
 def test_dorfler_marking():
@@ -80,6 +81,14 @@ def test_heat_error_reduction(theta=0.7):
     assert info['errors'][-1] < 0.1
 
 
+def singular_u0_unit_square_data():
+    return (lambda xy: 1, 1, 1.0)
+
+
+def singular_u0_lshape_data():
+    return (lambda xy: 1, 1, 1.0)
+
+
 def singular_rhs_functional(heat_eq):
     g = [(
         lambda t: 0,
@@ -100,6 +109,7 @@ def run_adaptive_loop(initial_triangulation='square',
                       results_file=None,
                       initial_refinement=1,
                       rhs_functional_factory=singular_rhs_functional,
+                      u0_data=singular_u0_unit_square_data,
                       solver_tol='1e-7'):
     # Printing options.
     np.set_printoptions(precision=4)
@@ -128,6 +138,10 @@ def run_adaptive_loop(initial_triangulation='square',
 
     # Create rhs functionals
     g_functional, u0_functional = rhs_functional_factory(HeatEquation(X_delta))
+
+    # Create auxiliary error estimator.
+    aux_error_estimator = AuxiliaryErrorEstimator(g_functional, u0_functional,
+                                                  *u0_data)
 
     # Create adaptive heat equation object.
     adaptive_heat_eq = AdaptiveHeatEquation(X_init=X_delta,
@@ -165,6 +179,11 @@ def run_adaptive_loop(initial_triangulation='square',
         step_info.update(mark_info)
         sol_info['residual'] = residual.to_array()
 
+        aux_error, aux_terms = aux_error_estimator.estimate(
+            adaptive_heat_eq.heat_dd_d, u_dd_d)
+        step_info['aux_error'] = aux_error
+        step_info['aux_terms'] = aux_terms
+
         # Store total memory consumption.
         process = psutil.Process(os.getpid())
         step_info['memory'] = process.memory_info().rss
@@ -186,6 +205,14 @@ def run_adaptive_loop(initial_triangulation='square',
 
 
 if __name__ == "__main__":
-    run_adaptive_loop(rhs_functional_factory=singular_rhs_functional,
-                      initial_triangulation='lshape',
-                      results_file='singular_solution_adaptive_lshape.pkl')
+    case = 'smooth'
+    if case == 'smooth':
+        run_adaptive_loop(rhs_functional_factory=example_rhs_functional,
+                          u0_data=example_u0_data(),
+                          initial_triangulation='unit_square',
+                          results_file='smooth_solution_adaptive.pkl')
+    elif case == 'singular':
+        run_adaptive_loop(rhs_functional_factory=singular_rhs_functional,
+                          u0_data=singular_u0_unit_square_data(),
+                          initial_triangulation='unit_square',
+                          results_file='singular_solution_adaptive.pkl')

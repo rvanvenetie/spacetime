@@ -39,11 +39,12 @@ class AdaptiveHeatEquation:
             len(self.I_d_dd)))
 
         # Calculate the solution using X_delta and Y_delta_hat.
-        heat_dd_d = HeatEquation(X_delta=self.X_delta,
-                                 Y_delta=self.Y_dd,
-                                 formulation='schur',
-                                 dirichlet_boundary=self.dirichlet_boundary)
-        f_dd_d = heat_dd_d.calculate_rhs_vector(
+        self.heat_dd_d = HeatEquation(
+            X_delta=self.X_delta,
+            Y_delta=self.Y_dd,
+            formulation='schur',
+            dirichlet_boundary=self.dirichlet_boundary)
+        f_dd_d = self.heat_dd_d.calculate_rhs_vector(
             g_functional=self.g_functional, u0_functional=self.u0_functional)
 
         # If we have an initial guess, interpolate it into X_delta.
@@ -51,10 +52,10 @@ class AdaptiveHeatEquation:
             x0 = x0.deep_copy()
             x0.union(self.X_delta, call_postprocess=None)
 
-        u_dd_d, solve_info = heat_dd_d.solve(b=f_dd_d,
-                                             x0=x0,
-                                             solver=solver,
-                                             tol=tol)
+        u_dd_d, solve_info = self.heat_dd_d.solve(b=f_dd_d,
+                                                  x0=x0,
+                                                  solver=solver,
+                                                  tol=tol)
         info.update(solve_info)
         print('Solved in {} iterations.'.format(info['num_iters']))
         return u_dd_d, info

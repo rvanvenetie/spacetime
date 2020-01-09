@@ -1,5 +1,7 @@
 import numpy as np
 
+from ..datastructures.applicator import LinearOperatorApplicator
+from ..space.triangulation_function import TriangulationFunction
 from .heat_equation import HeatEquation
 
 
@@ -15,6 +17,48 @@ class ErrorEstimator:
         self.g_functional = g_functional
         self.u0_functional = u0_functional
         self.dirichlet_boundary = dirichlet_boundary
+
+
+class AuxiliaryErrorEstimator(ErrorEstimator):
+    def __init__(self,
+                 g_functional,
+                 u0_functional,
+                 u0,
+                 u0_order,
+                 u0_slice_norm,
+                 dirichlet_boundary=True):
+        super().__init__(g_functional, u0_functional, dirichlet_boundary)
+        self.u0 = u0
+        self.u0_slice_norm = u0_slice_norm
+        self.u0_order = u0_order
+
+    def estimate(
+            self,
+            heat_dd_d,
+            u_dd_d,
+            tol=1e-5,
+    ):
+        Bu_minus_g = heat_dd_d.B.apply(u_dd_d)
+        Bu_minus_g -= self.g_functional.eval(heat_dd_d.Y_delta)
+        Bu_minus_g_array = Bu_minus_g.to_array()
+        A_s = LinearOperatorApplicator(applicator=heat_dd_d.A_s,
+                                       input_vec=Bu_minus_g)
+        result, _ = A_s.solve(solver='pcg',
+                              b=Bu_minus_g_array,
+                              M=LinearOperatorApplicator(
+                                  applicator=heat_dd_d.P_Y,
+                                  input_vec=Bu_minus_g),
+                              tol=tol)
+        u_dd_d_0 = u_dd_d.slice(i=0,
+                                coord=0.0,
+                                slice_cls=TriangulationFunction)
+        zero_slice_error = u_dd_d_0.error_L2(
+            lambda xy: self.u0(xy),
+            self.u0_slice_norm,
+            self.u0_order,
+        )
+        terms = (np.sqrt(Bu_minus_g_array.dot(result)), zero_slice_error)
+        return np.sqrt(sum([t**2 for t in terms])), terms
 
 
 class ResidualErrorEstimator(ErrorEstimator):
