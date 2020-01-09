@@ -174,8 +174,12 @@ def run_adaptive_loop(initial_triangulation='square',
         residual, mark_info = adaptive_heat_eq.mark_refine(u_dd_d=u_dd_d)
         step_info.update(mark_info)
         sol_info['residual'] = residual.to_array()
-        sol_info['aux_error'] = aux_error_estimator.estimate(
-            u_dd_d, adaptive_heat_eq.X_delta, adaptive_heat_eq.Y_dd)
+
+        step_info['aux_error'] = aux_error_estimator.estimate(
+            u_dd_d,
+            adaptive_heat_eq.X_delta,
+            adaptive_heat_eq.Y_dd,
+            heat_dd_d=adaptive_heat_eq.heat_dd_d)
 
         # Store total memory consumption.
         process = psutil.Process(os.getpid())
@@ -199,6 +203,6 @@ def run_adaptive_loop(initial_triangulation='square',
 
 if __name__ == "__main__":
     run_adaptive_loop(rhs_functional_factory=example_rhs_functional,
-                      u0_data=example_u0_data,
-                      initial_triangulation='lshape',
-                      results_file='singular_solution_adaptive_lshape.pkl')
+                      u0_data=example_u0_data(),
+                      initial_triangulation='unit_square',
+                      results_file='smooth_solution_adaptive.pkl')
