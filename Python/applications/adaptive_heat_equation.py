@@ -2,8 +2,8 @@ import numpy as np
 
 from ..datastructures.double_tree_view import DoubleTree
 from ..spacetime.basis import generate_x_delta_underscore, generate_y_delta
+from .error_estimator import ResidualErrorEstimator
 from .heat_equation import HeatEquation
-from .residual_error_estimator import ResidualErrorEstimator
 
 
 class AdaptiveHeatEquation:
