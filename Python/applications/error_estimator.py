@@ -24,8 +24,8 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
                  g_functional,
                  u0_functional,
                  u0,
-                 u0_slice_norm,
                  u0_order,
+                 u0_slice_norm,
                  dirichlet_boundary=True):
         super().__init__(g_functional, u0_functional, dirichlet_boundary)
         self.u0 = u0

@@ -31,6 +31,11 @@ def example_solution_function():
     return u, u_order, u_slice_norm_l2
 
 
+def example_u0_data():
+    u, u_order, u_slice_norm_l2 = example_solution_function()
+    return lambda xy: u[0](0.0) * u[1](xy), u_order[1], u_slice_norm_l2(0.0)
+
+
 def example_rhs_functional(heat_eq):
     g = [(
         lambda t: -2 * (1 + t**2),
@@ -418,12 +423,10 @@ def test_residual_error_estimator_rate():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.uniform_refine(0)
     g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
-    u, u_order, u_slice_norm = example_solution_function()
     residual_error_estimator = ResidualErrorEstimator(g_functional,
                                                       u0_functional)
-    aux_error_estimator = AuxiliaryErrorEstimator(
-        g_functional, u0_functional, lambda xy: u[0](0) * u[1](xy),
-        u_slice_norm(0), u_order[1])
+    aux_error_estimator = AuxiliaryErrorEstimator(g_functional, u0_functional,
+                                                  *example_u0_data())
     for level in range(1, max_level):
         time_start_iteration = time.time()
         # Create X^\delta as a full grid.
