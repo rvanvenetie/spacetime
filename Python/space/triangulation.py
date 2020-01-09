@@ -61,7 +61,7 @@ class Vertex(NodeAbstract):
 
 class Element2D(BinaryNodeAbstract):
     """ A element as part of a locally refined triangulation. """
-    __slots__ = ['level', 'vertices', 'area', 'neighbours']
+    __slots__ = ['level', 'vertices', 'area', 'neighbours', 'vertex_array']
 
     def __init__(self, level, vertices, parent=None):
         """ Instantiates the element object.
@@ -80,6 +80,10 @@ class Element2D(BinaryNodeAbstract):
         if parent:
             self.area = parent.area / 2
             assert parent.level + 1 == self.level
+
+        # Store the vertex array
+        self.vertex_array = np.array(
+            [vertices[i].as_array() for i in range(3)])
 
     def refine(self):
         """ Refines the trianglulation so that element `elem` is bisected.
@@ -110,9 +114,6 @@ class Element2D(BinaryNodeAbstract):
         assert 0 <= i <= 2
         return [self.vertices[(i + 2) % 3], self.vertices[(i + 1) % 3]]
 
-    def vertex_array(self):
-        return np.array([self.vertices[i].as_array() for i in range(3)])
-
     def is_leaf(self):
         return not len(self.children)
 
@@ -121,7 +122,7 @@ class Element2D(BinaryNodeAbstract):
         if len(xy.shape) == 1:
             xy = xy.reshape(2, 1)
         V = np.ones((3, 3))
-        V[:2, :] = self.vertex_array().T
+        V[:2, :] = self.vertex_array.T
         return np.linalg.solve(V, np.vstack([xy, np.ones(xy.shape[1])]))
 
     def contains(self, xy):
@@ -213,11 +214,11 @@ class InitialTriangulation:
             initial_refinement: integer: how many times must we refine the mesh.
         """
         self.vertex_roots = [
-            Vertex(0, *vert, on_domain_boundary=False)
+            Vertex(0, x=vert[0], y=vert[1], on_domain_boundary=False)
             for i, vert in enumerate(vertices)
         ]
         self.element_roots = [
-            Element2D(0, [self.vertex_roots[idx] for idx in elem])
+            Element2D(0, vertices=[self.vertex_roots[idx] for idx in elem])
             for (i, elem) in enumerate(elements)
         ]
         self.elem_meta_root = MetaRoot(self.element_roots)
@@ -280,7 +281,7 @@ class InitialTriangulation:
 
     def _compute_area(self, elem):
         """ Computes the area of the element spanned by `vertex_ids`. """
-        v1, v2, v3 = elem.vertex_array()
+        v1, v2, v3 = elem.vertex_array
         return 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1))
 
 

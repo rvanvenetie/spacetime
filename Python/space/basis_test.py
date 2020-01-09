@@ -72,7 +72,7 @@ def test_eval_basis():
         assert np.isclose(phi.eval(np.array([3, 3])), 0)
         for elem in phi.support:
             # phi should be either 0 or 1 in the vertices of an element.
-            V = elem.vertex_array().T
+            V = elem.vertex_array.T
             v_eval = phi.eval(V)
             assert np.allclose(v_eval.sum(), 1.0)
             assert np.allclose(v_eval, np.array(elem.vertices) == phi.node)

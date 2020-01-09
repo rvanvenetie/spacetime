@@ -30,7 +30,6 @@ class MultiNodeViewInterface(NodeInterface):
     @abstractmethod
     def _children(self):
         """ This should return the children as a tuple of length self.dim. """
-
     @property
     @abstractmethod
     def _parents(self):
@@ -61,7 +60,7 @@ class MultiNodeViewInterface(NodeInterface):
     def is_metaroot(self, i=None):
         """ Returns whether node in any the axes represents a metaroot. """
         if i is None:
-            return any(self.is_metaroot(i) for i in range(self.dim))
+            return any(self.nodes[i].is_metaroot() for i in range(self.dim))
         else:
             return self.nodes[i].is_metaroot()
 

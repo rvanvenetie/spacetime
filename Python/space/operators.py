@@ -135,7 +135,7 @@ class StiffnessOperator(Operator):
         for elem in self.triang.elements:
             if not elem.is_leaf(): continue
             Vids = elem.vertices_view_idx
-            V = elem.node.vertex_array()
+            V = elem.node.vertex_array
             D = np.array([V[2] - V[1], V[0] - V[2], V[1] - V[0]]).T
             element_stiff = (D.T @ D) / (4 * elem.area)
             for (row, col) in itertools.product(range(3), range(3)):
@@ -152,7 +152,7 @@ class StiffnessOperator(Operator):
             if not elem.is_leaf():
                 continue
             Vids = elem.vertices_view_idx
-            V = elem.node.vertex_array()
+            V = elem.node.vertex_array
             D = np.array([V[2] - V[1], V[0] - V[2], V[1] - V[0]]).T
             element_stiff = (D.T @ D) / (4 * elem.area)
             for (i, j) in itertools.product(range(3), range(3)):
@@ -294,7 +294,7 @@ class QuadratureFunctional:
             if not elem.is_leaf():
                 continue
             Vids = elem.vertices_view_idx
-            triangle = elem.node.vertex_array()
+            triangle = elem.node.vertex_array
             for i in range(3):
                 hat_eval = lambda xy: _hat_function_eval(support=[elem.node],
                                                          vertex=self.triang.
