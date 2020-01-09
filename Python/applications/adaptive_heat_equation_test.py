@@ -85,6 +85,10 @@ def singular_u0_unit_square_data():
     return (lambda xy: 1, 1, 1.0)
 
 
+def singular_u0_lshape_data():
+    return (lambda xy: 1, 1, 1.0)
+
+
 def singular_rhs_functional(heat_eq):
     g = [(
         lambda t: 0,
@@ -175,8 +179,10 @@ def run_adaptive_loop(initial_triangulation='square',
         step_info.update(mark_info)
         sol_info['residual'] = residual.to_array()
 
-        step_info['aux_error'] = aux_error_estimator.estimate(
+        aux_error, aux_terms = aux_error_estimator.estimate(
             adaptive_heat_eq.heat_dd_d, u_dd_d)
+        step_info['aux_error'] = aux_error
+        step_info['aux_terms'] = aux_terms
 
         # Store total memory consumption.
         process = psutil.Process(os.getpid())
@@ -199,7 +205,14 @@ def run_adaptive_loop(initial_triangulation='square',
 
 
 if __name__ == "__main__":
-    run_adaptive_loop(rhs_functional_factory=example_rhs_functional,
-                      u0_data=example_u0_data(),
-                      initial_triangulation='unit_square',
-                      results_file='smooth_solution_adaptive.pkl')
+    case = 'smooth'
+    if case == 'smooth':
+        run_adaptive_loop(rhs_functional_factory=example_rhs_functional,
+                          u0_data=example_u0_data(),
+                          initial_triangulation='unit_square',
+                          results_file='smooth_solution_adaptive.pkl')
+    elif case == 'singular':
+        run_adaptive_loop(rhs_functional_factory=singular_rhs_functional,
+                          u0_data=singular_u0_unit_square_data(),
+                          initial_triangulation='unit_square',
+                          results_file='singular_solution_adaptive.pkl')

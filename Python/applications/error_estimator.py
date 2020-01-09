@@ -40,7 +40,6 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
     ):
         Bu_minus_g = heat_dd_d.B.apply(u_dd_d)
         Bu_minus_g -= self.g_functional.eval(heat_dd_d.Y_delta)
-        heat_dd_d.enforce_dirichlet_boundary(Bu_minus_g)
         Bu_minus_g_array = Bu_minus_g.to_array()
         A_s = LinearOperatorApplicator(applicator=heat_dd_d.A_s,
                                        input_vec=Bu_minus_g)
@@ -58,7 +57,8 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
             self.u0_slice_norm,
             self.u0_order,
         )
-        return np.sqrt(Bu_minus_g_array.dot(result) + zero_slice_error**2)
+        terms = (Bu_minus_g_array.dot(result), zero_slice_error**2)
+        return np.sqrt(sum(terms)), terms
 
 
 class ResidualErrorEstimator(ErrorEstimator):

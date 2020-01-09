@@ -448,7 +448,7 @@ def test_residual_error_estimator_rate():
                                                            X_dd=X_dd,
                                                            Y_dd=Y_dd,
                                                            I_d_dd=I_d_dd)
-        res_aux = aux_error_estimator.estimate(heat_eq, sol)
+        res_aux, _ = aux_error_estimator.estimate(heat_eq, sol)
         process = psutil.Process(os.getpid())
         print(len(X_delta.bfs()), len(X_dd.bfs()),
               process.memory_info().rss,
