@@ -17,8 +17,8 @@ from ..space.triangulation_function import TriangulationFunction
 from ..space.triangulation_view import TriangulationView
 from ..spacetime.basis import generate_x_delta_underscore, generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
+from .error_estimator import ResidualErrorEstimator
 from .heat_equation import HeatEquation
-from .residual_error_estimator import ResidualErrorEstimator
 
 
 def example_solution_function():
