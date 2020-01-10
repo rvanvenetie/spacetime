@@ -4,7 +4,6 @@ import time
 from pprint import pprint
 
 import numpy as np
-
 import psutil
 
 from ..datastructures.double_tree_view import DoubleTree
@@ -108,6 +107,7 @@ def run_adaptive_loop(initial_triangulation='square',
                       theta=0.7,
                       results_file=None,
                       initial_refinement=1,
+                      saturation_layers=1,
                       rhs_functional_factory=singular_rhs_functional,
                       u0_data=singular_u0_unit_square_data,
                       solver_tol='1e-7'):
@@ -144,10 +144,12 @@ def run_adaptive_loop(initial_triangulation='square',
                                                   *u0_data)
 
     # Create adaptive heat equation object.
-    adaptive_heat_eq = AdaptiveHeatEquation(X_init=X_delta,
-                                            g_functional=g_functional,
-                                            u0_functional=u0_functional,
-                                            theta=theta)
+    adaptive_heat_eq = AdaptiveHeatEquation(
+        X_init=X_delta,
+        g_functional=g_functional,
+        u0_functional=u0_functional,
+        theta=theta,
+        saturation_layers=saturation_layers)
     info = {
         'theta': adaptive_heat_eq.theta,
         'solver_tol': solver_tol,
@@ -205,14 +207,16 @@ def run_adaptive_loop(initial_triangulation='square',
 
 
 if __name__ == "__main__":
-    case = 'smooth'
+    case = 'singular'
     if case == 'smooth':
         run_adaptive_loop(rhs_functional_factory=example_rhs_functional,
                           u0_data=example_u0_data(),
                           initial_triangulation='unit_square',
                           results_file='smooth_solution_adaptive.pkl')
     elif case == 'singular':
-        run_adaptive_loop(rhs_functional_factory=singular_rhs_functional,
-                          u0_data=singular_u0_unit_square_data(),
-                          initial_triangulation='unit_square',
-                          results_file='singular_solution_adaptive.pkl')
+        run_adaptive_loop(
+            rhs_functional_factory=singular_rhs_functional,
+            u0_data=singular_u0_unit_square_data(),
+            saturation_layers=2,
+            initial_triangulation='unit_square',
+            results_file='singular_solution_adaptive_satur_2.pkl')

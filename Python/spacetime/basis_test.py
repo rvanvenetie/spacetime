@@ -80,9 +80,8 @@ def test_x_delta_underscore():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.uniform_refine(0)
     assert len(X_delta.bfs()) == 8
-    X_delta_underscore, I_delta = generate_x_delta_underscore(X_delta)
+    X_delta_underscore = generate_x_delta_underscore(X_delta)
     assert len(X_delta_underscore.bfs()) == 22
-    assert len(I_delta) == 22 - 8
 
     # Tryout various levels.
     for max_level, refine_lambda in [
@@ -94,7 +93,7 @@ def test_x_delta_underscore():
             X_delta = DoubleTree.from_metaroots(
                 (basis_time.metaroot_wavelet, basis_space.root))
             refine_lambda(X_delta, l)
-            X_delta_underscore, I_delta = generate_x_delta_underscore(X_delta)
+            X_delta_underscore = generate_x_delta_underscore(X_delta)
 
             X_delta_refined = DoubleTree.from_metaroots(
                 (basis_time.metaroot_wavelet, basis_space.root))
@@ -107,7 +106,6 @@ def test_x_delta_underscore():
             N_Xdu = len(X_delta_underscore.bfs())
             N_Xdr = len(X_delta_refined.bfs())
             assert N_Xd < N_Xdu <= N_Xdr
-            assert len(I_delta) == N_Xdu - N_Xd
 
 
 def test_x_delta_underscore_equal_to_sparse_grid():
@@ -132,7 +130,7 @@ def test_x_delta_underscore_equal_to_sparse_grid():
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
         X_delta.sparse_refine(2 * l, weights=[2, 1])
-        X_delta_underscore, I_delta = generate_x_delta_underscore(X_delta)
+        X_delta_underscore = generate_x_delta_underscore(X_delta)
 
         X_delta_refined = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))

@@ -261,6 +261,8 @@ class MultiNodeViewInterface(NodeInterface):
         for my_node in my_nodes:
             my_node.marked = False
 
+        return my_nodes
+
     def _deep_refine(self, call_filter=None, call_postprocess=None):
         """ Deep-refines `self` by recursively refining the multitree.
 
@@ -410,10 +412,9 @@ class MultiTree:
 
     def union(self, other, call_filter=None, call_postprocess=None):
         if isinstance(other, MultiTree): other = other.root
-        self.root._union(other,
-                         call_filter=call_filter,
-                         call_postprocess=call_postprocess)
-        return self
+        return self.root._union(other,
+                                call_filter=call_filter,
+                                call_postprocess=call_postprocess)
 
     def uniform_refine(self, max_levels=None, call_postprocess=None):
         """ Sparse refines the root of this multi tree view. """
