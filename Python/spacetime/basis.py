@@ -57,7 +57,7 @@ def generate_x_delta_underscore(x_delta):
         else:
             new_dblnodes.append(dblnode)
 
-    return x_delta_underscore, new_dblnodes
+    return x_delta_underscore
 
 
 def generate_y_delta(x_delta):

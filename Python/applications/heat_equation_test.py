@@ -433,7 +433,7 @@ def test_residual_error_estimator_rate():
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
         X_delta.uniform_refine([level, 2 * level])
-        X_dd, I_d_dd = generate_x_delta_underscore(X_delta)
+        X_dd = generate_x_delta_underscore(X_delta)
         Y_dd = generate_y_delta(X_dd)
         heat_eq = HeatEquation(X_delta=X_delta,
                                Y_delta=Y_dd,
@@ -446,8 +446,7 @@ def test_residual_error_estimator_rate():
         res_dd_d, _, _ = residual_error_estimator.estimate(u_dd_d=sol,
                                                            X_d=X_delta,
                                                            X_dd=X_dd,
-                                                           Y_dd=Y_dd,
-                                                           I_d_dd=I_d_dd)
+                                                           Y_dd=Y_dd)
         res_aux, _ = aux_error_estimator.estimate(heat_eq, sol)
         process = psutil.Process(os.getpid())
         print(len(X_delta.bfs()), len(X_dd.bfs()),

@@ -13,18 +13,19 @@ class AdaptiveHeatEquation:
                  g_functional,
                  u0_functional,
                  theta,
-                 dirichlet_boundary=True):
+                 dirichlet_boundary=True,
+                 saturation_layers=1):
         self.X_delta = X_init
         self.g_functional = g_functional
         self.u0_functional = u0_functional
         self.theta = theta
+        self.saturation_layers = saturation_layers
         self.dirichlet_boundary = dirichlet_boundary
 
         self.residual_error_estimator = ResidualErrorEstimator(
             self.g_functional, self.u0_functional, self.dirichlet_boundary)
 
         self.X_dd = None
-        self.I_d_dd = None
         self.Y_dd = None
 
     def solve_step(self, x0=None, solver='pcg', tol=1e-5):
@@ -32,11 +33,14 @@ class AdaptiveHeatEquation:
         print('\n\nAdaptive step for X_delta having {} nodes'.format(
             info['dim_X_delta']))
 
-        self.X_dd, self.I_d_dd = generate_x_delta_underscore(self.X_delta)
+        self.X_dd = self.X_delta
+        for _ in range(self.saturation_layers):
+            self.X_dd = generate_x_delta_underscore(self.X_dd)
+
         self.Y_dd = generate_y_delta(self.X_dd)
-        info['dim_I_d_dd'] = len(self.I_d_dd)
-        print('Number of funtions in X_delta_underscore \ X_delta {}'.format(
-            len(self.I_d_dd)))
+        info['dim_X_delta_underscore'] = len(self.X_dd.bfs())
+        print('Dimension of X_delta_underscore \ X_delta {}'.format(
+            info['dim_X_delta_underscore'] - info['dim_X_delta']))
 
         # Calculate the solution using X_delta and Y_delta_hat.
         self.heat_dd_d = HeatEquation(
@@ -62,11 +66,7 @@ class AdaptiveHeatEquation:
 
     def mark_refine(self, u_dd_d):
         res, res_d, res_d_dd = self.residual_error_estimator.estimate(
-            u_dd_d=u_dd_d,
-            X_d=self.X_delta,
-            X_dd=self.X_dd,
-            Y_dd=self.Y_dd,
-            I_d_dd=self.I_d_dd)
+            u_dd_d=u_dd_d, X_d=self.X_delta, X_dd=self.X_dd, Y_dd=self.Y_dd)
         info = {
             'res_norm': res.norm(),
             'res_X_d_norm': np.linalg.norm([n.value for n in res_d]),
