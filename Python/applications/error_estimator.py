@@ -122,7 +122,8 @@ class ResidualErrorEstimator(ErrorEstimator):
             if other_node.nodes[1].level == 0:
                 assert not other_node.nodes[0].marked
                 res_node.value /= 2**(other_node.nodes[0].level)
-            # This is a refined mesh function, scale with 1 + 4^|labda|-lvl(v).
+            # This is a refined mesh function, scale with
+            #   sqrt(1 + 4^|labda|-lvl(v)).
             else:
                 lvl_diff = other_node.nodes[0].level - other_node.nodes[1].level
                 res_node.value /= np.sqrt(1.0 + 4**(lvl_diff))
