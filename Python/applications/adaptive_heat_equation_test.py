@@ -214,9 +214,8 @@ if __name__ == "__main__":
                           initial_triangulation='unit_square',
                           results_file='smooth_solution_adaptive.pkl')
     elif case == 'singular':
-        run_adaptive_loop(
-            rhs_functional_factory=singular_rhs_functional,
-            u0_data=singular_u0_unit_square_data(),
-            saturation_layers=2,
-            initial_triangulation='unit_square',
-            results_file='singular_solution_adaptive_satur_2.pkl')
+        run_adaptive_loop(rhs_functional_factory=singular_rhs_functional,
+                          u0_data=singular_u0_unit_square_data(),
+                          saturation_layers=1,
+                          initial_triangulation='unit_square',
+                          results_file='singular_solution_adaptive.pkl')

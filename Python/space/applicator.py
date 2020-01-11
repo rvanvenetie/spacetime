@@ -20,6 +20,7 @@ class Applicator(ApplicatorInterface):
 
         self.use_cache = use_cache
         self.triang_view_cache = {}
+        self.vec_ref_cache = {}
 
     def apply(self, vec_in, vec_out, **kwargs):
         """ Apply the multiscale operator. """
@@ -52,10 +53,20 @@ class Applicator(ApplicatorInterface):
         def call_copy(my_node, other_node):
             my_node.value = other_node.value
 
-        # If that's not the case, create an enlarged vec_in.
-        vec_in_new = TreeVector.from_metaroot(vec_in.node)
-        vec_in_new.union(vec_in, call_postprocess=call_copy)
-        vec_in_new.union(vec_out, call_postprocess=None)
+        if not self.use_cache or (vec_in_nodes,
+                                  vec_out_nodes) not in self.vec_ref_cache:
+            vec_in_new = TreeVector.from_metaroot(vec_in.node)
+            vec_in_new.union(vec_in, call_postprocess=call_copy)
+            vec_in_new.union(vec_out, call_postprocess=None)
+
+            if self.use_cache:
+                self.vec_ref_cache[(vec_in_nodes, vec_out_nodes)] = vec_in_new
+        else:
+            vec_in_new = self.vec_ref_cache[(vec_in_nodes, vec_out_nodes)]
+            vec_in_new.reset()
+            vec_in_new.union(vec_in,
+                             call_filter=lambda _: False,
+                             call_postprocess=call_copy)
 
         # Apply the operator, and store result in the same vector.
         self.apply(vec_in_new, vec_in_new)

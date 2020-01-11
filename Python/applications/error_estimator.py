@@ -79,7 +79,8 @@ class ResidualErrorEstimator(ErrorEstimator):
         heat_dd_dd = HeatEquation(X_delta=X_dd,
                                   Y_delta=Y_dd,
                                   formulation='schur',
-                                  dirichlet_boundary=self.dirichlet_boundary)
+                                  dirichlet_boundary=self.dirichlet_boundary,
+                                  use_space_cache=False)
         f_dd_dd = heat_dd_dd.calculate_rhs_vector(self.g_functional,
                                                   self.u0_functional)
 
@@ -87,14 +88,10 @@ class ResidualErrorEstimator(ErrorEstimator):
         residual_vector = f_dd_dd
         residual_vector -= heat_dd_dd.mat.apply(u_dd_dd)
 
-        # First, we mark all the nodes in X_d in X_dd.
+        # We mark all the nodes in X_d in X_dd.
         X_d_nodes = X_dd.union(X_d, call_filter=lambda _: False)
         for node in X_d_nodes:
             node.marked = True
-
-        # Also mark all the time wavelets that already existed in X_d.
-        for node in X_d.project(0).bfs():
-            node.node.marked = True
 
         # Return a list of the residual nodes on X_d and X_dd \ X_d.
         res_d = []
@@ -117,16 +114,8 @@ class ResidualErrorEstimator(ErrorEstimator):
 
             # This is a node in X_dd \ X_d, we now evaluate the residual
             # using a scaled basis.
-
-            # This is a new time wavelet, scale with 2^(-|labda|)
-            if other_node.nodes[1].level == 0:
-                assert not other_node.nodes[0].marked
-                res_node.value /= 2**(other_node.nodes[0].level)
-            # This is a refined mesh function, scale with
-            #   sqrt(1 + 4^|labda|-lvl(v)).
-            else:
-                lvl_diff = other_node.nodes[0].level - other_node.nodes[1].level
-                res_node.value /= np.sqrt(1.0 + 4**(lvl_diff))
+            lvl_diff = other_node.nodes[0].level - other_node.nodes[1].level
+            res_node.value /= np.sqrt(1.0 + 4**(lvl_diff))
 
         # Apply the basis transformation.
         res_dd_d = residual_vector.deep_copy()
@@ -136,7 +125,4 @@ class ResidualErrorEstimator(ErrorEstimator):
         for node in X_d_nodes:
             node.marked = False
 
-        # Also unmark all the time wavelets that exited in X_d.
-        for node in X_d.project(0).bfs():
-            node.node.marked = False
         return res_dd_d, res_d, res_dd_min_d

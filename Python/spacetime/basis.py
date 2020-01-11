@@ -28,7 +28,7 @@ def generate_x_delta_underscore(x_delta):
         # The first part of this if-statement fends off the situation where
         # dblnode.children[i] has 0 < n < full elements as a result of adaptive
         # refinement in X_delta.
-        if dblnode.nodes[1].level == 0 and not dblnode.is_full(0):
+        if not dblnode.is_full(0):
             # Refine in time-axis...
             time_leaves.append(dblnode)
 
