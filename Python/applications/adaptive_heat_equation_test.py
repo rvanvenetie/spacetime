@@ -110,7 +110,7 @@ def run_adaptive_loop(initial_triangulation='square',
                       saturation_layers=1,
                       rhs_functional_factory=singular_rhs_functional,
                       u0_data=singular_u0_unit_square_data,
-                      solver_tol='1e-7'):
+                      solver_tol=1e-7):
     # Printing options.
     np.set_printoptions(precision=4)
     np.set_printoptions(linewidth=10000)
@@ -152,6 +152,8 @@ def run_adaptive_loop(initial_triangulation='square',
         saturation_layers=saturation_layers)
     info = {
         'theta': adaptive_heat_eq.theta,
+        'initial_refinement': initial_refinement,
+        'saturation_layers': saturation_layers,
         'solver_tol': solver_tol,
         'step_info': [],
         'sol_info': [],
