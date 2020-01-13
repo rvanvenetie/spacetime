@@ -115,7 +115,6 @@ class ResidualErrorEstimator(ErrorEstimator):
 
             # Do a basis transformation to mean zero space functions.
             if mean_zero:
-                adsfa
                 for child in res_node.children[1]:
                     if not child.nodes[1].on_domain_boundary:
                         child.value -= 0.5 * child.nodes[1].volume(
