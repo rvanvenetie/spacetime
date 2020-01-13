@@ -155,6 +155,7 @@ def run_adaptive_loop(initial_triangulation='square',
         'theta': adaptive_heat_eq.theta,
         'initial_refinement': initial_refinement,
         'saturation_layers': saturation_layers,
+        'mean_zero' : mean_zero,
         'solver_tol': solver_tol,
         'step_info': [],
         'sol_info': [],
@@ -205,7 +206,7 @@ def run_adaptive_loop(initial_triangulation='square',
             import pickle
             pickle.dump(info, open(results_file, 'wb'))
 
-        if step_info['memory'] > 50 * 10**9:
+        if step_info['memory'] > 70 * 10**9:
             print('Memory limit reached! Stopping adaptive loop.')
             break
 
