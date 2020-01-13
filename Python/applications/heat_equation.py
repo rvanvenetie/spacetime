@@ -200,7 +200,7 @@ class HeatEquation:
         u0_functionals = []
         for u0, u0_order in zip(u0, u0_order):
             functional_time = t_functional.Functional(
-                t_operators.evaluation(t=0),
+                lambda phi: phi.eval(t=0),
                 basis=self.time_basis_X,
             )
             functional_space = s_functional.Functional(
