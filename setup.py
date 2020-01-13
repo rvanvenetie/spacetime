@@ -2,15 +2,10 @@
 import os
 from setuptools import setup
 from Cython.Build import cythonize
+from glob import glob
 
 os.environ['CFLAGS'] = '-O3'
 setup(ext_modules=cythonize(
-    [
-        'Python/datastructures/*[!test].py',
-        'Python/space/*[!test].py',
-        'Python/spacetime/*[!test].py',
-        'Python/time/*[!test].py',
-        'Python/applications/*[!test].py',
-    ],
+    list(glob('Python/*/*py')),
     compiler_directives={'language_level': "3"},
 ))
