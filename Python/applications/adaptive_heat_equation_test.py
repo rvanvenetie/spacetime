@@ -110,6 +110,7 @@ def run_adaptive_loop(initial_triangulation='square',
                       saturation_layers=1,
                       rhs_functional_factory=singular_rhs_functional,
                       u0_data=singular_u0_unit_square_data,
+                      mean_zero=False,
                       solver_tol=1e-7):
     # Printing options.
     np.set_printoptions(precision=4)
@@ -179,7 +180,8 @@ def run_adaptive_loop(initial_triangulation='square',
         }
 
         # Mark and refine.
-        residual, mark_info = adaptive_heat_eq.mark_refine(u_dd_d=u_dd_d)
+        residual, mark_info = adaptive_heat_eq.mark_refine(u_dd_d=u_dd_d,
+                                                           mean_zero=mean_zero)
         step_info.update(mark_info)
         sol_info['residual'] = residual.to_array()
 
@@ -216,8 +218,10 @@ if __name__ == "__main__":
                           initial_triangulation='unit_square',
                           results_file='smooth_solution_adaptive.pkl')
     elif case == 'singular':
-        run_adaptive_loop(rhs_functional_factory=singular_rhs_functional,
-                          u0_data=singular_u0_unit_square_data(),
-                          saturation_layers=1,
-                          initial_triangulation='unit_square',
-                          results_file='singular_solution_adaptive.pkl')
+        run_adaptive_loop(
+            rhs_functional_factory=singular_rhs_functional,
+            u0_data=singular_u0_unit_square_data(),
+            saturation_layers=2,
+            initial_triangulation='unit_square',
+            mean_zero=True,
+            results_file='singular_solution_adaptive_mean_zero_2layers.pkl')

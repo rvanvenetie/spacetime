@@ -62,7 +62,7 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
 
 
 class ResidualErrorEstimator(ErrorEstimator):
-    def estimate(self, u_dd_d, X_d, X_dd, Y_dd):
+    def estimate(self, u_dd_d, X_d, X_dd, Y_dd, mean_zero=False):
         """ The residual error estimator of Proposition 5.7.
 
         Arguments:
@@ -96,8 +96,9 @@ class ResidualErrorEstimator(ErrorEstimator):
         # Return a list of the residual nodes on X_d and X_dd \ X_d.
         res_d = []
         res_dd_min_d = []
+        res_dd_d = residual_vector.deep_copy()
 
-        def call_postprocess(res_node, other_node):
+        def calculate_residual(res_node, other_node):
             # If this node is in X_d, the residual should be zero,
             # and there is nothing left to do.
             if other_node.marked:
@@ -112,14 +113,24 @@ class ResidualErrorEstimator(ErrorEstimator):
             assert other_node.nodes[0].level >= 0 and other_node.nodes[
                 1].level >= 0
 
+            # Do a basis transformation to mean zero space functions.
+            if mean_zero:
+                adsfa
+                for child in res_node.children[1]:
+                    if not child.nodes[1].on_domain_boundary:
+                        child.value -= 0.5 * child.nodes[1].volume(
+                        ) / res_node.nodes[1].volume() * res_node.value
+
             # This is a node in X_dd \ X_d, we now evaluate the residual
             # using a scaled basis.
             lvl_diff = other_node.nodes[0].level - other_node.nodes[1].level
             res_node.value /= np.sqrt(1.0 + 4**(lvl_diff))
 
-        # Apply the basis transformation.
-        res_dd_d = residual_vector.deep_copy()
-        res_dd_d.union(X_dd, call_postprocess=call_postprocess)
+        # Calculate the residual.
+        res_dd_d.union(X_dd, call_postprocess=calculate_residual)
+
+        # Validate the boundary conditions.
+        heat_dd_dd._validate_boundary_dofs(res_dd_d)
 
         # Unmark the nodes in X_dd
         for node in X_d_nodes:
