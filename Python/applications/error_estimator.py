@@ -62,6 +62,19 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
 
 
 class ResidualErrorEstimator(ErrorEstimator):
+    @staticmethod
+    def mean_zero_basis_transformation(vector):
+        """ Transforms the space basis into a mean zero basis."""
+        for db_node in reversed(vector.bfs()):
+            if db_node.nodes[1].level == 0 or db_node.nodes[
+                    1].on_domain_boundary or any(
+                        parent.nodes[1].on_domain_boundary
+                        for parent in db_node.parents[1]):
+                continue
+            for parent in db_node.parents[1]:
+                db_node.value -= 0.5 * db_node.nodes[1].volume(
+                ) / parent.nodes[1].volume() * parent.value
+
     def estimate(self, u_dd_d, X_d, X_dd, Y_dd, mean_zero=False):
         """ The residual error estimator of Proposition 5.7.
 
@@ -98,6 +111,10 @@ class ResidualErrorEstimator(ErrorEstimator):
         res_dd_min_d = []
         res_dd_d = residual_vector.deep_copy()
 
+        # Do a basis transformation to mean zero space functions.
+        if mean_zero:
+            self.mean_zero_basis_transformation(res_dd_d)
+
         def calculate_residual(res_node, other_node):
             # If this node is in X_d, the residual should be zero,
             # and there is nothing left to do.
@@ -112,13 +129,6 @@ class ResidualErrorEstimator(ErrorEstimator):
             if other_node.is_metaroot(): return
             assert other_node.nodes[0].level >= 0 and other_node.nodes[
                 1].level >= 0
-
-            # Do a basis transformation to mean zero space functions.
-            if mean_zero:
-                for child in res_node.children[1]:
-                    if not child.nodes[1].on_domain_boundary:
-                        child.value -= 0.5 * child.nodes[1].volume(
-                        ) / res_node.nodes[1].volume() * res_node.value
 
             # This is a node in X_dd \ X_d, we now evaluate the residual
             # using a scaled basis.

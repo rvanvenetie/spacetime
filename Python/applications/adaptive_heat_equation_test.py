@@ -155,7 +155,7 @@ def run_adaptive_loop(initial_triangulation='square',
         'theta': adaptive_heat_eq.theta,
         'initial_refinement': initial_refinement,
         'saturation_layers': saturation_layers,
-        'mean_zero' : mean_zero,
+        'mean_zero': mean_zero,
         'solver_tol': solver_tol,
         'step_info': [],
         'sol_info': [],
@@ -222,7 +222,7 @@ if __name__ == "__main__":
         run_adaptive_loop(
             rhs_functional_factory=singular_rhs_functional,
             u0_data=singular_u0_unit_square_data(),
-            saturation_layers=2,
+            saturation_layers=1,
             initial_triangulation='unit_square',
             mean_zero=True,
-            results_file='singular_solution_adaptive_mean_zero_2layers.pkl')
+            results_file='singular_solution_adaptive_mean_zero_fixed.pkl')
