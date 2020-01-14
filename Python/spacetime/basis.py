@@ -13,10 +13,9 @@ def generate_x_delta_underscore(x_delta):
 
     x_delta_underscore = x_delta.deep_copy()
 
-    dblnodes = x_delta_underscore.bfs()
     time_leaves = []
     space_leaves = []
-    for dblnode in dblnodes:
+    for dblnode in x_delta_underscore.bfs():
         # First, we ensure that the underlying trees are properly refined.
         if not dblnode.nodes[0].is_full():
             dblnode.nodes[0].refine()
@@ -45,17 +44,6 @@ def generate_x_delta_underscore(x_delta):
             child.nodes[1].node.refine()
             child.nodes[1].refine(make_conforming=True)
             child.refine(i=1, make_conforming=True)
-
-    dblnodes_underscore = x_delta_underscore.bfs()
-    for dblnode in dblnodes:
-        dblnode.marked = True
-
-    new_dblnodes = []
-    for dblnode in dblnodes_underscore:
-        if dblnode.marked:
-            dblnode.marked = False
-        else:
-            new_dblnodes.append(dblnode)
 
     return x_delta_underscore
 
