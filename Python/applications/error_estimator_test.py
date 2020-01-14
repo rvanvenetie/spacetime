@@ -1,10 +1,4 @@
-import os
-import random
-import time
-from pprint import pprint
-
 import numpy as np
-import psutil
 
 from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..space.basis import HierarchicalBasisFunction
@@ -12,10 +6,7 @@ from ..space.functional import Functional
 from ..space.operators import QuadratureFunctional
 from ..space.triangulation import InitialTriangulation
 from ..time.three_point_basis import ThreePointBasis
-from .adaptive_heat_equation import AdaptiveHeatEquation
 from .error_estimator import ResidualErrorEstimator
-from .heat_equation import HeatEquation
-from .heat_equation_test import example_rhs_functional, example_u0_data
 
 
 def test_mean_zero_transformation():
