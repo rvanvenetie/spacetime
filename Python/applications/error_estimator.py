@@ -116,6 +116,11 @@ class ResidualErrorEstimator(ErrorEstimator):
             self.mean_zero_basis_transformation(res_dd_d)
 
         def calculate_residual(res_node, other_node):
+            # There is nothing to do for metaroots.
+            if other_node.is_metaroot(): return
+            assert other_node.nodes[0].level >= 0 and other_node.nodes[
+                1].level >= 0
+
             # If this node is in X_d, the residual should be zero,
             # and there is nothing left to do.
             if other_node.marked:
@@ -124,11 +129,6 @@ class ResidualErrorEstimator(ErrorEstimator):
                 return
             else:
                 res_dd_min_d.append(res_node)
-
-            # There is nothing to do for metaroots.
-            if other_node.is_metaroot(): return
-            assert other_node.nodes[0].level >= 0 and other_node.nodes[
-                1].level >= 0
 
             # This is a node in X_dd \ X_d, we now evaluate the residual
             # using a scaled basis.
