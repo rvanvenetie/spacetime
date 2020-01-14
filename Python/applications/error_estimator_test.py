@@ -28,6 +28,7 @@ def test_mean_zero_transformation():
                              dirichlet_boundary=True))
 
     for level in range(1, 4):
+        # Fill a vector with values <phi, 1>.
         vec = DoubleTreeVector.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
         vec.sparse_refine(2 * level, weights=[2, 1])
