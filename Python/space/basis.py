@@ -64,6 +64,9 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
     def patch(self):
         return self.node.patch
 
+    def volume(self):
+        return sum(elem.area for elem in self.support)
+
     def support_contains(self, xy):
         return any(elem.contains(xy) for elem in self.support)
 

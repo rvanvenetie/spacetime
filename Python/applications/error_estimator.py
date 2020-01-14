@@ -62,7 +62,20 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
 
 
 class ResidualErrorEstimator(ErrorEstimator):
-    def estimate(self, u_dd_d, X_d, X_dd, Y_dd):
+    @staticmethod
+    def mean_zero_basis_transformation(vector):
+        """ Transforms the space basis into a mean zero basis."""
+        for db_node in reversed(vector.bfs()):
+            if db_node.nodes[1].level == 0 or db_node.nodes[
+                    1].on_domain_boundary or any(
+                        parent.nodes[1].on_domain_boundary
+                        for parent in db_node.parents[1]):
+                continue
+            for parent in db_node.parents[1]:
+                db_node.value -= 0.5 * db_node.nodes[1].volume(
+                ) / parent.nodes[1].volume() * parent.value
+
+    def estimate(self, u_dd_d, X_d, X_dd, Y_dd, mean_zero=False):
         """ The residual error estimator of Proposition 5.7.
 
         Arguments:
@@ -79,7 +92,8 @@ class ResidualErrorEstimator(ErrorEstimator):
         heat_dd_dd = HeatEquation(X_delta=X_dd,
                                   Y_delta=Y_dd,
                                   formulation='schur',
-                                  dirichlet_boundary=self.dirichlet_boundary)
+                                  dirichlet_boundary=self.dirichlet_boundary,
+                                  use_space_cache=False)
         f_dd_dd = heat_dd_dd.calculate_rhs_vector(self.g_functional,
                                                   self.u0_functional)
 
@@ -87,20 +101,26 @@ class ResidualErrorEstimator(ErrorEstimator):
         residual_vector = f_dd_dd
         residual_vector -= heat_dd_dd.mat.apply(u_dd_dd)
 
-        # First, we mark all the nodes in X_d in X_dd.
+        # We mark all the nodes in X_d in X_dd.
         X_d_nodes = X_dd.union(X_d, call_filter=lambda _: False)
         for node in X_d_nodes:
             node.marked = True
 
-        # Also mark all the time wavelets that already existed in X_d.
-        for node in X_d.project(0).bfs():
-            node.node.marked = True
-
         # Return a list of the residual nodes on X_d and X_dd \ X_d.
         res_d = []
         res_dd_min_d = []
+        res_dd_d = residual_vector.deep_copy()
 
-        def call_postprocess(res_node, other_node):
+        # Do a basis transformation to mean zero space functions.
+        if mean_zero:
+            self.mean_zero_basis_transformation(res_dd_d)
+
+        def calculate_residual(res_node, other_node):
+            # There is nothing to do for metaroots.
+            if other_node.is_metaroot(): return
+            assert other_node.nodes[0].level >= 0 and other_node.nodes[
+                1].level >= 0
+
             # If this node is in X_d, the residual should be zero,
             # and there is nothing left to do.
             if other_node.marked:
@@ -110,33 +130,19 @@ class ResidualErrorEstimator(ErrorEstimator):
             else:
                 res_dd_min_d.append(res_node)
 
-            # There is nothing to do for metaroots.
-            if other_node.is_metaroot(): return
-            assert other_node.nodes[0].level >= 0 and other_node.nodes[
-                1].level >= 0
-
             # This is a node in X_dd \ X_d, we now evaluate the residual
             # using a scaled basis.
+            lvl_diff = other_node.nodes[0].level - other_node.nodes[1].level
+            res_node.value /= np.sqrt(1.0 + 4**(lvl_diff))
 
-            # This is a new time wavelet, scale with 2^(-|labda|)
-            if other_node.nodes[1].level == 0:
-                assert not other_node.nodes[0].marked
-                res_node.value /= 2**(other_node.nodes[0].level)
-            # This is a refined mesh function, scale with
-            #   sqrt(1 + 4^|labda|-lvl(v)).
-            else:
-                lvl_diff = other_node.nodes[0].level - other_node.nodes[1].level
-                res_node.value /= np.sqrt(1.0 + 4**(lvl_diff))
+        # Calculate the residual.
+        res_dd_d.union(X_dd, call_postprocess=calculate_residual)
 
-        # Apply the basis transformation.
-        res_dd_d = residual_vector.deep_copy()
-        res_dd_d.union(X_dd, call_postprocess=call_postprocess)
+        # Validate the boundary conditions.
+        heat_dd_dd._validate_boundary_dofs(res_dd_d)
 
         # Unmark the nodes in X_dd
         for node in X_d_nodes:
             node.marked = False
 
-        # Also unmark all the time wavelets that exited in X_d.
-        for node in X_d.project(0).bfs():
-            node.node.marked = False
         return res_dd_d, res_d, res_dd_min_d

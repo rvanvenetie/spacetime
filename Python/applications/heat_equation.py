@@ -91,13 +91,15 @@ class HeatEquation:
                 Y_delta,
                 applicator_space=applicator_space(
                     s_operators.DirectInverse,
-                    forward_op_ctor=s_operators.StiffnessOperator))
+                    forward_op_ctor=s_operators.StiffnessOperator,
+                    use_cache=use_space_cache))
             self.P_X = BlockDiagonalApplicator(
                 X_delta,
                 applicator_space=applicator_space(
                     s_operators.XPreconditioner,
                     precond_cls=s_operators.DirectInverse,
-                    alpha=0.35))
+                    alpha=0.35,
+                    use_cache=use_space_cache))
 
             self.mat = CompositeApplicator([self.B, self.P_Y, self.BT
                                             ]) + self.m_gamma
@@ -198,7 +200,7 @@ class HeatEquation:
         u0_functionals = []
         for u0, u0_order in zip(u0, u0_order):
             functional_time = t_functional.Functional(
-                t_operators.evaluation(t=0),
+                lambda phi: phi.eval(t=0),
                 basis=self.time_basis_X,
             )
             functional_space = s_functional.Functional(

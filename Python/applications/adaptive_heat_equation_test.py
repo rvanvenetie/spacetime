@@ -110,7 +110,8 @@ def run_adaptive_loop(initial_triangulation='square',
                       saturation_layers=1,
                       rhs_functional_factory=singular_rhs_functional,
                       u0_data=singular_u0_unit_square_data,
-                      solver_tol='1e-7'):
+                      mean_zero=False,
+                      solver_tol=1e-7):
     # Printing options.
     np.set_printoptions(precision=4)
     np.set_printoptions(linewidth=10000)
@@ -152,6 +153,9 @@ def run_adaptive_loop(initial_triangulation='square',
         saturation_layers=saturation_layers)
     info = {
         'theta': adaptive_heat_eq.theta,
+        'initial_refinement': initial_refinement,
+        'saturation_layers': saturation_layers,
+        'mean_zero': mean_zero,
         'solver_tol': solver_tol,
         'step_info': [],
         'sol_info': [],
@@ -177,7 +181,8 @@ def run_adaptive_loop(initial_triangulation='square',
         }
 
         # Mark and refine.
-        residual, mark_info = adaptive_heat_eq.mark_refine(u_dd_d=u_dd_d)
+        residual, mark_info = adaptive_heat_eq.mark_refine(u_dd_d=u_dd_d,
+                                                           mean_zero=mean_zero)
         step_info.update(mark_info)
         sol_info['residual'] = residual.to_array()
 
@@ -201,7 +206,7 @@ def run_adaptive_loop(initial_triangulation='square',
             import pickle
             pickle.dump(info, open(results_file, 'wb'))
 
-        if step_info['memory'] > 50 * 10**9:
+        if step_info['memory'] > 70 * 10**9:
             print('Memory limit reached! Stopping adaptive loop.')
             break
 
@@ -217,6 +222,7 @@ if __name__ == "__main__":
         run_adaptive_loop(
             rhs_functional_factory=singular_rhs_functional,
             u0_data=singular_u0_unit_square_data(),
-            saturation_layers=2,
+            saturation_layers=1,
             initial_triangulation='unit_square',
-            results_file='singular_solution_adaptive_satur_2.pkl')
+            mean_zero=True,
+            results_file='singular_solution_adaptive_mean_zero_fixed.pkl')

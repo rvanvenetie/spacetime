@@ -64,9 +64,13 @@ class AdaptiveHeatEquation:
         print('Solved in {} iterations.'.format(info['num_iters']))
         return u_dd_d, info
 
-    def mark_refine(self, u_dd_d):
+    def mark_refine(self, u_dd_d, mean_zero=False):
         res, res_d, res_d_dd = self.residual_error_estimator.estimate(
-            u_dd_d=u_dd_d, X_d=self.X_delta, X_dd=self.X_dd, Y_dd=self.Y_dd)
+            u_dd_d=u_dd_d,
+            X_d=self.X_delta,
+            X_dd=self.X_dd,
+            Y_dd=self.Y_dd,
+            mean_zero=mean_zero)
         info = {
             'res_norm': res.norm(),
             'res_X_d_norm': np.linalg.norm([n.value for n in res_d]),

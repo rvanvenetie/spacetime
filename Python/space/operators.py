@@ -77,10 +77,13 @@ class Operator:
         return w
 
     def free_dofs(self):
-        return [
-            i for (i, vertex) in enumerate(self.triang.vertices)
-            if not vertex.on_domain_boundary
-        ]
+        if self.dirichlet_boundary:
+            return [
+                i for (i, vertex) in enumerate(self.triang.vertices)
+                if not vertex.on_domain_boundary
+            ]
+        else:
+            return list(range(len(self.triang.vertices)))
 
     def boundary_dofs(self):
         return [
@@ -220,25 +223,35 @@ class StiffPlusScaledMassOperator(Operator):
 
 
 class DirectInverse(Preconditioner):
-    def __init__(self, forward_op_ctor, triang=None, dirichlet_boundary=True):
-        super().__init__(triang, dirichlet_boundary)
+    def __init__(self,
+                 forward_op_ctor,
+                 triang=None,
+                 dirichlet_boundary=True,
+                 use_cache=False):
+        super().__init__(triang=triang, dirichlet_boundary=dirichlet_boundary)
         self.forward_op_ctor = forward_op_ctor
+        self.use_cache = use_cache
+        self.mat_cache = {}
 
     def apply_SS(self, v, **kwargs):
-        mat = self.forward_op_ctor(
-            self.triang, self.dirichlet_boundary).as_SS_matrix(**kwargs)
-        # If we have dirichlet BC, the matrix is singular, so we have to take
-        # a submatrix if we want to apply spsolve.
-        if self.dirichlet_boundary:
-            free_dofs = self.free_dofs()
+        free_dofs = self.free_dofs()
+        if not self.use_cache or self.triang not in self.mat_cache:
+            mat = self.forward_op_ctor(
+                self.triang, self.dirichlet_boundary).as_SS_matrix(**kwargs)
+
+            # If we use dirichlet BC, the matrix is singular, so we have to take
+            # a submatrix if we want to apply spsolve.
             mat = mat[free_dofs, :].tocsc()[:, free_dofs]
-            v = v[free_dofs]
-            out = spsolve(mat, v)
-            res = np.zeros(len(self.triang.vertices))
-            res[free_dofs] = out
-            return res
+            if self.use_cache:
+                self.mat_cache[self.triang] = mat
         else:
-            return spsolve(mat, v)
+            mat = self.mat_cache[self.triang]
+
+        v = v[free_dofs]
+        out = spsolve(mat, v)
+        res = np.zeros(len(self.triang.vertices))
+        res[free_dofs] = out
+        return res
 
 
 class XPreconditioner(Preconditioner):
@@ -246,7 +259,8 @@ class XPreconditioner(Preconditioner):
                  precond_cls=DirectInverse,
                  triang=None,
                  dirichlet_boundary=True,
-                 alpha=1.0):
+                 alpha=1.0,
+                 use_cache=False):
         super().__init__(triang, dirichlet_boundary)
 
         def C_ctor(_triang, _dirichlet_boundary):
@@ -257,7 +271,8 @@ class XPreconditioner(Preconditioner):
 
         self.C = precond_cls(forward_op_ctor=C_ctor,
                              triang=triang,
-                             dirichlet_boundary=dirichlet_boundary)
+                             dirichlet_boundary=dirichlet_boundary,
+                             use_cache=use_cache)
         self.A = StiffnessOperator(triang=triang,
                                    dirichlet_boundary=dirichlet_boundary)
 
