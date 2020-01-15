@@ -1,28 +1,32 @@
-#include "haar_basis.hpp"
+#include "three_point_basis.hpp"
 
 #include <iostream>
 #include <memory>
 namespace Time {
 
 // Initialize static variables.
-datastructures::Tree<DiscConstantScalingFn> disc_cons_tree;
-datastructures::Tree<HaarWaveletFn> haar_tree;
+datastructures::Tree<ContLinearScalingFn> disc_cons_tree;
+datastructures::Tree<ThreePointWaveletFn> haar_tree;
 
 // Metaroot constructor.
-DiscConstantScalingFn::DiscConstantScalingFn()
-    : ScalingFn<DiscConstantScalingFn>() {
+ContLinearScalingFn::ContLinearScalingFn() : ScalingFn<ContLinearScalingFn>() {
   children_.push_back(
-      std::make_shared<DiscConstantScalingFn>(this, 0, mother_element));
+      std::make_shared<ContLinearScalingFn>({this}, 0, {mother_element}));
+  children_.push_back(
+      std::make_shared<ContLinearScalingFn>({this}, 1, {mother_element}));
 }
 
-double DiscConstantScalingFn::EvalMother(double t, bool deriv) {
-  if (deriv || t < 0 || t >= 1)
-    return 0;
+double ContLinearScalingFn::EvalMother(double t, bool deriv) {
+  int left_mask = (-1 < t) && (t <= 0);
+  int right_mask = (0 < t) && (t < 1);
+
+  if (deriv)
+    return left_mask * 1 + right_mask * -1;
   else
-    return 1;
+    return left_mask * (1 + t) + right_mask * (1 - t);
 }
 
-bool DiscConstantScalingFn::Refine() {
+bool ContLinearScalingFn::Refine() {
   if (is_full()) return false;
   assert(children_.empty());
 
@@ -30,11 +34,11 @@ bool DiscConstantScalingFn::Refine() {
   auto [l, n] = labda();
 
   // clang-format off
-  children_.push_back(std::make_shared<DiscConstantScalingFn>(
+  children_.push_back(std::make_shared<ContLinearScalingFn>(
       /* parent */ this,
       /* index */ 2 * n,
       /* support */ support_[0]->children()[0].get()));
-  children_.push_back(std::make_shared<DiscConstantScalingFn>(
+  children_.push_back(std::make_shared<ContLinearScalingFn>(
       /* parent */ this,
       /* index */ 2 * n + 1,
       /* support */ support_[0]->children()[1].get()));
@@ -43,13 +47,13 @@ bool DiscConstantScalingFn::Refine() {
   return true;
 }
 
-HaarWaveletFn::HaarWaveletFn() : WaveletFn<HaarWaveletFn>() {
+ThreePointWaveletFn::ThreePointWaveletFn() : WaveletFn<ThreePointWaveletFn>() {
   auto mother_scaling = disc_cons_tree.meta_root->children()[0].get();
-  children_.push_back(std::make_shared<HaarWaveletFn>(
+  children_.push_back(std::make_shared<ThreePointWaveletFn>(
       this, 0, std::vector{std::pair{mother_scaling, 1.0}}));
 }
 
-bool HaarWaveletFn::Refine() {
+bool ThreePointWaveletFn::Refine() {
   if (is_full()) return true;
   assert(children_.empty());
 
@@ -58,7 +62,7 @@ bool HaarWaveletFn::Refine() {
     mother_scaling->Refine();
     auto mother_scaling_children = mother_scaling->children();
 
-    children_.push_back(std::make_shared<HaarWaveletFn>(
+    children_.push_back(std::make_shared<ThreePointWaveletFn>(
         /* parent */ this,
         /* index */ 0,
         /* single_scale */
@@ -71,14 +75,14 @@ bool HaarWaveletFn::Refine() {
     phi_left->Refine();
     phi_right->Refine();
 
-    children_.push_back(std::make_shared<HaarWaveletFn>(
+    children_.push_back(std::make_shared<ThreePointWaveletFn>(
         /* parent */ this,
         /* index */ 2 * index_,
         /* single_scale */
         std::vector{std::pair{phi_left->children()[0].get(), 1.0},
                     std::pair{phi_left->children()[1].get(), -1.0}}));
 
-    children_.push_back(std::make_shared<HaarWaveletFn>(
+    children_.push_back(std::make_shared<ThreePointWaveletFn>(
         /* parent */ this,
         /* index */ 2 * index_ + 1,
         /* single_scale */
@@ -88,7 +92,7 @@ bool HaarWaveletFn::Refine() {
   return true;
 }
 
-bool HaarWaveletFn::is_full() const {
+bool ThreePointWaveletFn::is_full() const {
   if (level_ <= 0)
     return children_.size() == 1;
   else
