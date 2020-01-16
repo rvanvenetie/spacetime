@@ -4,6 +4,7 @@ import time
 from pprint import pprint
 
 import numpy as np
+
 import psutil
 
 from ..datastructures.double_tree_view import DoubleTree
@@ -96,6 +97,34 @@ def singular_rhs_functional(heat_eq):
     g_order = [(0, 0)]
     u0 = [lambda xy: 1]
     u0_order = [1]
+
+    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
+                                                        g_order=g_order,
+                                                        u0=u0,
+                                                        u0_order=u0_order)
+
+
+def mildly_singular_u0_data_unit():
+    return (lambda xy: xy[0] * (xy[0] - 1) * xy[1] * (xy[1] - 1), 4, 1 / 30)
+
+
+def mildly_singular_u0_data_lshape():
+    return (lambda xy: xy[0] * (xy[0] - 1) * (xy[0] + 1) * xy[1] *
+            (xy[1] - 1) * (xy[1] + 1), 6, 4 / 21 * np.sqrt(2 / 5))
+
+
+def mildly_singular_rhs_functional(heat_eq, initial_triangulation):
+    g = [(
+        lambda t: 1,
+        lambda xy: 1,
+    )]
+    g_order = [(1, 1)]
+    if initial_triangulation == 'lshape':
+        u0, u0_order, _ = mildly_singular_u0_data_lshape()
+    elif initial_triangulation == 'unit_square':
+        u0, u0_order, _ = mildly_singular_u0_data_unit()
+    u0 = [u0]
+    u0_order = [u0_order]
 
     return heat_eq.calculate_rhs_functionals_quadrature(g=g,
                                                         g_order=g_order,
@@ -206,7 +235,7 @@ def run_adaptive_loop(initial_triangulation='square',
             import pickle
             pickle.dump(info, open(results_file, 'wb'))
 
-        if step_info['memory'] > 70 * 10**9:
+        if step_info['memory'] > 50 * 10**9:
             print('Memory limit reached! Stopping adaptive loop.')
             break
 
@@ -214,15 +243,27 @@ def run_adaptive_loop(initial_triangulation='square',
 if __name__ == "__main__":
     case = 'singular'
     if case == 'smooth':
-        run_adaptive_loop(rhs_functional_factory=example_rhs_functional,
-                          u0_data=example_u0_data(),
-                          initial_triangulation='unit_square',
-                          results_file='smooth_solution_adaptive.pkl')
+        run_adaptive_loop(
+            rhs_functional_factory=example_rhs_functional,
+            u0_data=example_u0_data(),
+            initial_triangulation='unit_square',
+            saturation_layers=3,
+            mean_zero=True,
+            results_file='smooth_solution_adaptive_3layer_single.pkl')
     elif case == 'singular':
         run_adaptive_loop(
             rhs_functional_factory=singular_rhs_functional,
             u0_data=singular_u0_unit_square_data(),
-            saturation_layers=1,
             initial_triangulation='unit_square',
+            saturation_layers=2,
             mean_zero=True,
-            results_file='singular_solution_adaptive_mean_zero_fixed.pkl')
+            results_file='singular_solution_adaptive_2layer_single.pkl')
+    elif case == 'mild':
+        run_adaptive_loop(
+            rhs_functional_factory=lambda heat_eq:
+            mildly_singular_rhs_functional(heat_eq, 'unit_square'),
+            u0_data=mildly_singular_u0_data_unit(),
+            initial_triangulation='unit_square',
+            saturation_layers=1,
+            mean_zero=True,
+            results_file='mild_solution_adaptive_unit.pkl')
