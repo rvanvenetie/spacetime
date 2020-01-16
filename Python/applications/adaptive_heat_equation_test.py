@@ -50,7 +50,7 @@ def test_dorfler_marking():
 
 
 def test_heat_error_reduction():
-    """ Simple test that applies the adaptive loop for a few iterations. """
+    """ Simple test that applies the adaptive loop and checks slice errors. """
     # Adaptive parameters.
     theta = 0.3
     max_iters = 8
