@@ -10,10 +10,12 @@ from .triangulation_view import TriangulationView
 
 class Operator:
     """ Base class for space operators. """
-    def __init__(self, triang=None, dirichlet_boundary=True):
+    def __init__(self, triang=None, dirichlet_boundary=True, use_cache=False):
         """ This operator binds to the to a given triangulation(view). """
         self.triang = triang
         self.dirichlet_boundary = dirichlet_boundary
+        self.use_cache = use_cache
+        self.mat_cache = {}
 
     def apply(self, v, **kwargs):
         """ Application of the operator the hierarchical basis. """
@@ -102,20 +104,27 @@ class Operator:
 class MassOperator(Operator):
     """ Mass operator. """
     def as_SS_matrix(self, **kwargs):
-        element_mass = 1.0 / 12.0 * np.array([[2, 1, 1], [1, 2, 1], [1, 1, 2]])
+        if not self.use_cache or self.triang.vertices not in self.mat_cache:
+            element_mass = 1.0 / 12.0 * np.array([[2, 1, 1], [1, 2, 1],
+                                                  [1, 1, 2]])
 
-        n = len(self.triang.vertices)
-        rows, cols, data = [], [], []
+            n = len(self.triang.vertices)
+            rows, cols, data = [], [], []
 
-        for elem in self.triang.elements:
-            if not elem.is_leaf(): continue
-            Vids = elem.vertices_view_idx
-            for (row, col) in itertools.product(range(3), range(3)):
-                rows.append(Vids[row])
-                cols.append(Vids[col])
-                data.append(element_mass[row, col] * elem.area)
+            for elem in self.triang.elements:
+                if not elem.is_leaf(): continue
+                Vids = elem.vertices_view_idx
+                for (row, col) in itertools.product(range(3), range(3)):
+                    rows.append(Vids[row])
+                    cols.append(Vids[col])
+                    data.append(element_mass[row, col] * elem.area)
 
-        return csr_matrix((data, (rows, cols)), shape=(n, n), dtype=float)
+            mat = csr_matrix((data, (rows, cols)), shape=(n, n), dtype=float)
+            if self.use_cache:
+                self.mat_cache[self.triang.vertices] = mat
+        else:
+            mat = self.mat_cache[self.triang.vertices]
+        return mat
 
     def apply_SS(self, v, **kwargs):
         """ Applies the single-scale mass matrix. """
@@ -132,21 +141,28 @@ class MassOperator(Operator):
 class StiffnessOperator(Operator):
     """ Stiffness operator. """
     def as_SS_matrix(self, **kwargs):
-        n = len(self.triang.vertices)
-        rows, cols, data = [], [], []
+        assert self.triang is not None
+        if not self.use_cache or self.triang.vertices not in self.mat_cache:
+            n = len(self.triang.vertices)
+            rows, cols, data = [], [], []
 
-        for elem in self.triang.elements:
-            if not elem.is_leaf(): continue
-            Vids = elem.vertices_view_idx
-            V = elem.node.vertex_array
-            D = np.array([V[2] - V[1], V[0] - V[2], V[1] - V[0]]).T
-            element_stiff = (D.T @ D) / (4 * elem.area)
-            for (row, col) in itertools.product(range(3), range(3)):
-                rows.append(Vids[row])
-                cols.append(Vids[col])
-                data.append(element_stiff[row, col])
+            for elem in self.triang.elements:
+                if not elem.is_leaf(): continue
+                Vids = elem.vertices_view_idx
+                V = elem.node.vertex_array
+                D = np.array([V[2] - V[1], V[0] - V[2], V[1] - V[0]]).T
+                element_stiff = (D.T @ D) / (4 * elem.area)
+                for (row, col) in itertools.product(range(3), range(3)):
+                    rows.append(Vids[row])
+                    cols.append(Vids[col])
+                    data.append(element_stiff[row, col])
 
-        return csr_matrix((data, (rows, cols)), shape=(n, n), dtype=float)
+            mat = csr_matrix((data, (rows, cols)), shape=(n, n), dtype=float)
+            if self.use_cache:
+                self.mat_cache[self.triang.vertices] = mat
+        else:
+            mat = self.mat_cache[self.triang.vertices]
+        return mat
 
     def apply_SS(self, v, **kwargs):
         """ Applies the single-scale stiffness matrix. """
@@ -205,13 +221,25 @@ class Preconditioner(Operator):
 
 
 class StiffPlusScaledMassOperator(Operator):
-    def __init__(self, triang=None, dirichlet_boundary=True, alpha=1.0):
-        super().__init__(triang, dirichlet_boundary)
+    def __init__(self,
+                 alpha,
+                 triang=None,
+                 dirichlet_boundary=True,
+                 use_cache=False):
+        super().__init__(triang=triang,
+                         dirichlet_boundary=dirichlet_boundary,
+                         use_cache=use_cache)
         self.alpha = alpha
-        self.stiff = StiffnessOperator(triang, dirichlet_boundary)
-        self.mass = MassOperator(triang, dirichlet_boundary)
+        self.stiff = StiffnessOperator(triang,
+                                       dirichlet_boundary,
+                                       use_cache=use_cache)
+        self.mass = MassOperator(triang,
+                                 dirichlet_boundary,
+                                 use_cache=use_cache)
 
     def as_SS_matrix(self, labda):
+        self.stiff.triang = self.triang
+        self.mass.triang = self.triang
         return self.alpha * self.stiff.as_SS_matrix(
         ) + 2**labda.level * self.mass.as_SS_matrix()
 
@@ -228,25 +256,20 @@ class DirectInverse(Preconditioner):
                  triang=None,
                  dirichlet_boundary=True,
                  use_cache=False):
-        super().__init__(triang=triang, dirichlet_boundary=dirichlet_boundary)
-        self.forward_op_ctor = forward_op_ctor
-        self.use_cache = use_cache
-        self.mat_cache = {}
+        super().__init__(triang=triang,
+                         dirichlet_boundary=dirichlet_boundary,
+                         use_cache=use_cache)
+        self.forward_op = forward_op_ctor(triang, dirichlet_boundary,
+                                          use_cache)
 
     def apply_SS(self, v, **kwargs):
         free_dofs = self.free_dofs()
-        key = (self.triang, tuple(kwargs.items()))
-        if not self.use_cache or key not in self.mat_cache:
-            mat = self.forward_op_ctor(
-                self.triang, self.dirichlet_boundary).as_SS_matrix(**kwargs)
+        self.forward_op.triang = self.triang
+        mat = self.forward_op.as_SS_matrix(**kwargs)
 
-            # If we use dirichlet BC, the matrix is singular, so we have to take
-            # a submatrix if we want to apply spsolve.
-            mat = mat[free_dofs, :].tocsc()[:, free_dofs]
-            if self.use_cache:
-                self.mat_cache[key] = mat
-        else:
-            mat = self.mat_cache[key]
+        # If we use dirichlet BC, the matrix is singular, so we have to take
+        # a submatrix if we want to apply spsolve.
+        mat = mat[free_dofs, :].tocsc()[:, free_dofs]
 
         v = v[free_dofs]
         out = spsolve(mat, v)
@@ -262,20 +285,24 @@ class XPreconditioner(Preconditioner):
                  dirichlet_boundary=True,
                  alpha=1.0,
                  use_cache=False):
-        super().__init__(triang, dirichlet_boundary)
+        super().__init__(triang=triang,
+                         dirichlet_boundary=dirichlet_boundary,
+                         use_cache=use_cache)
 
-        def C_ctor(_triang, _dirichlet_boundary):
+        def C_ctor(_triang, _dirichlet_boundary, _use_cache):
             return StiffPlusScaledMassOperator(
                 triang=_triang,
                 dirichlet_boundary=_dirichlet_boundary,
-                alpha=alpha)
+                alpha=alpha,
+                use_cache=_use_cache)
 
         self.C = precond_cls(forward_op_ctor=C_ctor,
                              triang=triang,
                              dirichlet_boundary=dirichlet_boundary,
                              use_cache=use_cache)
         self.A = StiffnessOperator(triang=triang,
-                                   dirichlet_boundary=dirichlet_boundary)
+                                   dirichlet_boundary=dirichlet_boundary,
+                                   use_cache=use_cache)
 
     def apply(self, v, labda):
         """ Application of the operator the hierarchical basis. """
