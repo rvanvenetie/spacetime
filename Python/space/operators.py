@@ -77,10 +77,13 @@ class Operator:
         return w
 
     def free_dofs(self):
-        return [
-            i for (i, vertex) in enumerate(self.triang.vertices)
-            if not vertex.on_domain_boundary
-        ]
+        if self.dirichlet_boundary:
+            return [
+                i for (i, vertex) in enumerate(self.triang.vertices)
+                if not vertex.on_domain_boundary
+            ]
+        else:
+            return list(range(len(self.triang.vertices)))
 
     def boundary_dofs(self):
         return [
@@ -135,7 +138,7 @@ class StiffnessOperator(Operator):
         for elem in self.triang.elements:
             if not elem.is_leaf(): continue
             Vids = elem.vertices_view_idx
-            V = elem.node.vertex_array()
+            V = elem.node.vertex_array
             D = np.array([V[2] - V[1], V[0] - V[2], V[1] - V[0]]).T
             element_stiff = (D.T @ D) / (4 * elem.area)
             for (row, col) in itertools.product(range(3), range(3)):
@@ -152,7 +155,7 @@ class StiffnessOperator(Operator):
             if not elem.is_leaf():
                 continue
             Vids = elem.vertices_view_idx
-            V = elem.node.vertex_array()
+            V = elem.node.vertex_array
             D = np.array([V[2] - V[1], V[0] - V[2], V[1] - V[0]]).T
             element_stiff = (D.T @ D) / (4 * elem.area)
             for (i, j) in itertools.product(range(3), range(3)):
@@ -220,25 +223,35 @@ class StiffPlusScaledMassOperator(Operator):
 
 
 class DirectInverse(Preconditioner):
-    def __init__(self, forward_op_ctor, triang=None, dirichlet_boundary=True):
-        super().__init__(triang, dirichlet_boundary)
+    def __init__(self,
+                 forward_op_ctor,
+                 triang=None,
+                 dirichlet_boundary=True,
+                 use_cache=False):
+        super().__init__(triang=triang, dirichlet_boundary=dirichlet_boundary)
         self.forward_op_ctor = forward_op_ctor
+        self.use_cache = use_cache
+        self.mat_cache = {}
 
     def apply_SS(self, v, **kwargs):
-        mat = self.forward_op_ctor(
-            self.triang, self.dirichlet_boundary).as_SS_matrix(**kwargs)
-        # If we have dirichlet BC, the matrix is singular, so we have to take
-        # a submatrix if we want to apply spsolve.
-        if self.dirichlet_boundary:
-            free_dofs = self.free_dofs()
+        free_dofs = self.free_dofs()
+        if not self.use_cache or self.triang not in self.mat_cache:
+            mat = self.forward_op_ctor(
+                self.triang, self.dirichlet_boundary).as_SS_matrix(**kwargs)
+
+            # If we use dirichlet BC, the matrix is singular, so we have to take
+            # a submatrix if we want to apply spsolve.
             mat = mat[free_dofs, :].tocsc()[:, free_dofs]
-            v = v[free_dofs]
-            out = spsolve(mat, v)
-            res = np.zeros(len(self.triang.vertices))
-            res[free_dofs] = out
-            return res
+            if self.use_cache:
+                self.mat_cache[self.triang] = mat
         else:
-            return spsolve(mat, v)
+            mat = self.mat_cache[self.triang]
+
+        v = v[free_dofs]
+        out = spsolve(mat, v)
+        res = np.zeros(len(self.triang.vertices))
+        res[free_dofs] = out
+        return res
 
 
 class XPreconditioner(Preconditioner):
@@ -246,7 +259,8 @@ class XPreconditioner(Preconditioner):
                  precond_cls=DirectInverse,
                  triang=None,
                  dirichlet_boundary=True,
-                 alpha=1.0):
+                 alpha=1.0,
+                 use_cache=False):
         super().__init__(triang, dirichlet_boundary)
 
         def C_ctor(_triang, _dirichlet_boundary):
@@ -257,7 +271,8 @@ class XPreconditioner(Preconditioner):
 
         self.C = precond_cls(forward_op_ctor=C_ctor,
                              triang=triang,
-                             dirichlet_boundary=dirichlet_boundary)
+                             dirichlet_boundary=dirichlet_boundary,
+                             use_cache=use_cache)
         self.A = StiffnessOperator(triang=triang,
                                    dirichlet_boundary=dirichlet_boundary)
 
@@ -294,7 +309,7 @@ class QuadratureFunctional:
             if not elem.is_leaf():
                 continue
             Vids = elem.vertices_view_idx
-            triangle = elem.node.vertex_array()
+            triangle = elem.node.vertex_array
             for i in range(3):
                 hat_eval = lambda xy: _hat_function_eval(support=[elem.node],
                                                          vertex=self.triang.
@@ -311,7 +326,11 @@ class QuadratureFunctional:
                 quad_ss[Vids[i]] += scheme.integrate(ip_func, triangle)
         operator = Operator(triang=self.triang,
                             dirichlet_boundary=self.dirichlet_boundary)
-        return operator.apply_T_transpose(quad_ss)
+        result = operator.apply_T_transpose(quad_ss)
+        if self.dirichlet_boundary:
+            result = operator.apply_boundary_restriction(result)
+
+        return result
 
 
 class InterpolantFunctional:
@@ -330,7 +349,11 @@ class InterpolantFunctional:
             bdr_dofs = op.boundary_dofs()
             assert np.allclose(eval_ss[bdr_dofs], 0)
 
-        return op.apply_T_inverse(eval_ss)
+        result = op.apply_T_inverse(eval_ss)
+        if self.dirichlet_boundary:
+            result = op.apply_boundary_restriction(result)
+
+        return result
 
 
 def plot_hatfn():

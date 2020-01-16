@@ -1,6 +1,9 @@
+import os
 import random
+import time
 
 import numpy as np
+import pytest
 
 from ..datastructures.applicator import LinearOperatorApplicator
 from ..datastructures.double_tree_view import DoubleTree
@@ -12,7 +15,9 @@ from ..space.triangulation import (InitialTriangulation,
                                    to_matplotlib_triangulation)
 from ..space.triangulation_function import TriangulationFunction
 from ..space.triangulation_view import TriangulationView
+from ..spacetime.basis import generate_x_delta_underscore, generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
+from .error_estimator import AuxiliaryErrorEstimator, ResidualErrorEstimator
 from .heat_equation import HeatEquation
 
 
@@ -24,6 +29,11 @@ def example_solution_function():
     u_order = (2, 4)
     u_slice_norm_l2 = lambda t: (1 + t**2) / 30
     return u, u_order, u_slice_norm_l2
+
+
+def example_u0_data():
+    u, u_order, u_slice_norm_l2 = example_solution_function()
+    return lambda xy: u[0](0.0) * u[1](xy), u_order[1], u_slice_norm_l2(0.0)
 
 
 def example_rhs_functional(heat_eq):
@@ -43,18 +53,6 @@ def example_rhs_functional(heat_eq):
                                                         g_order=g_order,
                                                         u0=u0,
                                                         u0_order=u0_order)
-
-
-def example_rhs(heat_eq):
-    g_functional, u0_functional = example_rhs_functional(heat_eq)
-
-    result = heat_eq.calculate_rhs_vector(g_functional=g_functional,
-                                          u0_functional=u0_functional)
-
-    # Check that the vector != 0.
-    assert sum(abs(result.to_array())) > 0.0001
-
-    return result
 
 
 def random_rhs(heat_eq):
@@ -176,7 +174,7 @@ def test_real_tensor_heat():
     # Create heat equation object.
     for formulation in ['saddle', 'schur']:
         heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
-        rhs = example_rhs(heat_eq)
+        rhs = heat_eq.calculate_rhs_vector(*example_rhs_functional(heat_eq))
 
         # Now actually solve this beast!
         sol, info = heat_eq.solve(rhs)
@@ -265,6 +263,10 @@ def test_heat_error_reduction(max_history_level=0,
     residual_norm_histories = []
     residual_norms = []
     solver_iters = []
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    X_delta.sparse_refine(0)
+    g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
     for level in range(2, max_level):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
@@ -275,7 +277,7 @@ def test_heat_error_reduction(max_history_level=0,
 
         # Create heat equation object.
         heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
-        rhs = example_rhs(heat_eq)
+        rhs = heat_eq.calculate_rhs_vector(g_functional, u0_functional)
 
         if level <= max_history_level:
             residual_norm_history = []
@@ -403,7 +405,60 @@ def test_preconditioned_eigenvalues(max_level=6, sparse_grid=True):
               format(level, len(X_delta.bfs()), l.lmin, l.lmax, l.cond()))
 
 
+@pytest.mark.slow
+def test_residual_error_estimator_rate():
+    import psutil
+    # Create space part.
+    triang = InitialTriangulation.unit_square(initial_refinement=1)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+
+    max_level = 100
+    sol = None
+    time_start = time.time()
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    X_delta.uniform_refine(0)
+    g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
+    residual_error_estimator = ResidualErrorEstimator(g_functional,
+                                                      u0_functional)
+    aux_error_estimator = AuxiliaryErrorEstimator(g_functional, u0_functional,
+                                                  *example_u0_data())
+    for level in range(1, max_level):
+        time_start_iteration = time.time()
+        # Create X^\delta as a full grid.
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
+        X_delta.uniform_refine([level, 2 * level])
+        X_dd = generate_x_delta_underscore(X_delta)
+        Y_dd = generate_y_delta(X_dd)
+        heat_eq = HeatEquation(X_delta=X_delta,
+                               Y_delta=Y_dd,
+                               formulation='schur')
+        rhs = heat_eq.calculate_rhs_vector(g_functional, u0_functional)
+        if sol:
+            sol = sol.deep_copy()
+            sol.union(X_delta, call_postprocess=None)
+        sol, solve_info = heat_eq.solve(b=rhs, solver='pcg', x0=sol)
+        res_dd_d, _, _ = residual_error_estimator.estimate(u_dd_d=sol,
+                                                           X_d=X_delta,
+                                                           X_dd=X_dd,
+                                                           Y_dd=Y_dd)
+        res_aux, _ = aux_error_estimator.estimate(heat_eq, sol)
+        process = psutil.Process(os.getpid())
+        print(len(X_delta.bfs()), len(X_dd.bfs()),
+              process.memory_info().rss,
+              time.time() - time_start_iteration,
+              time.time() - time_start, res_dd_d.norm(), res_aux)
+        if process.memory_info().rss > 40 * 10**9:
+            break
+
+
 if __name__ == "__main__":
+    test_residual_error_estimator_rate()
     # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
     test_heat_error_reduction(max_history_level=16,
                               max_level=16,

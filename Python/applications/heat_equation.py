@@ -1,5 +1,3 @@
-import scipy.sparse.linalg as spla
-
 from ..datastructures.applicator import (BlockApplicator, CompositeApplicator,
                                          LinearOperatorApplicator)
 from ..datastructures.double_tree_vector import DoubleTreeVector
@@ -25,6 +23,7 @@ class HeatEquation:
                  X_delta,
                  Y_delta=None,
                  dirichlet_boundary=True,
+                 use_space_cache=True,
                  formulation='saddle'):
         if Y_delta is None:
             Y_delta = generate_y_delta(X_delta)
@@ -50,7 +49,10 @@ class HeatEquation:
         def applicator_space(operator, **kwargs):
             """ Helper function to generate a space applicator. """
             return s_applicator.Applicator(
-                operator(dirichlet_boundary=dirichlet_boundary, **kwargs))
+                singlescale_operator=operator(
+                    dirichlet_boundary=dirichlet_boundary, **kwargs),
+                use_cache=use_space_cache,
+            )
 
         self.A_s = Applicator(
             Lambda_in=Y_delta,
@@ -89,13 +91,15 @@ class HeatEquation:
                 Y_delta,
                 applicator_space=applicator_space(
                     s_operators.DirectInverse,
-                    forward_op_ctor=s_operators.StiffnessOperator))
+                    forward_op_ctor=s_operators.StiffnessOperator,
+                    use_cache=use_space_cache))
             self.P_X = BlockDiagonalApplicator(
                 X_delta,
                 applicator_space=applicator_space(
                     s_operators.XPreconditioner,
                     precond_cls=s_operators.DirectInverse,
-                    alpha=0.35))
+                    alpha=0.35,
+                    use_cache=use_space_cache))
 
             self.mat = CompositeApplicator([self.B, self.P_Y, self.BT
                                             ]) + self.m_gamma
@@ -148,10 +152,6 @@ class HeatEquation:
         # Put the vectors in a block.
         rhs = BlockTreeVector((rhs_g, rhs_u0))
 
-        # Ensure the dirichlet boundary conditions.
-        if self.dirichlet_boundary:
-            self.enforce_dirichlet_boundary(rhs)
-
         if self.formulation == 'saddle':
             return rhs
         else:
@@ -186,8 +186,10 @@ class HeatEquation:
                 basis=self.time_basis_Y,
             )
             functional_space = s_functional.Functional(
-                s_operators.QuadratureFunctional(g=g_space,
-                                                 g_order=g_space_order))
+                s_operators.QuadratureFunctional(
+                    g=g_space,
+                    g_order=g_space_order,
+                    dirichlet_boundary=self.dirichlet_boundary))
             g_functionals.append(
                 TensorFunctional(functional_time=functional_time,
                                  functional_space=functional_space))
@@ -198,11 +200,14 @@ class HeatEquation:
         u0_functionals = []
         for u0, u0_order in zip(u0, u0_order):
             functional_time = t_functional.Functional(
-                t_operators.evaluation(t=0),
+                lambda phi: phi.eval(t=0),
                 basis=self.time_basis_X,
             )
             functional_space = s_functional.Functional(
-                s_operators.QuadratureFunctional(g=u0, g_order=u0_order))
+                s_operators.QuadratureFunctional(
+                    g=u0,
+                    g_order=u0_order,
+                    dirichlet_boundary=self.dirichlet_boundary))
 
             u0_functionals.append(
                 TensorFunctional(functional_time=functional_time,
@@ -221,46 +226,23 @@ class HeatEquation:
 
         # Check input of solver.
         if self.formulation == 'saddle': assert solver == 'minres'
-        if self.formulation == 'schur':
-            assert solver in ['cg', 'pcg']
+        if self.formulation == 'schur': assert solver in ['cg', 'pcg']
 
-        num_iters = 0
-
-        def call_iterations(vec):
-            nonlocal num_iters
-            if iter_callback: iter_callback(vec)
-            print(".", end='', flush=True)
-            num_iters += 1
-
-        M = None
-        if solver == "minres":
-            solver = spla.minres
-        elif solver == "cg":
-            solver = spla.cg
-        elif solver == "pcg":
-            solver = spla.cg
+        if solver == "pcg":
             M = LinearOperatorApplicator(applicator=self.P_X,
                                          input_vec=self.create_vector())
         else:
-            raise NotImplementedError("Unrecognized method '%s'" % self.solver)
+            M = None
 
-        result_array, info = solver(self.linop,
-                                    x0=x0.to_array() if x0 else None,
-                                    b=b.to_array(),
-                                    M=M,
-                                    tol=tol,
-                                    callback=call_iterations)
+        result_array, info = self.linop.solve(solver=solver,
+                                              b=b.to_array(),
+                                              x0=x0.to_array() if x0 else None,
+                                              M=M,
+                                              tol=tol,
+                                              iter_callback=iter_callback)
+
         result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)
         result_fn.from_array(result_array)
-        print(end='\n')
-        assert info == 0
         self._validate_boundary_dofs(result_fn)
-
-        info = {
-            'num_iters': num_iters,
-            'time_per_dof': self.linop.time_per_dof()
-        }
-        if M:
-            info['P_time_per_dof'] = M.time_per_dof()
 
         return result_fn, info

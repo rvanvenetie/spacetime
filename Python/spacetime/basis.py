@@ -13,8 +13,9 @@ def generate_x_delta_underscore(x_delta):
 
     x_delta_underscore = x_delta.deep_copy()
 
-    dblnodes = x_delta_underscore.bfs()
-    for dblnode in dblnodes:
+    time_leaves = []
+    space_leaves = []
+    for dblnode in x_delta_underscore.bfs():
         # First, we ensure that the underlying trees are properly refined.
         if not dblnode.nodes[0].is_full():
             dblnode.nodes[0].refine()
@@ -26,30 +27,25 @@ def generate_x_delta_underscore(x_delta):
         # The first part of this if-statement fends off the situation where
         # dblnode.children[i] has 0 < n < full elements as a result of adaptive
         # refinement in X_delta.
-        if dblnode.nodes[1].level == 0 and not dblnode.is_full(0):
+        if not dblnode.is_full(0):
             # Refine in time-axis...
-            dblnode.refine(i=0, make_conforming=True)
+            time_leaves.append(dblnode)
 
         if not dblnode.is_full(1):
             # and double-refine in space-axis.
-            children = dblnode.refine(i=1, make_conforming=True)
-            for child in children:
-                child.nodes[1].node.refine()
-                child.nodes[1].refine(make_conforming=True)
-                child.refine(i=1, make_conforming=True)
+            space_leaves.append(dblnode)
 
-    dblnodes_underscore = x_delta_underscore.bfs()
-    for dblnode in dblnodes:
-        dblnode.marked = True
+    for dblnode in time_leaves:
+        dblnode.refine(i=0, make_conforming=True)
 
-    new_dblnodes = []
-    for dblnode in dblnodes_underscore:
-        if dblnode.marked:
-            dblnode.marked = False
-        else:
-            new_dblnodes.append(dblnode)
+    for dblnode in space_leaves:
+        children = dblnode.refine(i=1, make_conforming=True)
+        for child in children:
+            child.nodes[1].node.refine()
+            child.nodes[1].refine(make_conforming=True)
+            child.refine(i=1, make_conforming=True)
 
-    return x_delta_underscore, new_dblnodes
+    return x_delta_underscore
 
 
 def generate_y_delta(x_delta):

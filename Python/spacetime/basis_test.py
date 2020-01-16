@@ -80,21 +80,20 @@ def test_x_delta_underscore():
         (basis_time.metaroot_wavelet, basis_space.root))
     X_delta.uniform_refine(0)
     assert len(X_delta.bfs()) == 8
-    X_delta_underscore, I_delta = generate_x_delta_underscore(X_delta)
+    X_delta_underscore = generate_x_delta_underscore(X_delta)
     assert len(X_delta_underscore.bfs()) == 22
-    assert len(I_delta) == 22 - 8
 
     # Tryout various levels.
     for max_level, refine_lambda in [
         (6, lambda X, k: X.uniform_refine([k, 2 * k])),
-        (10, lambda X, k: X.sparse_refine(k, weights=[2, 1]))
+        (8, lambda X, k: X.sparse_refine(k, weights=[2, 1]))
     ]:
         for l in range(1, max_level):
             # Create X^\delta
             X_delta = DoubleTree.from_metaroots(
                 (basis_time.metaroot_wavelet, basis_space.root))
             refine_lambda(X_delta, l)
-            X_delta_underscore, I_delta = generate_x_delta_underscore(X_delta)
+            X_delta_underscore = generate_x_delta_underscore(X_delta)
 
             X_delta_refined = DoubleTree.from_metaroots(
                 (basis_time.metaroot_wavelet, basis_space.root))
@@ -106,5 +105,35 @@ def test_x_delta_underscore():
             N_Xd = len(X_delta.bfs())
             N_Xdu = len(X_delta_underscore.bfs())
             N_Xdr = len(X_delta_refined.bfs())
-            assert N_Xd < N_Xdu < N_Xdr
-            assert len(I_delta) == N_Xdu - N_Xd
+            assert N_Xd < N_Xdu <= N_Xdr
+
+
+def test_x_delta_underscore_equal_to_sparse_grid():
+    max_level = 5
+
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.elem_meta_root.uniform_refine(2 * max_level)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(max_level)
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    X_delta.uniform_refine(0)
+
+    # Tryout various levels.
+    for l in range(1, max_level):
+        # Create X^\delta
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
+        X_delta.sparse_refine(2 * l, weights=[2, 1])
+        X_delta_underscore = generate_x_delta_underscore(X_delta)
+
+        X_delta_refined = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
+        X_delta_refined.sparse_refine(2 * (l + 1), weights=[2, 1])
+
+        assert len(X_delta_refined.bfs()) == len(X_delta_underscore.bfs())

@@ -33,7 +33,7 @@ def _hat_function_eval(support, vertex, xy, deriv=False):
         if not deriv:
             result[mask] = bary[i, mask]
         else:
-            V = elem.vertex_array().T
+            V = elem.vertex_array.T
             opp_edge = V[:, (i - 1) % 3] - V[:, (i + 1) % 3]
             normal = np.array([-opp_edge[1], opp_edge[0]])
             normal = -normal / (2 * elem.area)
@@ -64,6 +64,9 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
     def patch(self):
         return self.node.patch
 
+    def volume(self):
+        return sum(elem.area for elem in self.support)
+
     def support_contains(self, xy):
         return any(elem.contains(xy) for elem in self.support)
 
@@ -80,7 +83,7 @@ class HierarchicalBasisFunction(FunctionInterface, NodeView):
         scheme = _get_quadrature_scheme(g_order + self.order)
         result = 0.0
         for elem in self.support:
-            triangle = elem.vertex_array()
+            triangle = elem.vertex_array
             result += scheme.integrate(func, triangle)
         return result
 
