@@ -202,7 +202,7 @@ def mildly_singular_rhs_functional_unit(heat_eq):
 def time_singular_solution_function(alpha=0.5):
     assert 0 < alpha <= 1
     u = (
-        lambda t: 1 + t**0.5,
+        lambda t: 1 + t**alpha,
         lambda xy: (1 - xy[0]) * xy[0] * (1 - xy[1]) * xy[1],
     )
     u_order = (5, 4)
@@ -210,19 +210,20 @@ def time_singular_solution_function(alpha=0.5):
     return u, u_order, u_slice_norm_l2
 
 
-def time_singular_u0_data_unit():
-    return (lambda xy: xy[0] * (xy[0] - 1) * xy[1] * (xy[1] - 1), 4, 1 / 30)
+def time_singular_u0_data_unit(alpha=0.5):
+    u, u_order, u_slice_norm_l2 = time_singular_solution_function(alpha)
+    return (lambda xy: u[0](0) * u[1](xy), u_order[1], u_slice_norm_l2(0))
 
 
 def time_singular_rhs_functional_unit(heat_eq, alpha=0.5):
     assert 0 < alpha <= 1
     g = [
         (
-            lambda t: 1 + t**alpha,
-            lambda xy: 2 * (xy[0] * (1 - xy[0]) + xy[1] * (1 - xy[1])),
+            lambda t: 2 * (1 + t**alpha),
+            lambda xy: xy[0] * (1 - xy[0]) + xy[1] * (1 - xy[1]),
         ),
         (
-            lambda t: alpha * t**(1 - alpha),
+            lambda t: alpha * t**(alpha - 1),
             lambda xy: xy[0] * (1 - xy[0]) * xy[1] * (1 - xy[1]),
         ),
     ]
