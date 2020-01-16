@@ -14,13 +14,15 @@ class AdaptiveHeatEquation:
                  u0_functional,
                  theta,
                  dirichlet_boundary=True,
-                 saturation_layers=1):
+                 saturation_layers=1,
+                 use_space_cache=True):
         self.X_delta = X_init
         self.g_functional = g_functional
         self.u0_functional = u0_functional
         self.theta = theta
-        self.saturation_layers = saturation_layers
         self.dirichlet_boundary = dirichlet_boundary
+        self.saturation_layers = saturation_layers
+        self.use_space_cache = use_space_cache
 
         self.residual_error_estimator = ResidualErrorEstimator(
             self.g_functional, self.u0_functional, self.dirichlet_boundary)
@@ -28,8 +30,9 @@ class AdaptiveHeatEquation:
         self.X_dd = None
         self.Y_dd = None
 
-    def solve_step(self, x0=None, solver='pcg', tol=1e-5):
+    def solve_step(self, x0=None, solver='pcg', solver_tol=1e-5):
         info = {'dim_X_delta': len(self.X_delta.bfs())}
+
         print('\n\nAdaptive step for X_delta having {} nodes'.format(
             info['dim_X_delta']))
 
@@ -47,7 +50,8 @@ class AdaptiveHeatEquation:
             X_delta=self.X_delta,
             Y_delta=self.Y_dd,
             formulation='schur',
-            dirichlet_boundary=self.dirichlet_boundary)
+            dirichlet_boundary=self.dirichlet_boundary,
+            use_space_cache=self.use_space_cache)
         f_dd_d = self.heat_dd_d.calculate_rhs_vector(
             g_functional=self.g_functional, u0_functional=self.u0_functional)
 
@@ -59,7 +63,7 @@ class AdaptiveHeatEquation:
         u_dd_d, solve_info = self.heat_dd_d.solve(b=f_dd_d,
                                                   x0=x0,
                                                   solver=solver,
-                                                  tol=tol)
+                                                  solver_tol=solver_tol)
         info.update(solve_info)
         print('Solved in {} iterations.'.format(info['num_iters']))
         return u_dd_d, info

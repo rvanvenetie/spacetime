@@ -36,7 +36,7 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
             self,
             heat_dd_d,
             u_dd_d,
-            tol=1e-5,
+            solver_tol=1e-5,
     ):
         Bu_minus_g = heat_dd_d.B.apply(u_dd_d)
         Bu_minus_g -= self.g_functional.eval(heat_dd_d.Y_delta)
@@ -48,7 +48,7 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
                               M=LinearOperatorApplicator(
                                   applicator=heat_dd_d.P_Y,
                                   input_vec=Bu_minus_g),
-                              tol=tol)
+                              solver_tol=solver_tol)
         u_dd_d_0 = u_dd_d.slice(i=0,
                                 coord=0.0,
                                 slice_cls=TriangulationFunction)
@@ -124,7 +124,6 @@ class ResidualErrorEstimator(ErrorEstimator):
             # If this node is in X_d, the residual should be zero,
             # and there is nothing left to do.
             if other_node.marked:
-                assert abs(res_node.value) < 1e-5
                 res_d.append(res_node)
                 return
             else:
@@ -146,3 +145,32 @@ class ResidualErrorEstimator(ErrorEstimator):
             node.marked = False
 
         return res_dd_d, res_d, res_dd_min_d
+
+
+class TimeSliceErrorEstimator(ErrorEstimator):
+    """ This error estimator measures a time slice error in l2.
+
+    This requires knowledge of the exact solution.
+    """
+    def __init__(self, u, u_order, u_slice_norm, dirichlet_boundary=True):
+        super().__init__(g_functional=None,
+                         u0_functional=None,
+                         dirichlet_boundary=dirichlet_boundary)
+        self.u = u
+        self.u_slice_norm = u_slice_norm
+        self.u_order = u_order
+
+    def estimate(self, u_delta, times):
+        errors = []
+        for i, t in enumerate(times):
+            sol_slice = u_delta.slice(i=0,
+                                      coord=t,
+                                      slice_cls=TriangulationFunction)
+            errors.append(
+                sol_slice.error_L2(
+                    lambda xy: self.u[0](t) * self.u[1](xy),
+                    self.u_slice_norm(t),
+                    self.u_order[1],
+                ))
+
+        return np.array(errors)
