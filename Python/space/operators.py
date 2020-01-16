@@ -235,7 +235,8 @@ class DirectInverse(Preconditioner):
 
     def apply_SS(self, v, **kwargs):
         free_dofs = self.free_dofs()
-        if not self.use_cache or self.triang not in self.mat_cache:
+        key = (self.triang, tuple(kwargs.items()))
+        if not self.use_cache or key not in self.mat_cache:
             mat = self.forward_op_ctor(
                 self.triang, self.dirichlet_boundary).as_SS_matrix(**kwargs)
 
@@ -243,9 +244,9 @@ class DirectInverse(Preconditioner):
             # a submatrix if we want to apply spsolve.
             mat = mat[free_dofs, :].tocsc()[:, free_dofs]
             if self.use_cache:
-                self.mat_cache[self.triang] = mat
+                self.mat_cache[key] = mat
         else:
-            mat = self.mat_cache[self.triang]
+            mat = self.mat_cache[key]
 
         v = v[free_dofs]
         out = spsolve(mat, v)
