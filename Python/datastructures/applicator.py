@@ -216,7 +216,13 @@ class LinearOperatorApplicator(scipy.sparse.linalg.LinearOperator):
         """ Returns an estimated time per dof. """
         return self.total_time / (self.total_applies * self.shape[1])
 
-    def solve(self, solver, b, x0=None, M=None, tol=1e-5, iter_callback=None):
+    def solve(self,
+              solver,
+              b,
+              x0=None,
+              M=None,
+              solver_tol=1e-5,
+              iter_callback=None):
         assert solver in ['minres', 'cg', 'pcg']
 
         if solver == "minres":
@@ -247,7 +253,7 @@ class LinearOperatorApplicator(scipy.sparse.linalg.LinearOperator):
                                     x0=x0,
                                     b=b,
                                     M=M,
-                                    tol=tol,
+                                    tol=solver_tol,
                                     callback=call_iterations)
         print(end='\n')
         assert info == 0
