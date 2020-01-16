@@ -113,16 +113,29 @@ def mildly_singular_u0_data_lshape():
             (xy[1] - 1) * (xy[1] + 1), 6, 4 / 21 * np.sqrt(2 / 5))
 
 
-def mildly_singular_rhs_functional(heat_eq, initial_triangulation):
+def mildly_singular_rhs_functional_unit(heat_eq):
     g = [(
         lambda t: 1,
         lambda xy: 1,
     )]
     g_order = [(1, 1)]
-    if initial_triangulation == 'lshape':
-        u0, u0_order, _ = mildly_singular_u0_data_lshape()
-    elif initial_triangulation == 'unit_square':
-        u0, u0_order, _ = mildly_singular_u0_data_unit()
+    u0, u0_order, _ = mildly_singular_u0_data_unit()
+    u0 = [u0]
+    u0_order = [u0_order]
+
+    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
+                                                        g_order=g_order,
+                                                        u0=u0,
+                                                        u0_order=u0_order)
+
+
+def mildly_singular_rhs_functional_lshape(heat_eq):
+    g = [(
+        lambda t: 1,
+        lambda xy: 1,
+    )]
+    g_order = [(1, 1)]
+    u0, u0_order, _ = mildly_singular_u0_data_lshape()
     u0 = [u0]
     u0_order = [u0_order]
 
@@ -250,6 +263,13 @@ if __name__ == "__main__":
             saturation_layers=3,
             mean_zero=True,
             results_file='smooth_solution_adaptive_3layer_single.pkl')
+    elif case == 'mild':
+        run_adaptive_loop(rhs_functional_factory=lambda heat_eq:
+                          mildly_singular_rhs_functional_unit(heat_eq),
+                          initial_triangulation='unit_square',
+                          saturation_layers=1,
+                          mean_zero=True,
+                          results_file='mild_solution_adaptive_unit.pkl')
     elif case == 'singular':
         run_adaptive_loop(
             rhs_functional_factory=singular_rhs_functional,
@@ -258,12 +278,3 @@ if __name__ == "__main__":
             saturation_layers=2,
             mean_zero=True,
             results_file='singular_solution_adaptive_2layer_single.pkl')
-    elif case == 'mild':
-        run_adaptive_loop(
-            rhs_functional_factory=lambda heat_eq:
-            mildly_singular_rhs_functional(heat_eq, 'unit_square'),
-            u0_data=mildly_singular_u0_data_unit(),
-            initial_triangulation='unit_square',
-            saturation_layers=1,
-            mean_zero=True,
-            results_file='mild_solution_adaptive_unit.pkl')
