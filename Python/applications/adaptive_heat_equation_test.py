@@ -9,7 +9,6 @@ import psutil
 from ..datastructures.double_tree_view import DoubleTree
 from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
-from ..space.triangulation_function import TriangulationFunction
 from ..time.three_point_basis import ThreePointBasis
 from .adaptive_heat_equation import AdaptiveHeatEquation
 from .error_estimator import AuxiliaryErrorEstimator, TimeSliceErrorEstimator

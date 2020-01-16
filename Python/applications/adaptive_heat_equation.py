@@ -63,7 +63,7 @@ class AdaptiveHeatEquation:
         u_dd_d, solve_info = self.heat_dd_d.solve(b=f_dd_d,
                                                   x0=x0,
                                                   solver=solver,
-                                                  tol=solver_tol)
+                                                  solver_tol=solver_tol)
         info.update(solve_info)
         print('Solved in {} iterations.'.format(info['num_iters']))
         return u_dd_d, info
