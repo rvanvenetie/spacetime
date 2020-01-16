@@ -48,7 +48,7 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
                               M=LinearOperatorApplicator(
                                   applicator=heat_dd_d.P_Y,
                                   input_vec=Bu_minus_g),
-                              tol=solver_tol)
+                              solver_tol=solver_tol)
         u_dd_d_0 = u_dd_d.slice(i=0,
                                 coord=0.0,
                                 slice_cls=TriangulationFunction)
