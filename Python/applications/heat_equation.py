@@ -215,7 +215,12 @@ class HeatEquation:
         u0_functional = SumFunctional(u0_functionals)
         return g_functional, u0_functional
 
-    def solve(self, b, x0=None, solver=None, tol=1e-5, iter_callback=None):
+    def solve(self,
+              b,
+              x0=None,
+              solver=None,
+              solver_tol=1e-5,
+              iter_callback=None):
         self._validate_boundary_dofs(b)
         if x0:
             self._validate_boundary_dofs(x0)
@@ -238,7 +243,7 @@ class HeatEquation:
                                               b=b.to_array(),
                                               x0=x0.to_array() if x0 else None,
                                               M=M,
-                                              tol=tol,
+                                              solver_tol=solver_tol,
                                               iter_callback=iter_callback)
 
         result_fn = self.create_vector(mlt_tree_cls=DoubleTreeFunction)

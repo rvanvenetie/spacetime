@@ -12,9 +12,10 @@ from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
 from ..time.three_point_basis import ThreePointBasis
 from .adaptive_heat_equation import AdaptiveHeatEquation
-from .error_estimator import AuxiliaryErrorEstimator
+from .error_estimator import AuxiliaryErrorEstimator, TimeSliceErrorEstimator
 from .heat_equation import HeatEquation
-from .heat_equation_test import example_rhs_functional, example_u0_data
+from .heat_equation_test import (example_rhs_functional,
+                                 example_solution_function, example_u0_data)
 
 
 def test_dorfler_marking():
@@ -48,8 +49,16 @@ def test_dorfler_marking():
         assert AdaptiveHeatEquation.dorfler_marking(nodes, theta) == bulk_nodes
 
 
-def test_heat_error_reduction(theta=0.7):
-    """ Simple test that applies the adaptive loop for a few iterations. """
+def test_heat_error_reduction():
+    """ Simple test that applies the adaptive loop and checks slice errors. """
+    # Adaptive parameters.
+    theta = 0.3
+    max_iters = 8
+    solver_tol = 1e-3
+
+    # Printing options.
+    np.set_printoptions(precision=4)
+    np.set_printoptions(linewidth=10000)
 
     # Create space part.
     triang = InitialTriangulation.unit_square(initial_refinement=1)
@@ -74,11 +83,72 @@ def test_heat_error_reduction(theta=0.7):
                                             u0_functional=u0_functional,
                                             theta=theta)
 
-    # Solve.
-    sol, info = adaptive_heat_eq.solve(max_iters=2)
+    # Create TimeSliceErrorEstimator.
+    slice_error_estimator = TimeSliceErrorEstimator(
+        *example_solution_function())
 
-    # Some check that seems to hold.
-    assert info['errors'][-1] < 0.1
+    # Solve.
+    n_t = 9
+    times = np.linspace(0, 1, n_t)
+    u_dd_d = None
+    n_dofs = []
+    dims = []
+    res_errors = []
+    slice_errors = []
+    rates_slices = None
+    for it in range(max_iters):
+        u_dd_d, solve_info = adaptive_heat_eq.solve_step(x0=u_dd_d,
+                                                         solver_tol=solver_tol)
+        residual, mark_info = adaptive_heat_eq.mark_refine(u_dd_d=u_dd_d)
+
+        # Append the residual norm, and the *real* number of dofs.
+        res_errors.append(mark_info['res_norm'])
+        dims.append(solve_info['dim_X_delta'])
+        n_dofs.append(
+            sum(1 for nv in u_dd_d.bfs()
+                if not nv.nodes[1].on_domain_boundary))
+
+        # Calculate the time slice errors
+        cur_slice_errors = slice_error_estimator.estimate(u_dd_d, times)
+        slice_errors.append(cur_slice_errors)
+        if it > 2:
+            rates_slices = np.log(
+                slice_errors[-1] / slice_errors[-3]) / np.log(
+                    n_dofs[-3] / n_dofs[-1])
+        print('\n')
+        print('-- Results for iter = {} --'.format(it + 1))
+        print('dofs:', n_dofs[-1])
+        print('residual error: {:.5g}'.format(res_errors[-1]))
+        if it > 2:
+            print('slice\ttime\trate')
+            for i, t in enumerate(times):
+                print('{}\t{}\t{:.3f}'.format(
+                    i, t, -1 if it == 0 else rates_slices[i]))
+        print('\n')
+
+        # Do some assertion checks.
+        if it > 2:
+            # Assert that at least 50% of the time steps have error reduction.
+            assert sum(slice_errors[-1] <= slice_errors[-2]) > 0.5 * n_t
+
+            # Assert that the residual norm has reduced.
+            assert res_errors[-1] < 0.1
+
+        if it > 4:
+            # Assert that at least 80% of the time steps have error reduction.
+            assert sum(slice_errors[-1] <= slice_errors[-3]) > 0.8 * n_t
+        if it > 6:
+            # Assert that the residual norm has reduced even futher.
+            assert res_errors[-1] < 0.08
+
+            # Assert that all our slice errors have reduced.
+            assert all(slice_errors[-1] <= slice_errors[0])
+
+            # Assert that we have a convergence rate of at least 0.4 :-).
+            assert all(rates_slices > 0.4)
+        if it > 7:
+            # If we are futher enough, assert at least convergence of 0.5!
+            assert all(rates_slices > 0.5)
 
 
 def singular_u0_unit_square_data():
@@ -129,7 +199,7 @@ def mildly_singular_rhs_functional_unit(heat_eq):
                                                         u0_order=u0_order)
 
 
-def example_solution_function(alpha=0.5):
+def time_singular_solution_function(alpha=0.5):
     assert 0 < alpha <= 1
     u = (
         lambda t: 1 + t**0.5,
@@ -190,7 +260,8 @@ def run_adaptive_loop(initial_triangulation='square',
                       saturation_layers=1,
                       rhs_functional_factory=singular_rhs_functional,
                       u0_data=singular_u0_unit_square_data,
-                      mean_zero=False,
+                      u_solution=None,
+                      mean_zero=True,
                       solver_tol=1e-7):
     # Printing options.
     np.set_printoptions(precision=4)
@@ -224,6 +295,10 @@ def run_adaptive_loop(initial_triangulation='square',
     aux_error_estimator = AuxiliaryErrorEstimator(g_functional, u0_functional,
                                                   *u0_data)
 
+    # Create time slice error estimator, if we have the real solution!
+    if u_solution:
+        slice_error_estimator = TimeSliceErrorEstimator(*u_solution)
+
     # Create adaptive heat equation object.
     adaptive_heat_eq = AdaptiveHeatEquation(
         X_init=X_delta,
@@ -248,7 +323,7 @@ def run_adaptive_loop(initial_triangulation='square',
         # Calculate a new solution.
         u_dd_d, solve_info = adaptive_heat_eq.solve_step(x0=u_dd_d,
                                                          solver='pcg',
-                                                         tol=solver_tol)
+                                                         solver_tol=solver_tol)
         step_info.update(solve_info)
 
         # Store X_delta(_underscore) using centers (in bfs kron order).
@@ -259,17 +334,26 @@ def run_adaptive_loop(initial_triangulation='square',
             'u_delta':
             u_dd_d.to_array(),
         }
+        assert len(sol_info['X_delta']) == len(sol_info['u_delta'])
 
         # Mark and refine.
         residual, mark_info = adaptive_heat_eq.mark_refine(u_dd_d=u_dd_d,
                                                            mean_zero=mean_zero)
+        # Store residual information.
         step_info.update(mark_info)
-        sol_info['residual'] = residual.to_array()
 
+        # Store the auxilary error estimator.
         aux_error, aux_terms = aux_error_estimator.estimate(
             adaptive_heat_eq.heat_dd_d, u_dd_d)
         step_info['aux_error'] = aux_error
         step_info['aux_terms'] = aux_terms
+
+        # If we have the solution, also calculate some time slice errors.
+        if u_solution:
+            times = np.linspace(0, 1, 9)
+            step_info['slice_times'] = times
+            step_info['slice_errors'] = slice_error_estimator.estimate(
+                u_dd_d, times)
 
         # Store total memory consumption.
         process = psutil.Process(os.getpid())
@@ -292,11 +376,12 @@ def run_adaptive_loop(initial_triangulation='square',
 
 
 if __name__ == "__main__":
-    case = 'singular'
+    case = 'time'
     if case == 'smooth':
         run_adaptive_loop(
             rhs_functional_factory=example_rhs_functional,
             u0_data=example_u0_data(),
+            u_solution=example_solution_function(),
             initial_triangulation='unit_square',
             saturation_layers=3,
             mean_zero=True,
@@ -304,6 +389,8 @@ if __name__ == "__main__":
     elif case == 'time':
         run_adaptive_loop(
             rhs_functional_factory=time_singular_rhs_functional_unit,
+            u_solution=time_singular_solution_function(),
+            u0_data=time_singular_u0_data_unit(),
             initial_triangulation='unit_square',
             saturation_layers=1,
             mean_zero=True,
@@ -311,6 +398,7 @@ if __name__ == "__main__":
     elif case == 'mild':
         run_adaptive_loop(
             rhs_functional_factory=mildly_singular_rhs_functional_unit,
+            u0_data=mildly_singular_u0_data_unit(),
             initial_triangulation='unit_square',
             saturation_layers=1,
             mean_zero=True,
