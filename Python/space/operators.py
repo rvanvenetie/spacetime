@@ -104,7 +104,7 @@ class Operator:
 class MassOperator(Operator):
     """ Mass operator. """
     def as_SS_matrix(self, **kwargs):
-        if not self.use_cache or self.triang.vertices not in self.mat_cache:
+        if not self.use_cache or self.triang not in self.mat_cache:
             element_mass = 1.0 / 12.0 * np.array([[2, 1, 1], [1, 2, 1],
                                                   [1, 1, 2]])
 
@@ -121,9 +121,9 @@ class MassOperator(Operator):
 
             mat = csr_matrix((data, (rows, cols)), shape=(n, n), dtype=float)
             if self.use_cache:
-                self.mat_cache[self.triang.vertices] = mat
+                self.mat_cache[self.triang] = mat
         else:
-            mat = self.mat_cache[self.triang.vertices]
+            mat = self.mat_cache[self.triang]
         return mat
 
     def apply_SS(self, v, **kwargs):
@@ -142,7 +142,7 @@ class StiffnessOperator(Operator):
     """ Stiffness operator. """
     def as_SS_matrix(self, **kwargs):
         assert self.triang is not None
-        if not self.use_cache or self.triang.vertices not in self.mat_cache:
+        if not self.use_cache or self.triang not in self.mat_cache:
             n = len(self.triang.vertices)
             rows, cols, data = [], [], []
 
@@ -159,9 +159,9 @@ class StiffnessOperator(Operator):
 
             mat = csr_matrix((data, (rows, cols)), shape=(n, n), dtype=float)
             if self.use_cache:
-                self.mat_cache[self.triang.vertices] = mat
+                self.mat_cache[self.triang] = mat
         else:
-            mat = self.mat_cache[self.triang.vertices]
+            mat = self.mat_cache[self.triang]
         return mat
 
     def apply_SS(self, v, **kwargs):
