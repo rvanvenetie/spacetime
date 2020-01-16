@@ -36,7 +36,7 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
             self,
             heat_dd_d,
             u_dd_d,
-            tol=1e-5,
+            solver_tol=1e-5,
     ):
         Bu_minus_g = heat_dd_d.B.apply(u_dd_d)
         Bu_minus_g -= self.g_functional.eval(heat_dd_d.Y_delta)
@@ -48,7 +48,7 @@ class AuxiliaryErrorEstimator(ErrorEstimator):
                               M=LinearOperatorApplicator(
                                   applicator=heat_dd_d.P_Y,
                                   input_vec=Bu_minus_g),
-                              tol=tol)
+                              tol=solver_tol)
         u_dd_d_0 = u_dd_d.slice(i=0,
                                 coord=0.0,
                                 slice_cls=TriangulationFunction)
@@ -160,12 +160,7 @@ class TimeSliceErrorEstimator(ErrorEstimator):
         self.u_slice_norm = u_slice_norm
         self.u_order = u_order
 
-    def estimate(
-            self,
-            u_delta,
-            times,
-            tol=1e-5,
-    ):
+    def estimate(self, u_delta, times):
         errors = []
         for i, t in enumerate(times):
             sol_slice = u_delta.slice(i=0,
