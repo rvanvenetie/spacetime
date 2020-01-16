@@ -271,6 +271,7 @@ def run_adaptive_loop(initial_triangulation='square',
         # If we have the solution, also calculate some time slice errors.
         if u_solution:
             times = np.linspace(0, 1, 9)
+            step_info['slice_times'] = times
             step_info['slice_errors'] = slice_error_estimator.estimate(
                 u_dd_d, times)
 
