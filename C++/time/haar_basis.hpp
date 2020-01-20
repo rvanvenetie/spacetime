@@ -34,6 +34,10 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
  protected:
   // Protected constructor for creating a metaroot.
   DiscConstantScalingFn();
+  inline bool is_full() const {
+    assert(!is_metaroot());
+    return children_.size() == 2;
+  }
 
   friend datastructures::Tree<DiscConstantScalingFn>;
   friend HaarWaveletFn;
