@@ -64,7 +64,7 @@ class Node : public NodeInterface<I> {
   bool is_leaf() const { return children_.size() == 0; }
   inline bool is_metaroot() const { return (level_ == -1); }
   inline bool is_full() const {
-    assert(!is_metaroot());
+    if (is_metaroot()) return true;
     return children_.size() == I::N_children;
   }
   const std::vector<I *> &parents() const { return parents_; }
