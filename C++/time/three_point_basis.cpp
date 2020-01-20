@@ -5,15 +5,20 @@
 namespace Time {
 
 // Initialize static variables.
-datastructures::Tree<ContLinearScalingFn> disc_cons_tree;
-datastructures::Tree<ThreePointWaveletFn> haar_tree;
+datastructures::Tree<ContLinearScalingFn> cont_lin_tree;
+datastructures::Tree<ThreePointWaveletFn> three_point_tree;
 
 // Metaroot constructor.
 ContLinearScalingFn::ContLinearScalingFn() : ScalingFn<ContLinearScalingFn>() {
-  children_.push_back(
-      std::make_shared<ContLinearScalingFn>({this}, 0, {mother_element}));
-  children_.push_back(
-      std::make_shared<ContLinearScalingFn>({this}, 1, {mother_element}));
+  auto scaling_left =
+      std::make_shared<ContLinearScalingFn>({this}, 0, {mother_element});
+  auto scaling_right =
+      std::make_shared<ContLinearScalingFn>({this}, 1, {mother_element});
+
+  scaling_left->nbr_right_ = scaling_right;
+  scaling_right->nbr_left_ = scaling_left;
+  children_.push_back(scaling_left);
+  children_.push_back(scaling_right);
 }
 
 double ContLinearScalingFn::EvalMother(double t, bool deriv) {
@@ -26,12 +31,33 @@ double ContLinearScalingFn::EvalMother(double t, bool deriv) {
     return left_mask * (1 + t) + right_mask * (1 - t);
 }
 
-bool ContLinearScalingFn::Refine() {
-  if (is_full()) return false;
-  assert(children_.empty());
-
+bool ContLinearScalingFn::RefineMiddle() {
+  if (child_mid_) return child_mid_;
   support_[0]->Refine();
   auto [l, n] = labda();
+  for (auto elem : support_) elem->Refine();
+
+  std::vector<Element1D *> child_support;
+  if (n > 0) child_support.push_back(support_[0]->children()[1]);
+
+  if
+    n > 0 : child_support.append(self.support[0].children[1]) if n < 2 * *l
+        : child_support.append(self.support[-1].children[0])
+
+#Create element.
+              child = ContLinearScaling((l + 1, 2 * n), child_support, [self])
+                          self.child_mid = child self
+                                               ._update_children()
+
+#Update nbrs.
+                                                   if self.child_left
+        : self.child_left.nbr_right = child child.nbr_left =
+        self.child_left
+
+        if self.child_right : self.child_right.nbr_left =
+            child child.nbr_right = self.child_right
+
+                                    return child assert(children_.empty());
 
   // clang-format off
   children_.push_back(std::make_shared<ContLinearScalingFn>(
@@ -48,9 +74,10 @@ bool ContLinearScalingFn::Refine() {
 }
 
 ThreePointWaveletFn::ThreePointWaveletFn() : WaveletFn<ThreePointWaveletFn>() {
-  auto mother_scaling = disc_cons_tree.meta_root->children()[0].get();
-  children_.push_back(std::make_shared<ThreePointWaveletFn>(
-      this, 0, std::vector{std::pair{mother_scaling, 1.0}}));
+  for (auto scaling : cont_lin_tree.meta_root->children()) {
+    children_.push_back(std::make_shared<ThreePointWaveletFn>(
+        {this}, 0, std::vector{std::pair{scaling.get(), 1.0}}));
+  }
 }
 
 bool ThreePointWaveletFn::Refine() {
