@@ -94,4 +94,46 @@ TEST(ThreePointBasis, UniformRefinement) {
   }
 }
 
+TEST(ThreePointBasis, LocalRefinement) {
+  int ml = 15;
+
+  // Reset the persistent wavelet trees.
+  cont_lin_tree = datastructures::Tree<ContLinearScalingFn>();
+  three_point_tree = datastructures::Tree<ThreePointWaveletFn>();
+
+  // First check what happens when we only refine near the origin.
+  three_point_tree.DeepRefine([ml](auto node) {
+    return node->is_metaroot() || (node->level() < ml && node->index() == 0);
+  });
+  auto Lambda = three_point_tree.NodesPerLevel();
+  auto Delta = cont_lin_tree.NodesPerLevel();
+
+  ASSERT_EQ(Lambda[0].size(), 2);
+  ASSERT_EQ(Lambda[1].size(), 1);
+  for (int l = 2; l <= ml; ++l) {
+    ASSERT_EQ(Lambda[l].size(), 2);
+    ASSERT_EQ(Delta[l].size(), 5);
+    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0));
+    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1));
+  }
+
+  // Now we check what happens when we also refine near the end points.
+  three_point_tree.DeepRefine([ml](auto node) {
+    return node->is_metaroot() ||
+           (node->level() < ml &&
+            (node->index() == 0 ||
+             node->index() == (1 << (node->level() - 1)) - 1));
+  });
+  Lambda = three_point_tree.NodesPerLevel();
+  Delta = cont_lin_tree.NodesPerLevel();
+  for (int l = 4; l <= ml; ++l) {
+    ASSERT_EQ(Lambda[l].size(), 4);
+    ASSERT_EQ(Delta[l].size(), 10);
+    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0));
+    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1));
+    ASSERT_EQ(Lambda[l][2]->labda(), std::pair(l, (1 << (l - 1)) - 2));
+    ASSERT_EQ(Lambda[l][3]->labda(), std::pair(l, (1 << (l - 1)) - 1));
+  }
+}
+
 }  // namespace Time

@@ -29,7 +29,7 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
                                const std::vector<Element1D *> support)
       : ScalingFn<ContLinearScalingFn>(parents, index, support) {}
 
-  double EvalMother(double t, bool deriv) final;
+  double EvalMother(double t, bool deriv) const final;
 
  protected:
   ContLinearScalingFn *nbr_left_ = nullptr;

@@ -7,11 +7,18 @@
 #include "cassert"
 
 namespace datastructures {
+// Below are two convenient lambda functions.
+constexpr auto func_noop = [](const auto &... x) {};
+constexpr auto func_true = [](const auto &... x) { return true; };
+using T_func_noop = decltype(func_noop);
+using T_func_true = decltype(func_true);
+
 template <typename I>
 class NodeInterface : public std::enable_shared_from_this<I> {
  public:
-  template <typename Func>
-  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot, Func &&callback,
+  template <typename Func = T_func_noop>
+  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false,
+                                      const Func &callback = func_noop,
                                       bool return_nodes = true) {
     std::vector<std::shared_ptr<I>> nodes;
     std::queue<std::shared_ptr<I>> queue;
@@ -37,10 +44,6 @@ class NodeInterface : public std::enable_shared_from_this<I> {
                   nodes.end());
     }
     return nodes;
-  }
-
-  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false) {
-    return Bfs(include_metaroot, [](std::shared_ptr<I> x) {});
   }
 };
 
@@ -124,12 +127,14 @@ class Tree {
   Tree() : meta_root(new I()) {}
   Tree(const Tree &) = delete;
 
-  void UniformRefine(int max_level) {
-    meta_root->Bfs(true, [max_level](std::shared_ptr<I> node) {
-      if (node->level() < max_level) {
-        node->Refine();
-      }
+  template <typename Func>
+  void DeepRefine(const Func &refine_filter) {
+    meta_root->Bfs(true, [refine_filter](std::shared_ptr<I> node) {
+      if (refine_filter(node)) node->Refine();
     });
+  }
+  void UniformRefine(int max_level) {
+    DeepRefine([max_level](auto node) { return node->level() < max_level; });
   }
 
   // This returns nodes in this tree, sliced by levels.

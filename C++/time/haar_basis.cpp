@@ -15,7 +15,7 @@ DiscConstantScalingFn::DiscConstantScalingFn()
       std::make_shared<DiscConstantScalingFn>(this, 0, mother_element));
 }
 
-double DiscConstantScalingFn::EvalMother(double t, bool deriv) {
+double DiscConstantScalingFn::EvalMother(double t, bool deriv) const {
   if (deriv || t < 0 || t >= 1)
     return 0;
   else

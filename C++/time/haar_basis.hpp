@@ -28,7 +28,7 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
                                  Element1D *support)
       : ScalingFn<DiscConstantScalingFn>({parent}, index, {support}) {}
 
-  double EvalMother(double t, bool deriv) final;
+  double EvalMother(double t, bool deriv) const final;
   bool Refine();
 
  protected:

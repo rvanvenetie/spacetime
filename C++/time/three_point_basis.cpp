@@ -26,7 +26,7 @@ ContLinearScalingFn::ContLinearScalingFn() : ScalingFn<ContLinearScalingFn>() {
   children_.push_back(scaling_right);
 }
 
-double ContLinearScalingFn::EvalMother(double t, bool deriv) {
+double ContLinearScalingFn::EvalMother(double t, bool deriv) const {
   int left_mask = (-1 < t) && (t <= 0);
   int right_mask = (0 < t) && (t < 1);
 
@@ -43,7 +43,7 @@ bool ContLinearScalingFn::RefineMiddle() {
 
   std::vector<Element1D *> child_support;
   if (n > 0) child_support.push_back(support_[0]->children()[1].get());
-  if (n < pow(2, l))
+  if (n < (1 << l))
     child_support.push_back(support_.back()->children()[0].get());
 
   // Create child, and add accordingly.
@@ -189,7 +189,7 @@ bool ThreePointWaveletFn::Refine() {
     phi_children = {phi_middle->child_middle_, phi_middle->child_right_,
                     phi_right->child_middle_};
 
-    if (n == pow(2, (l - 1)) - 1) {
+    if (n == (1 << (l - 1)) - 1) {
       children_.push_back(std::make_shared<ThreePointWaveletFn>(
           /* parents */ std::vector{this},
           /* index */ 2 * index_ + 1,
