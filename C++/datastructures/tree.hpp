@@ -105,7 +105,7 @@ class BinaryNode : public Node<I> {
 
   I *parent() const { return parents_[0]; }
   inline bool is_full() const {
-    assert(!Node<I>::is_metaroot());
+    if (Node<I>::is_metaroot()) return true;
     return children_.size() == 2;
   }
 
