@@ -12,9 +12,13 @@ datastructures::Tree<ThreePointWaveletFn> three_point_tree;
 // Metaroot constructor.
 ContLinearScalingFn::ContLinearScalingFn() : ScalingFn<ContLinearScalingFn>() {
   auto scaling_left = std::make_shared<ContLinearScalingFn>(
-      std::vector{this}, 0, std::vector{mother_element});
+      /* parents */ std::vector{this},
+      /* index */ 0,
+      /* support */ std::vector{mother_element});
   auto scaling_right = std::make_shared<ContLinearScalingFn>(
-      std::vector{this}, 1, std::vector{mother_element});
+      /* parents */ std::vector{this},
+      /* index */ 1,
+      /* support */ std::vector{mother_element});
 
   scaling_left->nbr_right_ = scaling_right.get();
   scaling_right->nbr_left_ = scaling_left.get();
@@ -43,8 +47,11 @@ bool ContLinearScalingFn::RefineMiddle() {
     child_support.push_back(support_.back()->children()[0].get());
 
   // Create child, and add accordingly.
-  auto child = std::make_shared<ContLinearScalingFn>(std::vector{this}, 2 * n,
-                                                     child_support);
+  auto child = std::make_shared<ContLinearScalingFn>(
+      /* parents */ std::vector{this},
+      /* index */ 2 * n,
+      /* support */ child_support);
+
   child_middle_ = child.get();
   children_.push_back(child);
 
@@ -99,8 +106,9 @@ ThreePointWaveletFn::ThreePointWaveletFn() : WaveletFn<ThreePointWaveletFn>() {
   assert(mother_scalings.size() == 2);
   for (size_t i = 0; i < 2; ++i) {
     children_.push_back(std::make_shared<ThreePointWaveletFn>(
-        std::vector{this}, i,
-        std::vector{std::pair{mother_scalings[i].get(), 1.0}}));
+        /* parents */ std::vector{this},
+        /* index */ i,
+        /* support */ std::vector{std::pair{mother_scalings[i].get(), 1.0}}));
   }
 }
 
