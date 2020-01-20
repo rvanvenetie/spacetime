@@ -69,8 +69,9 @@ bool ContLinearScalingFn::RefineLeft() {
   // Create child, and add accordingly.
   auto elems = support_[0]->children();
   auto child = std::make_shared<ContLinearScalingFn>(
-      std::vector{nbr_left_, this}, (2 * n - 1),
-      std::vector{elems[0].get(), elems[1].get()});
+      /* parents */ std::vector{nbr_left_, this},
+      /* index */ (2 * n - 1),
+      /* support */ std::vector{elems[0].get(), elems[1].get()});
 
   // Add this child to ourself.
   child_left_ = child.get();
@@ -131,7 +132,9 @@ bool ThreePointWaveletFn::Refine() {
     // Create the mother wavelet.
     double sq2 = sqrt(2);
     auto child = std::make_shared<ThreePointWaveletFn>(
-        std::vector{parents[0].get(), parents[1].get()}, 0,
+        /* parents */ std::vector{parents[0].get(), parents[1].get()},
+        /* index */ 0,
+        /* single_scale */
         std::vector{std::pair{mother_scalings[0]->child_middle_, -sq2},
                     std::pair{mother_scalings[0]->child_right_, sq2},
                     std::pair{mother_scalings[1]->child_middle_, -sq2}});
@@ -181,15 +184,15 @@ bool ThreePointWaveletFn::Refine() {
     if (n == pow(2, (l - 1)) - 1) {
       children_.push_back(std::make_shared<ThreePointWaveletFn>(
           /* parents */ std::vector{this},
-          /* index */ 2 * index_,
+          /* index */ 2 * index_ + 1,
           /* single_scale */
           std::vector{std::pair{phi_children[0], -0.5 * scaling},
                       std::pair{phi_children[1], scaling},
-                      std::pair{phi_children[2], scaling}}));
+                      std::pair{phi_children[2], -scaling}}));
     } else {
       children_.push_back(std::make_shared<ThreePointWaveletFn>(
           /* parents */ std::vector{this},
-          /* index */ 2 * index_,
+          /* index */ 2 * index_ + 1,
           /* single_scale */
           std::vector{std::pair{phi_children[0], -0.5 * scaling},
                       std::pair{phi_children[1], scaling},

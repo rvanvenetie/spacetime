@@ -65,17 +65,11 @@ TEST(ThreePointBasis, UniformRefinement) {
     ASSERT_EQ(Lambda[l].size(), std::pow(2, l - 1));
     ASSERT_EQ(Delta[l].size(), std::pow(2, l) + 1);
 
-    double h = 1.0 / std::pow(2, l - 1);
+    double h = 1.0 / std::pow(2, l);
     for (auto psi : Lambda[l]) {
       auto [psi_l, psi_n] = psi->labda();
       ASSERT_EQ(psi_l, l);
-      std::cout << psi_l << " " << psi_n << std::endl;
-      for (auto bla : psi->single_scale_) {
-        std::cout << "\t" << bla.first->index << " " << bla.second
-                  << ::std::endl;
-      }
-      std::cout << psi->single_scale_ ASSERT_EQ(psi->Eval(h * (2 * psi_n + 1)),
-                                                pow(2, l / 2.0));
+      ASSERT_EQ(psi->Eval(h * (2 * psi_n + 1)), pow(2, l / 2.0));
 
       if (psi_n > 0) {
         ASSERT_EQ(psi->Eval(h * 2 * psi_n), -0.5 * pow(2, l / 2.0));
@@ -83,7 +77,7 @@ TEST(ThreePointBasis, UniformRefinement) {
                   h * (2 * psi_n - 1));
       }
       if (psi_n < pow(2, l - 1) - 1) {
-        ASSERT_EQ(psi->Eval(h * (2 * psi_n + 2)), 0.5 * pow(2, l / 2.0));
+        ASSERT_EQ(psi->Eval(h * (2 * psi_n + 2)), -0.5 * pow(2, l / 2.0));
         ASSERT_EQ(psi->support().back()->Interval().second,
                   h * (2 * psi_n + 3));
       }

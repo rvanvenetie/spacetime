@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <iostream>
 #include <memory>
 
 #include "../datastructures/tree.hpp"
@@ -68,7 +69,7 @@ class ScalingFn : public Function<I> {
 
   double Eval(double t, bool deriv = false) override {
     int l = I::level_;
-    int n = I::support_[0]->index();
+    int n = I::index_;
     double chain_rule_constant = deriv ? std::pow(2, l) : 1;
     return chain_rule_constant * EvalMother(std::pow(2, l) * t - n, deriv);
   }
@@ -124,13 +125,13 @@ class WaveletFn : public Function<I> {
     return result;
   }
 
+  // This maps a wavelet to its single scale representation.
+  std::vector<std::pair<ScalingType *, double>> single_scale_;
+
  protected:
   using Function<I>::Function;
 
   using Function<I>::support_;
-
-  // This maps a wavelet to its single scale representation.
-  std::vector<std::pair<ScalingType *, double>> single_scale_;
 };
 
 // Declare static variables.
