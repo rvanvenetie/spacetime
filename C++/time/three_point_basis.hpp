@@ -31,8 +31,6 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
 
   double EvalMother(double t, bool deriv) final;
 
-  bool Refine() { return RefineLeft() || RefineMiddle() || RefineRight(); }
-
  protected:
   ContLinearScalingFn *nbr_left_ = nullptr;
   ContLinearScalingFn *nbr_right_ = nullptr;
