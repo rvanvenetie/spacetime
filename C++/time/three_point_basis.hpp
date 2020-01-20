@@ -23,7 +23,6 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
   constexpr static size_t order = 1;
   constexpr static bool continuous = true;
   constexpr static size_t N_children = 3;
-  bool is_full() const;
 
   explicit ContLinearScalingFn(const std::vector<ContLinearScalingFn *> parents,
                                int index,
