@@ -125,13 +125,12 @@ class WaveletFn : public Function<I> {
     return result;
   }
 
-  // This maps a wavelet to its single scale representation.
-  std::vector<std::pair<ScalingType *, double>> single_scale_;
-
  protected:
   using Function<I>::Function;
-
   using Function<I>::support_;
+
+  // This maps a wavelet to its single scale representation.
+  std::vector<std::pair<ScalingType *, double>> single_scale_;
 };
 
 // Declare static variables.
