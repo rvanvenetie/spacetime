@@ -4,6 +4,7 @@ import time
 from pprint import pprint
 
 import numpy as np
+
 import psutil
 
 from ..datastructures.double_tree_view import DoubleTree
@@ -173,6 +174,86 @@ def singular_rhs_functional(heat_eq):
                                                         u0_order=u0_order)
 
 
+def mildly_singular_u0_data_unit():
+    return (lambda xy: xy[0] * (xy[0] - 1) * xy[1] * (xy[1] - 1), 4, 1 / 30)
+
+
+def mildly_singular_u0_data_lshape():
+    return (lambda xy: xy[0] * (xy[0] - 1) * (xy[0] + 1) * xy[1] *
+            (xy[1] - 1) * (xy[1] + 1), 6, 4 / 21 * np.sqrt(2 / 5))
+
+
+def mildly_singular_rhs_functional_unit(heat_eq):
+    g = [(
+        lambda t: 1,
+        lambda xy: 1,
+    )]
+    g_order = [(1, 1)]
+    u0, u0_order, _ = mildly_singular_u0_data_unit()
+    u0 = [u0]
+    u0_order = [u0_order]
+
+    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
+                                                        g_order=g_order,
+                                                        u0=u0,
+                                                        u0_order=u0_order)
+
+
+def time_singular_solution_function(alpha=0.5):
+    assert 0 < alpha <= 1
+    u = (
+        lambda t: 1 + t**alpha,
+        lambda xy: (1 - xy[0]) * xy[0] * (1 - xy[1]) * xy[1],
+    )
+    u_order = (5, 4)
+    u_slice_norm_l2 = lambda t: (1 + t**alpha) / 30
+    return u, u_order, u_slice_norm_l2
+
+
+def time_singular_u0_data_unit(alpha=0.5):
+    u, u_order, u_slice_norm_l2 = time_singular_solution_function(alpha)
+    return (lambda xy: u[0](0) * u[1](xy), u_order[1], u_slice_norm_l2(0))
+
+
+def time_singular_rhs_functional_unit(heat_eq, alpha=0.5):
+    assert 0 < alpha <= 1
+    g = [
+        (
+            lambda t: 2 * (1 + t**alpha),
+            lambda xy: xy[0] * (1 - xy[0]) + xy[1] * (1 - xy[1]),
+        ),
+        (
+            lambda t: alpha * t**(alpha - 1),
+            lambda xy: xy[0] * (1 - xy[0]) * xy[1] * (1 - xy[1]),
+        ),
+    ]
+    g_order = [(5, 2), (5, 4)]
+    u0, u0_order, _ = time_singular_u0_data_unit()
+    u0 = [u0]
+    u0_order = [u0_order]
+
+    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
+                                                        g_order=g_order,
+                                                        u0=u0,
+                                                        u0_order=u0_order)
+
+
+def mildly_singular_rhs_functional_lshape(heat_eq):
+    g = [(
+        lambda t: 1,
+        lambda xy: 1,
+    )]
+    g_order = [(1, 1)]
+    u0, u0_order, _ = mildly_singular_u0_data_lshape()
+    u0 = [u0]
+    u0_order = [u0_order]
+
+    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
+                                                        g_order=g_order,
+                                                        u0=u0,
+                                                        u0_order=u0_order)
+
+
 def run_adaptive_loop(initial_triangulation='square',
                       theta=0.7,
                       results_file=None,
@@ -290,25 +371,44 @@ def run_adaptive_loop(initial_triangulation='square',
             import pickle
             pickle.dump(info, open(results_file, 'wb'))
 
-        if step_info['memory'] > 70 * 10**9:
+        if step_info['memory'] > 50 * 10**9:
             print('Memory limit reached! Stopping adaptive loop.')
             break
 
 
 if __name__ == "__main__":
-    case = 'smooth'
+    case = 'time'
     if case == 'smooth':
-        run_adaptive_loop(rhs_functional_factory=example_rhs_functional,
-                          u0_data=example_u0_data(),
-                          u_solution=example_solution_function(),
-                          initial_triangulation='unit_square',
-                          mean_zero=True,
-                          results_file='smooth_solution_adaptive.pkl')
+        run_adaptive_loop(
+            rhs_functional_factory=example_rhs_functional,
+            u0_data=example_u0_data(),
+            u_solution=example_solution_function(),
+            initial_triangulation='unit_square',
+            saturation_layers=3,
+            mean_zero=True,
+            results_file='smooth_solution_adaptive_3layer_single.pkl')
+    elif case == 'time':
+        run_adaptive_loop(
+            rhs_functional_factory=time_singular_rhs_functional_unit,
+            u_solution=time_singular_solution_function(),
+            u0_data=time_singular_u0_data_unit(),
+            initial_triangulation='unit_square',
+            saturation_layers=1,
+            mean_zero=True,
+            results_file='time_solution_adaptive_unit.pkl')
+    elif case == 'mild':
+        run_adaptive_loop(
+            rhs_functional_factory=mildly_singular_rhs_functional_unit,
+            u0_data=mildly_singular_u0_data_unit(),
+            initial_triangulation='unit_square',
+            saturation_layers=1,
+            mean_zero=True,
+            results_file='mild_solution_adaptive_unit.pkl')
     elif case == 'singular':
         run_adaptive_loop(
             rhs_functional_factory=singular_rhs_functional,
             u0_data=singular_u0_unit_square_data(),
-            saturation_layers=1,
             initial_triangulation='unit_square',
+            saturation_layers=2,
             mean_zero=True,
-            results_file='singular_solution_adaptive_mean_zero_fixed.pkl')
+            results_file='singular_solution_adaptive_2layer_single.pkl')

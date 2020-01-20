@@ -406,7 +406,7 @@ def test_preconditioned_eigenvalues(max_level=6, sparse_grid=True):
 
 
 @pytest.mark.slow
-def test_residual_error_estimator_rate():
+def test_residual_error_estimator_rate(sparse_grid=True, mean_zero=True):
     import psutil
     # Create space part.
     triang = InitialTriangulation.unit_square(initial_refinement=1)
@@ -432,7 +432,10 @@ def test_residual_error_estimator_rate():
         # Create X^\delta as a full grid.
         X_delta = DoubleTree.from_metaroots(
             (basis_time.metaroot_wavelet, basis_space.root))
-        X_delta.uniform_refine([level, 2 * level])
+        if sparse_grid:
+            X_delta.sparse_refine(2 * level, weights=[2, 1])
+        else:
+            X_delta.uniform_refine([level, 2 * level])
         X_dd = generate_x_delta_underscore(X_delta)
         Y_dd = generate_y_delta(X_dd)
         heat_eq = HeatEquation(X_delta=X_delta,
@@ -446,19 +449,20 @@ def test_residual_error_estimator_rate():
         res_dd_d, _, _ = residual_error_estimator.estimate(u_dd_d=sol,
                                                            X_d=X_delta,
                                                            X_dd=X_dd,
-                                                           Y_dd=Y_dd)
-        res_aux, _ = aux_error_estimator.estimate(heat_eq, sol)
+                                                           Y_dd=Y_dd,
+                                                           mean_zero=mean_zero)
+        res_aux, res_terms = aux_error_estimator.estimate(heat_eq, sol)
         process = psutil.Process(os.getpid())
         print(len(X_delta.bfs()), len(X_dd.bfs()),
               process.memory_info().rss,
               time.time() - time_start_iteration,
-              time.time() - time_start, res_dd_d.norm(), res_aux)
+              time.time() - time_start, res_dd_d.norm(), res_aux, res_terms)
         if process.memory_info().rss > 40 * 10**9:
             break
 
 
 if __name__ == "__main__":
-    test_residual_error_estimator_rate()
+    test_residual_error_estimator_rate(sparse_grid=False, mean_zero=True)
     # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
     test_heat_error_reduction(max_history_level=16,
                               max_level=16,
