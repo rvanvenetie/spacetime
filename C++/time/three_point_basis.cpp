@@ -108,12 +108,13 @@ ThreePointWaveletFn::ThreePointWaveletFn() : WaveletFn<ThreePointWaveletFn>() {
     children_.push_back(std::make_shared<ThreePointWaveletFn>(
         /* parents */ std::vector{this},
         /* index */ i,
-        /* support */ std::vector{std::pair{mother_scalings[i].get(), 1.0}}));
+        /* single_scale */
+        std::vector{std::pair{mother_scalings[i].get(), 1.0}}));
   }
 }
 
 bool ThreePointWaveletFn::Refine() {
-  if (is_full()) return true;
+  if (is_full()) return false;
   assert(children_.empty());
 
   if (level_ == 0) {

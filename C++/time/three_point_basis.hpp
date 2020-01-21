@@ -67,13 +67,13 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
 class ThreePointWaveletFn : public WaveletFn<ThreePointWaveletFn> {
  public:
   constexpr static size_t N_children = 2;
-  bool is_full() const;
 
   explicit ThreePointWaveletFn(
       const std::vector<ThreePointWaveletFn *> parents, int index,
       const SparseVector<ContLinearScalingFn> &single_scale)
       : WaveletFn(parents, index, single_scale) {}
 
+  bool is_full() const;
   bool Refine();
 
  protected:
