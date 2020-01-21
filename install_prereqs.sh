@@ -1,6 +1,6 @@
 #!/bin/bash
-sudo apt-get remove --purge cmake cmake-data libboost-dev  -y
-# sudo apt-get autoremove -y
+sudo apt-get purge cmake cmake-data libboost-dev  -y
+sudo apt-get autoremove -y
 
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 sudo add-apt-repository ppa:mhier/libboost-latest -y
