@@ -97,7 +97,9 @@ TEST(ThreePointBasis, UniformRefinement) {
 TEST(ThreePointBasis, LocalRefinement) {
   int ml = 15;
 
-  // Reset the persistent wavelet trees.
+  // Reset the persistent trees.
+  elem_tree = datastructures::Tree<Element1D>();
+  mother_element = elem_tree.meta_root->children()[0].get();
   cont_lin_tree = datastructures::Tree<ContLinearScalingFn>();
   three_point_tree = datastructures::Tree<ThreePointWaveletFn>();
 

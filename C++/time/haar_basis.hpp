@@ -26,7 +26,10 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
 
   explicit DiscConstantScalingFn(DiscConstantScalingFn *parent, int index,
                                  Element1D *support)
-      : ScalingFn<DiscConstantScalingFn>({parent}, index, {support}) {}
+      : ScalingFn<DiscConstantScalingFn>({parent}, index, {support}) {
+    assert(!support->phi_disc_const_);
+    support->phi_disc_const_ = this;
+  }
 
   double EvalMother(double t, bool deriv) const final;
   bool Refine();
@@ -43,6 +46,7 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
 
   friend datastructures::Tree<DiscConstantScalingFn>;
   friend HaarWaveletFn;
+  friend Element1D;
 };
 
 class HaarWaveletFn : public WaveletFn<HaarWaveletFn> {
@@ -51,8 +55,7 @@ class HaarWaveletFn : public WaveletFn<HaarWaveletFn> {
 
   explicit HaarWaveletFn(
       HaarWaveletFn *parent, int index,
-      const std::vector<std::pair<DiscConstantScalingFn *, double>>
-          &single_scale)
+      const SparseVector<DiscConstantScalingFn> &single_scale)
       : WaveletFn({parent}, index, single_scale) {}
 
   bool Refine();

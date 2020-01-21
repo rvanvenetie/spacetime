@@ -1,10 +1,14 @@
 #pragma once
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <memory>
 
 #include "../datastructures/tree.hpp"
+#include "sparse_vector.hpp"
 namespace Time {
+class ContLinearScalingFn;
+class DiscConstantScalingFn;
 
 class Element1D : public datastructures::BinaryNode<Element1D> {
  public:
@@ -16,7 +20,12 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
 
   int index() const { return index_; }
 
+  // Refines the actual element.
   bool Refine();
+
+  // Ensures that the given basis functions exist on the element.
+  const std::array<ContLinearScalingFn *, 2> &RefineContLinear();
+
   std::pair<double, double> Interval() const;
 
  protected:
@@ -27,6 +36,12 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
 
   int index_;
 
+  // There is a mapping between the element and the basis functions.
+  std::array<ContLinearScalingFn *, 2> phi_cont_lin_ = {nullptr, nullptr};
+  DiscConstantScalingFn *phi_disc_const_ = nullptr;
+
+  friend ContLinearScalingFn;
+  friend DiscConstantScalingFn;
   friend datastructures::Tree<Element1D>;
 };
 
@@ -61,11 +76,12 @@ template <typename I>
 struct FunctionTrait;
 
 template <typename I>
+class WaveletFn;
+
+template <typename I>
 class ScalingFn : public Function<I> {
  public:
-  // This is the transpose of wavelet -> single scale.
-  std::vector<std::pair<typename FunctionTrait<I>::Wavelet *, double>>
-      multi_scale_;
+  using WaveletType = typename FunctionTrait<I>::Wavelet;
 
   double Eval(double t, bool deriv = false) const override {
     int l = I::level_;
@@ -77,8 +93,14 @@ class ScalingFn : public Function<I> {
   // To be implemented by derived classes.
   virtual double EvalMother(double t, bool deriv) const = 0;
 
+  const SparseVector<WaveletType> &multi_scale() const { return multi_scale_; }
+
  protected:
+  friend WaveletFn<WaveletType>;
   using Function<I>::Function;
+
+  // This is the transpose of wavelet -> single scale.
+  SparseVector<WaveletType> multi_scale_;
 };
 
 template <typename I>
@@ -86,9 +108,8 @@ class WaveletFn : public Function<I> {
  public:
   using ScalingType = typename FunctionTrait<I>::Scaling;
 
-  explicit WaveletFn(
-      const std::vector<I *> &parents, int index,
-      const std::vector<std::pair<ScalingType *, double>> &single_scale)
+  explicit WaveletFn(const std::vector<I *> &parents, int index,
+                     const SparseVector<ScalingType> &single_scale)
       : Function<I>(parents, index), single_scale_(single_scale) {
     // Now do two things:
     // 1) Register this wavelet in the scaling fn's multi_scale_.
@@ -125,12 +146,16 @@ class WaveletFn : public Function<I> {
     return result;
   }
 
+  const SparseVector<ScalingType> &single_scale() const {
+    return single_scale_;
+  }
+
  protected:
   using Function<I>::Function;
   using Function<I>::support_;
 
   // This maps a wavelet to its single scale representation.
-  std::vector<std::pair<ScalingType *, double>> single_scale_;
+  SparseVector<ScalingType> single_scale_;
 };
 
 // Declare static variables.
