@@ -70,8 +70,8 @@ class ScalingFn : public Function<I> {
       multi_scale_;
 
   double Eval(double t, bool deriv = false) const override {
-    int l = I::level_;
-    int n = I::index_;
+    int l = this->level_;
+    int n = this->index_;
     double chain_rule_constant = deriv ? std::pow(2, l) : 1;
     return chain_rule_constant * EvalMother(std::pow(2, l) * t - n, deriv);
   }
