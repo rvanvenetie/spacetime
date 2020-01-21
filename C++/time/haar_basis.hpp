@@ -28,12 +28,18 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
                                  Element1D *support)
       : ScalingFn<DiscConstantScalingFn>({parent}, index, {support}) {}
 
-  double EvalMother(double t, bool deriv) final;
+  double EvalMother(double t, bool deriv) const final;
   bool Refine();
 
  protected:
   // Protected constructor for creating a metaroot.
   DiscConstantScalingFn();
+  inline bool is_full() const {
+    if (is_metaroot())
+      return children_.size() == 1;
+    else
+      return children_.size() == 2;
+  }
 
   friend datastructures::Tree<DiscConstantScalingFn>;
   friend HaarWaveletFn;

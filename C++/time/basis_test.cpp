@@ -5,6 +5,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "haar_basis.hpp"
+#include "three_point_basis.hpp"
 
 namespace Time {
 using ::testing::ElementsAre;
@@ -47,6 +48,91 @@ TEST(HaarBasis, UniformRefinement) {
       ASSERT_EQ(psi->Eval(h * psi_n + 0.25 * h), 1.0);
       ASSERT_EQ(psi->Eval(h * psi_n + 0.75 * h), -1.0);
     }
+  }
+}
+
+TEST(ThreePointBasis, UniformRefinement) {
+  int ml = 7;
+
+  three_point_tree.UniformRefine(ml);
+  auto Lambda = three_point_tree.NodesPerLevel();
+  auto Delta = cont_lin_tree.NodesPerLevel();
+
+  ASSERT_EQ(three_point_tree.meta_root->children().size(), 2);
+  ASSERT_EQ(cont_lin_tree.meta_root->children().size(), 2);
+
+  for (int l = 1; l <= ml; ++l) {
+    ASSERT_EQ(Lambda[l].size(), std::pow(2, l - 1));
+    ASSERT_EQ(Delta[l].size(), std::pow(2, l) + 1);
+
+    double h = 1.0 / std::pow(2, l);
+    for (auto psi : Lambda[l]) {
+      auto [psi_l, psi_n] = psi->labda();
+      ASSERT_EQ(psi_l, l);
+      ASSERT_EQ(psi->Eval(h * (2 * psi_n + 1)), pow(2, l / 2.0));
+
+      if (psi_n > 0) {
+        ASSERT_EQ(psi->Eval(h * 2 * psi_n), -0.5 * pow(2, l / 2.0));
+        ASSERT_EQ(psi->support().front()->Interval().first,
+                  h * (2 * psi_n - 1));
+      }
+      if (psi_n < pow(2, l - 1) - 1) {
+        ASSERT_EQ(psi->Eval(h * (2 * psi_n + 2)), -0.5 * pow(2, l / 2.0));
+        ASSERT_EQ(psi->support().back()->Interval().second,
+                  h * (2 * psi_n + 3));
+      }
+
+      if (psi_n == 0) {
+        ASSERT_EQ(psi->Eval(0), -pow(2, l / 2.0));
+        ASSERT_EQ(psi->support().front()->Interval().first, 0);
+      }
+      if (psi_n == pow(2, l - 1) - 1) {
+        ASSERT_EQ(psi->Eval(1), -pow(2, l / 2.0));
+        ASSERT_EQ(psi->support().back()->Interval().second, 1);
+      }
+    }
+  }
+}
+
+TEST(ThreePointBasis, LocalRefinement) {
+  int ml = 15;
+
+  // Reset the persistent wavelet trees.
+  cont_lin_tree = datastructures::Tree<ContLinearScalingFn>();
+  three_point_tree = datastructures::Tree<ThreePointWaveletFn>();
+
+  // First check what happens when we only refine near the origin.
+  three_point_tree.DeepRefine([ml](auto node) {
+    return node->is_metaroot() || (node->level() < ml && node->index() == 0);
+  });
+  auto Lambda = three_point_tree.NodesPerLevel();
+  auto Delta = cont_lin_tree.NodesPerLevel();
+
+  ASSERT_EQ(Lambda[0].size(), 2);
+  ASSERT_EQ(Lambda[1].size(), 1);
+  for (int l = 2; l <= ml; ++l) {
+    ASSERT_EQ(Lambda[l].size(), 2);
+    ASSERT_EQ(Delta[l].size(), 5);
+    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0));
+    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1));
+  }
+
+  // Now we check what happens when we also refine near the end points.
+  three_point_tree.DeepRefine([ml](auto node) {
+    return node->is_metaroot() ||
+           (node->level() < ml &&
+            (node->index() == 0 ||
+             node->index() == (1 << (node->level() - 1)) - 1));
+  });
+  Lambda = three_point_tree.NodesPerLevel();
+  Delta = cont_lin_tree.NodesPerLevel();
+  for (int l = 4; l <= ml; ++l) {
+    ASSERT_EQ(Lambda[l].size(), 4);
+    ASSERT_EQ(Delta[l].size(), 10);
+    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0));
+    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1));
+    ASSERT_EQ(Lambda[l][2]->labda(), std::pair(l, (1 << (l - 1)) - 2));
+    ASSERT_EQ(Lambda[l][3]->labda(), std::pair(l, (1 << (l - 1)) - 1));
   }
 }
 
