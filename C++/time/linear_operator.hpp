@@ -74,8 +74,6 @@ class MassOperator : public LinearOperator<basis_in, basis_out> {
   SparseVector<basis_in> Row(basis_out *phi_out) const final;
 };
 
-// Self-adjoint operator.
-
 }  // namespace Time
 
 #include "linear_operator.ipp"
