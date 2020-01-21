@@ -11,8 +11,4 @@ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 130 --slave /
 
 pip3 install cmake
 
-mkdir C++/build
-cd C++/build
-cmake ..
-make
-cd ../..
+cmake -S C++ -B C++/build
