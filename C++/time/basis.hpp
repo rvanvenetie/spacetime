@@ -94,6 +94,7 @@ class WaveletFn : public Function<I> {
     // 2) Figure out the support of this Wavelet using the single scale repr.
 
     for (int i = 0; i < single_scale_.size(); ++i) {
+      assert(single_scale[i].first != nullptr);
       // Sanity check.
       if (i > 0) {
         assert(single_scale_[i - 1].first->index() + 1 ==

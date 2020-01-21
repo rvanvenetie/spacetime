@@ -24,12 +24,6 @@ constexpr void static_for(Func&& f) {
   static_for_impl(std::forward<Func>(f), std::make_index_sequence<N>{});
 }
 
-// Below are two convenient lambda functions.
-constexpr auto func_noop = [](const auto&... x) {};
-constexpr auto func_true = [](const auto&... x) { return true; };
-using T_func_noop = decltype(func_noop);
-using T_func_true = decltype(func_true);
-
 // Returns an array of levels of the underlying nodes.
 template <typename TupleNodes, size_t dim = std::tuple_size_v<TupleNodes>>
 constexpr std::array<int, dim> levels(const TupleNodes& nodes) {
