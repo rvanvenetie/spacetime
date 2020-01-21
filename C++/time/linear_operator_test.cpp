@@ -98,7 +98,7 @@ TEST(ContLinearScaling, ProlongateEval) {
   }
 }
 
-TEST(ContLinearScaling, ProlongateTranspoes) {
+TEST(ContLinearScaling, ProlongateMatrix) {
   int ml = 7;
 
   three_point_tree.UniformRefine(ml);
@@ -108,6 +108,20 @@ TEST(ContLinearScaling, ProlongateTranspoes) {
   for (int l = 1; l < ml; ++l) {
     CheckMatrixTranspose(Prolongate<ContLinearScalingFn>(), Delta[l - 1],
                          Delta[l]);
+  }
+}
+
+TEST(ContLinearScaling, MassMatrix) {
+  int ml = 7;
+
+  three_point_tree.UniformRefine(ml);
+  auto Lambda = three_point_tree.NodesPerLevel();
+  auto Delta = cont_lin_tree.NodesPerLevel();
+
+  for (int l = 1; l < ml; ++l) {
+    CheckMatrixTranspose(
+        MassOperator<ContLinearScalingFn, ContLinearScalingFn>(), Delta[l - 1],
+        Delta[l - 1]);
   }
 }
 
