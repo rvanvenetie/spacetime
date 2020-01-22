@@ -37,12 +37,14 @@ class Function : public datastructures::Node<I> {
                     const std::vector<Element1D *> &support = {})
       : datastructures::Node<I>(parents), index_(index), support_(support) {
     for (size_t i = 0; i < support_.size(); ++i) {
-      assert(support[i]->level() == I::level_);
+      assert(support[i]->level() == this->level_);
       if (i > 0) assert(support_[i - 1]->index() + 1 == support_[i]->index());
     }
   }
 
-  inline std::pair<int, int> labda() const { return {I::level_, I::index_}; }
+  inline std::pair<int, int> labda() const {
+    return {this->level_, this->index_};
+  }
   inline int index() const { return index_; }
   const std::vector<Element1D *> &support() const { return support_; }
 
@@ -68,8 +70,8 @@ class ScalingFn : public Function<I> {
       multi_scale_;
 
   double Eval(double t, bool deriv = false) const override {
-    int l = I::level_;
-    int n = I::index_;
+    int l = this->level_;
+    int n = this->index_;
     double chain_rule_constant = deriv ? std::pow(2, l) : 1;
     return chain_rule_constant * EvalMother(std::pow(2, l) * t - n, deriv);
   }
@@ -106,7 +108,7 @@ class WaveletFn : public Function<I> {
       phi->multi_scale_.emplace_back(static_cast<I *>(this), coeff);
       for (auto elem : phi->support()) {
         support_.push_back(elem);
-        assert(elem->level() == I::level_);
+        assert(elem->level() == this->level_);
       }
     }
 
