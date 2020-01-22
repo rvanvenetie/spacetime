@@ -34,10 +34,10 @@ void CheckMatrixTranspose(const LinearOperator &op,
   // Create A.
   for (int i = 0; i < indices_in.size(); ++i) {
     SparseVector<basis_in> vec(std::vector{std::pair{indices_in[i], 1.0}});
-    auto op_vec = op.matvec(vec);
+    auto op_vec = op.MatVec(vec);
     for (auto [fn, coeff] : op_vec) A(indices_out_map[fn], i) = coeff;
 
-    auto op_vec_check = op.matvec(vec, indices_out);
+    auto op_vec_check = op.MatVec(vec, indices_out);
     for (auto [fn, coeff] : op_vec_check)
       ASSERT_DOUBLE_EQ(coeff, A(indices_out_map[fn], i));
   }
@@ -45,10 +45,10 @@ void CheckMatrixTranspose(const LinearOperator &op,
   // Create AT
   for (int i = 0; i < indices_out.size(); ++i) {
     SparseVector<basis_out> vec(std::vector{std::pair{indices_out[i], 1.0}});
-    auto op_vec = op.rmatvec(vec, indices_in);
+    auto op_vec = op.RMatVec(vec, indices_in);
     for (auto [fn, coeff] : op_vec) AT(indices_in_map[fn], i) = coeff;
 
-    auto op_vec_check = op.matvec(vec, indices_in);
+    auto op_vec_check = op.MatVec(vec, indices_in);
     for (auto [fn, coeff] : op_vec_check)
       ASSERT_DOUBLE_EQ(coeff, A(indices_in_map[fn], i));
   }
