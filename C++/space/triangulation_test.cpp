@@ -16,31 +16,34 @@ TEST(Triangulation, Refine) {
 
   auto elements = T.elem_meta_root->Bfs();
   auto vertices = T.vertex_meta_root->Bfs();
-  EXPECT_THAT(vertices[4]->parents(),
-              ElementsAre(vertices[0].get(), vertices[1].get()));
-  EXPECT_THAT(vertices[0]->children(), ElementsAre(vertices[4]));
-  EXPECT_THAT(vertices[1]->children(), ElementsAre(vertices[4]));
+  EXPECT_THAT(vertices[4]->parents(), ElementsAre(vertices[0], vertices[1]));
+  EXPECT_THAT(vertices[0]->children(),
+              ElementsAre(vertices[4]->shared_from_this()));
+  EXPECT_THAT(vertices[1]->children(),
+              ElementsAre(vertices[4]->shared_from_this()));
 
   elements[2]->Refine();
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_TRUE(vertices[5]->on_domain_boundary);
-  EXPECT_THAT(vertices[5]->parents(), ElementsAre(vertices[4].get()));
-  EXPECT_THAT(vertices[4]->children(), ElementsAre(vertices[5]));
+  EXPECT_THAT(vertices[5]->parents(), ElementsAre(vertices[4]));
+  EXPECT_THAT(vertices[4]->children(),
+              ElementsAre(vertices[5]->shared_from_this()));
 
   elements[4]->Refine();
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_TRUE(vertices[6]->on_domain_boundary);
-  EXPECT_THAT(vertices[6]->parents(), ElementsAre(vertices[4].get()));
-  EXPECT_THAT(vertices[4]->children(), ElementsAre(vertices[5], vertices[6]));
+  EXPECT_THAT(vertices[6]->parents(), ElementsAre(vertices[4]));
+  EXPECT_THAT(vertices[4]->children(),
+              ElementsAre(vertices[5]->shared_from_this(),
+                          vertices[6]->shared_from_this()));
 
   elements[6]->Refine();
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_FALSE(vertices[8]->on_domain_boundary);
-  EXPECT_THAT(vertices[8]->parents(),
-              ElementsAre(vertices[5].get(), vertices[7].get()));
+  EXPECT_THAT(vertices[8]->parents(), ElementsAre(vertices[5], vertices[7]));
 }
 
 TEST(Triangulation, Area) {
@@ -73,8 +76,7 @@ TEST(Triangulation, OnDomainBoundary) {
     auto elem = *leaves.begin();
     leaves.erase(leaves.begin());
     elem->Refine();
-    auto children = elem->children();
-    leaves.insert(children.begin(), children.end());
+    for (auto child : elem->children()) leaves.emplace(child.get());
   }
 
   for (auto vertex : init_triang.vertex_meta_root->Bfs()) {
@@ -126,8 +128,7 @@ TEST(Triangulation, VertexPatch) {
     auto elem = *leaves.begin();
     leaves.erase(leaves.begin());
     elem->Refine();
-    auto children = elem->children();
-    leaves.insert(children.begin(), children.end());
+    for (auto child : elem->children()) leaves.emplace(child.get());
   }
 
   vertices = T.vertex_meta_root->Bfs();
@@ -140,4 +141,5 @@ TEST(Triangulation, VertexPatch) {
       ASSERT_EQ(v->patch.size(), 4);
   }
 }
+
 }  // namespace space

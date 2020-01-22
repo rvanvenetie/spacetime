@@ -41,11 +41,13 @@ class TriangulationView {
         /* call_filter */
         [](auto &&node) { return node->newest_vertex()->has_data(); },
         /* call_postprocess */
-        [](std::shared_ptr<Element2DView> nv) {
+        [](auto nv) {
           if (nv->is_root()) return;
           for (size_t i = 0; i < 3; ++i)
             nv->vertices_view_[i] =
-                *nv->node()->vertices()[i]->data<std::shared_ptr<VertexView>>();
+                *nv->node()
+                     ->vertices()[i]
+                     ->template data<std::shared_ptr<VertexView>>();
         });
 
     // Create a history object -- used somehow.

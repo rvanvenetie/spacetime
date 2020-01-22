@@ -17,12 +17,12 @@ template <typename I>
 class NodeInterface : public std::enable_shared_from_this<I> {
  public:
   template <typename Func = T_func_noop>
-  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false,
-                                      const Func &callback = func_noop,
-                                      bool return_nodes = true) {
-    std::vector<std::shared_ptr<I>> nodes;
-    std::queue<std::shared_ptr<I>> queue;
-    queue.emplace(static_cast<I *>(this)->shared_from_this());
+  std::vector<I *> Bfs(bool include_metaroot = false,
+                       const Func &callback = func_noop,
+                       bool return_nodes = true) {
+    std::vector<I *> nodes;
+    std::queue<I *> queue;
+    queue.emplace(static_cast<I *>(this));
     while (!queue.empty()) {
       auto node = queue.front();
       queue.pop();
@@ -30,18 +30,17 @@ class NodeInterface : public std::enable_shared_from_this<I> {
       nodes.emplace_back(node);
       node->set_marked(true);
       callback(node);
-      for (const auto &child : node->children()) queue.emplace(child);
+      for (const auto &child : node->children()) queue.emplace(child.get());
     }
     for (const auto &node : nodes) {
       node->set_marked(false);
     }
     if (!return_nodes) return {};
     if (!include_metaroot) {
-      nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
-                                 [](const std::shared_ptr<I> &node) {
-                                   return node->is_metaroot();
-                                 }),
-                  nodes.end());
+      nodes.erase(
+          std::remove_if(nodes.begin(), nodes.end(),
+                         [](const I *node) { return node->is_metaroot(); }),
+          nodes.end());
     }
     return nodes;
   }
@@ -129,7 +128,7 @@ class Tree {
 
   template <typename Func>
   void DeepRefine(const Func &refine_filter) {
-    meta_root->Bfs(true, [refine_filter](std::shared_ptr<I> node) {
+    meta_root->Bfs(true, [refine_filter](I *node) {
       if (refine_filter(node)) node->Refine();
     });
   }
@@ -145,7 +144,7 @@ class Tree {
       if (node->level() == result.size()) {
         result.emplace_back();
       }
-      result[node->level()].push_back(node.get());
+      result[node->level()].push_back(node);
     }
     return result;
   }

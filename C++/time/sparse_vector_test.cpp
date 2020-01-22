@@ -23,9 +23,9 @@ TEST(SparseVector, BLAS) {
   SparseVector<ContLinearScalingFn> vec1, vec2, vecsum;
   for (auto node : nodes) {
     if (node->index() % 2)
-      vec1.emplace_back(node.get(), 1);
+      vec1.emplace_back(node, 1);
     else
-      vec2.emplace_back(node.get(), -1);
+      vec2.emplace_back(node, -1);
   }
   vecsum += vec1;
   vecsum += vec2;
