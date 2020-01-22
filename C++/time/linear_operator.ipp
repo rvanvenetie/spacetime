@@ -7,6 +7,9 @@
 
 namespace Time {
 
+/**
+ *  Implementations of LinearOperator.
+ */
 template <typename basis_in, typename basis_out>
 SparseVector<basis_out> LinearOperator<basis_in, basis_out>::matvec(
     const SparseVector<basis_in> &vec) const {
@@ -60,6 +63,10 @@ SparseVector<basis_in> LinearOperator<basis_in, basis_out>::rmatvec(
   return result;
 }
 
+/**
+ *  Implementations of Prolongate.
+ */
+
 template <>
 SparseVector<ContLinearScalingFn> Prolongate<ContLinearScalingFn>::Column(
     ContLinearScalingFn *phi_in) const {
@@ -85,6 +92,9 @@ SparseVector<ContLinearScalingFn> Prolongate<ContLinearScalingFn>::Row(
   return result;
 }
 
+/**
+ *  Implementations of the Mass operator.
+ */
 template <>
 SparseVector<ContLinearScalingFn>
 MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
