@@ -148,14 +148,20 @@ class CoefficientFunction1D(NodeAbstract, FunctionInterface):
     def index(self):
         return self.labda[1]
 
+    @property
+    def interval(self):
+        return (self.support[0].interval[0], self.support[-1].interval[1])
+
     def reset_coeff(self):
         """ Resets the coefficients stored in this function object. """
         self.coeff = [0, 0]
 
+    def center(self):
+        return (float(sum(self.interval) / 2), self.level, self.index)
+
     def support_contains(self, t):
-        a = float(self.support[0].interval[0])
-        b = float(self.support[-1].interval[1])
-        return a <= t <= b
+        a, b = self.interval
+        return float(a) <= t <= float(b)
 
     def inner_quad(self, g, g_order=2, deriv=False):
         """ Computes <g, self> or <g, d/dt self> by quadrature. """

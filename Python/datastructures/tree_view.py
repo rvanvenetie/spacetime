@@ -1,4 +1,3 @@
-
 from .multi_tree_view import MultiNodeView, MultiNodeViewInterface, MultiTree
 
 
@@ -43,6 +42,14 @@ class NodeView(NodeViewInterface, MultiNodeView):
     def __init__(self, nodes, parents=None, children=None):
         if not isinstance(nodes, (list, tuple)): nodes = [nodes]
         super().__init__(nodes=nodes, parents=parents, children=children)
+
+    @property
+    def data(self):
+        return self.node.data
+
+    @data.setter
+    def data(self, val):
+        self.node.data = val
 
 
 class TreeView(MultiTree):

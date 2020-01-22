@@ -1,17 +1,23 @@
+import os
 import random
+import time
 
 import numpy as np
 import pytest
 
+from ..datastructures.applicator import LinearOperatorApplicator
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_vector import TreeVector
+from ..linalg.lanczos import Lanczos
 from ..space.basis import HierarchicalBasisFunction
 from ..space.operators import Operator
 from ..space.triangulation import (InitialTriangulation,
                                    to_matplotlib_triangulation)
 from ..space.triangulation_function import TriangulationFunction
 from ..space.triangulation_view import TriangulationView
+from ..spacetime.basis import generate_x_delta_underscore, generate_y_delta
 from ..time.three_point_basis import ThreePointBasis
+from .error_estimator import AuxiliaryErrorEstimator, ResidualErrorEstimator
 from .heat_equation import HeatEquation
 
 
@@ -25,7 +31,12 @@ def example_solution_function():
     return u, u_order, u_slice_norm_l2
 
 
-def example_rhs(heat_eq):
+def example_u0_data():
+    u, u_order, u_slice_norm_l2 = example_solution_function()
+    return lambda xy: u[0](0.0) * u[1](xy), u_order[1], u_slice_norm_l2(0.0)
+
+
+def example_rhs_functional(heat_eq):
     g = [(
         lambda t: -2 * (1 + t**2),
         lambda xy: (xy[0] - 1) * xy[0] + (xy[1] - 1) * xy[1],
@@ -33,19 +44,15 @@ def example_rhs(heat_eq):
         lambda t: 2 * t,
         lambda xy: (xy[0] - 1) * xy[0] * (xy[1] - 1) * xy[1],
     )]
-    g_order = (2, 4)
+    g_order = [(2, 2), (1, 4)]
     u, u_order, _ = example_solution_function()
-    u0 = lambda xy: u[0](0) * u[1](xy)
-    u0_order = u_order[1]
+    u0 = [lambda xy: u[0](0) * u[1](xy)]
+    u0_order = [u_order[1]]
 
-    result = heat_eq.calculate_rhs_vector(g=g,
-                                          g_order=g_order,
-                                          u0=u0,
-                                          u0_order=u0_order)
-    # Check that the vector != 0.
-    assert sum(abs(result.to_array())) > 0.0001
-
-    return result
+    return heat_eq.calculate_rhs_functionals_quadrature(g=g,
+                                                        g_order=g_order,
+                                                        u0=u0,
+                                                        u0_order=u0_order)
 
 
 def random_rhs(heat_eq):
@@ -100,15 +107,16 @@ def test_full_tensor_heat():
     X_delta.uniform_refine(4)
 
     # Create heat equation object.
-    heat_eq = HeatEquation(X_delta=X_delta)
-    rhs = random_rhs(heat_eq)
+    for formulation in ['saddle', 'schur']:
+        heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
+        rhs = random_rhs(heat_eq)
 
-    # Try and apply the heat_eq block matrix to this rhs.
-    tree_matvec = heat_eq.mat.apply(rhs)
+        # Try and apply the heat_eq block matrix to this rhs.
+        tree_matvec = heat_eq.mat.apply(rhs)
 
-    # Now do the same trick, but using vectors.
-    array_matvec = heat_eq.linop.matvec(rhs.to_array())
-    assert np.allclose(tree_matvec.to_array(), array_matvec)
+        # Now do the same trick, but using vectors.
+        array_matvec = heat_eq.linop.matvec(rhs.to_array())
+        assert np.allclose(tree_matvec.to_array(), array_matvec)
 
 
 def test_sparse_tensor_heat():
@@ -128,23 +136,23 @@ def test_sparse_tensor_heat():
     X_delta.sparse_refine(2)
 
     # Create heat equation object.
-    heat_eq = HeatEquation(X_delta=X_delta)
-    rhs = random_rhs(heat_eq)
+    for formulation in ['saddle', 'schur']:
+        heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
+        rhs = random_rhs(heat_eq)
 
-    # Try and apply the heat_eq block matrix to this rhs.
-    tree_matvec = heat_eq.mat.apply(rhs)
+        # Try and apply the heat_eq block matrix to this rhs.
+        tree_matvec = heat_eq.mat.apply(rhs)
 
-    # Now do the same trick, but using vectors.
-    array_matvec = heat_eq.linop.matvec(rhs.to_array())
-    assert np.allclose(tree_matvec.to_array(), array_matvec)
+        # Now do the same trick, but using vectors.
+        array_matvec = heat_eq.linop.matvec(rhs.to_array())
+        assert np.allclose(tree_matvec.to_array(), array_matvec)
 
-    # Now actually solve this beast!
-    sol, num_iters = heat_eq.solve(rhs)
-
-    # Check the error..
-    res_tree = heat_eq.mat.apply(sol)
-    res_tree -= rhs
-    assert np.linalg.norm(res_tree.to_array()) < 1e-4
+        # Now actually solve this beast!
+        sol, info = heat_eq.solve(rhs)
+        # Check the error..
+        res_tree = heat_eq.mat.apply(sol)
+        res_tree -= rhs
+        assert np.linalg.norm(res_tree.to_array()) < 1e-4
 
 
 def test_real_tensor_heat():
@@ -164,23 +172,26 @@ def test_real_tensor_heat():
     X_delta.sparse_refine(3)
 
     # Create heat equation object.
-    heat_eq = HeatEquation(X_delta=X_delta)
-    rhs = example_rhs(heat_eq)
+    for formulation in ['saddle', 'schur']:
+        heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
+        rhs = heat_eq.calculate_rhs_vector(*example_rhs_functional(heat_eq))
 
-    # Now actually solve this beast!
-    sol, num_iters = heat_eq.solve(rhs)
-    error = np.linalg.norm(heat_eq.mat.apply(sol).to_array() - rhs.to_array())
-    print('MINRES solved in {} iterations with an error {}'.format(
-        num_iters, error))
+        # Now actually solve this beast!
+        sol, info = heat_eq.solve(rhs)
+        error = np.linalg.norm(
+            heat_eq.mat.apply(sol).to_array() - rhs.to_array())
+        print('%s solved in {} iterations with an error {}'.format(
+            formulation, info['num_iters'], error))
 
-    # assert that minres converged.
-    assert error < 1e-4
+        # assert that solver converged.
+        assert error < 1e-4
 
-    # assert that the solution is not identically zero.
-    assert sum(abs(sol[1].to_array())) > 0
+        # assert that the solution is not identically zero.
+        u_sol = sol[1] if formulation == 'saddle' else sol
+        assert sum(abs(sol.to_array())) > 0
 
     # Return heat_eq, sol for plotting purposes!
-    return heat_eq, sol[1]
+    return heat_eq, u_sol
 
 
 def test_heat_eq_linear():
@@ -200,29 +211,35 @@ def test_heat_eq_linear():
     X_delta.sparse_refine(2)
 
     # Create heat equation object.
-    heat_eq = HeatEquation(X_delta=X_delta)
-    heat_eq_mat = heat_eq.linop.to_matrix()
+    for formulation in ['saddle', 'schur']:
+        heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
+        heat_eq_mat = heat_eq.linop.to_matrix()
 
-    # Check that the heat_eq linear operator is linear.
-    for _ in range(10):
-        v = random_rhs(heat_eq)
-        w = random_rhs(heat_eq)
+        # Check that the heat_eq linear operator is linear.
+        for _ in range(10):
+            v = random_rhs(heat_eq)
+            w = random_rhs(heat_eq)
 
-        v_arr = v.to_array()
-        w_arr = w.to_array()
-        alpha = random.random()
+            v_arr = v.to_array()
+            w_arr = w.to_array()
+            alpha = random.random()
 
-        # Check whether the linop is linear.
-        assert np.allclose(
-            heat_eq.linop.matvec(v_arr + alpha * w_arr),
-            heat_eq.linop.matvec(v_arr) + alpha * heat_eq.linop.matvec(w_arr))
+            # Check whether the linop is linear.
+            assert np.allclose(
+                heat_eq.linop.matvec(v_arr + alpha * w_arr),
+                heat_eq.linop.matvec(v_arr) +
+                alpha * heat_eq.linop.matvec(w_arr))
 
-        # Check whether the output corresponds to the matrix.
-        assert np.allclose(heat_eq.linop.matvec(v_arr), heat_eq_mat.dot(v_arr))
+            # Check whether the output corresponds to the matrix.
+            assert np.allclose(heat_eq.linop.matvec(v_arr),
+                               heat_eq_mat.dot(v_arr))
 
 
-@pytest.mark.slow
-def test_heat_error_reduction(max_level=6, save_results_file=None):
+def test_heat_error_reduction(max_history_level=0,
+                              max_level=6,
+                              save_results_file=None,
+                              formulation='saddle',
+                              solver='minres'):
     # Printing options.
     np.set_printoptions(precision=4)
     np.set_printoptions(linewidth=10000)
@@ -240,8 +257,16 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
     n_t = 9
     errors_quad = []
     ndofs = []
+    dims = []
     time_per_dof = []
     rates_quad = []
+    residual_norm_histories = []
+    residual_norms = []
+    solver_iters = []
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    X_delta.sparse_refine(0)
+    g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
     for level in range(2, max_level):
         # Create X^\delta as a sparse grid.
         X_delta = DoubleTree.from_metaroots(
@@ -250,33 +275,48 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
         print('X_delta: dofs time axis={}\tdofs space axis={}'.format(
             len(X_delta.project(0).bfs()), len(X_delta.project(1).bfs())))
 
+        # Create heat equation object.
+        heat_eq = HeatEquation(X_delta=X_delta, formulation=formulation)
+        rhs = heat_eq.calculate_rhs_vector(g_functional, u0_functional)
+
+        if level <= max_history_level:
+            residual_norm_history = []
+            callback = lambda vec: residual_norm_history.append(
+                np.linalg.norm(heat_eq.linop @ vec - rhs.to_array()))
+        else:
+            callback = None
+
+        # Now actually solve this beast!
+        sol, info = heat_eq.solve(rhs, solver=solver, iter_callback=callback)
+
         # Count number of dofs (not on the boundary!)
         ndofs.append(
             len([
                 n for n in X_delta.bfs() if not n.nodes[1].on_domain_boundary
             ]))
 
-        # Create heat equation object.
-        heat_eq = HeatEquation(X_delta=X_delta)
-        rhs = example_rhs(heat_eq)
-
-        # Now actually solve this beast!
-        sol, num_iters = heat_eq.solve(rhs)
+        # Record some stuff for posterity.
+        dims.append([len(heat_eq.Y_delta.bfs()), len(X_delta.bfs())])
+        if level <= max_history_level:
+            residual_norm_histories.append(residual_norm_history)
+        solver_iters.append(info['num_iters'])
         residual_norm = np.linalg.norm(
             heat_eq.mat.apply(sol).to_array() - rhs.to_array())
-        print('MINRES solved in {} iterations with a residual norm {}'.format(
-            num_iters, residual_norm))
-        print('Time per dof is approximately {}'.format(
-            heat_eq.time_per_dof()))
-        time_per_dof.append(heat_eq.time_per_dof())
+        residual_norms.append(residual_norm)
+        time_per_dof.append(info['time_per_dof'])
+
+        print('{} solved in {} iterations with a residual norm {}'.format(
+            solver, info['num_iters'], residual_norm))
+        print('Time per dof is approximately {}'.format(info['time_per_dof']))
 
         u, u_order, u_slice_norm = example_solution_function()
 
         cur_errors_quad = np.ones(n_t)
+        u_sol = sol[1] if formulation == 'saddle' else sol
         for i, t in enumerate(np.linspace(0, 1, n_t)):
-            sol_slice = sol[1].slice(i=0,
-                                     coord=t,
-                                     slice_cls=TriangulationFunction)
+            sol_slice = u_sol.slice(i=0,
+                                    coord=t,
+                                    slice_cls=TriangulationFunction)
             cur_errors_quad[i] = sol_slice.error_L2(
                 lambda xy: u[0](t) * u[1](xy),
                 u_slice_norm(t),
@@ -284,9 +324,12 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
             )
 
         errors_quad.append(cur_errors_quad)
-        rates_quad.append(
-            np.log(errors_quad[-1] / errors_quad[0]) /
-            np.log(ndofs[0] / ndofs[-1]))
+        if len(ndofs) == 1:
+            rates_quad.append([0] * n_t)
+        else:
+            rates_quad.append(
+                np.log(errors_quad[-1] / errors_quad[0]) /
+                np.log(ndofs[0] / ndofs[-1]))
 
         print('-- Results for level = {} --'.format(level))
         print('\tdofs:', ndofs[-1])
@@ -301,7 +344,11 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
                 "n_t": n_t,
                 "max_level": max_level,
                 "dofs": ndofs,
+                "dims": dims,
                 "time_per_dof": time_per_dof,
+                "residual_norm_histories": residual_norm_histories,
+                "residual_norms": residual_norms,
+                "solver_iters": solver_iters,
                 "errors": errors_quad,
                 "rates": rates_quad
             }
@@ -319,14 +366,106 @@ def test_heat_error_reduction(max_level=6, save_results_file=None):
     assert all(errors_quad[-1] <= errors_quad[0])
 
     # Assert that we have a convergence rate of at least 0.25 :-).
-    assert all(rates_quad > 0.25)
+    assert all(rates_quad[-1] > 0.25)
 
     # We expect a reat of atleast 0.5, but this requires some refines.
-    if max_level >= 8: assert all(rates_quad > 0.5)
+    if max_level >= 8: assert all(rates_quad[-1] > 0.5)
+
+
+def test_preconditioned_eigenvalues(max_level=6, sparse_grid=True):
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.vertex_meta_root.uniform_refine(max_level)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(max_level)
+
+    for level in range(2, max_level):
+        # Create X^\delta as a sparse grid.
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
+        if sparse_grid:
+            X_delta.sparse_refine(level, weights=[2, 1])
+        else:
+            X_delta.uniform_refine([level, 2 * level])
+        print('X_delta: dofs time axis={}\tdofs space axis={}'.format(
+            len(X_delta.project(0).bfs()), len(X_delta.project(1).bfs())))
+
+        # Create heat equation object.
+        heat_eq = HeatEquation(X_delta=X_delta, formulation='schur')
+        S = heat_eq.linop
+        Sinv = LinearOperatorApplicator(applicator=heat_eq.P_X,
+                                        input_vec=heat_eq.create_vector())
+        l = Lanczos(S, Sinv)
+        assert l.cond() < 10
+        print("Level {} with {} DoFs; l_min = {}; l_max = {}; kappa_2 = {}".
+              format(level, len(X_delta.bfs()), l.lmin, l.lmax, l.cond()))
+
+
+@pytest.mark.slow
+def test_residual_error_estimator_rate(sparse_grid=True, mean_zero=True):
+    import psutil
+    # Create space part.
+    triang = InitialTriangulation.unit_square(initial_refinement=1)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+
+    max_level = 100
+    sol = None
+    time_start = time.time()
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    X_delta.uniform_refine(0)
+    g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
+    residual_error_estimator = ResidualErrorEstimator(g_functional,
+                                                      u0_functional)
+    aux_error_estimator = AuxiliaryErrorEstimator(g_functional, u0_functional,
+                                                  *example_u0_data())
+    for level in range(1, max_level):
+        time_start_iteration = time.time()
+        # Create X^\delta as a full grid.
+        X_delta = DoubleTree.from_metaroots(
+            (basis_time.metaroot_wavelet, basis_space.root))
+        if sparse_grid:
+            X_delta.sparse_refine(2 * level, weights=[2, 1])
+        else:
+            X_delta.uniform_refine([level, 2 * level])
+        X_dd = generate_x_delta_underscore(X_delta)
+        Y_dd = generate_y_delta(X_dd)
+        heat_eq = HeatEquation(X_delta=X_delta,
+                               Y_delta=Y_dd,
+                               formulation='schur')
+        rhs = heat_eq.calculate_rhs_vector(g_functional, u0_functional)
+        if sol:
+            sol = sol.deep_copy()
+            sol.union(X_delta, call_postprocess=None)
+        sol, solve_info = heat_eq.solve(b=rhs, solver='pcg', x0=sol)
+        res_dd_d, _, _ = residual_error_estimator.estimate(u_dd_d=sol,
+                                                           X_d=X_delta,
+                                                           X_dd=X_dd,
+                                                           Y_dd=Y_dd,
+                                                           mean_zero=mean_zero)
+        res_aux, res_terms = aux_error_estimator.estimate(heat_eq, sol)
+        process = psutil.Process(os.getpid())
+        print(len(X_delta.bfs()), len(X_dd.bfs()),
+              process.memory_info().rss,
+              time.time() - time_start_iteration,
+              time.time() - time_start, res_dd_d.norm(), res_aux, res_terms)
+        if process.memory_info().rss > 40 * 10**9:
+            break
 
 
 if __name__ == "__main__":
-    test_heat_error_reduction(
-        max_level=16,
-        save_results_file='error_reduction.pickle',
-    )
+    test_residual_error_estimator_rate(sparse_grid=False, mean_zero=True)
+    # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
+    test_heat_error_reduction(max_history_level=16,
+                              max_level=16,
+                              save_results_file=None,
+                              formulation='schur',
+                              solver='pcg')

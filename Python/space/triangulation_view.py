@@ -85,8 +85,13 @@ class TriangulationView:
             assert len(elem.parents) == 1
             self.history.append((elem.newest_vertex(), elem.parents[0]))
 
-        assert len(self.history) == len(self.vertices) - len(
-            self.vertices[0].parents[0].children)
+        if not (len(self.history) == len(self.vertices) -
+                len(self.vertices[0].parents[0].children)):
+            print('Invalid triangulation view object created.')
+            print('\thistory = ', self.history)
+            print('\tvertices = ', self.vertices)
+            print('\troots = ', self.vertices[0].parents[0].children)
+            assert False
 
         # Undo marking.
         for vertex in self.vertices:

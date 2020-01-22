@@ -6,6 +6,10 @@ class FunctionInterface(ABC):
     __slots__ = []
     order = None
 
+    def center(self):
+        """ Returns (center, level) of this function. """
+        raise NotImplementedError
+
     @property
     @abstractmethod
     def support(self):
