@@ -98,6 +98,10 @@ class DoubleTreeViewBase : public MT_Base<I> {
   auto Fiber(std::shared_ptr<FrozenDoubleNode<I, i>> mu) {
     return Fiber(mu->node());
   }
+  template <size_t i>
+  auto Fiber(FrozenDoubleNode<I, i>* mu) {
+    return Fiber(mu->shared_from_this()->node());
+  }
 
  protected:
   std::tuple<std::unordered_map<T1, std::shared_ptr<FrozenDoubleNode<I, 0>>>,

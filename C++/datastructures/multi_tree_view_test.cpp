@@ -149,7 +149,7 @@ TEST(MultiNodeView, DeepRefine) {
   for (const auto &multi_node : multi_nodes) {
     auto [n1, n2, n3] = multi_node->nodes();
     ASSERT_EQ(multi_node->level(), n1->level() + n2->level() + n3->level());
-    ASSERT_EQ(multi_node->is_root(), multi_node == multi_tree.root);
+    ASSERT_EQ(multi_node->is_root(), multi_node == multi_tree.root.get());
     ASSERT_EQ(multi_node->is_metaroot(),
               n1->is_metaroot() || n2->is_metaroot() || n3->is_metaroot());
     ASSERT_EQ(multi_node->is_leaf(),

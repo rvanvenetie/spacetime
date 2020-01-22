@@ -53,7 +53,7 @@ class Vertex : public datastructures::Node<Vertex> {
 
 class Element2D : public datastructures::BinaryNode<Element2D> {
  public:
-  ArrayElement2DPtr<3> neighbours;
+  ArrayElement2DPtr<3> neighbours{nullptr};
 
   // Constructors given the parent.
   explicit Element2D(Element2D *parent, const ArrayVertexPtr<3> &vertices)

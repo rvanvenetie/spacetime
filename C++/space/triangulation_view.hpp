@@ -41,7 +41,7 @@ class TriangulationView {
         /* call_filter */
         [](auto &&node) { return node->newest_vertex()->has_data(); },
         /* call_postprocess */
-        [](std::shared_ptr<Element2DView> nv) {
+        [](Element2DView *nv) {
           if (nv->is_root()) return;
           for (size_t i = 0; i < 3; ++i)
             nv->vertices_view_[i] =
