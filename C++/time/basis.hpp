@@ -65,6 +65,11 @@ class Function : public datastructures::Node<I> {
 
   virtual double Eval(double t, bool deriv = false) const = 0;
 
+  friend std::ostream &operator<<(std::ostream &os, const Function<I> &fn) {
+    os << "(" << fn.level() << ", " << fn.index() << ")";
+    return os;
+  }
+
  protected:
   // Protected constructor for creating a metaroot.
   Function() : datastructures::Node<I>(), index_(0) {}

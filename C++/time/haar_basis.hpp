@@ -23,6 +23,7 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
   constexpr static size_t order = 0;
   constexpr static bool continuous = false;
   constexpr static size_t N_children = 2;
+  constexpr static size_t N_parents = 1;
 
   explicit DiscConstantScalingFn(DiscConstantScalingFn *parent, int index,
                                  Element1D *support)
@@ -52,6 +53,7 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
 class HaarWaveletFn : public WaveletFn<HaarWaveletFn> {
  public:
   constexpr static size_t N_children = 2;
+  constexpr static size_t N_parents = 1;
 
   explicit HaarWaveletFn(
       HaarWaveletFn *parent, int index,

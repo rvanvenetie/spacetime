@@ -10,10 +10,10 @@ namespace Time {
 /**
  *  Implementations of LinearOperator.
  */
-template <typename basis_in, typename basis_out>
-SparseVector<basis_out> LinearOperator<basis_in, basis_out>::MatVec(
-    const SparseVector<basis_in> &vec) const {
-  SparseVector<basis_out> result;
+template <typename BasisIn, typename BasisOut>
+SparseVector<BasisOut> LinearOperator<BasisIn, BasisOut>::MatVec(
+    const SparseVector<BasisIn> &vec) const {
+  SparseVector<BasisOut> result;
   for (auto [labda_in, coeff_in] : vec)
     for (auto [labda_out, coeff_out] : Column(labda_in))
       result.emplace_back(labda_out, coeff_in * coeff_out);
@@ -21,10 +21,10 @@ SparseVector<basis_out> LinearOperator<basis_in, basis_out>::MatVec(
   return result;
 }
 
-template <typename basis_in, typename basis_out>
-SparseVector<basis_in> LinearOperator<basis_in, basis_out>::RMatVec(
-    const SparseVector<basis_out> &vec) const {
-  SparseVector<basis_in> result;
+template <typename BasisIn, typename BasisOut>
+SparseVector<BasisIn> LinearOperator<BasisIn, BasisOut>::RMatVec(
+    const SparseVector<BasisOut> &vec) const {
+  SparseVector<BasisIn> result;
   for (auto [labda_out, coeff_out] : vec)
     for (auto [labda_in, coeff_in] : Row(labda_out))
       result.emplace_back(labda_in, coeff_out * coeff_in);
@@ -32,33 +32,47 @@ SparseVector<basis_in> LinearOperator<basis_in, basis_out>::RMatVec(
   return result;
 }
 
-template <typename basis_in, typename basis_out>
-SparseVector<basis_out> LinearOperator<basis_in, basis_out>::MatVec(
-    const SparseVector<basis_in> &vec,
-    std::vector<basis_out *> indices_out) const {
+template <typename BasisIn, typename BasisOut>
+SparseVector<BasisOut> LinearOperator<BasisIn, BasisOut>::MatVec(
+    const SparseVector<BasisIn> &vec,
+    const SparseIndices<BasisOut> &indices_out) const {
+  assert(indices_out.IsUnique());
   vec.StoreInTree();
-  SparseVector<basis_out> result;
-  for (auto labda_out : indices_out)
+  SparseVector<BasisOut> result;
+  for (auto labda_out : indices_out) {
+    double val = 0;
     for (auto [labda_in, coeff_in] : Row(labda_out))
       if (labda_in->has_data())
-        result.emplace_back(labda_out,
-                            coeff_in * (*labda_in->template data<double>()));
+        val += coeff_in * (*labda_in->template data<double>());
+    result.emplace_back(labda_out, val);
+  }
   vec.RemoveFromTree();
-  result.Compress();
   return result;
 }
-template <typename basis_in, typename basis_out>
-SparseVector<basis_in> LinearOperator<basis_in, basis_out>::RMatVec(
-    const SparseVector<basis_out> &vec,
-    std::vector<basis_in *> indices_in) const {
+template <typename BasisIn, typename BasisOut>
+SparseVector<BasisIn> LinearOperator<BasisIn, BasisOut>::RMatVec(
+    const SparseVector<BasisOut> &vec,
+    const SparseIndices<BasisIn> &indices_in) const {
+  assert(indices_in.IsUnique());
   vec.StoreInTree();
-  SparseVector<basis_in> result;
-  for (auto labda_in : indices_in)
+  SparseVector<BasisIn> result;
+  for (auto labda_in : indices_in) {
+    double val = 0;
     for (auto [labda_out, coeff_out] : Column(labda_in))
       if (labda_out->has_data())
-        result.emplace_back(labda_in,
-                            coeff_out * (*labda_out->template data<double>()));
+        val += coeff_out * (*labda_out->template data<double>());
+    result.emplace_back(labda_in, val);
+  }
   vec.RemoveFromTree();
+  return result;
+}
+
+template <typename BasisIn, typename BasisOut>
+SparseIndices<BasisOut> LinearOperator<BasisIn, BasisOut>::Range(
+    const SparseIndices<BasisIn> &ind) const {
+  SparseIndices<BasisOut> result;
+  for (auto labda_in : ind)
+    for (auto [labda_out, _] : Column(labda_in)) result.emplace_back(labda_out);
   result.Compress();
   return result;
 }
@@ -104,13 +118,13 @@ MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
   double self_ip = 0;
   if (n > 0) {
     auto elem = phi_in->support()[0];
-    result.emplace_back(elem->RefineContLinear()[0], 1 / 6 * pow(2, -l));
-    self_ip += 1 / 3 * pow(2, -l);
+    result.emplace_back(elem->RefineContLinear()[0], 1. / 6 * pow(2, -l));
+    self_ip += 1. / 3 * pow(2, -l);
   }
   if (n < (1 << l)) {
     auto elem = phi_in->support().back();
-    result.emplace_back(elem->RefineContLinear()[1], 1 / 6 * pow(2, -l));
-    self_ip += 1 / 3 * pow(2, -l);
+    result.emplace_back(elem->RefineContLinear()[1], 1. / 6 * pow(2, -l));
+    self_ip += 1. / 3 * pow(2, -l);
   }
   result.emplace_back(phi_in, self_ip);
   return result;
