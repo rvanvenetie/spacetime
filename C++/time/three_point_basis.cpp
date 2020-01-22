@@ -36,8 +36,8 @@ double ContLinearScalingFn::EvalMother(double t, bool deriv) const {
     return left_mask * (1 + t) + right_mask * (1 - t);
 }
 
-bool ContLinearScalingFn::RefineMiddle() {
-  if (child_middle_) return false;
+ContLinearScalingFn *ContLinearScalingFn::RefineMiddle() {
+  if (child_middle_) return child_middle_;
   auto [l, n] = labda();
   for (auto elem : support_) elem->Refine();
 
@@ -64,12 +64,12 @@ bool ContLinearScalingFn::RefineMiddle() {
     child->nbr_right_ = child_right_;
   }
 
-  return true;
+  return child_middle_;
 }
 
-bool ContLinearScalingFn::RefineLeft() {
+ContLinearScalingFn *ContLinearScalingFn::RefineLeft() {
   assert(nbr_left_);
-  if (child_left_) return false;
+  if (child_left_) return child_left_;
   support_[0]->Refine();
   auto [l, n] = labda();
 
@@ -98,7 +98,7 @@ bool ContLinearScalingFn::RefineLeft() {
     child->nbr_right_ = child_middle_;
   }
 
-  return true;
+  return child_left_;
 }
 
 ThreePointWaveletFn::ThreePointWaveletFn() : WaveletFn<ThreePointWaveletFn>() {

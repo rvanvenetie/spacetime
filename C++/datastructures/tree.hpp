@@ -138,14 +138,14 @@ class Tree {
   }
 
   // This returns nodes in this tree, sliced by levels.
-  std::vector<std::vector<std::shared_ptr<I>>> NodesPerLevel() {
-    std::vector<std::vector<std::shared_ptr<I>>> result;
+  std::vector<std::vector<I *>> NodesPerLevel() {
+    std::vector<std::vector<I *>> result;
     for (const auto &node : meta_root->Bfs()) {
       assert(node->level() >= 0 && node->level() <= result.size());
       if (node->level() == result.size()) {
         result.emplace_back();
       }
-      result[node->level()].push_back(node);
+      result[node->level()].push_back(node.get());
     }
     return result;
   }

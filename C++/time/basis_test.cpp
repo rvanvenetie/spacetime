@@ -12,6 +12,9 @@ namespace Time {
 using ::testing::ElementsAre;
 
 TEST(HaarBasis, functions) {
+  // Reset the persistent trees.
+  ResetTrees();
+
   ASSERT_EQ(disc_cons_tree.meta_root->children().size(), 1);
   ASSERT_EQ(haar_tree.meta_root->children().size(), 1);
 
@@ -29,6 +32,8 @@ TEST(HaarBasis, functions) {
 }
 
 TEST(HaarBasis, UniformRefinement) {
+  // Reset the persistent trees.
+  ResetTrees();
   int ml = 5;
 
   haar_tree.UniformRefine(ml);
@@ -53,6 +58,9 @@ TEST(HaarBasis, UniformRefinement) {
 }
 
 TEST(OrthonormalBasis, UniformRefinement) {
+  // Reset the persistent trees.
+  ResetTrees();
+
   int ml = 7;
 
   ortho_tree.UniformRefine(ml);
@@ -97,11 +105,10 @@ TEST(OrthonormalBasis, UniformRefinement) {
 }
 
 TEST(OrthonormalBasis, LocalRefinement) {
-  int ml = 15;
+  // Reset the persistent trees.
+  ResetTrees();
 
-  // Reset the persistent wavelet trees.
-  disc_lin_tree = datastructures::Tree<DiscLinearScalingFn>();
-  ortho_tree = datastructures::Tree<OrthonormalWaveletFn>();
+  int ml = 15;
 
   // Refine towards t=0.
   ortho_tree.DeepRefine([ml](auto node) {
@@ -120,6 +127,9 @@ TEST(OrthonormalBasis, LocalRefinement) {
 }
 
 TEST(ThreePointBasis, UniformRefinement) {
+  // Reset the persistent trees.
+  ResetTrees();
+
   int ml = 7;
 
   three_point_tree.UniformRefine(ml);
@@ -163,12 +173,10 @@ TEST(ThreePointBasis, UniformRefinement) {
 }
 
 TEST(ThreePointBasis, LocalRefinement) {
+  // Reset the persistent trees.
+  ResetTrees();
+
   int ml = 15;
-
-  // Reset the persistent wavelet trees.
-  cont_lin_tree = datastructures::Tree<ContLinearScalingFn>();
-  three_point_tree = datastructures::Tree<ThreePointWaveletFn>();
-
   // First check what happens when we only refine near the origin.
   three_point_tree.DeepRefine([ml](auto node) {
     return node->is_metaroot() || (node->level() < ml && node->index() == 0);

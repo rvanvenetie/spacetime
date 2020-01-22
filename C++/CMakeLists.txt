@@ -41,6 +41,9 @@ set(Boost_NO_BOOST_CMAKE ON)
 find_package(Boost 1.69.0 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
+# Install eigen
+find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+
 ## Enable testing.
 enable_testing()
 

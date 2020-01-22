@@ -27,9 +27,26 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
   explicit ContLinearScalingFn(const std::vector<ContLinearScalingFn *> parents,
                                int index,
                                const std::vector<Element1D *> support)
-      : ScalingFn<ContLinearScalingFn>(parents, index, support) {}
+      : ScalingFn<ContLinearScalingFn>(parents, index, support) {
+    if (index > 0) {
+      assert(!support[0]->phi_cont_lin_[1]);
+      support[0]->phi_cont_lin_[1] = this;
+    }
+    if (index < (1 << level())) {
+      assert(!support.back()->phi_cont_lin_[0]);
+      support.back()->phi_cont_lin_[0] = this;
+    }
+  }
 
   double EvalMother(double t, bool deriv) const final;
+
+  ContLinearScalingFn *RefineMiddle();
+  ContLinearScalingFn *RefineLeft();
+  ContLinearScalingFn *RefineRight() {
+    if (child_right_) return child_right_;
+    assert(nbr_right_);
+    return nbr_right_->RefineLeft();
+  }
 
  protected:
   ContLinearScalingFn *nbr_left_ = nullptr;
@@ -42,16 +59,9 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
   // Protected constructor for creating a metaroot.
   ContLinearScalingFn();
 
-  bool RefineMiddle();
-  bool RefineLeft();
-  bool RefineRight() {
-    if (child_right_) return false;
-    assert(nbr_right_);
-    return nbr_right_->RefineLeft();
-  }
-
   friend datastructures::Tree<ContLinearScalingFn>;
   friend ThreePointWaveletFn;
+  friend Element1D;
 };
 
 class ThreePointWaveletFn : public WaveletFn<ThreePointWaveletFn> {
@@ -60,7 +70,7 @@ class ThreePointWaveletFn : public WaveletFn<ThreePointWaveletFn> {
 
   explicit ThreePointWaveletFn(
       const std::vector<ThreePointWaveletFn *> parents, int index,
-      const std::vector<std::pair<ContLinearScalingFn *, double>> &single_scale)
+      const SparseVector<ContLinearScalingFn> &single_scale)
       : WaveletFn(parents, index, single_scale) {}
 
   bool is_full() const;
