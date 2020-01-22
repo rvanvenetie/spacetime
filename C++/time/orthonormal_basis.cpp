@@ -1,8 +1,10 @@
 #include "orthonormal_basis.hpp"
 
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <memory>
+
 namespace Time {
 
 // Initialize static variables.
@@ -47,13 +49,17 @@ bool DiscLinearScalingFn::Refine() {
   auto P = std::vector{this, nbr_};
   auto child_elts = support_[0]->children();
   children_.push_back(std::make_shared<DiscLinearScalingFn>(
-      P, 2 * n + 0, std::vector{child_elts[0].get()}));
+      /* parents */ P, /* index */ 2 * n + 0,
+      /* support */ std::vector{child_elts[0].get()}));
   children_.push_back(std::make_shared<DiscLinearScalingFn>(
-      P, 2 * n + 1, std::vector{child_elts[0].get()}));
+      /* parents */ P, /* index */ 2 * n + 1,
+      /* support */ std::vector{child_elts[0].get()}));
   children_.push_back(std::make_shared<DiscLinearScalingFn>(
-      P, 2 * n + 2, std::vector{child_elts[1].get()}));
+      /* parents */ P, /* index */ 2 * n + 2,
+      /* support */ std::vector{child_elts[1].get()}));
   children_.push_back(std::make_shared<DiscLinearScalingFn>(
-      P, 2 * n + 3, std::vector{child_elts[1].get()}));
+      /* parents */ P, /* index */ 2 * n + 3,
+      /* support */ std::vector{child_elts[1].get()}));
 
   nbr_->children_ = children_;
   children_[0]->nbr_ = children_[1].get();
@@ -101,12 +107,13 @@ bool OrthonormalWaveletFn::Refine() {
                     std::pair{l1_scalings[1].get(), -1.0},
                     std::pair{l1_scalings[2].get(), 0.0},
                     std::pair{l1_scalings[3].get(), 1.0}}));
-    auto nbr = parents[0].get();
-    if (index_ == 0) nbr = parents[1].get();
-    nbr->children_ = children_;
+    if (index_ == 0)
+      parents[1]->children_ = children_;
+    else
+      parents[0]->children_ = children_;
   } else {
     auto [l, n] = labda();
-    auto nbr_indices = std::vector{1, 0, 3, 2};
+    constexpr std::array<int, 4> nbr_indices{1, 0, 3, 2};
     auto nbr = parents()[0]->children()[nbr_indices[n % 4]];
     assert(support_ == nbr->support_);
     assert(labda() != nbr->labda());
@@ -139,8 +146,7 @@ bool OrthonormalWaveletFn::Refine() {
 }
 
 bool OrthonormalWaveletFn::is_full() const {
-  if (is_metaroot()) return true;
-  if (level_ == 0)
+  if (level_ <= 0)
     return children_.size() == 2;
   else
     return children_.size() == 4;
