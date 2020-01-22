@@ -5,3 +5,6 @@
 *.fls
 *.log
 *.fdb_latexmk
+
+*.pkl
+*.df
