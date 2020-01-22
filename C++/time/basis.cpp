@@ -1,6 +1,7 @@
 #include "basis.hpp"
 
 #include "haar_basis.hpp"
+#include "orthonormal_basis.hpp"
 #include "three_point_basis.hpp"
 
 namespace Time {
@@ -50,6 +51,10 @@ void ResetTrees() {
   // Reset the haar tree.
   disc_cons_tree = datastructures::Tree<DiscConstantScalingFn>();
   haar_tree = datastructures::Tree<HaarWaveletFn>();
+
+  // Reset the orthonormal tree.
+  disc_lin_tree = datastructures::Tree<DiscLinearScalingFn>();
+  ortho_tree = datastructures::Tree<OrthonormalWaveletFn>();
 }
 
 }  // namespace Time

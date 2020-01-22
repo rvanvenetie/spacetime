@@ -58,6 +58,9 @@ TEST(HaarBasis, UniformRefinement) {
 }
 
 TEST(OrthonormalBasis, UniformRefinement) {
+  // Reset the persistent trees.
+  ResetTrees();
+
   int ml = 7;
 
   ortho_tree.UniformRefine(ml);
@@ -102,11 +105,10 @@ TEST(OrthonormalBasis, UniformRefinement) {
 }
 
 TEST(OrthonormalBasis, LocalRefinement) {
-  int ml = 15;
+  // Reset the persistent trees.
+  ResetTrees();
 
-  // Reset the persistent wavelet trees.
-  disc_lin_tree = datastructures::Tree<DiscLinearScalingFn>();
-  ortho_tree = datastructures::Tree<OrthonormalWaveletFn>();
+  int ml = 15;
 
   // Refine towards t=0.
   ortho_tree.DeepRefine([ml](auto node) {

@@ -51,10 +51,22 @@ class SparseVector : public std::vector<std::pair<basis *, double>> {
     for (auto &[phi, coeff] : result) {
       coeff = *phi->template data<double>();
       phi->reset_data();
+      assert(coeff != NAN);
     }
 
     // Now store the result in our own vector.
     (*this) = std::move(result);
+  }
+
+  SparseVector<basis> operator+=(const SparseVector<basis> &rhs) {
+    this->insert(this->end(), rhs.begin(), rhs.end());
+    Compress();
+    return *this;
+  }
+
+  SparseVector<basis> operator*=(double alpha) {
+    for (auto &[_, coeff] : *this) coeff *= alpha;
+    return *this;
   }
 };
 

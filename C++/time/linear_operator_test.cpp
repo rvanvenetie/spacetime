@@ -33,7 +33,7 @@ void CheckMatrixTranspose(const LinearOperator &op,
 
   // Create A.
   for (int i = 0; i < indices_in.size(); ++i) {
-    SparseVector<basis_in> vec(std::vector{std::pair{indices_in[i], 1.0}});
+    SparseVector<basis_in> vec{{std::pair{indices_in[i], 1.0}}};
     auto op_vec = op.MatVec(vec);
     for (auto [fn, coeff] : op_vec) A(indices_out_map[fn], i) = coeff;
 
@@ -44,7 +44,7 @@ void CheckMatrixTranspose(const LinearOperator &op,
 
   // Create AT
   for (int i = 0; i < indices_out.size(); ++i) {
-    SparseVector<basis_out> vec(std::vector{std::pair{indices_out[i], 1.0}});
+    SparseVector<basis_out> vec{{std::pair{indices_out[i], 1.0}}};
     auto op_vec = op.RMatVec(vec, indices_in);
     for (auto [fn, coeff] : op_vec) AT(indices_in_map[fn], i) = coeff;
 
@@ -54,7 +54,7 @@ void CheckMatrixTranspose(const LinearOperator &op,
   }
 
   // Check that they are the same.
-  ASSERT_DOUBLE_EQ((A.transpose() - AT).cwiseAbs().maxCoeff(), 0);
+  ASSERT_TRUE(A.transpose().isApprox(AT));
 }
 
 TEST(ContLinearScaling, ProlongateEval) {
@@ -77,8 +77,7 @@ TEST(ContLinearScaling, ProlongateEval) {
   for (int l = 0; l < ml; ++l) {
     for (int i = 0; i < Delta[l].size(); ++i) {
       // Prolongate a single hat function.
-      SparseVector<ContLinearScalingFn> vec(
-          std::vector{std::pair{Delta[l][i], 1.0}});
+      SparseVector<ContLinearScalingFn> vec{{std::pair{Delta[l][i], 1.0}}};
 
       auto p_vec = Prolongate<ContLinearScalingFn>()(vec);
       // Check that the functions eval to the same thing.

@@ -57,7 +57,7 @@ class OrthonormalWaveletFn : public WaveletFn<OrthonormalWaveletFn> {
 
   explicit OrthonormalWaveletFn(
       const std::vector<OrthonormalWaveletFn *> parents, int index,
-      const std::vector<std::pair<DiscLinearScalingFn *, double>> &single_scale)
+      const SparseVector<DiscLinearScalingFn> &single_scale)
       : WaveletFn(parents, index, single_scale) {}
 
   bool Refine();
