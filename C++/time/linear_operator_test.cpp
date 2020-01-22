@@ -58,14 +58,10 @@ void CheckMatrixTranspose(const LinearOperator &op,
 }
 
 TEST(ContLinearScaling, ProlongateEval) {
-  int ml = 15;
-
   // Reset the persistent trees.
-  elem_tree = datastructures::Tree<Element1D>();
-  mother_element = elem_tree.meta_root->children()[0].get();
-  cont_lin_tree = datastructures::Tree<ContLinearScalingFn>();
-  three_point_tree = datastructures::Tree<ThreePointWaveletFn>();
+  ResetTrees();
 
+  int ml = 15;
   // Now we check what happens when we also refine near the end points.
   three_point_tree.DeepRefine([ml](auto node) {
     return node->is_metaroot() ||
@@ -99,6 +95,9 @@ TEST(ContLinearScaling, ProlongateEval) {
 }
 
 TEST(ContLinearScaling, ProlongateMatrix) {
+  // Reset the persistent trees.
+  ResetTrees();
+
   int ml = 7;
 
   three_point_tree.UniformRefine(ml);
@@ -112,6 +111,9 @@ TEST(ContLinearScaling, ProlongateMatrix) {
 }
 
 TEST(ContLinearScaling, MassMatrix) {
+  // Reset the persistent trees.
+  ResetTrees();
+
   int ml = 7;
 
   three_point_tree.UniformRefine(ml);

@@ -38,4 +38,18 @@ std::pair<double, double> Element1D::Interval() const {
   return {h * index_, h * (index_ + 1)};
 }
 
+void ResetTrees() {
+  // Reset the element tree.
+  elem_tree = datastructures::Tree<Element1D>();
+  mother_element = elem_tree.meta_root->children()[0].get();
+
+  // Reset the 3pt tree.
+  cont_lin_tree = datastructures::Tree<ContLinearScalingFn>();
+  three_point_tree = datastructures::Tree<ThreePointWaveletFn>();
+
+  // Reset the haar tree.
+  disc_cons_tree = datastructures::Tree<DiscConstantScalingFn>();
+  haar_tree = datastructures::Tree<HaarWaveletFn>();
+}
+
 }  // namespace Time

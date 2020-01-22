@@ -162,4 +162,7 @@ class WaveletFn : public Function<I> {
 extern Element1D *mother_element;
 extern datastructures::Tree<Element1D> elem_tree;
 
+// Debug function for reseting all the `time trees`
+void ResetTrees();
+
 }  // namespace Time
