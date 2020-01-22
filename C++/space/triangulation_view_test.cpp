@@ -57,9 +57,9 @@ TEST(TriangulationView, VertexSubTree) {
 
   // Check there are no duplicats.
   auto vertices_view = T_view.vertex_view_.Bfs();
-  std::set<std::shared_ptr<Vertex>> vertices_subtree;
+  std::set<Vertex *> vertices_subtree;
   for (auto &nv : vertices_view) {
-    vertices_subtree.insert(nv->node());
+    vertices_subtree.insert(nv->node().get());
   }
   ASSERT_EQ(vertices_subtree.size(), vertices_view.size());
   // Check all nodes necessary for the elem subtree are
@@ -72,9 +72,9 @@ TEST(TriangulationView, VertexSubTree) {
 
   // And the other way around.
   auto elements_view = T_view.element_view_.Bfs();
-  std::set<std::shared_ptr<Element2D>> elements_subtree;
+  std::set<Element2D *> elements_subtree;
   for (auto &nv : elements_view) {
-    elements_subtree.insert(nv->node());
+    elements_subtree.insert(nv->node().get());
   }
   ASSERT_EQ(elements_subtree.size(), elements_view.size());
   // Check all nodes necessary for the elem subtree are
