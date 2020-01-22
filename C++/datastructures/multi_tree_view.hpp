@@ -83,9 +83,9 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 
   // Bfs can be used to retrieve the underlying nodes.
   template <typename Func = T_func_noop>
-  std::vector<I*> Bfs(bool include_metaroot = false,
-                      const Func& callback = func_noop,
-                      bool return_nodes = true);
+  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false,
+                                      const Func& callback = func_noop,
+                                      bool return_nodes = true);
 
   // DeepRefine refines the multitree according to the underlying trees.
   template <typename FuncFilt = T_func_true, typename FuncPost = T_func_noop>
@@ -136,7 +136,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 
  private:
   template <size_t i, size_t j>
-  I* FindBrother(const TupleNodes& nodes, bool make_conforming);
+  std::shared_ptr<I> FindBrother(const TupleNodes& nodes, bool make_conforming);
 };
 
 template <typename I, typename... T>
@@ -262,7 +262,7 @@ class MultiTreeView {
   MT_other DeepCopy(const FuncPost& call_postprocess = func_noop) const;
 
   // Simple helpers.
-  std::vector<I*> Bfs(bool include_metaroot = false) const {
+  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false) const {
     return root->Bfs(include_metaroot);
   }
   template <typename FuncFilt = T_func_true, typename FuncPost = T_func_noop>

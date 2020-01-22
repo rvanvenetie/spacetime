@@ -7,13 +7,15 @@ namespace datastructures {
 
 template <typename I, typename TupleNodes>
 template <typename Func>
-inline std::vector<I*> MultiNodeViewInterface<I, TupleNodes>::Bfs(
-    bool include_metaroot, const Func& callback, bool return_nodes) {
+inline std::vector<std::shared_ptr<I>>
+MultiNodeViewInterface<I, TupleNodes>::Bfs(bool include_metaroot,
+                                           const Func& callback,
+                                           bool return_nodes) {
   assert(is_root() && !self().marked());
-  std::vector<I*> nodes;
-  std::queue<I*> queue;
+  std::vector<std::shared_ptr<I>> nodes;
+  std::queue<std::shared_ptr<I>> queue;
 
-  queue.emplace(static_cast<I*>(this));
+  queue.emplace(self().shared_from_this());
   self().set_marked(true);
   while (!queue.empty()) {
     auto node = queue.front();
@@ -25,7 +27,7 @@ inline std::vector<I*> MultiNodeViewInterface<I, TupleNodes>::Bfs(
       for (const auto& child : node->children(i))
         if (!child->marked()) {
           child->set_marked(true);
-          queue.emplace(child.get());
+          queue.emplace(child);
         }
   }
   for (const auto& node : nodes) {
@@ -67,14 +69,14 @@ void MultiNodeViewInterface<I, TupleNodes>::Union(
     const FuncPost& call_postprocess) {
   assert(is_root() && other->is_root());
   assert(self().nodes() == other->nodes());
-  std::queue<std::pair<I*, I_other*>> queue;
-  queue.emplace(static_cast<I*>(this), other.get());
+  std::queue<std::pair<std::shared_ptr<I>, std::shared_ptr<I_other>>> queue;
+  queue.emplace(self().shared_from_this(), other);
   self().set_marked(true);
 
-  std::vector<I*> my_nodes;
+  std::vector<std::shared_ptr<I>> my_nodes;
   while (!queue.empty()) {
-    I* my_node;
-    I_other* other_node;
+    std::shared_ptr<I> my_node;
+    std::shared_ptr<I_other> other_node;
 
     std::tie(my_node, other_node) = queue.front();
     queue.pop();
@@ -101,7 +103,7 @@ void MultiNodeViewInterface<I, TupleNodes>::Union(
         for (const auto& other_child : other_node->children(i))
           if (my_child->nodes() == other_child->nodes()) {
             my_child->set_marked(true);
-            queue.emplace(my_child.get(), other_child.get());
+            queue.emplace(my_child, other_child);
             break;
           }
       }
@@ -157,7 +159,7 @@ inline bool MultiNodeViewInterface<I, TupleNodes>::Refine(
         TupleNodes brother_nodes(child_nodes);
         std::get<j>(brother_nodes) = child_parent_j->shared_from_this();
         brothers[j].push_back(
-            FindBrother<i, j>(brother_nodes, make_conforming));
+            FindBrother<i, j>(brother_nodes, make_conforming).get());
       }
     });
 
@@ -185,16 +187,16 @@ inline bool MultiNodeViewInterface<I, TupleNodes>::Refine(
 
 template <typename I, typename TupleNodes>
 template <size_t i, size_t j>
-inline I* MultiNodeViewInterface<I, TupleNodes>::FindBrother(
+inline std::shared_ptr<I> MultiNodeViewInterface<I, TupleNodes>::FindBrother(
     const TupleNodes& nodes, bool make_conforming) {
   if (nodes == self().nodes()) {
-    return static_cast<I*>(this);
+    return self().shared_from_this();
   }
 
   for (const auto& parent_j : self().parents(j)) {
     for (const auto& sibling_i : parent_j->children(i)) {
       if (sibling_i->nodes() == nodes) {
-        return sibling_i.get();
+        return sibling_i;
       }
     }
   }
