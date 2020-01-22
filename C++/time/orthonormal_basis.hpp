@@ -29,7 +29,8 @@ class DiscLinearScalingFn : public ScalingFn<DiscLinearScalingFn> {
                                const std::vector<Element1D *> support)
       : ScalingFn<DiscLinearScalingFn>(parents, index, support) {}
 
-  double EvalMother(double t, bool deriv) override;
+  double EvalMother(double t, bool deriv) const override;
+  double Eval(double t, bool deriv = false) const override;
   bool Refine();
 
  protected:

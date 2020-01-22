@@ -26,7 +26,7 @@ DiscLinearScalingFn::DiscLinearScalingFn() : ScalingFn<DiscLinearScalingFn>() {
   children_.push_back(scaling_right);
 }
 
-double DiscLinearScalingFn::EvalMother(double t, bool deriv) {
+double DiscLinearScalingFn::EvalMother(double t, bool deriv) const {
   double mask = (0 <= t) && (t < 1);
   if (!deriv) {
     if (pw_constant())
@@ -39,6 +39,12 @@ double DiscLinearScalingFn::EvalMother(double t, bool deriv) {
     else
       return sqrt(3) * 2.0 * mask;
   }
+}
+
+double DiscLinearScalingFn::Eval(double t, bool deriv) const {
+  auto [l, n] = labda();
+  double chain_rule_constant = deriv ? std::pow(2, l) : 1;
+  return chain_rule_constant * EvalMother(std::pow(2, l) * t - (n / 2), deriv);
 }
 
 bool DiscLinearScalingFn::Refine() {
