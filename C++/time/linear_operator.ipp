@@ -7,8 +7,11 @@
 
 namespace Time {
 
+/**
+ *  Implementations of LinearOperator.
+ */
 template <typename basis_in, typename basis_out>
-SparseVector<basis_out> LinearOperator<basis_in, basis_out>::matvec(
+SparseVector<basis_out> LinearOperator<basis_in, basis_out>::MatVec(
     const SparseVector<basis_in> &vec) const {
   SparseVector<basis_out> result;
   for (auto [labda_in, coeff_in] : vec)
@@ -19,7 +22,7 @@ SparseVector<basis_out> LinearOperator<basis_in, basis_out>::matvec(
 }
 
 template <typename basis_in, typename basis_out>
-SparseVector<basis_in> LinearOperator<basis_in, basis_out>::rmatvec(
+SparseVector<basis_in> LinearOperator<basis_in, basis_out>::RMatVec(
     const SparseVector<basis_out> &vec) const {
   SparseVector<basis_in> result;
   for (auto [labda_out, coeff_out] : vec)
@@ -30,7 +33,7 @@ SparseVector<basis_in> LinearOperator<basis_in, basis_out>::rmatvec(
 }
 
 template <typename basis_in, typename basis_out>
-SparseVector<basis_out> LinearOperator<basis_in, basis_out>::matvec(
+SparseVector<basis_out> LinearOperator<basis_in, basis_out>::MatVec(
     const SparseVector<basis_in> &vec,
     std::vector<basis_out *> indices_out) const {
   vec.StoreInTree();
@@ -45,7 +48,7 @@ SparseVector<basis_out> LinearOperator<basis_in, basis_out>::matvec(
   return result;
 }
 template <typename basis_in, typename basis_out>
-SparseVector<basis_in> LinearOperator<basis_in, basis_out>::rmatvec(
+SparseVector<basis_in> LinearOperator<basis_in, basis_out>::RMatVec(
     const SparseVector<basis_out> &vec,
     std::vector<basis_in *> indices_in) const {
   vec.StoreInTree();
@@ -59,6 +62,10 @@ SparseVector<basis_in> LinearOperator<basis_in, basis_out>::rmatvec(
   result.Compress();
   return result;
 }
+
+/**
+ *  Implementations of Prolongate.
+ */
 
 template <>
 SparseVector<ContLinearScalingFn> Prolongate<ContLinearScalingFn>::Column(
@@ -85,6 +92,9 @@ SparseVector<ContLinearScalingFn> Prolongate<ContLinearScalingFn>::Row(
   return result;
 }
 
+/**
+ *  Implementations of the Mass operator.
+ */
 template <>
 SparseVector<ContLinearScalingFn>
 MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(

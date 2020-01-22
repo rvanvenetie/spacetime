@@ -10,24 +10,24 @@ namespace Time {
 template <typename basis_in, typename basis_out>
 class LinearOperator {
  public:
-  // This matvec applies the operator column-wise.
-  SparseVector<basis_out> matvec(const SparseVector<basis_in> &vec) const;
-  SparseVector<basis_in> rmatvec(const SparseVector<basis_out> &vec) const;
+  // This MatVec applies the operator column-wise.
+  SparseVector<basis_out> MatVec(const SparseVector<basis_in> &vec) const;
+  SparseVector<basis_in> RMatVec(const SparseVector<basis_out> &vec) const;
 
-  // This matvec applies the operator row-wise for the given output indices.
-  SparseVector<basis_out> matvec(const SparseVector<basis_in> &vec,
+  // This MatVec applies the operator row-wise for the given output indices.
+  SparseVector<basis_out> MatVec(const SparseVector<basis_in> &vec,
                                  std::vector<basis_out *> indices_out) const;
-  SparseVector<basis_in> rmatvec(const SparseVector<basis_out> &vec,
+  SparseVector<basis_in> RMatVec(const SparseVector<basis_out> &vec,
                                  std::vector<basis_in *> indices_out) const;
 
   // Create functor operators, for convenience.
   SparseVector<basis_out> operator()(const SparseVector<basis_in> &vec) const {
-    return matvec(vec);
+    return MatVec(vec);
   }
   SparseVector<basis_out> operator()(
       const SparseVector<basis_in> &vec,
       std::vector<basis_out *> indices_out) const {
-    return matvec(vec, indices_out);
+    return MatVec(vec, indices_out);
   }
 
   // Column should be the column vector associated to the given basis function.

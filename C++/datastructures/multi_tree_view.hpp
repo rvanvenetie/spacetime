@@ -27,7 +27,7 @@ constexpr void static_for(Func&& f) {
 // Returns an array of levels of the underlying nodes.
 template <typename TupleNodes, size_t dim = std::tuple_size_v<TupleNodes>>
 constexpr std::array<int, dim> levels(const TupleNodes& nodes) {
-  std::array<int, dim> result;
+  std::array<int, dim> result{-1337};
   static_for<dim>([&](auto i) { result[i] = std::get<i>(nodes)->level(); });
   return result;
 }
