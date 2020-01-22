@@ -5,7 +5,7 @@ package_add_test(basis_test basis_test.cpp)
 target_link_libraries(basis_test time)
 
 package_add_test(linear_operator_test linear_operator_test.cpp)
-target_link_libraries(linear_operator_test time Eigen3::Eigen)
+target_link_libraries(linear_operator_test time)
 
 package_add_test(sparse_vector_test sparse_vector_test.cpp)
 target_link_libraries(sparse_vector_test time)
