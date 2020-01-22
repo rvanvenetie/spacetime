@@ -1,4 +1,4 @@
-add_library(time SHARED basis.cpp haar_basis.cpp three_point_basis.cpp)
+add_library(time SHARED basis.cpp haar_basis.cpp orthonormal_basis.cpp three_point_basis.cpp)
 
 # Create tests
 package_add_test(basis_test basis_test.cpp)
