@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <iostream>
 #include <memory>
 
 #include "../datastructures/tree.hpp"
@@ -45,7 +46,7 @@ class Function : public datastructures::Node<I> {
   inline int index() const { return index_; }
   const std::vector<Element1D *> &support() const { return support_; }
 
-  virtual double Eval(double t, bool deriv = false) = 0;
+  virtual double Eval(double t, bool deriv = false) const = 0;
 
  protected:
   // Protected constructor for creating a metaroot.
@@ -66,15 +67,15 @@ class ScalingFn : public Function<I> {
   std::vector<std::pair<typename FunctionTrait<I>::Wavelet *, double>>
       multi_scale_;
 
-  double Eval(double t, bool deriv = false) override {
+  double Eval(double t, bool deriv = false) const override {
     int l = I::level_;
-    int n = I::support_[0]->index();
+    int n = I::index_;
     double chain_rule_constant = deriv ? std::pow(2, l) : 1;
     return chain_rule_constant * EvalMother(std::pow(2, l) * t - n, deriv);
   }
 
   // To be implemented by derived classes.
-  virtual double EvalMother(double t, bool deriv) = 0;
+  virtual double EvalMother(double t, bool deriv) const = 0;
 
  protected:
   using Function<I>::Function;
@@ -97,7 +98,7 @@ class WaveletFn : public Function<I> {
       assert(single_scale[i].first != nullptr);
       // Sanity check.
       if (i > 0) {
-        assert(single_scale_[i - 1].first->index() + 1 ==
+        assert(single_scale_[i - 1].first->index() <
                single_scale_[i].first->index());
       }
 
@@ -117,7 +118,7 @@ class WaveletFn : public Function<I> {
     support_.erase(last, support_.end());
   }
 
-  double Eval(double t, bool deriv = false) final {
+  double Eval(double t, bool deriv = false) const final {
     double result = 0;
     for (auto [fn, coeff] : single_scale_) {
       result += coeff * fn->Eval(t, deriv);
@@ -127,7 +128,6 @@ class WaveletFn : public Function<I> {
 
  protected:
   using Function<I>::Function;
-
   using Function<I>::support_;
 
   // This maps a wavelet to its single scale representation.

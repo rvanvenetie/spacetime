@@ -8,13 +8,14 @@ namespace Time {
 datastructures::Tree<DiscConstantScalingFn> disc_cons_tree;
 datastructures::Tree<HaarWaveletFn> haar_tree;
 
+// Metaroot constructor.
 DiscConstantScalingFn::DiscConstantScalingFn()
     : ScalingFn<DiscConstantScalingFn>() {
   children_.push_back(
       std::make_shared<DiscConstantScalingFn>(this, 0, mother_element));
 }
 
-double DiscConstantScalingFn::EvalMother(double t, bool deriv) {
+double DiscConstantScalingFn::EvalMother(double t, bool deriv) const {
   if (deriv || t < 0 || t >= 1)
     return 0;
   else

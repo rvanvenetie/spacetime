@@ -103,9 +103,7 @@ bool OrthonormalWaveletFn::Refine() {
         /* parents */ std::vector{parents[0].get(), parents[1].get()},
         /* index */ 1,
         /* single_scale */
-        std::vector{std::pair{l1_scalings[0].get(), 0.0},
-                    std::pair{l1_scalings[1].get(), -1.0},
-                    std::pair{l1_scalings[2].get(), 0.0},
+        std::vector{std::pair{l1_scalings[1].get(), -1.0},
                     std::pair{l1_scalings[3].get(), 1.0}}));
     if (index_ == 0)
       parents[1]->children_ = children_;
@@ -135,9 +133,7 @@ bool OrthonormalWaveletFn::Refine() {
           /* parents */ parents,
           /* index */ 2 * (n + i) + 1,
           /* single_scale */
-          std::vector{std::pair{phi->children_[0].get(), 0.0},
-                      std::pair{phi->children_[1].get(), -s},
-                      std::pair{phi->children_[2].get(), 0.0},
+          std::vector{std::pair{phi->children_[1].get(), -s},
                       std::pair{phi->children_[3].get(), s}}));
     }
     nbr->children_ = children_;
