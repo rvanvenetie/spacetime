@@ -57,9 +57,16 @@ class MultiNodeViewInterface(NodeInterface):
         else:
             return len(self._children[i]) == len(self.nodes[i].children)
 
-    def is_metaroot(self):
+    def is_metaroot(self, i=None):
         """ Returns whether node in any the axes represents a metaroot. """
-        return any(self.nodes[i].is_metaroot() for i in range(self.dim))
+        if i is None:
+            return any(self.nodes[i].is_metaroot() for i in range(self.dim))
+        else:
+            return self.nodes[i].is_metaroot()
+
+    def is_root(self):
+        """ Returns whether this multi node view is the root of the mt tree. """
+        return all(self.nodes[i].is_metaroot() for i in range(self.dim))
 
     def coarsen(self):
         return self._coarsen()
@@ -152,10 +159,32 @@ class MultiNodeViewInterface(NodeInterface):
                     for child_parent_j in child_nodes[j].parents
                 ])
 
+            # Create the actual child object.
             child = self.__class__(nodes=child_nodes, parents=brothers)
+
+            # Add it as a child to the correct brothers.
             for j in range(self.dim):
                 for brother in brothers[j]:
                     brother._children[j].append(child)
+
+            # Check whether we added this child to a metaroot. If this is the
+            # case, and make_conforming is set, then we should now create
+            # all children of this metaroot.
+            if make_conforming:
+                for j in range(self.dim):
+                    for brother in brothers[j]:
+                        if brother.is_metaroot(j) and brother != self:
+                            brother.refine(j)
+
+        # Assert metaroot constraint.
+        for j in range(self.dim):
+            if self.is_metaroot(j) and len(self._children[j]) not in [
+                    0, len(self.nodes[j].children)
+            ]:
+                print(
+                    'This node violates the (metaroot) double tree constraint')
+                print(self, j, self.children[j])
+                assert False
 
         return self._children[i]
 
@@ -200,6 +229,7 @@ class MultiNodeViewInterface(NodeInterface):
               second arg will hold a ref to the second tree.
         """
         if call_postprocess is None: call_postprocess = lambda _, __: None
+        if call_filter is None: call_filter = lambda _: True
         assert isinstance(other, MultiNodeViewInterface)
         assert self.nodes == other.nodes and self.dim == other.dim
         queue = deque([(self, other)])
@@ -214,11 +244,12 @@ class MultiNodeViewInterface(NodeInterface):
             my_nodes.append(my_node)
 
             for i in range(self.dim):
-                # Refine according to the call_filter.
+                filtered_children = list(
+                    filter(call_filter, other_node._children[i]))
+
+                # Refine according to the filtered children.
                 my_node._refine(
-                    i=i,
-                    children=[c.nodes[i] for c in other_node._children[i]],
-                    call_filter=call_filter)
+                    i=i, children=[c.nodes[i] for c in filtered_children])
 
                 # Only put children that other_node has as well into the queue.
                 for my_child in my_node._children[i]:
@@ -229,6 +260,8 @@ class MultiNodeViewInterface(NodeInterface):
         # Reset mark field.
         for my_node in my_nodes:
             my_node.marked = False
+
+        return my_nodes
 
     def _deep_refine(self, call_filter=None, call_postprocess=None):
         """ Deep-refines `self` by recursively refining the multitree.
@@ -241,7 +274,7 @@ class MultiNodeViewInterface(NodeInterface):
         """
         if call_postprocess is None: call_postprocess = lambda _: None
         my_nodes = []
-        queue = deque([self])
+        queue = deque(self.refine())
         while queue:
             my_node = queue.popleft()
             if my_node.marked: continue
@@ -338,7 +371,7 @@ class MultiTree:
 
     def __init__(self, root):
         assert isinstance(root, self.mlt_node_cls)
-        assert all(root.nodes[i].is_metaroot() for i in range(root.dim))
+        assert root.is_root()
         self.root = root
 
     @classmethod
@@ -379,10 +412,9 @@ class MultiTree:
 
     def union(self, other, call_filter=None, call_postprocess=None):
         if isinstance(other, MultiTree): other = other.root
-        self.root._union(other,
-                         call_filter=call_filter,
-                         call_postprocess=call_postprocess)
-        return self
+        return self.root._union(other,
+                                call_filter=call_filter,
+                                call_postprocess=call_postprocess)
 
     def uniform_refine(self, max_levels=None, call_postprocess=None):
         """ Sparse refines the root of this multi tree view. """
@@ -399,3 +431,47 @@ class MultiTree:
     def deep_refine(self, call_filter=None, call_postprocess=None):
         """ Deep refines the root of this multi tree view. """
         self.root._deep_refine(call_filter, call_postprocess)
+
+    @classmethod
+    def make_conforming(cls, nodes):
+        """ Creates the smallest conf. mt. tree containing the given nodes. """
+        # We will mark all the multinodes that should be in the tree.
+        queue = deque(nodes)
+        marked_nodes = []
+        root = None
+        while queue:
+            node = queue.popleft()
+            if node.marked: continue
+
+            # This is the root of the double tree.
+            if node.is_root():
+                assert root is None
+                root = node
+
+            node.marked = True
+            marked_nodes.append(node)
+            for i in range(node.dim):
+
+                # Add all parents in the `i`-axis.
+                for parent in node._parents[i]:
+                    queue.append(parent)
+
+                    # If the parent is a metaroot, include all its children.
+                    # This is to ensure that all roots are in the db tree.
+                    if parent.is_metaroot(i):
+                        queue.extend(parent._children[i])
+
+        # Create a new tree.
+        assert root is not None
+        result = cls.from_metaroots(root.nodes)
+        result.root.refine()
+
+        # Now take a union of the original double root, but only copy in all
+        # the nodes that we've marked.
+        result.root._union(root, call_filter=lambda mlt_node: mlt_node.marked)
+
+        # Unmark the items.
+        for node in marked_nodes:
+            node.marked = False
+
+        return result

@@ -49,7 +49,7 @@ class DiscConstScaling(basis.Scaling):
         return (0 <= t) & (t < 1)
 
     def eval(self, t, deriv=False):
-        assert not deriv
+        if deriv: return 0
         l, n = self.labda
         return 1.0 * self.eval_mother(2**l * t - n)
 

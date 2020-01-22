@@ -20,9 +20,18 @@ class Applicator(ApplicatorInterface):
         self.applicator_time = applicator_time
         self.applicator_space = applicator_space
 
-    def sigma(self):
-        """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
+        # Initialize sigma/theta.
+        self.sigma = self._initialize_sigma()
+        self.theta = self._initialize_theta()
 
+        # Initialize low/upp part of the out vector.
+        self.vec_out_low = self.Lambda_out.deep_copy(
+            mlt_tree_cls=DoubleTreeVector)
+        self.vec_out_upp = self.Lambda_out.deep_copy(
+            mlt_tree_cls=DoubleTreeVector)
+
+    def _initialize_sigma(self):
+        """ Constructs the double tree Sigma for Lambda_in and Lambda_out. """
         # Initialize the element.Sigma_psi_out field.
         for psi_out in self.Lambda_out.project(0).bfs():
             for elem in psi_out.node.support:
@@ -65,7 +74,7 @@ class Applicator(ApplicatorInterface):
                 elem.Sigma_psi_out = []
         return sigma
 
-    def theta(self):
+    def _initialize_theta(self):
         # Theta is actually an empty vector.
         theta = DoubleTreeVector.from_metaroots(
             (self.Lambda_out.root.nodes[0], self.Lambda_in.root.nodes[1]))
@@ -91,7 +100,7 @@ class Applicator(ApplicatorInterface):
             # support with a labda_in, a node from fiber_labda_0.
             def call_filter(psi_out_labda_0):
                 return any(elem.Theta_psi_in
-                           for elem in psi_out_labda_0.support)
+                           for elem in psi_out_labda_0.node.support)
 
             psi_in_labda_1.frozen_other_axis().union(
                 self.Lambda_out.project(0), call_filter=call_filter)
@@ -104,48 +113,47 @@ class Applicator(ApplicatorInterface):
         theta.compute_fibers()
         return theta
 
-    def apply(self, vec):
+    def apply(self, vec_in, vec_out=None):
         """ Apply the tensor product applicator to the given vector. """
         # Assert that vec is defined on Lambda_in
         assert all(n1.nodes == n2.nodes
-                   for n1, n2 in zip(vec.bfs(), self.Lambda_in.bfs()))
+                   for n1, n2 in zip(vec_in.bfs(), self.Lambda_in.bfs()))
 
-        # Shortcut for clarity.
-        vec_in = vec
-
-        # Create two empty out vectors for the L and U part.
-        vec_out_low = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
-        vec_out_upp = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
+        # Empty the necessary vectors.
+        self.vec_out_low.reset()
+        self.vec_out_upp.reset()
+        self.sigma.reset()
+        self.theta.reset()
 
         # Calculate R_sigma(Id x A_1)I_Lambda
-        sigma = self.sigma()
-        for psi_in_labda in sigma.project(0).bfs():
+        for psi_in_labda in self.sigma.project(0).bfs():
             fiber_in = vec_in.fiber(1, psi_in_labda)
-            fiber_out = sigma.fiber(1, psi_in_labda)
+            fiber_out = self.sigma.fiber(1, psi_in_labda)
             self.applicator_space.apply(fiber_in, fiber_out)
 
         # Calculate R_Lambda(L_0 x Id)I_Sigma
-        for psi_out_labda in vec_out_low.project(1).bfs():
-            fiber_in = sigma.fiber(0, psi_out_labda)
-            fiber_out = vec_out_low.fiber(0, psi_out_labda)
+        for psi_out_labda in self.vec_out_low.project(1).bfs():
+            fiber_in = self.sigma.fiber(0, psi_out_labda)
+            fiber_out = self.vec_out_low.fiber(0, psi_out_labda)
             self.applicator_time.apply_low(fiber_in, fiber_out)
 
         # Calculate R_Theta(U_1 x Id)I_Lambda
-        theta = self.theta()
-        for psi_in_labda in theta.project(1).bfs():
+        for psi_in_labda in self.theta.project(1).bfs():
             fiber_in = vec_in.fiber(0, psi_in_labda)
-            fiber_out = theta.fiber(0, psi_in_labda)
+            fiber_out = self.theta.fiber(0, psi_in_labda)
             self.applicator_time.apply_upp(fiber_in, fiber_out)
 
         # Calculate R_Lambda(id x A2)I_Theta
-        for psi_out_labda in vec_out_upp.project(0).bfs():
-            fiber_in = theta.fiber(1, psi_out_labda)
-            fiber_out = vec_out_upp.fiber(1, psi_out_labda)
+        for psi_out_labda in self.vec_out_upp.project(0).bfs():
+            fiber_in = self.theta.fiber(1, psi_out_labda)
+            fiber_out = self.vec_out_upp.fiber(1, psi_out_labda)
             self.applicator_space.apply(fiber_in, fiber_out)
 
         # Sum and return the results.
-        vec_out = vec_out_low
-        vec_out += vec_out_upp
+        if not vec_out:
+            vec_out = self.Lambda_out.deep_copy(mlt_tree_cls=DoubleTreeVector)
+        vec_out.from_array(self.vec_out_low.to_array() +
+                           self.vec_out_upp.to_array())
         return vec_out
 
     def transpose(self):
@@ -154,3 +162,30 @@ class Applicator(ApplicatorInterface):
                           Lambda_out=self.Lambda_in,
                           applicator_time=self.applicator_time.transpose(),
                           applicator_space=self.applicator_space.transpose())
+
+
+class BlockDiagonalApplicator(ApplicatorInterface):
+    """ Class that implements R_Lambda (Id x A) I_Lambda. """
+    def __init__(self, Lambda, applicator_space):
+        super().__init__(Lambda_in=Lambda, Lambda_out=Lambda)
+        self.Lambda_in.compute_fibers()
+        self.applicator_space = applicator_space
+
+    def apply(self, vec_in):
+        vec_out = self.Lambda_out.deep_copy(
+            mlt_tree_cls=DoubleTreeVector, call_postprocess=lambda _, __: None)
+
+        for psi_in_lambda in self.Lambda_out.project(0).bfs():
+            fiber_in = vec_in.fiber(1, psi_in_lambda)
+            fiber_out = vec_out.fiber(1, psi_in_lambda)
+            self.applicator_space.apply(vec_in=fiber_in,
+                                        vec_out=fiber_out,
+                                        labda=psi_in_lambda.node)
+
+        return vec_out
+
+    def transpose(self):
+        """ Transposes this spacetime bilinear formulation. """
+        return BlockDiagonalApplicator(
+            Lambda=self.Lambda,
+            applicator_space=self.applicator_space.transpose())

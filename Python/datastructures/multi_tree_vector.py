@@ -34,10 +34,15 @@ class MultiNodeVector(MultiNodeVectorInterface, MultiNodeView):
 class MultiTreeVector(MultiTree):
     def to_array(self):
         """ Transforms a multi tree vector to a numpy vector, in kron order. """
-        return np.array([node.value for node in self.bfs_kron()], dtype=float)
+        result = np.array([node.value for node in self.bfs_kron()],
+                          dtype=float)
+        assert len(result.shape) == 1
+        return result
 
     def from_array(self, array):
         """ Loads the values from an array in bfs kron order. """
+        array = array.squeeze()
+        assert len(array.shape) == 1
         nodes = self.bfs_kron()
         assert len(nodes) == len(array)
         for idx, node in enumerate(nodes):
@@ -71,24 +76,38 @@ class MultiTreeVector(MultiTree):
     def sum(self):
         return sum(nv.value for nv in self.bfs())
 
+    def norm(self):
+        """ Returns the l2 norm of this vector. """
+        return np.linalg.norm(self.to_array(), 2)
+
+    def reset(self):
+        """ Resets all the values in the underlying tree to zero. """
+        for node in self.bfs():
+            node.value = 0
+        return self
+
     def __iadd__(self, other):
         """ Add two double trees. """
         return self.axpy(other)
 
     def __isub__(self, other):
         """ Subtract a double tree. """
-        assert isinstance(other, MultiTreeVector)
-
-        def call_sub(my_node, other_node):
-            my_node.value -= other_node.value
-
-        self.root._union(other.root, call_postprocess=call_sub)
-        return self
+        return self.axpy(other, -1)
 
     def __imul__(self, x):
         """ Recursive `mul` operator. """
-        for node in self.bfs():
-            node.value *= x
+        if isinstance(x, MultiTreeVector):
+
+            my_nodes = self.bfs()
+            x_nodes = x.bfs()
+            assert len(my_nodes) == len(x_nodes)
+            for my_node, x_node in zip(my_nodes, x_nodes):
+                assert my_node.nodes == x_node.nodes
+                my_node.value *= x_node.value
+        else:
+            for node in self.bfs():
+                node.value *= x
+
         return self
 
 
@@ -105,11 +124,15 @@ class BlockTreeVector:
         return self.vecs[i]
 
     def __isub__(self, other):
+        assert isinstance(other, BlockTreeVector) and len(other.vecs) == len(
+            self.vecs)
         for i, vec in enumerate(self.vecs):
             vec -= other[i]
         return self
 
     def __iadd__(self, other):
+        assert isinstance(other, BlockTreeVector) and len(other.vecs) == len(
+            self.vecs)
         for i, vec in enumerate(self.vecs):
             vec += other[i]
         return self
