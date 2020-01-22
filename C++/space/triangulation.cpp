@@ -30,20 +30,21 @@ bool Element2D::Refine() {
 
 VertexPtr Element2D::CreateNewVertex(Element2DPtr nbr) {
   assert(is_leaf());
-  std::vector<Vertex *> vertex_parents{newest_vertex().get()};
+  std::vector<Vertex *> vertex_parents{newest_vertex()};
   if (nbr) {
     assert(nbr->edge(0) == reversed_edge(0));
-    vertex_parents.emplace_back(nbr->newest_vertex().get());
+    vertex_parents.emplace_back(nbr->newest_vertex());
   }
 
   ArrayVertexPtr<2> godparents{{vertices_[1], vertices_[2]}};
-  auto new_vertex =
-      std::make_shared<Vertex>((godparents[0]->x + godparents[1]->x) / 2,
-                               (godparents[0]->y + godparents[1]->y) / 2,
-                               nbr == nullptr, vertex_parents);
+  auto new_vertex = std::make_shared<Vertex>(
+      /* parents */ vertex_parents,
+      /* x */ (godparents[0]->x + godparents[1]->x) / 2,
+      /* y */ (godparents[0]->y + godparents[1]->y) / 2,
+      /* on_domain_boundary */ nbr == nullptr);
   for (const auto &vertex_parent : vertex_parents)
     vertex_parent->children().push_back(new_vertex);
-  return new_vertex;
+  return new_vertex.get();
 }
 
 ArrayElement2DPtr<2> Element2D::Bisect(VertexPtr new_vertex) {
@@ -56,28 +57,28 @@ ArrayElement2DPtr<2> Element2D::Bisect(VertexPtr new_vertex) {
   auto child2 = std::make_shared<Element2D>(
       this, ArrayVertexPtr<3>{{new_vertex, vertices_[2], vertices_[0]}});
   children_ = {{child1, child2}};
-  child1->neighbours = {{neighbours[2], nullptr, child2}};
-  child2->neighbours = {{neighbours[1], child1, nullptr}};
+  child1->neighbours = {{neighbours[2], nullptr, child2.get()}};
+  child2->neighbours = {{neighbours[1], child1.get(), nullptr}};
 
   assert(child1->edge(2) == child2->reversed_edge(1));
-  new_vertex->patch.push_back(child1);
-  new_vertex->patch.push_back(child2);
+  new_vertex->patch.push_back(child1.get());
+  new_vertex->patch.push_back(child2.get());
 
   if (neighbours[2]) {
     for (int i = 0; i < 3; ++i) {
-      if (neighbours[2]->neighbours[i] == shared_from_this()) {
-        neighbours[2]->neighbours[i] = child1;
+      if (neighbours[2]->neighbours[i] == this) {
+        neighbours[2]->neighbours[i] = child1.get();
       }
     }
   }
   if (neighbours[1]) {
     for (int i = 0; i < 3; ++i) {
-      if (neighbours[1]->neighbours[i] == shared_from_this()) {
-        neighbours[1]->neighbours[i] = child2;
+      if (neighbours[1]->neighbours[i] == this) {
+        neighbours[1]->neighbours[i] = child2.get();
       }
     }
   }
-  return {{child1, child2}};
+  return {{child1.get(), child2.get()}};
 }
 
 void Element2D::BisectWithNbr() {
@@ -107,8 +108,8 @@ InitialTriangulation::InitialTriangulation(
 
   for (const auto &vertex : vertices) {
     vertex_roots.push_back(std::make_shared<Vertex>(
-        vertex[0], vertex[1], false,
-        std::vector<Vertex *>{vertex_meta_root.get()}));
+        /* parents */ std::vector<Vertex *>{vertex_meta_root.get()},
+        /* x */ vertex[0], /* y */ vertex[1], /* on_domain_boundary */ false));
   }
 
   for (const auto &element : elements) {
@@ -118,10 +119,12 @@ InitialTriangulation::InitialTriangulation(
                        (vertices[element[0]][0] - vertices[element[1]][0]) *
                            (vertices[element[2]][1] - vertices[element[0]][1]));
     element_roots.push_back(std::make_shared<Element2D>(
-        elem_meta_root.get(),
-        ArrayVertexPtr<3>{vertex_roots[element[0]], vertex_roots[element[1]],
-                          vertex_roots[element[2]]},
-        elem_area));
+        /* parent */ elem_meta_root.get(),
+        /* vertices */
+        ArrayVertexPtr<3>{vertex_roots[element[0]].get(),
+                          vertex_roots[element[1]].get(),
+                          vertex_roots[element[2]].get()},
+        /* area */ elem_area));
   }
 
   // Set neighbour information.
@@ -130,8 +133,8 @@ InitialTriangulation::InitialTriangulation(
       for (int k = 0; k < 3; k++) {
         for (int l = 0; l < 3; l++) {
           if (element_roots[i]->edge(k) == element_roots[j]->reversed_edge(l)) {
-            element_roots[i]->neighbours[k] = element_roots[j];
-            element_roots[j]->neighbours[l] = element_roots[i];
+            element_roots[i]->neighbours[k] = element_roots[j].get();
+            element_roots[j]->neighbours[l] = element_roots[i].get();
           }
         }
       }
@@ -141,7 +144,7 @@ InitialTriangulation::InitialTriangulation(
   // Determine patches for the vertices.
   for (const auto &element : element_roots) {
     for (const auto &vertex : element->vertices()) {
-      vertex->patch.push_back(element);
+      vertex->patch.push_back(element.get());
     }
   }
 
