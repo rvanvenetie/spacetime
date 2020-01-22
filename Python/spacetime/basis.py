@@ -4,8 +4,52 @@ from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointWavelet
 
 
+def generate_x_delta_underscore(x_delta):
+    """ Generates X^{underline delta} as in p.27 from followup3.pdf. """
+    assert isinstance(x_delta, DoubleTree)
+    assert isinstance(x_delta.root.nodes[0].children[0], ThreePointWavelet)
+    assert isinstance(x_delta.root.nodes[1].children[0],
+                      HierarchicalBasisFunction)
+
+    x_delta_underscore = x_delta.deep_copy()
+
+    time_leaves = []
+    space_leaves = []
+    for dblnode in x_delta_underscore.bfs():
+        # First, we ensure that the underlying trees are properly refined.
+        if not dblnode.nodes[0].is_full():
+            dblnode.nodes[0].refine()
+        if not dblnode.nodes[1].node.is_full() or not dblnode.nodes[1].is_full(
+        ):
+            dblnode.nodes[1].node.refine()
+            dblnode.nodes[1].refine(make_conforming=True)
+
+        # The first part of this if-statement fends off the situation where
+        # dblnode.children[i] has 0 < n < full elements as a result of adaptive
+        # refinement in X_delta.
+        if not dblnode.is_full(0):
+            # Refine in time-axis...
+            time_leaves.append(dblnode)
+
+        if not dblnode.is_full(1):
+            # and double-refine in space-axis.
+            space_leaves.append(dblnode)
+
+    for dblnode in time_leaves:
+        dblnode.refine(i=0, make_conforming=True)
+
+    for dblnode in space_leaves:
+        children = dblnode.refine(i=1, make_conforming=True)
+        for child in children:
+            child.nodes[1].node.refine()
+            child.nodes[1].refine(make_conforming=True)
+            child.refine(i=1, make_conforming=True)
+
+    return x_delta_underscore
+
+
 def generate_y_delta(x_delta):
-    """ This generates the Y^\delta from X^\delta as given in followup1.pdf  """
+    """ Generates Y^\delta from X^\delta as p.6 from followup3.pdf. """
 
     assert isinstance(x_delta, DoubleTree)
     assert isinstance(x_delta.root.nodes[0].children[0], ThreePointWavelet)

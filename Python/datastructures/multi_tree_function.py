@@ -19,7 +19,7 @@ class MultiTreeFunction(MultiTreeVector):
         assert isinstance(coords, tuple)
         assert len(coords) == self.root.dim
         # If the input coords are arrays, return an array, else a number.
-        if any(isinstance(coord, np.ndarray) for coord in coords):
+        if isinstance(coords[0], np.ndarray) and len(coords[0].shape) > 1:
             assert all(coords[0].shape[-1] == coord.shape[-1]
                        for coord in coords)
             result = np.zeros(coords[0].shape[-1])
@@ -47,6 +47,8 @@ class DoubleTreeFunction(MultiTreeFunction, DoubleTreeVector):
         for nv in self.project(i).bfs():
             # Check if t is contained inside support of time wavelet.
             if nv.node.support_contains(coord):
-                result.axpy(nv.frozen_other_axis(), nv.node.eval(coord))
+                val = nv.node.eval(coord)
+                if val != 0:
+                    result.axpy(nv.frozen_other_axis(), val)
 
         return result

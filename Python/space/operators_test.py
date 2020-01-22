@@ -1,9 +1,12 @@
 import numpy as np
+import pytest
 from numpy.linalg import norm
 from scipy.sparse.linalg import cg
 
 from ..datastructures.tree_view import TreeView
-from .operators import MassOperator, Operator, StiffnessOperator
+from .basis import HierarchicalBasisFunction
+from .operators import (DirectInverse, InterpolantFunctional, MassOperator,
+                        Operator, StiffnessOperator)
 from .triangulation import InitialTriangulation, to_matplotlib_triangulation
 from .triangulation_view import TriangulationView
 
@@ -23,37 +26,107 @@ def test_transformation():
     vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
     vertex_view.deep_refine()
     T_view = TriangulationView(vertex_view)
-    operators = Operator(T_view)
+    op = Operator(T_view)
     v = np.array([0, 0, 0, 1, 0, 0, 0, 0], dtype=float)
     w = np.array([0, 0, 0, 1, 0.5, 0.5, 0.5, 0.75], dtype=float)
-    w2 = operators.apply_T(v)
+    w2 = op.apply_T(v)
     assert norm(w - w2) < 1e-10
 
     v = np.array([0, 0, 0, 0, 0, 0, 0, 1], dtype=float)
     w = np.array([0, 0, 0.25, 0.75, 0.5, 0, 0, 1], dtype=float)
-    w2 = operators.apply_T_transpose(v)
+    w2 = op.apply_T_transpose(v)
     assert norm(w - w2) < 1e-10
 
     for _ in range(10):
         v = np.random.rand(8)
         z = np.random.rand(8)
         # Test that <applyT(v), z> = <v, applyT_transpose(z)>.
-        assert norm(
-            np.inner(v, operators.apply_T_transpose(z)) -
-            np.inner(operators.apply_T(v), z)) < 1e-10
-        assert norm(v -
-                    operators.apply_T(operators.apply_T_inverse(v))) < 1e-10
-        assert norm(v -
-                    operators.apply_T_inverse(operators.apply_T(v))) < 1e-10
-
-        # Test that T_inverse(T) == Id
-        assert np.allclose(operators.apply_T_inverse(operators.apply_T(v)), v)
+        assert np.allclose(np.inner(v, op.apply_T_transpose(z)),
+                           np.inner(op.apply_T(v), z))
 
         # Test that T is a linear operator.
         alpha = np.random.rand()
-        assert norm(
-            operators.apply_T(v + alpha * z) -
-            (operators.apply_T(v) + alpha * operators.apply_T(z))) < 1e-10
+        assert np.allclose(op.apply_T(v + alpha * z),
+                           (op.apply_T(v) + alpha * op.apply_T(z)))
+
+
+def test_as_SS_matrix():
+    """ Tests the `SS_as_matrix` method. """
+    # Setup the triangulation
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(3)
+    vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
+    vertex_view.deep_refine()
+    T_view = TriangulationView(vertex_view)
+
+    for op_cls in [MassOperator, StiffnessOperator]:
+        for dirichlet_boundary in [False, True]:
+            op = op_cls(T_view, dirichlet_boundary=dirichlet_boundary)
+            mat = op.as_SS_matrix()
+            for _ in range(100):
+                v = np.random.rand(len(vertex_view.bfs()))
+                assert np.allclose(mat.dot(v), op.apply_SS(v))
+
+
+def test_direct_inverse():
+    """ Tests the `DirectInverse` class. """
+    # Setup the triangulation
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(3)
+    vertex_view = TreeView.from_metaroot(T.vertex_meta_root)
+    vertex_view.deep_refine()
+    T_view = TriangulationView(vertex_view)
+
+    # An inverse for the StiffnessOperator only exists with dirichlet BC.
+    for op_cls, dirichlet_boundary in [(MassOperator, True),
+                                       (MassOperator, False),
+                                       (StiffnessOperator, True)]:
+        forward_op = op_cls(T_view, dirichlet_boundary)
+        inv_op = DirectInverse(op_cls, T_view, dirichlet_boundary)
+        for _ in range(10):
+            v = np.random.rand(len(vertex_view.bfs()))
+            # Test that T^-1 T v == v.
+            assert np.allclose(v, inv_op.apply_T(inv_op.apply_T_inverse(v)))
+            assert np.allclose(v, inv_op.apply_T_inverse(inv_op.apply_T(v)))
+            # Test that T^-T T^T v == v.
+            assert np.allclose(
+                v,
+                inv_op.apply_T_transpose(inv_op.apply_T_inverse_transpose(v)))
+            assert np.allclose(
+                v,
+                inv_op.apply_T_inverse_transpose(inv_op.apply_T_transpose(v)))
+
+            if dirichlet_boundary:
+                v = forward_op.apply_boundary_restriction(v)
+            assert np.allclose(v, forward_op.apply(inv_op.apply(v)))
+            assert np.allclose(v, inv_op.apply(forward_op.apply(v)))
+
+
+def test_interpolant():
+    """ Tests the `InterpolantFunctional` class. """
+    # Setup the triangulation
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(3)
+    vertex_view = HierarchicalBasisFunction.from_triangulation(T)
+    vertex_view.deep_refine()
+    T_view = TriangulationView(vertex_view)
+
+    eye = np.eye(len(T_view.vertices))
+
+    # Check that the interpolant of a hierarhical basis function is again
+    # the same hierarhical basis function.
+    for dirichlet_boundary in [False, True]:
+        for i, psi in enumerate(vertex_view.bfs()):
+            op = InterpolantFunctional(g=lambda xy: psi.eval(xy),
+                                       dirichlet_boundary=dirichlet_boundary,
+                                       triang=T_view)
+
+            if dirichlet_boundary and psi.node.on_domain_boundary:
+                with pytest.raises(AssertionError):
+                    op.eval()
+            else:
+                interp_g = op.eval()
+                assert np.allclose(interp_g, eye[:, i])
 
 
 def test_galerkin(plot=False):
@@ -88,10 +161,6 @@ def test_galerkin(plot=False):
         ones = np.ones(len(T_view.vertices), dtype=float)
         new_rhs = mass_op.apply_T_transpose(mass_op.apply_SS(ones))
 
-        # Test that T_inverse(T) == Id
-        assert np.allclose(mass_op.apply_T_inverse(mass_op.apply_T(new_rhs)),
-                           new_rhs)
-
         # Test that the first V elements of the right-hand side coincide -- we
         # have a hierarchic basis after all.
         assert norm(rhs - rhs[:rhs.shape[0]]) < 1e-10
@@ -99,7 +168,7 @@ def test_galerkin(plot=False):
 
     rhs = mass_op.apply_boundary_restriction(rhs)
     stiff_op = StiffnessOperator(T_view)
-    stiff_op_scipy = stiff_op.as_boundary_restricted_linear_operator()
+    stiff_op_scipy = stiff_op.as_linear_operator()
     sol_HB, _ = cg(stiff_op_scipy, rhs, atol=0, tol=1e-8)
     sol_SS = stiff_op.apply_T(sol_HB)
 
