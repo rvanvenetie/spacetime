@@ -3,6 +3,7 @@
 
 #include "haar_basis.hpp"
 #include "linear_operator.hpp"
+#include "orthonormal_basis.hpp"
 #include "three_point_basis.hpp"
 
 namespace Time {
@@ -120,7 +121,61 @@ template <>
 SparseVector<ContLinearScalingFn>
 MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Row(
     ContLinearScalingFn *phi_out) const {
+  // This MassOperator is symmetric.
   return Column(phi_out);
+}
+
+template <>
+SparseVector<DiscConstantScalingFn>
+MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Column(
+    DiscConstantScalingFn *phi_in) const {
+  return {{std::pair{phi_in, pow(2.0, -phi_in->level())}}};
+}
+
+template <>
+SparseVector<DiscConstantScalingFn>
+MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Row(
+    DiscConstantScalingFn *phi_out) const {
+  // This MassOperator is symmetric.
+  return Column(phi_out);
+}
+
+template <>
+SparseVector<DiscLinearScalingFn>
+MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
+    DiscLinearScalingFn *phi_in) const {
+  return {{std::pair{phi_in, pow(2.0, -phi_in->level())}}};
+}
+
+template <>
+SparseVector<DiscLinearScalingFn>
+MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Row(
+    DiscLinearScalingFn *phi_out) const {
+  // This MassOperator is symmetric.
+  return Column(phi_out);
+}
+
+template <>
+SparseVector<DiscLinearScalingFn>
+MassOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) const {
+  SparseVector<ContLinearScalingFn> result;
+  auto [l, n] = phi_in.labda();
+  if (n > 0) {
+    auto elem = phi_in->support()[0];
+    assert(elem->phi_disc_lin_[0] != nullptr &&
+           elem->phi_disc_lin_[1] != nullptr);
+    result.emplace_back(elem->phi_disc_lin_[0], pow(2.0, -(l + 1)));
+    result.emplace_back(elem->phi_disc_lin_[1], pow(2.0, -(l + 1)) / sqrt(3));
+  }
+  if (n < (1 << l)) {
+    auto elem = phi_in->support().back();
+    assert(elem->phi_disc_lin_[0] != nullptr &&
+           elem->phi_disc_lin_[1] != nullptr);
+    result.emplace_back(elem->phi_disc_lin_[0], pow(2.0, -(l + 1)));
+    result.emplace_back(elem->phi_disc_lin_[1], pow(2.0, -(l + 1)) / sqrt(3));
+  }
+  return result;
 }
 
 }  // namespace Time

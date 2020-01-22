@@ -6,9 +6,14 @@
 
 #include "../datastructures/tree.hpp"
 #include "sparse_vector.hpp"
+
 namespace Time {
-class ContLinearScalingFn;
+
 class DiscConstantScalingFn;
+class ContLinearScalingFn;
+class DiscLinearScalingFn;
+template <typename basis_in, typename basis_out>
+class MassOperator;
 
 class Element1D : public datastructures::BinaryNode<Element1D> {
  public:
@@ -37,11 +42,14 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
   int index_;
 
   // There is a mapping between the element and the basis functions.
-  std::array<ContLinearScalingFn *, 2> phi_cont_lin_ = {nullptr, nullptr};
   DiscConstantScalingFn *phi_disc_const_ = nullptr;
+  std::array<ContLinearScalingFn *, 2> phi_cont_lin_ = {nullptr, nullptr};
+  std::array<DiscLinearScalingFn *, 2> phi_disc_lin_ = {nullptr, nullptr};
 
-  friend ContLinearScalingFn;
   friend DiscConstantScalingFn;
+  friend ContLinearScalingFn;
+  friend DiscLinearScalingFn;
+  friend MassOperator<ContLinearScalingFn, DiscLinearScalingFn>;
   friend datastructures::Tree<Element1D>;
 };
 
