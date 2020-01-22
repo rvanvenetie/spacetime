@@ -1,3 +1,6 @@
+from random import random
+
+from ..space.triangulation import InitialTriangulation
 from ..time.haar_basis import HaarBasis
 from ..time.orthonormal_basis import OrthonormalBasis
 from ..time.three_point_basis import ThreePointBasis
@@ -7,6 +10,10 @@ from .tree_view import TreeView
 
 class TripleNodeView(MultiNodeView):
     dim = 3
+
+
+class TripleTreeView(MultiTree):
+    mlt_node_cls = TripleNodeView
 
 
 def test_multi_tree_view():
@@ -76,3 +83,48 @@ def test_multi_tree_bfs_kron():
     tree = TreeView.from_metaroot(metaroot_three)
     tree.deep_refine()
     assert tree.bfs() == tree.bfs_kron()
+
+
+def test_multi_tree_make_conforming():
+    T = InitialTriangulation.unit_square()
+    T.elem_meta_root.uniform_refine(5)
+    metaroot_ortho = OrthonormalBasis.metaroot_wavelet
+    metaroot_three = ThreePointBasis.metaroot_wavelet
+    for metaroot in [metaroot_ortho, metaroot_three]:
+        metaroot.uniform_refine(5)
+
+    # Create uniform multi tree.
+    tree_unif = TripleTreeView.from_metaroots(
+        (T.vertex_meta_root, metaroot_ortho, metaroot_three),
+        mlt_node_cls=TripleNodeView)
+    tree_unif.uniform_refine(3)
+
+    # Mark the multinodes all having level 2
+    nodes = tree_unif.bfs()
+    marked_nodes = list(
+        filter(lambda mlt_node: all(n.level == 2 for n in mlt_node.nodes),
+               nodes))
+
+    # Create new tree with these marked nodes.
+    tree_lvl_2 = TripleTreeView.make_conforming(marked_nodes)
+
+    # Check that it only contains nodes having max level <= 2.
+    for mlt_node in tree_lvl_2.bfs():
+        assert max(n.level for n in mlt_node.nodes) <= 2
+
+    # Check that the new tree contains all marked nodes.
+    nodes_lvl_2 = set(tuple(n.nodes) for n in tree_lvl_2.bfs())
+    for n in marked_nodes:
+        assert tuple(n.nodes) in nodes_lvl_2
+
+    # Again, but now mark some random nodes.
+    nodes = tree_unif.bfs()
+    random_nodes = [node for node in nodes if random() < 0.2]
+
+    # Create new tree with these marked nodes.
+    tree_random = TripleTreeView.make_conforming(random_nodes)
+
+    # Check that the new tree contains all marked nodes.
+    nodes_random = set(tuple(n.nodes) for n in tree_random.bfs())
+    for n in random_nodes:
+        assert tuple(n.nodes) in nodes_random

@@ -5,6 +5,19 @@ import numpy as np
 from .triangulation import InitialTriangulation
 
 
+def test_area():
+    init_triang = InitialTriangulation.unit_square()
+    assert all(v.on_domain_boundary for v in init_triang.vertex_roots)
+    init_triang.element_roots[0].refine()
+
+    leaves = set(init_triang.element_roots)
+    for _ in range(100):
+        elem = leaves.pop()
+        leaves.update(elem.refine())
+    for elem in init_triang.elem_meta_root.bfs():
+        assert elem.area == 0.5**(elem.level + 1)
+
+
 def test_on_domain_bdr():
     init_triang = InitialTriangulation.unit_square()
     assert all(v.on_domain_boundary for v in init_triang.vertex_roots)
@@ -138,7 +151,7 @@ def test_element_barycentric():
     T = InitialTriangulation.unit_square()
     T.elem_meta_root.uniform_refine(4)
     for elem in T.elem_meta_root.bfs():
-        V = elem.vertex_array().T
+        V = elem.vertex_array.T
         for _ in range(10):
             # Random point.
             xy = np.random.rand(2, 4)
@@ -148,3 +161,26 @@ def test_element_barycentric():
 
             # Convert barycentric back to normal
             assert np.allclose(V @ bary, xy)
+
+
+def test_l_shape():
+    T = InitialTriangulation.l_shape()
+    assert len(T.elem_meta_root.bfs()) == 6
+    assert len(T.vertex_meta_root.bfs()) == 8
+
+    T.elem_meta_root.uniform_refine(1)
+    assert len(T.elem_meta_root.bfs()) == 12 + 6
+    assert len(T.vertex_meta_root.bfs()) == 11
+
+    for k in range(2, 7):
+        T.elem_meta_root.uniform_refine(k)
+        assert len(T.elem_meta_root.bfs()) == 6 * (2**(k + 1) - 1)
+
+
+def test_init_refinement():
+    for k in range(4):
+        T = InitialTriangulation.unit_square(initial_refinement=k)
+        assert T.elem_meta_root.is_full()
+        for elem in T.elem_meta_root.bfs():
+            assert elem.level == 0
+        assert len(T.elem_meta_root.bfs()) == 2**(k + 1)

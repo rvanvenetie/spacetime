@@ -1,9 +1,13 @@
+import random
+from collections import defaultdict
+
 import numpy as np
 
 from ..datastructures.multi_tree_function import (DoubleTreeFunction,
                                                   TreeFunction)
 from ..space.basis import HierarchicalBasisFunction
 from ..space.triangulation import InitialTriangulation
+from ..space.triangulation_function import TriangulationFunction
 from ..time.three_point_basis import ThreePointBasis
 
 
@@ -42,6 +46,54 @@ def test_fn_small():
         node.value = 1.0
         assert np.allclose(fn.eval(t), node.node.eval(t))
         node.value = 0.0
+
+
+def test_slice():
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.vertex_meta_root.uniform_refine(4)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(4)
+
+    # Create random (uniform) vector.
+    vec = DoubleTreeFunction.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    vec.uniform_refine(
+        4, call_postprocess=lambda nv: setattr(nv, 'value', random.random()))
+
+    vec_sliced = vec.slice(i=0, coord=0,
+                           slice_cls=TriangulationFunction).to_array()
+
+    # True value.
+    vec_true = np.zeros(len(vec_sliced))
+    for nv in vec.project(0).bfs():
+        if nv.node.level == 0 or nv.node.index == 0:
+            vec_true += nv.node.eval(0) * nv.frozen_other_axis().to_array()
+    assert np.allclose(vec_true, vec_sliced)
+
+    # Create random sparse vector.
+    vec = DoubleTreeFunction.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    vec.sparse_refine(
+        2, [2, 1],
+        call_postprocess=lambda nv: setattr(nv, 'value', random.random()))
+
+    vec_sliced = vec.slice(i=0, coord=0, slice_cls=TriangulationFunction)
+
+    # True value.
+    vec_true = defaultdict(float)
+    for nv in vec.project(0).bfs():
+        if nv.node.level == 0 or nv.node.index == 0:
+            val = nv.node.eval(0)
+            for phi in nv.frozen_other_axis().bfs():
+                vec_true[phi.node] += val * phi.value
+
+    for nv in vec_sliced.bfs():
+        assert np.allclose(nv.value, vec_true[nv.node])
 
 
 if __name__ == "__main__":
