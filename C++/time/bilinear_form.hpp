@@ -48,6 +48,7 @@ class BilinearForm {
     lvl_vec_in_.clear();
   }
 
+  // Debug function, O(n^2).
   Eigen::MatrixXd ToMatrix(
       const datastructures::TreeView<WaveletBasisIn> &tree_in) {
     auto indices_in = tree_in.Bfs();

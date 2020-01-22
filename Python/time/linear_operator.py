@@ -52,8 +52,6 @@ class LinearOperator(object):
             for labda_out in indices_out:
                 for labda_in, coeff_in in row_op(labda_out):
                     labda_out.coeff[write] += labda_in.coeff[read] * coeff_in
-                    print(labda_out.labda, labda_in.labda,
-                          labda_in.coeff[read] * coeff_in)
 
     def matvec(self, vec, indices_in=None, indices_out=None):
         """ Computes matrix-vector product z = A x.

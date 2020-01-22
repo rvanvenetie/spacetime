@@ -22,15 +22,6 @@ def support_to_interval(elems):
     return (elems[0].interval[0], elems[-1].interval[-1])
 
 
-def test_3pt_multiscale_mass():
-    basis, Lambda = ThreePointBasis.uniform_basis(3)
-    applicator = Applicator(operators.mass(basis), basis)
-    np_vec = np.ones(len(Lambda))
-    vec = SparseVector(Lambda, np_vec)
-    res = applicator.apply(vec)
-    print(res)
-
-
 def test_haar_multiscale_mass():
     """ Test that the multiscale Haar mass matrix is indeed diagonal. """
     for basis, Lambda in [

@@ -215,9 +215,6 @@ class Applicator(ApplicatorInterface):
         """
         Lambda_l_in = self.Lambda_in.on_level(l)
         Lambda_l_out = self.Lambda_out.on_level(l)
-        print('level', l)
-        print('\tPi_out', sorted([x.labda for x in Pi_out]))
-        print('\tPi_in', sorted([x.labda for x in Pi_in]))
         if len(Pi_out) + len(Lambda_l_out) > 0 and len(Pi_in) + len(
                 Lambda_l_in) > 0:
             Pi_B_out, Pi_A_out = self._construct_Pi_out(Pi_out)
@@ -231,19 +228,14 @@ class Applicator(ApplicatorInterface):
             Pi_bar_out = self.basis_out.P.range(
                 Pi_B_out) | self.basis_out.Q.range(Lambda_l_out)
 
-            print('\tPi_bar_in',
-                  sorted([(x.labda, x.coeff[0]) for x in Pi_bar_in]))
-
             self._apply_recur(l + 1, Pi_bar_in, Pi_bar_out)
+
             self.operator.matvec_inplace(None, Pi_A_out, read=0, write=1)
-            print('\te1', sorted([(x.labda, x.coeff[1]) for x in Pi_A_out]))
             self.basis_out.P.rmatvec_inplace(None, Pi_B_out, read=1, write=1)
-            print('\te2', sorted([(x.labda, x.coeff[1]) for x in Pi_B_out]))
             self.basis_out.Q.rmatvec_inplace(None,
                                              Lambda_l_out,
                                              read=1,
                                              write=1)
-            print('\tf', sorted([(x.labda, x.coeff[1]) for x in Lambda_l_out]))
             for phi in Pi_bar_in:
                 phi.reset_coeff()
             for phi in Pi_bar_out:
