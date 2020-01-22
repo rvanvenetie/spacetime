@@ -3,6 +3,8 @@
 #include <utility>
 #include <vector>
 
+#include "cassert"
+
 namespace Time {
 template <typename basis>
 class SparseVector : public std::vector<std::pair<basis *, double>> {
