@@ -37,14 +37,14 @@ VertexPtr Element2D::CreateNewVertex(Element2DPtr nbr) {
   }
 
   ArrayVertexPtr<2> godparents{{vertices_[1], vertices_[2]}};
-  auto new_vertex = new Vertex(
+  auto new_vertex = vertex_parents[0]->make_child(
       /* parents */ vertex_parents,
       /* x */ (godparents[0]->x + godparents[1]->x) / 2,
       /* y */ (godparents[0]->y + godparents[1]->y) / 2,
       /* on_domain_boundary */ nbr == nullptr);
   vertex_parents[0]->children_own_.emplace_back(new_vertex);
-  for (const auto &vertex_parent : vertex_parents)
-    vertex_parent->children_.push_back(new_vertex);
+  if (vertex_parents.size() == 2)
+    vertex_parents[1]->children_.emplace_back(new_vertex);
   return new_vertex;
 }
 
