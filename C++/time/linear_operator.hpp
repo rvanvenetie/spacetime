@@ -68,8 +68,23 @@ class Prolongate : public LinearOperator<basis, basis> {
 /**
  *   Below are the single scale (levelwise) operators.
  */
+// Mass matrix <phi, psi>.
 template <typename basis_in, typename basis_out>
 class MassOperator : public LinearOperator<basis_in, basis_out> {
+  SparseVector<basis_out> Column(basis_in *phi_in) const final;
+  SparseVector<basis_in> Row(basis_out *phi_out) const final;
+};
+
+// Evaluates the functions in zero: <gamma_0 phi, gamma_0 psi> = phi(0) psi(0).
+template <typename basis_in, typename basis_out>
+class ZeroEvalOperator : public LinearOperator<basis_in, basis_out> {
+  SparseVector<basis_out> Column(basis_in *phi_in) const final;
+  SparseVector<basis_in> Row(basis_out *phi_out) const final;
+};
+
+// Transport matrix <phi, d/dt psi>.
+template <typename basis_in, typename basis_out>
+class TransportOperator : public LinearOperator<basis_in, basis_out> {
   SparseVector<basis_out> Column(basis_in *phi_in) const final;
   SparseVector<basis_in> Row(basis_out *phi_out) const final;
 };

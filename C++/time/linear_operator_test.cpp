@@ -55,6 +55,9 @@ void CheckMatrixTranspose(const LinearOperator &op,
   }
 
   // Check that they are the same.
+  if (!A.transpose().isApprox(AT)) {
+    std::cout << A.transpose() - AT << std::endl;
+  }
   ASSERT_TRUE(A.transpose().isApprox(AT));
 }
 
@@ -94,7 +97,7 @@ TEST(ContLinearScaling, ProlongateEval) {
   }
 }
 
-TEST(ContLinearScaling, ProlongateMatrix) {
+TEST(ContLinearScaling, CheckOperatorTransposes) {
   // Reset the persistent trees.
   ResetTrees();
 
@@ -107,27 +110,16 @@ TEST(ContLinearScaling, ProlongateMatrix) {
   for (int l = 1; l < ml; ++l) {
     CheckMatrixTranspose(Prolongate<ContLinearScalingFn>(), Delta[l - 1],
                          Delta[l]);
-  }
-}
-
-TEST(ContLinearScaling, MassMatrix) {
-  // Reset the persistent trees.
-  ResetTrees();
-
-  int ml = 7;
-
-  three_point_tree.UniformRefine(ml);
-  auto Lambda = three_point_tree.NodesPerLevel();
-  auto Delta = cont_lin_tree.NodesPerLevel();
-
-  for (int l = 1; l < ml; ++l) {
     CheckMatrixTranspose(
         MassOperator<ContLinearScalingFn, ContLinearScalingFn>(), Delta[l - 1],
         Delta[l - 1]);
+    CheckMatrixTranspose(
+        ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>(),
+        Delta[l - 1], Delta[l - 1]);
   }
 }
 
-TEST(DiscLinearScaling, ProlongateMatrix) {
+TEST(DiscLinearScaling, CheckOperatorTransposes) {
   // Reset the persistent trees.
   ResetTrees();
 
@@ -140,27 +132,16 @@ TEST(DiscLinearScaling, ProlongateMatrix) {
   for (int l = 1; l < ml; ++l) {
     CheckMatrixTranspose(Prolongate<DiscLinearScalingFn>(), Delta[l - 1],
                          Delta[l]);
-  }
-}
-
-TEST(DiscLinearScaling, MassMatrix) {
-  // Reset the persistent trees.
-  ResetTrees();
-
-  int ml = 7;
-
-  ortho_tree.UniformRefine(ml);
-  auto Lambda = ortho_tree.NodesPerLevel();
-  auto Delta = disc_lin_tree.NodesPerLevel();
-
-  for (int l = 1; l < ml; ++l) {
     CheckMatrixTranspose(
         MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>(), Delta[l - 1],
         Delta[l - 1]);
+    CheckMatrixTranspose(
+        ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>(),
+        Delta[l - 1], Delta[l - 1]);
   }
 }
 
-TEST(DiscContLinearScaling, MassMatrix) {
+TEST(DiscContLinearScaling, CheckOperatorTransposes) {
   // Reset the persistent trees.
   ResetTrees();
 
@@ -181,6 +162,15 @@ TEST(DiscContLinearScaling, MassMatrix) {
     CheckMatrixTranspose(
         MassOperator<DiscLinearScalingFn, ContLinearScalingFn>(),
         Delta_ortho[l - 1], Delta_3pt[l - 1]);
+    CheckMatrixTranspose(
+        ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>(),
+        Delta_3pt[l - 1], Delta_ortho[l - 1]);
+    CheckMatrixTranspose(
+        ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>(),
+        Delta_ortho[l - 1], Delta_3pt[l - 1]);
+    CheckMatrixTranspose(
+        TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>(),
+        Delta_3pt[l - 1], Delta_ortho[l - 1]);
   }
 }
 

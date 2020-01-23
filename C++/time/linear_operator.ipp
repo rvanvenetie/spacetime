@@ -196,7 +196,6 @@ SparseVector<DiscLinearScalingFn> mass_three_in_ortho_out(
     result.emplace_back(pdl1, pow(2.0, -(l + 1)) / sqrt(3));
   }
   if (n < (1 << l)) {
-    auto elem = phi_in->support().back();
     auto [pdl0, pdl1] = phi_in->support().back()->PhiDiscLinear();
     assert(pdl0 != nullptr && pdl1 != nullptr);
     result.emplace_back(pdl0, pow(2.0, -(l + 1)));
@@ -207,17 +206,14 @@ SparseVector<DiscLinearScalingFn> mass_three_in_ortho_out(
 
 SparseVector<ContLinearScalingFn> mass_ortho_in_three_out(
     DiscLinearScalingFn *phi_in) {
-  SparseVector<ContLinearScalingFn> result;
   auto [l, n] = phi_in->labda();
   auto [pcl0, pcl1] = phi_in->support()[0]->RefineContLinear();
   assert(pcl0 != nullptr && pcl1 != nullptr);
-  if (phi_in->pw_constant()) {
+  if (phi_in->pw_constant())
     return {{{pcl0, pow(2.0, -(l + 1))}, {pcl1, pow(2.0, -(l + 1))}}};
-  } else {
+  else
     return {{{pcl0, -pow(2.0, -(l + 1)) / sqrt(3)},
              {pcl1, pow(2.0, -(l + 1)) / sqrt(3)}}};
-  }
-  return result;
 }
 
 template <>
@@ -246,6 +242,124 @@ SparseVector<DiscLinearScalingFn>
 MassOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
     ContLinearScalingFn *phi_out) const {
   return mass_three_in_ortho_out(phi_out);
+}
+
+template <>
+SparseVector<ContLinearScalingFn>
+ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) const {
+  auto [l, n] = phi_in->labda();
+  if (n > 0) return {};
+  return {{{phi_in, 1.0}}};
+}
+
+template <>
+SparseVector<ContLinearScalingFn>
+ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Row(
+    ContLinearScalingFn *phi_out) const {
+  return Column(phi_out);
+}
+
+template <>
+SparseVector<DiscLinearScalingFn>
+ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
+    DiscLinearScalingFn *phi_in) const {
+  auto [l, n] = phi_in->labda();
+  if (n > 1) return {};
+  auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
+  assert(pdl0 != nullptr && pdl1 != nullptr);
+  if (phi_in->pw_constant())
+    return {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
+  else
+    return {{{pdl0, -sqrt(3)}, {pdl1, 3.0}}};
+}
+
+template <>
+SparseVector<DiscLinearScalingFn>
+ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Row(
+    DiscLinearScalingFn *phi_out) const {
+  return Column(phi_out);
+}
+
+SparseVector<DiscLinearScalingFn> zero_eval_three_in_ortho_out(
+    ContLinearScalingFn *phi_in) {
+  auto [l, n] = phi_in->labda();
+  if (n > 0) return {};
+  auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
+  assert(pdl0 != nullptr && pdl1 != nullptr);
+  return {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
+}
+
+SparseVector<ContLinearScalingFn> zero_eval_ortho_in_three_out(
+    DiscLinearScalingFn *phi_in) {
+  auto [l, n] = phi_in->labda();
+  if (n > 1) return {};
+  auto [pcl0, _] = phi_in->support().front()->RefineContLinear();
+  assert(pcl0 != nullptr);
+  if (phi_in->pw_constant())
+    return {{{pcl0, 1.0}}};
+  else
+    return {{{pcl0, -sqrt(3)}}};
+}
+
+template <>
+SparseVector<DiscLinearScalingFn>
+ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) const {
+  return zero_eval_three_in_ortho_out(phi_in);
+}
+
+template <>
+SparseVector<ContLinearScalingFn>
+ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
+    DiscLinearScalingFn *phi_out) const {
+  return zero_eval_ortho_in_three_out(phi_out);
+}
+
+template <>
+SparseVector<ContLinearScalingFn>
+ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
+    DiscLinearScalingFn *phi_in) const {
+  return zero_eval_ortho_in_three_out(phi_in);
+}
+
+template <>
+SparseVector<DiscLinearScalingFn>
+ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
+    ContLinearScalingFn *phi_out) const {
+  return zero_eval_three_in_ortho_out(phi_out);
+}
+
+template <>
+SparseVector<DiscLinearScalingFn>
+TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) const {
+  SparseVector<DiscLinearScalingFn> result;
+  auto [l, n] = phi_in->labda();
+  if (n > 0) {
+    auto [pdl0, _] = phi_in->support().front()->PhiDiscLinear();
+    assert(pdl0 != nullptr);
+    result.emplace_back(pdl0, 1.0);
+  }
+  if (n < (1 << l)) {
+    auto [pdl0, _] = phi_in->support().back()->PhiDiscLinear();
+    assert(pdl0 != nullptr);
+    result.emplace_back(pdl0, -1.0);
+  }
+  return result;
+}
+
+template <>
+SparseVector<ContLinearScalingFn>
+TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
+    DiscLinearScalingFn *phi_out) const {
+  auto [l, n] = phi_out->labda();
+  auto [pcl0, pcl1] = phi_out->support().front()->RefineContLinear();
+  assert(pcl0 != nullptr && pcl1 != nullptr);
+  if (phi_out->pw_constant())
+    return {{{pcl0, -1.0}, {pcl1, 1.0}}};
+  else
+    return {};
 }
 
 }  // namespace Time
