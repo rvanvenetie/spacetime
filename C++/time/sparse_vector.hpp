@@ -11,20 +11,23 @@ template <typename Basis>
 class SparseIndices : public std::vector<Basis *> {
  public:
   void Compress() {
-    SparseIndices<Basis> result;
+    SparseIndices<Basis> &self = (*this);
 
-    // Loop over all indices, mark the unseen ones and add to result.
-    for (auto phi : *this)
-      if (!phi->marked()) {
-        result.emplace_back(phi);
-        phi->set_marked(true);
+    // Loop over all indices, and keen the unseen ones.
+    size_t i = 0;
+    for (size_t j = 0; j < self.size(); ++j) {
+      if (!self[j]->marked()) {
+        self[i] = self[j];
+        self[i]->set_marked(true);
+        i++;
       }
+    }
+
+    // Remove extra space.
+    this->resize(i);
 
     // Unmark.
-    for (auto phi : result) phi->set_marked(false);
-
-    // Now store the result in our own vector.
-    (*this) = std::move(result);
+    for (auto phi : self) phi->set_marked(false);
   }
 
   bool IsUnique() const {
@@ -89,26 +92,26 @@ class SparseVector : public std::vector<std::pair<Basis *, double>> {
   }
 
   void Compress() {
+    SparseVector<Basis> &self = (*this);
+
     // Store the data in the time tree, and sum values up.
-    SparseVector<Basis> result;
-    for (auto &[phi, coeff] : *this) {
+    size_t i = 0;
+    for (size_t j = 0; j < self.size(); ++j) {
+      auto &[phi, coeff] = self[j];
       if (phi->has_data()) {
         (*phi->template data<double>()) += coeff;
       } else {
+        self[i] = self[j];
+        auto &[phi, coeff] = self[i];
         phi->set_data(&coeff);
-        result.emplace_back(phi, NAN);
+        i++;
       }
     }
+    // Remove extra space.
+    this->resize(i);
 
-    // Now copy the correct values, and reset the data.
-    for (auto &[phi, coeff] : result) {
-      coeff = *phi->template data<double>();
-      phi->reset_data();
-      assert(coeff != NAN);
-    }
-
-    // Now store the result in our own vector.
-    (*this) = std::move(result);
+    // Remove data.
+    for (auto [phi, _] : self) phi->reset_data();
   }
 
   SparseVector<Basis> Restrict(const SparseIndices<Basis> &ind) const {
