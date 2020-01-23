@@ -26,6 +26,11 @@ template <typename T>
 class NodeVector : public NodeViewBase<NodeVector<T>, T>, public VectorElement {
  public:
   using NodeViewBase<NodeVector<T>, T>::NodeViewBase;
+
+  friend std::ostream &operator<<(std::ostream &os, const NodeVector<T> &nv) {
+    os << "(" << *nv.node() << ", " << nv.value() << ")";
+    return os;
+  }
 };
 
 template <typename I>
@@ -69,6 +74,14 @@ class MultiTreeVector : public MultiTreeView<I> {
           my_node->set_value(my_node->value() + other_node->value());
         });
     return *this;
+  }
+
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const MultiTreeVector<I> &tree) {
+    os << "{";
+    for (auto mnv : tree.Bfs()) os << *mnv << " ";
+    os << "}";
+    return os;
   }
 };
 
