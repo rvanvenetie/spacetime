@@ -12,8 +12,6 @@ namespace Time {
 class DiscConstantScalingFn;
 class ContLinearScalingFn;
 class DiscLinearScalingFn;
-template <typename basis_in, typename basis_out>
-class MassOperator;
 
 class Element1D : public datastructures::BinaryNode<Element1D> {
  public:
@@ -30,6 +28,10 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
 
   // Ensures that the given basis functions exist on the element.
   const std::array<ContLinearScalingFn *, 2> &RefineContLinear();
+
+  const std::array<DiscLinearScalingFn *, 2> &PhiDiscLinear() {
+    return phi_disc_lin_;
+  }
 
   std::pair<double, double> Interval() const;
 
@@ -49,7 +51,6 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
   friend DiscConstantScalingFn;
   friend ContLinearScalingFn;
   friend DiscLinearScalingFn;
-  friend MassOperator<ContLinearScalingFn, DiscLinearScalingFn>;
   friend datastructures::Tree<Element1D>;
 };
 

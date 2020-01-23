@@ -1,6 +1,7 @@
 #include "linear_operator.hpp"
 
 #include <Eigen/Dense>
+#include <array>
 #include <cmath>
 #include <set>
 #include <unordered_map>
@@ -33,7 +34,7 @@ void CheckMatrixTranspose(const LinearOperator &op,
 
   // Create A.
   for (int i = 0; i < indices_in.size(); ++i) {
-    SparseVector<basis_in> vec{{std::pair{indices_in[i], 1.0}}};
+    SparseVector<basis_in> vec{{{indices_in[i], 1.0}}};
     auto op_vec = op.MatVec(vec);
     for (auto [fn, coeff] : op_vec) A(indices_out_map[fn], i) = coeff;
 
@@ -44,13 +45,13 @@ void CheckMatrixTranspose(const LinearOperator &op,
 
   // Create AT
   for (int i = 0; i < indices_out.size(); ++i) {
-    SparseVector<basis_out> vec{{std::pair{indices_out[i], 1.0}}};
-    auto op_vec = op.RMatVec(vec, indices_in);
+    SparseVector<basis_out> vec{{{indices_out[i], 1.0}}};
+    auto op_vec = op.RMatVec(vec);
     for (auto [fn, coeff] : op_vec) AT(indices_in_map[fn], i) = coeff;
 
-    auto op_vec_check = op.MatVec(vec, indices_in);
+    auto op_vec_check = op.RMatVec(vec, indices_in);
     for (auto [fn, coeff] : op_vec_check)
-      ASSERT_DOUBLE_EQ(coeff, A(indices_in_map[fn], i));
+      ASSERT_DOUBLE_EQ(coeff, AT(indices_in_map[fn], i));
   }
 
   // Check that they are the same.
@@ -77,7 +78,7 @@ TEST(ContLinearScaling, ProlongateEval) {
   for (int l = 0; l < ml; ++l) {
     for (int i = 0; i < Delta[l].size(); ++i) {
       // Prolongate a single hat function.
-      SparseVector<ContLinearScalingFn> vec{{std::pair{Delta[l][i], 1.0}}};
+      SparseVector<ContLinearScalingFn> vec{{{Delta[l][i], 1.0}}};
 
       auto p_vec = Prolongate<ContLinearScalingFn>()(vec);
       // Check that the functions eval to the same thing.
@@ -123,6 +124,63 @@ TEST(ContLinearScaling, MassMatrix) {
     CheckMatrixTranspose(
         MassOperator<ContLinearScalingFn, ContLinearScalingFn>(), Delta[l - 1],
         Delta[l - 1]);
+  }
+}
+
+TEST(DiscLinearScaling, ProlongateMatrix) {
+  // Reset the persistent trees.
+  ResetTrees();
+
+  int ml = 7;
+
+  ortho_tree.UniformRefine(ml);
+  auto Lambda = ortho_tree.NodesPerLevel();
+  auto Delta = disc_lin_tree.NodesPerLevel();
+
+  for (int l = 1; l < ml; ++l) {
+    CheckMatrixTranspose(Prolongate<DiscLinearScalingFn>(), Delta[l - 1],
+                         Delta[l]);
+  }
+}
+
+TEST(DiscLinearScaling, MassMatrix) {
+  // Reset the persistent trees.
+  ResetTrees();
+
+  int ml = 7;
+
+  ortho_tree.UniformRefine(ml);
+  auto Lambda = ortho_tree.NodesPerLevel();
+  auto Delta = disc_lin_tree.NodesPerLevel();
+
+  for (int l = 1; l < ml; ++l) {
+    CheckMatrixTranspose(
+        MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>(), Delta[l - 1],
+        Delta[l - 1]);
+  }
+}
+
+TEST(DiscContLinearScaling, MassMatrix) {
+  // Reset the persistent trees.
+  ResetTrees();
+
+  int ml = 7;
+
+  three_point_tree.UniformRefine(ml);
+  auto Lambda_3pt = three_point_tree.NodesPerLevel();
+  auto Delta_3pt = cont_lin_tree.NodesPerLevel();
+
+  ortho_tree.UniformRefine(ml);
+  auto Lambda_ortho = ortho_tree.NodesPerLevel();
+  auto Delta_ortho = disc_lin_tree.NodesPerLevel();
+
+  for (int l = 1; l < ml; ++l) {
+    CheckMatrixTranspose(
+        MassOperator<ContLinearScalingFn, DiscLinearScalingFn>(),
+        Delta_3pt[l - 1], Delta_ortho[l - 1]);
+    CheckMatrixTranspose(
+        MassOperator<DiscLinearScalingFn, ContLinearScalingFn>(),
+        Delta_ortho[l - 1], Delta_3pt[l - 1]);
   }
 }
 
