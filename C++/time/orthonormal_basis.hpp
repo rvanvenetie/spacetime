@@ -24,6 +24,7 @@ class DiscLinearScalingFn : public ScalingFn<DiscLinearScalingFn> {
   constexpr static bool continuous = false;
   constexpr static size_t N_children = 4;
   constexpr static size_t N_parents = 2;
+  constexpr static const char *name = "DLS";
 
   explicit DiscLinearScalingFn(const std::vector<DiscLinearScalingFn *> parents,
                                int index,
@@ -56,6 +57,7 @@ class OrthonormalWaveletFn : public WaveletFn<OrthonormalWaveletFn> {
  public:
   constexpr static size_t N_children = 4;
   constexpr static size_t N_parents = 2;
+  constexpr static const char *name = "Ortho";
 
   explicit OrthonormalWaveletFn(
       const std::vector<OrthonormalWaveletFn *> parents, int index,

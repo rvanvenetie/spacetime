@@ -24,6 +24,7 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
   constexpr static bool continuous = true;
   constexpr static size_t N_children = 3;
   constexpr static size_t N_parents = 2;
+  constexpr static const char *name = "CLS";
 
   explicit ContLinearScalingFn(const std::vector<ContLinearScalingFn *> parents,
                                int index,
@@ -69,6 +70,7 @@ class ThreePointWaveletFn : public WaveletFn<ThreePointWaveletFn> {
  public:
   constexpr static size_t N_children = 2;
   constexpr static size_t N_parents = 2;
+  constexpr static const char *name = "Three";
 
   explicit ThreePointWaveletFn(
       const std::vector<ThreePointWaveletFn *> parents, int index,

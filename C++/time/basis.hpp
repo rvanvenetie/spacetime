@@ -66,7 +66,7 @@ class Function : public datastructures::Node<I> {
   virtual double Eval(double t, bool deriv = false) const = 0;
 
   friend std::ostream &operator<<(std::ostream &os, const Function<I> &fn) {
-    os << "(" << fn.level() << ", " << fn.index() << ")";
+    os << I::name << "(" << fn.level() << ", " << fn.index() << ")";
     return os;
   }
 
