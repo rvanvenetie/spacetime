@@ -13,7 +13,7 @@ class SparseIndices : public std::vector<Basis *> {
   void Compress() {
     SparseIndices<Basis> &self = (*this);
 
-    // Loop over all indices, and keen the unseen ones.
+    // Loop over all indices, and keep the unseen ones.
     size_t i = 0;
     for (size_t j = 0; j < self.size(); ++j) {
       if (!self[j]->marked()) {
