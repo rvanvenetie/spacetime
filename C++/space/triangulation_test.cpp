@@ -16,28 +16,24 @@ TEST(Triangulation, Refine) {
 
   auto elements = T.elem_meta_root->Bfs();
   auto vertices = T.vertex_meta_root->Bfs();
+  ASSERT_EQ(vertices.size(), 5);
   EXPECT_THAT(vertices[4]->parents(), ElementsAre(vertices[0], vertices[1]));
-  EXPECT_THAT(vertices[0]->children(),
-              ElementsAre(vertices[4]->shared_from_this()));
-  EXPECT_THAT(vertices[1]->children(),
-              ElementsAre(vertices[4]->shared_from_this()));
+  EXPECT_THAT(vertices[0]->children(), ElementsAre(vertices[4]));
+  EXPECT_THAT(vertices[1]->children(), ElementsAre(vertices[4]));
 
   elements[2]->Refine();
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_TRUE(vertices[5]->on_domain_boundary);
   EXPECT_THAT(vertices[5]->parents(), ElementsAre(vertices[4]));
-  EXPECT_THAT(vertices[4]->children(),
-              ElementsAre(vertices[5]->shared_from_this()));
+  EXPECT_THAT(vertices[4]->children(), ElementsAre(vertices[5]));
 
   elements[4]->Refine();
   elements = T.elem_meta_root->Bfs();
   vertices = T.vertex_meta_root->Bfs();
   ASSERT_TRUE(vertices[6]->on_domain_boundary);
   EXPECT_THAT(vertices[6]->parents(), ElementsAre(vertices[4]));
-  EXPECT_THAT(vertices[4]->children(),
-              ElementsAre(vertices[5]->shared_from_this(),
-                          vertices[6]->shared_from_this()));
+  EXPECT_THAT(vertices[4]->children(), ElementsAre(vertices[5], vertices[6]));
 
   elements[6]->Refine();
   elements = T.elem_meta_root->Bfs();
@@ -76,7 +72,7 @@ TEST(Triangulation, OnDomainBoundary) {
     auto elem = *leaves.begin();
     leaves.erase(leaves.begin());
     elem->Refine();
-    for (auto child : elem->children()) leaves.emplace(child.get());
+    for (auto child : elem->children()) leaves.emplace(child);
   }
 
   for (auto vertex : init_triang.vertex_meta_root->Bfs()) {
@@ -128,7 +124,7 @@ TEST(Triangulation, VertexPatch) {
     auto elem = *leaves.begin();
     leaves.erase(leaves.begin());
     elem->Refine();
-    for (auto child : elem->children()) leaves.emplace(child.get());
+    for (auto child : elem->children()) leaves.emplace(child);
   }
 
   vertices = T.vertex_meta_root->Bfs();

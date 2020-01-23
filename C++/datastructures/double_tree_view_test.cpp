@@ -32,14 +32,14 @@ TEST(DoubleTreeView, project) {
   auto dt_proj_0_nodes = dt_proj_0->Bfs();
   ASSERT_EQ(dt_proj_0_nodes.size(), vertices.size());
   for (size_t i = 0; i < vertices.size(); ++i)
-    ASSERT_EQ(dt_proj_0_nodes[i]->node().get(), vertices[i]);
+    ASSERT_EQ(dt_proj_0_nodes[i]->node(), vertices[i]);
 
   // Project on the second axis.
   auto dt_proj_1 = db_tree.Project_1();
   auto dt_proj_1_nodes = dt_proj_1->Bfs();
   ASSERT_EQ(dt_proj_1_nodes.size(), elements.size());
   for (size_t i = 0; i < elements.size(); ++i)
-    ASSERT_EQ(dt_proj_1_nodes[i]->node().get(), elements[i]);
+    ASSERT_EQ(dt_proj_1_nodes[i]->node(), elements[i]);
 }
 
 TEST(DoubleTreeView, Union) {
@@ -136,9 +136,9 @@ TEST(DoubleTreeVector, frozen_vector) {
   ASSERT_EQ(dt_proj_0_nodes.size(), vertices.size());
   ASSERT_EQ(dt_proj_1_nodes.size(), elements.size());
   for (size_t i = 0; i < dt_proj_0_nodes.size(); ++i)
-    ASSERT_EQ(dt_proj_0_nodes[i]->node().get(), vertices[i]);
+    ASSERT_EQ(dt_proj_0_nodes[i]->node(), vertices[i]);
   for (size_t i = 0; i < dt_proj_1_nodes.size(); ++i)
-    ASSERT_EQ(dt_proj_1_nodes[i]->node().get(), elements[i]);
+    ASSERT_EQ(dt_proj_1_nodes[i]->node(), elements[i]);
 
   // Initialize the vector ones.
   for (auto db_node : db_tree.Bfs()) db_node->set_value(1.0);

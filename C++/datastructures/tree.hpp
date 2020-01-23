@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <memory>
 #include <queue>
+#include <utility>
 #include <vector>
 
 #include "cassert"
@@ -14,7 +15,7 @@ using T_func_noop = decltype(func_noop);
 using T_func_true = decltype(func_true);
 
 template <typename I>
-class NodeInterface : public std::enable_shared_from_this<I> {
+class NodeInterface {
  public:
   template <typename Func = T_func_noop>
   std::vector<I *> Bfs(bool include_metaroot = false,
@@ -30,7 +31,7 @@ class NodeInterface : public std::enable_shared_from_this<I> {
       nodes.emplace_back(node);
       node->set_marked(true);
       callback(node);
-      for (const auto &child : node->children()) queue.emplace(child.get());
+      for (const auto &child : node->children()) queue.emplace(child);
     }
     for (const auto &node : nodes) {
       node->set_marked(false);
@@ -66,7 +67,7 @@ class Node : public NodeInterface<I> {
   bool is_leaf() const { return children_.size() == 0; }
   inline bool is_metaroot() const { return (level_ == -1); }
   const std::vector<I *> &parents() const { return parents_; }
-  std::vector<std::shared_ptr<I>> &children() { return children_; }
+  const std::vector<I *> &children() { return children_; }
 
   // General data field for universal storage.
   template <typename T>
@@ -91,10 +92,21 @@ class Node : public NodeInterface<I> {
   bool marked_ = false;
   void *data_ = nullptr;
 
-  // Store parents as raw pointers, children as shared pointers, to avoid
-  // circular references.
+  // Store parents/children as raw pointers.
   std::vector<I *> parents_;
-  std::vector<std::shared_ptr<I>> children_;
+  std::vector<I *> children_;
+
+  // If a node creates a child, it becomes the `owner` of this child.
+  std::vector<std::unique_ptr<I>> children_own_;
+
+  template <typename... Args>
+  inline I *make_child(Args &&... args) {
+    children_own_.emplace_back(
+        std::make_unique<I>(std::forward<Args>(args)...));
+    children_.emplace_back(children_own_.back().get());
+    return children_own_.back().get();
+  }
+
   Node() : level_(-1) {}
 };
 
@@ -120,11 +132,12 @@ class BinaryNode : public Node<I> {
 template <typename I>
 class Tree {
  public:
-  std::shared_ptr<I> meta_root;
+  std::unique_ptr<I> meta_root;
 
   // This constructs the tree with a single meta_root.
   Tree() : meta_root(new I()) {}
   Tree(const Tree &) = delete;
+  Tree<I> &operator=(Tree<I> &&) = default;
 
   template <typename Func>
   void DeepRefine(const Func &refine_filter) {

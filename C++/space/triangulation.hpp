@@ -49,6 +49,8 @@ class Vertex : public datastructures::Node<Vertex> {
   Vertex() : Node(), x(NAN), y(NAN), on_domain_boundary(false) {}
 
   friend datastructures::Tree<Vertex>;
+  friend Element2D;
+  friend InitialTriangulation;
 };
 
 class Element2D : public datastructures::BinaryNode<Element2D> {
@@ -94,6 +96,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   void BisectWithNbr();
 
   friend datastructures::Tree<Element2D>;
+  friend InitialTriangulation;
 };
 
 class InitialTriangulation {
@@ -101,8 +104,8 @@ class InitialTriangulation {
   datastructures::Tree<Vertex> vertex_tree;
   datastructures::Tree<Element2D> elem_tree;
 
-  std::shared_ptr<Vertex> const vertex_meta_root;
-  std::shared_ptr<Element2D> const elem_meta_root;
+  VertexPtr const vertex_meta_root;
+  Element2DPtr const elem_meta_root;
 
   InitialTriangulation(const std::vector<std::array<double, 2>> &vertices,
                        const std::vector<std::array<int, 3>> &elements);
