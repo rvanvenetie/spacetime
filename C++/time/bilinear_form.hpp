@@ -59,6 +59,7 @@ class BilinearForm {
       lvl_ind_out_[node->level()].emplace_back(node->node().get());
     }
   }
+
   void InitializeInput(
       const datastructures::TreeVector<WaveletBasisIn> &vec_in) {
     // Slice the input vector into levelwise sparse vectors.
