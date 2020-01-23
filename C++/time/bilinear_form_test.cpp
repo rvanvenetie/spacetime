@@ -85,8 +85,8 @@ TEST(BilinearForm, ThreePointMass) {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
         });
 
-    ASSERT_GE(view_in.Bfs().size(), 0);
-    ASSERT_GE(vec_out.Bfs().size(), 0);
+    ASSERT_GT(view_in.Bfs().size(), 0);
+    ASSERT_GT(vec_out.Bfs().size(), 0);
 
     BilinearForm<MassOperator, ThreePointWaveletFn, ThreePointWaveletFn>
         bil_form(&vec_out);
