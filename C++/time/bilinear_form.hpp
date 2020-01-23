@@ -18,25 +18,13 @@ class BilinearForm {
   using ScalingBasisIn = typename FunctionTrait<WaveletBasisIn>::Scaling;
   using ScalingBasisOut = typename FunctionTrait<WaveletBasisOut>::Scaling;
 
-  BilinearForm(datastructures::TreeVector<WaveletBasisOut> *vec_out)
-      : vec_out_(vec_out) {
-    // Slice the output vector into levelwise sparse indices.
-    for (const auto &node : vec_out->Bfs()) {
-      assert(node->level() >= 0 && node->level() <= lvl_ind_out_.size());
-      if (node->level() == lvl_ind_out_.size()) lvl_ind_out_.emplace_back();
-      lvl_ind_out_[node->level()].emplace_back(node->node().get());
-    }
+  // Create a stateful BilinearForm.
+  explicit BilinearForm(datastructures::TreeVector<WaveletBasisOut> *vec_out) {
+    InitializeOutput(vec_out);
   }
 
   void Apply(const datastructures::TreeVector<WaveletBasisIn> &vec_in) {
-    // Slice the input vector into levelwise sparse vectors.
-    for (const auto &node : vec_in.Bfs()) {
-      assert(node->level() >= 0 && node->level() <= lvl_vec_in_.size());
-      if (node->level() == lvl_vec_in_.size()) lvl_vec_in_.emplace_back();
-      lvl_vec_in_[node->level()].emplace_back(node->node().get(),
-                                              node->value());
-    }
-
+    InitializeInput(vec_in);
     auto [_, f] = ApplyRecur(0, {}, {});
 
     // Copy data to the output tree.
@@ -44,29 +32,11 @@ class BilinearForm {
     for (auto nv : vec_out_->Bfs())
       nv->set_value(*nv->node()->template data<double>());
     f.RemoveFromTree();
-
-    lvl_vec_in_.clear();
   }
 
   // Debug function, O(n^2).
   Eigen::MatrixXd ToMatrix(
-      const datastructures::TreeView<WaveletBasisIn> &tree_in) {
-    auto indices_in = tree_in.Bfs();
-    Eigen::MatrixXd A =
-        Eigen::MatrixXd::Zero(vec_out_->Bfs().size(), indices_in.size());
-    for (int i = 0; i < indices_in.size(); ++i) {
-      auto vec_in =
-          tree_in
-              .template DeepCopy<datastructures::TreeVector<WaveletBasisIn>>();
-      vec_in.Bfs()[i]->set_value(1);
-      Apply(vec_in);
-      auto nodes_out = vec_out_->Bfs();
-      for (int j = 0; j < nodes_out.size(); ++j) {
-        A(j, i) = nodes_out[j]->value();
-      }
-    }
-    return A;
-  }
+      const datastructures::TreeView<WaveletBasisIn> &tree_in);
 
   // Small helper function.
   datastructures::TreeVector<WaveletBasisOut> *vec_out() const {
@@ -76,7 +46,30 @@ class BilinearForm {
  protected:
   std::vector<SparseVector<WaveletBasisIn>> lvl_vec_in_;
   std::vector<SparseIndices<WaveletBasisOut>> lvl_ind_out_;
-  datastructures::TreeVector<WaveletBasisOut> *vec_out_;
+  datastructures::TreeVector<WaveletBasisOut> *vec_out_ = nullptr;
+
+  // Initialize the output data.
+  void InitializeOutput(datastructures::TreeVector<WaveletBasisOut> *vec_out) {
+    vec_out_ = vec_out;
+    // Slice the output vector into levelwise sparse indices.
+    lvl_ind_out_.clear();
+    for (const auto &node : vec_out->Bfs()) {
+      assert(node->level() >= 0 && node->level() <= lvl_ind_out_.size());
+      if (node->level() == lvl_ind_out_.size()) lvl_ind_out_.emplace_back();
+      lvl_ind_out_[node->level()].emplace_back(node->node().get());
+    }
+  }
+  void InitializeInput(
+      const datastructures::TreeVector<WaveletBasisIn> &vec_in) {
+    // Slice the input vector into levelwise sparse vectors.
+    lvl_vec_in_.clear();
+    for (const auto &node : vec_in.Bfs()) {
+      assert(node->level() >= 0 && node->level() <= lvl_vec_in_.size());
+      if (node->level() == lvl_vec_in_.size()) lvl_vec_in_.emplace_back();
+      lvl_vec_in_[node->level()].emplace_back(node->node().get(),
+                                              node->value());
+    }
+  }
 
   // Recursive apply.
   std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>>

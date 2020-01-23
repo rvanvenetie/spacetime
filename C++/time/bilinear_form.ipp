@@ -8,6 +8,27 @@ namespace Time {
 
 template <template <typename, typename> class Operator, typename WaveletBasisIn,
           typename WaveletBasisOut>
+Eigen::MatrixXd
+BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ToMatrix(
+    const datastructures::TreeView<WaveletBasisIn> &tree_in) {
+  auto indices_in = tree_in.Bfs();
+  Eigen::MatrixXd A =
+      Eigen::MatrixXd::Zero(vec_out_->Bfs().size(), indices_in.size());
+  for (int i = 0; i < indices_in.size(); ++i) {
+    auto vec_in =
+        tree_in.template DeepCopy<datastructures::TreeVector<WaveletBasisIn>>();
+    vec_in.Bfs()[i]->set_value(1);
+    Apply(vec_in);
+    auto nodes_out = vec_out_->Bfs();
+    for (int j = 0; j < nodes_out.size(); ++j) {
+      A(j, i) = nodes_out[j]->value();
+    }
+  }
+  return A;
+}
+
+template <template <typename, typename> class Operator, typename WaveletBasisIn,
+          typename WaveletBasisOut>
 auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyRecur(
     size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
     const SparseVector<ScalingBasisIn> &d)
