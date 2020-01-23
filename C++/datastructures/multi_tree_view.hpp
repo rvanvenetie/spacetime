@@ -140,11 +140,10 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 };
 
 template <typename I, typename... T>
-class MultiNodeViewBase
-    : public MultiNodeViewInterface<I, std::tuple<std::shared_ptr<T>...>> {
+class MultiNodeViewBase : public MultiNodeViewInterface<I, std::tuple<T*...>> {
  public:
   static constexpr size_t dim = sizeof...(T);
-  using TupleNodes = std::tuple<std::shared_ptr<T>...>;
+  using TupleNodes = std::tuple<T*...>;
   using TParents =
       std::array<StaticVector<I*, std::max({T::N_parents...})>, dim>;
   using TChildren =
@@ -156,7 +155,7 @@ class MultiNodeViewBase
   explicit MultiNodeViewBase(const TupleNodes& nodes) : nodes_(nodes) {
     assert(this->is_root());
   }
-  explicit MultiNodeViewBase(std::shared_ptr<T>... nodes)
+  explicit MultiNodeViewBase(T*... nodes)
       : MultiNodeViewBase(TupleNodes(nodes...)) {}
 
   // Constructor for a node.
@@ -215,7 +214,7 @@ class NodeViewBase : public MultiNodeViewBase<I, T> {
   inline auto& children(size_t i = 0) { return Super::children(0); }
   inline const auto& children(size_t i = 0) const { return Super::children(0); }
   inline const auto& parents(size_t i = 0) const { return Super::parents(0); }
-  inline std::shared_ptr<T> node() const { return std::get<0>(Super::nodes_); }
+  inline T* node() const { return std::get<0>(Super::nodes_); }
 };
 
 template <typename T>
@@ -237,6 +236,10 @@ class MultiTreeView {
     root = std::make_shared<I>(nodes...);
     assert(root->is_root());
   }
+
+  template <typename... T>
+  explicit MultiTreeView(const std::unique_ptr<T>&... nodes)
+      : MultiTreeView(nodes.get()...) {}
 
   MultiTreeView(const MultiTreeView<I>&) = delete;
   MultiTreeView(MultiTreeView<I>&&) = default;

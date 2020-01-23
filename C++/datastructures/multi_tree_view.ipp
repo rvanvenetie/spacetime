@@ -157,7 +157,7 @@ inline bool MultiNodeViewInterface<I, TupleNodes>::Refine(
       for (const auto& child_parent_j : std::get<j>(child_nodes)->parents()) {
         // Create a copy of the child_nodes, replacing j-th index.
         TupleNodes brother_nodes(child_nodes);
-        std::get<j>(brother_nodes) = child_parent_j->shared_from_this();
+        std::get<j>(brother_nodes) = child_parent_j;
         brothers[j].push_back(
             FindBrother<i, j>(brother_nodes, make_conforming).get());
       }

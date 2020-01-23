@@ -8,12 +8,12 @@ namespace Time {
 
 // Initialize static variable;
 datastructures::Tree<Element1D> elem_tree;
-Element1D *mother_element{elem_tree.meta_root->children()[0].get()};
+Element1D *mother_element{elem_tree.meta_root->children()[0]};
 
 bool Element1D::Refine() {
   if (is_full()) return false;
-  children_.push_back(std::make_shared<Element1D>(this, true));
-  children_.push_back(std::make_shared<Element1D>(this, false));
+  make_child(/* parent */ this, /* left_child */ true);
+  make_child(/* parent */ this, /* left_child */ false);
   return true;
 }
 
@@ -42,7 +42,7 @@ std::pair<double, double> Element1D::Interval() const {
 void ResetTrees() {
   // Reset the element tree.
   elem_tree = datastructures::Tree<Element1D>();
-  mother_element = elem_tree.meta_root->children()[0].get();
+  mother_element = elem_tree.meta_root->children()[0];
 
   // Reset the 3pt tree.
   cont_lin_tree = datastructures::Tree<ContLinearScalingFn>();
