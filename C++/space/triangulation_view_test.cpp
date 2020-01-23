@@ -59,7 +59,7 @@ TEST(TriangulationView, VertexSubTree) {
   auto vertices_view = T_view.vertex_view_.Bfs();
   std::set<Vertex *> vertices_subtree;
   for (auto &nv : vertices_view) {
-    vertices_subtree.insert(nv->node().get());
+    vertices_subtree.insert(nv->node());
   }
   ASSERT_EQ(vertices_subtree.size(), vertices_view.size());
   // Check all nodes necessary for the elem subtree are
@@ -74,7 +74,7 @@ TEST(TriangulationView, VertexSubTree) {
   auto elements_view = T_view.element_view_.Bfs();
   std::set<Element2D *> elements_subtree;
   for (auto &nv : elements_view) {
-    elements_subtree.insert(nv->node().get());
+    elements_subtree.insert(nv->node());
   }
   ASSERT_EQ(elements_subtree.size(), elements_view.size());
   // Check all nodes necessary for the elem subtree are

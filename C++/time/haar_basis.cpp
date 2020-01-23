@@ -11,8 +11,7 @@ datastructures::Tree<HaarWaveletFn> haar_tree;
 // Metaroot constructor.
 DiscConstantScalingFn::DiscConstantScalingFn()
     : ScalingFn<DiscConstantScalingFn>() {
-  children_.push_back(
-      std::make_shared<DiscConstantScalingFn>(this, 0, mother_element));
+  make_child(/* parent */ this, /* index */ 0, /* support */ mother_element);
 }
 
 double DiscConstantScalingFn::EvalMother(double t, bool deriv) const {
@@ -30,23 +29,23 @@ bool DiscConstantScalingFn::Refine() {
   auto [l, n] = labda();
 
   // clang-format off
-  children_.push_back(std::make_shared<DiscConstantScalingFn>(
+  make_child(
       /* parent */ this,
       /* index */ 2 * n,
-      /* support */ support_[0]->children()[0].get()));
-  children_.push_back(std::make_shared<DiscConstantScalingFn>(
+      /* support */ support_[0]->children()[0]);
+  make_child(
       /* parent */ this,
       /* index */ 2 * n + 1,
-      /* support */ support_[0]->children()[1].get()));
+      /* support */ support_[0]->children()[1]);
   // clang-format on
 
   return true;
 }
 
 HaarWaveletFn::HaarWaveletFn() : WaveletFn<HaarWaveletFn>() {
-  auto mother_scaling = disc_cons_tree.meta_root->children()[0].get();
-  children_.push_back(std::make_shared<HaarWaveletFn>(
-      this, 0, std::vector{std::pair{mother_scaling, 1.0}}));
+  auto mother_scaling = disc_cons_tree.meta_root->children()[0];
+  make_child(/* parent */ this, /* index */ 0,
+             /* support */ std::vector{std::pair{mother_scaling, 1.0}});
 }
 
 bool HaarWaveletFn::Refine() {
@@ -58,12 +57,12 @@ bool HaarWaveletFn::Refine() {
     mother_scaling->Refine();
     auto mother_scaling_children = mother_scaling->children();
 
-    children_.push_back(std::make_shared<HaarWaveletFn>(
+    make_child(
         /* parent */ this,
         /* index */ 0,
         /* single_scale */
-        std::vector{std::pair{mother_scaling_children[0].get(), 1.0},
-                    std::pair{mother_scaling_children[1].get(), -1.0}}));
+        std::vector{std::pair{mother_scaling_children[0], 1.0},
+                    std::pair{mother_scaling_children[1], -1.0}});
   } else {
     assert(level_ > 0);
     auto phi_left = single_scale_[0].first;
@@ -71,19 +70,19 @@ bool HaarWaveletFn::Refine() {
     phi_left->Refine();
     phi_right->Refine();
 
-    children_.push_back(std::make_shared<HaarWaveletFn>(
+    make_child(
         /* parent */ this,
         /* index */ 2 * index_,
         /* single_scale */
-        std::vector{std::pair{phi_left->children()[0].get(), 1.0},
-                    std::pair{phi_left->children()[1].get(), -1.0}}));
+        std::vector{std::pair{phi_left->children()[0], 1.0},
+                    std::pair{phi_left->children()[1], -1.0}});
 
-    children_.push_back(std::make_shared<HaarWaveletFn>(
+    make_child(
         /* parent */ this,
         /* index */ 2 * index_ + 1,
         /* single_scale */
-        std::vector{std::pair{phi_right->children()[0].get(), 1.0},
-                    std::pair{phi_right->children()[1].get(), -1.0}}));
+        std::vector{std::pair{phi_right->children()[0], 1.0},
+                    std::pair{phi_right->children()[1], -1.0}});
   }
   return true;
 }

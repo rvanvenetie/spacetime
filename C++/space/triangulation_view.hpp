@@ -25,11 +25,8 @@ class TriangulationView {
   // Be sure that this treeview doesn't go out of scope!
   TriangulationView(datastructures::TreeView<Vertex> &vertex_view)
       : vertex_view_(vertex_view),
-        element_view_(vertex_view.root->node()
-                          ->children()[0]
-                          ->patch[0]
-                          ->parents()[0]
-                          ->shared_from_this()) {
+        element_view_(
+            vertex_view.root->node()->children()[0]->patch[0]->parents()[0]) {
     // First, we store a reference to this object in the underlying tree.
     auto vertices = vertex_view_.Bfs();
     for (auto &nv : vertices) {

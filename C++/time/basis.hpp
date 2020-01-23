@@ -31,7 +31,7 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
  protected:
   // Protected constructor for creating a metaroot.
   Element1D() : BinaryNode(), index_(0) {
-    children_.push_back(std::make_shared<Element1D>(this, 0));
+    make_child(/* parent */ this, /* index */ 0);
   }
 
   int index_;
