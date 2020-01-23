@@ -7,34 +7,37 @@
 
 namespace Time {
 
-template <typename basis_in, typename basis_out>
+template <typename BasisIn, typename BasisOut>
 class LinearOperator {
  public:
   // This MatVec applies the operator column-wise.
-  SparseVector<basis_out> MatVec(const SparseVector<basis_in> &vec) const;
-  SparseVector<basis_in> RMatVec(const SparseVector<basis_out> &vec) const;
+  SparseVector<BasisOut> MatVec(const SparseVector<BasisIn> &vec) const;
+  SparseVector<BasisIn> RMatVec(const SparseVector<BasisOut> &vec) const;
 
   // This MatVec applies the operator row-wise for the given output indices.
-  SparseVector<basis_out> MatVec(const SparseVector<basis_in> &vec,
-                                 std::vector<basis_out *> indices_out) const;
-  SparseVector<basis_in> RMatVec(const SparseVector<basis_out> &vec,
-                                 std::vector<basis_in *> indices_out) const;
+  SparseVector<BasisOut> MatVec(
+      const SparseVector<BasisIn> &vec,
+      const SparseIndices<BasisOut> &indices_out) const;
+  SparseVector<BasisIn> RMatVec(const SparseVector<BasisOut> &vec,
+                                const SparseIndices<BasisIn> &indices_in) const;
 
   // Create functor operators, for convenience.
-  SparseVector<basis_out> operator()(const SparseVector<basis_in> &vec) const {
+  SparseVector<BasisOut> operator()(const SparseVector<BasisIn> &vec) const {
     return MatVec(vec);
   }
-  SparseVector<basis_out> operator()(
-      const SparseVector<basis_in> &vec,
-      std::vector<basis_out *> indices_out) const {
+  SparseVector<BasisOut> operator()(const SparseVector<BasisIn> &vec,
+                                    std::vector<BasisOut *> indices_out) const {
     return MatVec(vec, indices_out);
   }
 
+  // Return the range of this operator if you were to apply the given indices.
+  SparseIndices<BasisOut> Range(const SparseIndices<BasisIn> &ind) const;
+
   // Column should be the column vector associated to the given basis function.
-  virtual SparseVector<basis_out> Column(basis_in *phi_in) const = 0;
+  virtual SparseVector<BasisOut> Column(BasisIn *phi_in) const = 0;
 
   // Row should be the column vector associated to the given basis function.
-  virtual SparseVector<basis_in> Row(basis_out *phi_out) const = 0;
+  virtual SparseVector<BasisIn> Row(BasisOut *phi_out) const = 0;
 };
 
 /**
@@ -68,25 +71,24 @@ class Prolongate : public LinearOperator<basis, basis> {
 /**
  *   Below are the single scale (levelwise) operators.
  */
-// Mass matrix <phi, psi>.
-template <typename basis_in, typename basis_out>
-class MassOperator : public LinearOperator<basis_in, basis_out> {
-  SparseVector<basis_out> Column(basis_in *phi_in) const final;
-  SparseVector<basis_in> Row(basis_out *phi_out) const final;
+template <typename BasisIn, typename BasisOut>
+class MassOperator : public LinearOperator<BasisIn, BasisOut> {
+  SparseVector<BasisOut> Column(BasisIn *phi_in) const final;
+  SparseVector<BasisIn> Row(BasisOut *phi_out) const final;
 };
 
 // Evaluates the functions in zero: <gamma_0 phi, gamma_0 psi> = phi(0) psi(0).
-template <typename basis_in, typename basis_out>
-class ZeroEvalOperator : public LinearOperator<basis_in, basis_out> {
-  SparseVector<basis_out> Column(basis_in *phi_in) const final;
-  SparseVector<basis_in> Row(basis_out *phi_out) const final;
+template <typename BasisIn, typename BasisOut>
+class ZeroEvalOperator : public LinearOperator<BasisIn, BasisOut> {
+  SparseVector<BasisOut> Column(BasisIn *phi_in) const final;
+  SparseVector<BasisIn> Row(BasisOut *phi_out) const final;
 };
 
 // Transport matrix <phi, d/dt psi>.
-template <typename basis_in, typename basis_out>
-class TransportOperator : public LinearOperator<basis_in, basis_out> {
-  SparseVector<basis_out> Column(basis_in *phi_in) const final;
-  SparseVector<basis_in> Row(basis_out *phi_out) const final;
+template <typename BasisIn, typename BasisOut>
+class TransportOperator : public LinearOperator<BasisIn, BasisOut> {
+  SparseVector<BasisOut> Column(BasisIn *phi_in) const final;
+  SparseVector<BasisIn> Row(BasisOut *phi_out) const final;
 };
 
 }  // namespace Time

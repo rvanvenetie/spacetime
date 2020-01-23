@@ -15,12 +15,12 @@ class Element2D;
 class InitialTriangulation;
 
 // Define some aliases
-using VertexPtr = std::shared_ptr<Vertex>;
+using VertexPtr = Vertex *;
 using VectorVertexPtr = std::vector<VertexPtr>;
 template <size_t N>
 using ArrayVertexPtr = std::array<VertexPtr, N>;
 
-using Element2DPtr = std::shared_ptr<Element2D>;
+using Element2DPtr = Element2D *;
 using VectorElement2DPtr = std::vector<Element2DPtr>;
 template <size_t N>
 using ArrayElement2DPtr = std::array<Element2DPtr, N>;
@@ -35,8 +35,8 @@ class Vertex : public datastructures::Node<Vertex> {
   VectorElement2DPtr patch;
 
   // Constructor given parents.
-  Vertex(double x, double y, bool on_domain_boundary,
-         const std::vector<Vertex *> &parents)
+  Vertex(const std::vector<Vertex *> &parents, double x, double y,
+         bool on_domain_boundary)
       : Node(parents), x(x), y(y), on_domain_boundary(on_domain_boundary) {}
 
   friend std::ostream &operator<<(std::ostream &os, const Vertex &vertex) {
@@ -53,7 +53,7 @@ class Vertex : public datastructures::Node<Vertex> {
 
 class Element2D : public datastructures::BinaryNode<Element2D> {
  public:
-  ArrayElement2DPtr<3> neighbours;
+  ArrayElement2DPtr<3> neighbours{nullptr};
 
   // Constructors given the parent.
   explicit Element2D(Element2D *parent, const ArrayVertexPtr<3> &vertices)
@@ -101,8 +101,8 @@ class InitialTriangulation {
   datastructures::Tree<Vertex> vertex_tree;
   datastructures::Tree<Element2D> elem_tree;
 
-  VertexPtr const vertex_meta_root;
-  Element2DPtr const elem_meta_root;
+  std::shared_ptr<Vertex> const vertex_meta_root;
+  std::shared_ptr<Element2D> const elem_meta_root;
 
   InitialTriangulation(const std::vector<std::array<double, 2>> &vertices,
                        const std::vector<std::array<int, 3>> &elements);

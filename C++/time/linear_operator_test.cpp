@@ -10,18 +10,20 @@
 #include "gtest/gtest.h"
 
 namespace Time {
+using ::testing::DoubleEq;
 using ::testing::ElementsAre;
+using ::testing::Not;
 
-template <typename LinearOperator, typename basis_in, typename basis_out>
-void CheckMatrixTranspose(const LinearOperator &op,
-                          std::vector<basis_in *> indices_in,
-                          std::vector<basis_out *> indices_out) {
+template <typename LinearOperator, typename BasisIn, typename BasisOut>
+void CheckMatrixTranspose(const SparseIndices<BasisIn> &indices_in,
+                          const SparseIndices<BasisIn> &indices_out) {
+  auto op = LinearOperator();
   Eigen::MatrixXd A =
       Eigen::MatrixXd::Zero(indices_out.size(), indices_in.size());
   Eigen::MatrixXd AT =
       Eigen::MatrixXd::Zero(indices_in.size(), indices_out.size());
-  std::unordered_map<basis_in *, int> indices_in_map;
-  std::unordered_map<basis_out *, int> indices_out_map;
+  std::unordered_map<BasisIn *, int> indices_in_map;
+  std::unordered_map<BasisOut *, int> indices_out_map;
 
   for (int i = 0; i < indices_in.size(); ++i) {
     assert(!indices_in_map.count(indices_in[i]));
@@ -34,18 +36,21 @@ void CheckMatrixTranspose(const LinearOperator &op,
 
   // Create A.
   for (int i = 0; i < indices_in.size(); ++i) {
-    SparseVector<basis_in> vec{{{indices_in[i], 1.0}}};
+    SparseVector<BasisIn> vec{{{indices_in[i], 1.0}}};
     auto op_vec = op.MatVec(vec);
-    for (auto [fn, coeff] : op_vec) A(indices_out_map[fn], i) = coeff;
+    for (auto [fn, coeff] : op_vec) {
+      EXPECT_THAT(coeff, Not(DoubleEq(0)));
+      A(indices_out_map[fn], i) = coeff;
+    }
 
     auto op_vec_check = op.MatVec(vec, indices_out);
     for (auto [fn, coeff] : op_vec_check)
       ASSERT_DOUBLE_EQ(coeff, A(indices_out_map[fn], i));
   }
 
-  // Create AT
+  // Create AT.
   for (int i = 0; i < indices_out.size(); ++i) {
-    SparseVector<basis_out> vec{{{indices_out[i], 1.0}}};
+    SparseVector<BasisOut> vec{{{indices_out[i], 1.0}}};
     auto op_vec = op.RMatVec(vec);
     for (auto [fn, coeff] : op_vec) AT(indices_in_map[fn], i) = coeff;
 

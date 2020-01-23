@@ -42,7 +42,8 @@ find_package(Boost 1.69.0 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 # Install eigen
-find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 ## Enable testing.
 enable_testing()

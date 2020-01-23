@@ -1,22 +1,75 @@
 #pragma once
 #include <cmath>
+#include <iostream>
 #include <utility>
 #include <vector>
 
+#include "cassert"
+
 namespace Time {
-template <typename basis>
-class SparseVector : public std::vector<std::pair<basis *, double>> {
+template <typename Basis>
+class SparseIndices : public std::vector<Basis *> {
  public:
-  using Super = std::vector<std::pair<basis *, double>>;
+  void Compress() {
+    SparseIndices<Basis> result;
+
+    // Loop over all indices, mark the unseen ones and add to result.
+    for (auto phi : *this)
+      if (!phi->marked()) {
+        result.emplace_back(phi);
+        phi->set_marked(true);
+      }
+
+    // Unmark.
+    for (auto phi : result) phi->set_marked(false);
+
+    // Now store the result in our own vector.
+    (*this) = std::move(result);
+  }
+
+  bool IsUnique() const {
+    bool result = true;
+
+    // Loop over all indices, mark the unseen ones.
+    for (auto phi : *this)
+      if (phi->marked()) {
+        result = false;
+        break;
+      } else
+        phi->set_marked(true);
+
+    for (auto phi : *this) phi->set_marked(false);
+    return result;
+  }
+
+  SparseIndices<Basis> operator|=(const SparseIndices<Basis> &rhs) {
+    this->insert(this->end(), rhs.begin(), rhs.end());
+    Compress();
+    return *this;
+  }
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const SparseIndices<Basis> &ind) {
+    os << "{";
+    for (auto phi : ind) os << *phi << " ";
+    os << "}";
+    return os;
+  }
+};
+
+template <typename Basis>
+class SparseVector : public std::vector<std::pair<Basis *, double>> {
+ public:
+  using Super = std::vector<std::pair<Basis *, double>>;
 
   SparseVector() = default;
-  SparseVector(const SparseVector<basis> &) = default;
-  SparseVector(SparseVector<basis> &&) = default;
+  SparseVector(const SparseVector<Basis> &) = default;
+  SparseVector(SparseVector<Basis> &&) = default;
   SparseVector(Super &&vec) : Super(std::move(vec)) {}
-  SparseVector<basis> &operator=(SparseVector<basis> &&) = default;
+  SparseVector<Basis> &operator=(SparseVector<Basis> &&) = default;
+  SparseVector<Basis> &operator=(const SparseVector<Basis> &) = default;
 
-  std::vector<basis *> Indices() const {
-    std::vector<basis *> result;
+  SparseIndices<Basis> Indices() const {
+    SparseIndices<Basis> result;
     for (auto [phi, _] : *this) {
       result.emplace_back(phi);
     }
@@ -37,7 +90,7 @@ class SparseVector : public std::vector<std::pair<basis *, double>> {
 
   void Compress() {
     // Store the data in the time tree, and sum values up.
-    SparseVector<basis> result;
+    SparseVector<Basis> result;
     for (auto &[phi, coeff] : *this) {
       if (phi->has_data()) {
         (*phi->template data<double>()) += coeff;
@@ -58,15 +111,32 @@ class SparseVector : public std::vector<std::pair<basis *, double>> {
     (*this) = std::move(result);
   }
 
-  SparseVector<basis> operator+=(const SparseVector<basis> &rhs) {
+  SparseVector<Basis> Restrict(const SparseIndices<Basis> &ind) const {
+    SparseVector<Basis> result;
+    for (auto phi : ind) phi->set_marked(true);
+    for (auto [phi, coeff] : *this)
+      if (phi->marked()) result.emplace_back(phi, coeff);
+    for (auto phi : ind) phi->set_marked(false);
+    return result;
+  }
+
+  SparseVector<Basis> operator+=(const SparseVector<Basis> &rhs) {
     this->insert(this->end(), rhs.begin(), rhs.end());
     Compress();
     return *this;
   }
 
-  SparseVector<basis> operator*=(double alpha) {
+  SparseVector<Basis> operator*=(double alpha) {
     for (auto &[_, coeff] : *this) coeff *= alpha;
     return *this;
+  }
+
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const SparseVector<Basis> &vec) {
+    os << "{";
+    for (auto [phi, coeff] : vec) os << "(" << *phi << ", " << coeff << ")  ";
+    os << "}";
+    return os;
   }
 };
 
