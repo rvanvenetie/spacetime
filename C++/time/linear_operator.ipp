@@ -13,7 +13,9 @@ namespace Time {
 template <typename BasisIn, typename BasisOut>
 SparseVector<BasisOut> LinearOperator<BasisIn, BasisOut>::MatVec(
     const SparseVector<BasisIn> &vec) const {
-  SparseVector<BasisOut> result;
+  static SparseVector<BasisOut> result;
+  result.clear();
+
   for (auto [labda_in, coeff_in] : vec)
     for (auto [labda_out, coeff_out] : Column(labda_in))
       result.emplace_back(labda_out, coeff_in * coeff_out);
@@ -24,7 +26,9 @@ SparseVector<BasisOut> LinearOperator<BasisIn, BasisOut>::MatVec(
 template <typename BasisIn, typename BasisOut>
 SparseVector<BasisIn> LinearOperator<BasisIn, BasisOut>::RMatVec(
     const SparseVector<BasisOut> &vec) const {
-  SparseVector<BasisIn> result;
+  static SparseVector<BasisIn> result;
+  result.clear();
+
   for (auto [labda_out, coeff_out] : vec)
     for (auto [labda_in, coeff_in] : Row(labda_out))
       result.emplace_back(labda_in, coeff_out * coeff_in);
@@ -37,8 +41,10 @@ SparseVector<BasisOut> LinearOperator<BasisIn, BasisOut>::MatVec(
     const SparseVector<BasisIn> &vec,
     const SparseIndices<BasisOut> &indices_out) const {
   assert(indices_out.IsUnique());
+  static SparseVector<BasisOut> result;
+  result.clear();
+
   vec.StoreInTree();
-  SparseVector<BasisOut> result;
   for (auto labda_out : indices_out) {
     double val = 0;
     for (auto [labda_in, coeff_in] : Row(labda_out))
@@ -54,8 +60,10 @@ SparseVector<BasisIn> LinearOperator<BasisIn, BasisOut>::RMatVec(
     const SparseVector<BasisOut> &vec,
     const SparseIndices<BasisIn> &indices_in) const {
   assert(indices_in.IsUnique());
+  static SparseVector<BasisIn> result;
+  result.clear();
+
   vec.StoreInTree();
-  SparseVector<BasisIn> result;
   for (auto labda_in : indices_in) {
     double val = 0;
     for (auto [labda_out, coeff_out] : Column(labda_in))
@@ -70,7 +78,9 @@ SparseVector<BasisIn> LinearOperator<BasisIn, BasisOut>::RMatVec(
 template <typename BasisIn, typename BasisOut>
 SparseIndices<BasisOut> LinearOperator<BasisIn, BasisOut>::Range(
     const SparseIndices<BasisIn> &ind) const {
-  SparseIndices<BasisOut> result;
+  static SparseIndices<BasisOut> result;
+  result.clear();
+
   for (auto labda_in : ind)
     for (auto [labda_out, _] : Column(labda_in)) result.emplace_back(labda_out);
   result.Compress();
@@ -84,8 +94,10 @@ SparseIndices<BasisOut> LinearOperator<BasisIn, BasisOut>::Range(
 template <>
 SparseVector<ContLinearScalingFn> Prolongate<ContLinearScalingFn>::Column(
     ContLinearScalingFn *phi_in) const {
+  static SparseVector<ContLinearScalingFn> result;
+  result.clear();
+
   auto [l, n] = phi_in->labda();
-  SparseVector<ContLinearScalingFn> result;
   result.emplace_back(phi_in->RefineMiddle(), 1.0);
   if (n > 0) result.emplace_back(phi_in->RefineLeft(), 0.5);
   if (n < (1 << l)) result.emplace_back(phi_in->RefineRight(), 0.5);
@@ -95,7 +107,9 @@ SparseVector<ContLinearScalingFn> Prolongate<ContLinearScalingFn>::Column(
 template <>
 SparseVector<ContLinearScalingFn> Prolongate<ContLinearScalingFn>::Row(
     ContLinearScalingFn *phi_in) const {
-  SparseVector<ContLinearScalingFn> result;
+  static SparseVector<ContLinearScalingFn> result;
+  result.clear();
+
   if (phi_in->parents().size() == 1) {
     result.emplace_back(phi_in->parents()[0], 1);
   } else if (phi_in->parents().size() == 2) {
@@ -113,7 +127,9 @@ template <>
 SparseVector<ContLinearScalingFn>
 MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
     ContLinearScalingFn *phi_in) const {
-  SparseVector<ContLinearScalingFn> result;
+  static SparseVector<ContLinearScalingFn> result;
+  result.clear();
+
   auto [l, n] = phi_in->labda();
   double self_ip = 0;
   if (n > 0) {
