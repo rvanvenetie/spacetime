@@ -42,7 +42,6 @@ VertexPtr Element2D::CreateNewVertex(Element2DPtr nbr) {
       /* x */ (godparents[0]->x + godparents[1]->x) / 2,
       /* y */ (godparents[0]->y + godparents[1]->y) / 2,
       /* on_domain_boundary */ nbr == nullptr);
-  vertex_parents[0]->children_own_.emplace_back(new_vertex);
   if (vertex_parents.size() == 2)
     vertex_parents[1]->children_.emplace_back(new_vertex);
   return new_vertex;
