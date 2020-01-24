@@ -1,4 +1,6 @@
 #pragma once
+
+#include <Eigen/Dense>
 #include <utility>
 #include <vector>
 

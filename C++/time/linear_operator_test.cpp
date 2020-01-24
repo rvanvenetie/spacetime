@@ -122,38 +122,38 @@ TEST(ContLinearScaling, CheckMatrixTransposes) {
   }
 }
 
-// TEST(ContLinearScaling, MassQuadrature) {
-//   // Reset the persistent trees.
-//   ResetTrees();
-//
-//   int ml = 7;
-//
-//   three_point_tree.UniformRefine(ml);
-//   auto Lambda = three_point_tree.NodesPerLevel();
-//   auto Delta = cont_lin_tree.NodesPerLevel();
-//
-//   for (int l = 1; l < ml; ++l) {
-//     auto mass = MassOperator<ContLinearScalingFn, ContLinearScalingFn>();
-//     auto mat = bil_form.ToMatrix(view_in);
-//     auto nodes_in = view_in.Bfs();
-//     auto nodes_out = vec_out.Bfs();
-//     for (int j = 0; j < nodes_in.size(); ++j)
-//       for (int i = 0; i < nodes_out.size(); ++i) {
-//         auto f = nodes_in[j]->node();
-//         auto g = nodes_out[i]->node();
-//         if (g->level() > f->level()) std::swap(f, g);
-//
-//         double ip = 0;
-//         auto eval = [f, g](const double &t) { return f->Eval(t) * g->Eval(t);
-//         }; for (auto elem : f->support())
-//           ip += boost::math::quadrature::gauss<double, 7>::integrate(
-//               eval, elem->Interval().first, elem->Interval().second);
-//
-//         ASSERT_NEAR(mat(i, j), ip, 1e-10);
-//       }
-//         {Delta[l - 1]}, {Delta[l - 1]});
-//   }
-// }
+TEST(ContLinearScaling, MassQuadrature) {
+  // Reset the persistent trees.
+  ResetTrees();
+
+  int ml = 7;
+
+  three_point_tree.UniformRefine(ml);
+  auto Lambda = three_point_tree.NodesPerLevel();
+  auto Delta = cont_lin_tree.NodesPerLevel();
+
+  for (int l = 1; l < ml; ++l) {
+    auto mass = MassOperator<ContLinearScalingFn, ContLinearScalingFn>();
+    auto mat = bil_form.ToMatrix(view_in);
+    auto nodes_in = view_in.Bfs();
+    auto nodes_out = vec_out.Bfs();
+    for (int j = 0; j < nodes_in.size(); ++j)
+      for (int i = 0; i < nodes_out.size(); ++i) {
+        auto f = nodes_in[j]->node();
+        auto g = nodes_out[i]->node();
+        if (g->level() > f->level()) std::swap(f, g);
+
+        double ip = 0;
+        auto eval = [f, g](const double &t) { return f->Eval(t) * g->Eval(t); };
+        for (auto elem : f->support())
+          ip += boost::math::quadrature::gauss<double, 7>::integrate(
+              eval, elem->Interval().first, elem->Interval().second);
+
+        ASSERT_NEAR(mat(i, j), ip, 1e-10);
+      }
+        {Delta[l - 1]}, {Delta[l - 1]});
+  }
+}
 
 TEST(DiscLinearScaling, CheckMatrixTransposes) {
   // Reset the persistent trees.

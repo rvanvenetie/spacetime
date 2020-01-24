@@ -79,9 +79,11 @@ SparseIndices<BasisOut> LinearOperator<BasisIn, BasisOut>::Range(
 }
 
 template <typename BasisIn, typename BasisOut>
-SparseVector<BasisOut> LinearOperator<BasisIn, BasisOut>::ToMatrix(
-    const SparseVector<BasisIn> &vec,
+Eigen::MatrixXd LinearOperator<BasisIn, BasisOut>::ToMatrix(
+    const SparseIndices<BasisIn> &indices_in,
     const SparseIndices<BasisOut> &indices_out) const {
+  Eigen::MatrixXd A =
+      Eigen::MatrixXd::Zero(vec_out_->Bfs().size(), indices_in.size());
   return {};
 }
 
