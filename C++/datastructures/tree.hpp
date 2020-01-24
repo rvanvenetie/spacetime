@@ -67,7 +67,7 @@ class Node : public NodeInterface<I> {
   bool is_leaf() const { return children_.size() == 0; }
   inline bool is_metaroot() const { return (level_ == -1); }
   const std::vector<I *> &parents() const { return parents_; }
-  const std::vector<I *> &children() { return children_; }
+  const std::vector<I *> &children() const { return children_; }
 
   // General data field for universal storage.
   template <typename T>
@@ -135,9 +135,17 @@ class Tree {
   std::unique_ptr<I> meta_root;
 
   // This constructs the tree with a single meta_root.
-  Tree() : meta_root(new I()) {}
+  Tree(I *meta_root) : meta_root(meta_root) {}
+  Tree() : Tree(new I()) {}
   Tree(const Tree &) = delete;
   Tree<I> &operator=(Tree<I> &&) = default;
+
+  template <typename Func = T_func_noop>
+  std::vector<I *> Bfs(bool include_metaroot = false,
+                       const Func &callback = func_noop,
+                       bool return_nodes = true) {
+    return meta_root->Bfs(include_metaroot, callback, return_nodes);
+  }
 
   template <typename Func>
   void DeepRefine(const Func &refine_filter) {

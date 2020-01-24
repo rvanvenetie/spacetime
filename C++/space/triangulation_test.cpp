@@ -6,6 +6,15 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "initial_triangulation.hpp"
+
+int bsd_rnd() {
+  static unsigned int seed = 0;
+  int a = 1103515245;
+  int c = 12345;
+  unsigned int m = 2147483648;
+  return (seed = (a * seed + c) % m);
+}
 
 namespace space {
 using ::testing::ElementsAre;
@@ -67,7 +76,7 @@ TEST(Triangulation, OnDomainBoundary) {
 
   auto element_roots = init_triang.elem_meta_root->Bfs();
   auto leaves =
-      std::set<Element2DPtr>(element_roots.begin(), element_roots.end());
+      std::set<Element2D*>(element_roots.begin(), element_roots.end());
   for (int i = 0; i < 100; ++i) {
     auto elem = *leaves.begin();
     leaves.erase(leaves.begin());
@@ -119,7 +128,7 @@ TEST(Triangulation, VertexPatch) {
   EXPECT_THAT(vertices[4]->patch,
               ElementsAre(elements[2], elements[3], elements[4], elements[5]));
 
-  std::set<Element2DPtr> leaves(elements.begin(), elements.end());
+  std::set<Element2D*> leaves(elements.begin(), elements.end());
   for (int i = 0; i < 200; ++i) {
     auto elem = *leaves.begin();
     leaves.erase(leaves.begin());
@@ -135,6 +144,39 @@ TEST(Triangulation, VertexPatch) {
       ASSERT_EQ(v->patch.size(), 2);
     else
       ASSERT_EQ(v->patch.size(), 4);
+  }
+}
+
+TEST(Triangulation, RefineHierarchicalBasisFn) {
+  auto T = InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(1);
+  auto hb = T.hierarch_basis_tree.Bfs();
+  auto vertices = T.vertex_tree.Bfs();
+  auto elem = T.elem_tree.Bfs();
+  ASSERT_EQ(hb.size(), 5);
+  ASSERT_EQ(vertices.size(), 5);
+  ASSERT_EQ(elem.size(), 6);
+
+  T.hierarch_basis_tree.UniformRefine(2);
+  hb = T.hierarch_basis_tree.Bfs();
+  vertices = T.vertex_tree.Bfs();
+  elem = T.elem_tree.Bfs();
+  ASSERT_EQ(hb.size(), 9);
+  ASSERT_EQ(vertices.size(), 9);
+  ASSERT_EQ(elem.size(), 14);
+
+  size_t ml = 10;
+  for (int i = 0; i < 15; ++i) {
+    auto T = InitialTriangulation::UnitSquare();
+    T.hierarch_basis_tree.DeepRefine([ml](auto node) {
+      return node->is_metaroot() || (node->level() < ml && bsd_rnd() % 3 != 0);
+    });
+    auto hb = T.hierarch_basis_tree.Bfs();
+    auto vertices = T.vertex_tree.Bfs();
+    ASSERT_EQ(hb.size(), vertices.size());
+    for (int i = 0; i < hb.size(); ++i) {
+      ASSERT_EQ(vertices[i], hb[i]->vertex());
+    }
   }
 }
 
