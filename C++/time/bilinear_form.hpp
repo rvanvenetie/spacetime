@@ -56,7 +56,7 @@ class BilinearForm {
     for (const auto &node : vec_out->Bfs()) {
       assert(node->level() >= 0 && node->level() <= lvl_ind_out_.size());
       if (node->level() == lvl_ind_out_.size()) lvl_ind_out_.emplace_back();
-      lvl_ind_out_[node->level()].emplace_back(node->node().get());
+      lvl_ind_out_[node->level()].emplace_back(node->node());
     }
   }
 
@@ -67,8 +67,7 @@ class BilinearForm {
     for (const auto &node : vec_in.Bfs()) {
       assert(node->level() >= 0 && node->level() <= lvl_vec_in_.size());
       if (node->level() == lvl_vec_in_.size()) lvl_vec_in_.emplace_back();
-      lvl_vec_in_[node->level()].emplace_back(node->node().get(),
-                                              node->value());
+      lvl_vec_in_[node->level()].emplace_back(node->node(), node->value());
     }
   }
 

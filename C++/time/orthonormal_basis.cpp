@@ -12,18 +12,16 @@ datastructures::Tree<DiscLinearScalingFn> disc_lin_tree;
 datastructures::Tree<OrthonormalWaveletFn> ortho_tree;
 
 DiscLinearScalingFn::DiscLinearScalingFn() : ScalingFn<DiscLinearScalingFn>() {
-  auto scaling_left = std::make_shared<DiscLinearScalingFn>(
+  auto scaling_left = make_child(
       /* parents */ std::vector{this},
       /* index */ 0,
       /* support */ std::vector{mother_element});
-  auto scaling_right = std::make_shared<DiscLinearScalingFn>(
+  auto scaling_right = make_child(
       /* parents */ std::vector{this},
       /* index */ 1,
       /* support */ std::vector{mother_element});
-  scaling_left->nbr_ = scaling_right.get();
-  scaling_right->nbr_ = scaling_left.get();
-  children_.push_back(scaling_left);
-  children_.push_back(scaling_right);
+  scaling_left->nbr_ = scaling_right;
+  scaling_right->nbr_ = scaling_left;
 }
 
 double DiscLinearScalingFn::EvalMother(double t, bool deriv) const {
@@ -54,24 +52,24 @@ bool DiscLinearScalingFn::Refine() {
   auto [l, n] = labda();
   auto P = std::vector{this, nbr_};
   auto child_elts = support_[0]->children();
-  children_.push_back(std::make_shared<DiscLinearScalingFn>(
+  make_child(
       /* parents */ P, /* index */ 2 * n + 0,
-      /* support */ std::vector{child_elts[0].get()}));
-  children_.push_back(std::make_shared<DiscLinearScalingFn>(
+      /* support */ std::vector{child_elts[0]});
+  make_child(
       /* parents */ P, /* index */ 2 * n + 1,
-      /* support */ std::vector{child_elts[0].get()}));
-  children_.push_back(std::make_shared<DiscLinearScalingFn>(
+      /* support */ std::vector{child_elts[0]});
+  make_child(
       /* parents */ P, /* index */ 2 * n + 2,
-      /* support */ std::vector{child_elts[1].get()}));
-  children_.push_back(std::make_shared<DiscLinearScalingFn>(
+      /* support */ std::vector{child_elts[1]});
+  make_child(
       /* parents */ P, /* index */ 2 * n + 3,
-      /* support */ std::vector{child_elts[1].get()}));
+      /* support */ std::vector{child_elts[1]});
 
   nbr_->children_ = children_;
-  children_[0]->nbr_ = children_[1].get();
-  children_[1]->nbr_ = children_[0].get();
-  children_[2]->nbr_ = children_[3].get();
-  children_[3]->nbr_ = children_[2].get();
+  children_[0]->nbr_ = children_[1];
+  children_[1]->nbr_ = children_[0];
+  children_[2]->nbr_ = children_[3];
+  children_[3]->nbr_ = children_[2];
   return true;
 }
 
@@ -80,10 +78,10 @@ OrthonormalWaveletFn::OrthonormalWaveletFn()
   auto l0_scalings = disc_lin_tree.meta_root->children();
   assert(l0_scalings.size() == 2);
   for (size_t i = 0; i < 2; ++i) {
-    children_.push_back(std::make_shared<OrthonormalWaveletFn>(
+    make_child(
         /* parents */ std::vector{this},
         /* index */ i,
-        /* single_scale */ std::vector{std::pair{l0_scalings[i].get(), 1.0}}));
+        /* single_scale */ std::vector{std::pair{l0_scalings[i], 1.0}});
   }
 }
 
@@ -97,20 +95,20 @@ bool OrthonormalWaveletFn::Refine() {
     single_scale_[0].first->Refine();
     auto l1_scalings = single_scale_[0].first->children();
 
-    children_.push_back(std::make_shared<OrthonormalWaveletFn>(
-        /* parents */ std::vector{parents[0].get(), parents[1].get()},
+    make_child(
+        /* parents */ std::vector{parents[0], parents[1]},
         /* index */ 0,
         /* single_scale */
-        std::vector{std::pair{l1_scalings[0].get(), -1.0 / 2},
-                    std::pair{l1_scalings[1].get(), -sqrt(3) / 2},
-                    std::pair{l1_scalings[2].get(), 1.0 / 2},
-                    std::pair{l1_scalings[3].get(), -sqrt(3) / 2}}));
-    children_.push_back(std::make_shared<OrthonormalWaveletFn>(
-        /* parents */ std::vector{parents[0].get(), parents[1].get()},
+        std::vector{std::pair{l1_scalings[0], -1.0 / 2},
+                    std::pair{l1_scalings[1], -sqrt(3) / 2},
+                    std::pair{l1_scalings[2], 1.0 / 2},
+                    std::pair{l1_scalings[3], -sqrt(3) / 2}});
+    make_child(
+        /* parents */ std::vector{parents[0], parents[1]},
         /* index */ 1,
         /* single_scale */
-        std::vector{std::pair{l1_scalings[1].get(), -1.0},
-                    std::pair{l1_scalings[3].get(), 1.0}}));
+        std::vector{std::pair{l1_scalings[1], -1.0},
+                    std::pair{l1_scalings[3], 1.0}});
     if (index_ == 0)
       parents[1]->children_ = children_;
     else
@@ -127,20 +125,20 @@ bool OrthonormalWaveletFn::Refine() {
     for (int i = 0; i < 2; i++) {
       auto phi = single_scale_[2 * i].first;
       phi->Refine();
-      auto parents = std::vector{this, nbr.get()};
-      children_.push_back(std::make_shared<OrthonormalWaveletFn>(
+      auto parents = std::vector{this, nbr};
+      make_child(
           /* parents */ parents, /* index */ 2 * (n + i),
           /* single_scale */
-          std::vector{std::pair{phi->children_[0].get(), -s / 2},
-                      std::pair{phi->children_[1].get(), -s * sqrt(3) / 2},
-                      std::pair{phi->children_[2].get(), s / 2},
-                      std::pair{phi->children_[3].get(), -s * sqrt(3) / 2}}));
-      children_.push_back(std::make_shared<OrthonormalWaveletFn>(
+          std::vector{std::pair{phi->children_[0], -s / 2},
+                      std::pair{phi->children_[1], -s * sqrt(3) / 2},
+                      std::pair{phi->children_[2], s / 2},
+                      std::pair{phi->children_[3], -s * sqrt(3) / 2}});
+      make_child(
           /* parents */ parents,
           /* index */ 2 * (n + i) + 1,
           /* single_scale */
-          std::vector{std::pair{phi->children_[1].get(), -s},
-                      std::pair{phi->children_[3].get(), s}}));
+          std::vector{std::pair{phi->children_[1], -s},
+                      std::pair{phi->children_[3], s}});
     }
     nbr->children_ = children_;
   }
