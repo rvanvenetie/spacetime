@@ -146,7 +146,8 @@ TEST(Triangulation, VertexPatch) {
       ASSERT_EQ(v->patch.size(), 4);
   }
 }
-TEST(Triangulation, RefineHierarhicalBasisFn) {
+
+TEST(Triangulation, RefineHierarchicalBasisFn) {
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(1);
   auto hb = T.hierarch_basis_tree.Bfs();
