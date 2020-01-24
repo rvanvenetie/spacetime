@@ -110,7 +110,7 @@ TEST(BilinearForm, ThreePointMass) {
           ip += boost::math::quadrature::gauss<double, 7>::integrate(
               eval, elem->Interval().first, elem->Interval().second);
 
-        ASSERT_NEAR(mat(i, j), ip, 1e-10);
+        ASSERT_NEAR(mat(j, i), ip, 1e-10);
       }
   }
 }

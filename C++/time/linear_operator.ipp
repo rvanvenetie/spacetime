@@ -1,5 +1,7 @@
 #pragma once
+
 #include <iostream>
+#include <unordered_map>
 
 #include "haar_basis.hpp"
 #include "linear_operator.hpp"
@@ -82,9 +84,31 @@ template <typename BasisIn, typename BasisOut>
 Eigen::MatrixXd LinearOperator<BasisIn, BasisOut>::ToMatrix(
     const SparseIndices<BasisIn> &indices_in,
     const SparseIndices<BasisOut> &indices_out) const {
+  assert(indices_in.IsUnique() && indices_out.IsUnique());
+  std::unordered_map<BasisIn *, int> indices_in_map;
+  std::unordered_map<BasisOut *, int> indices_out_map;
   Eigen::MatrixXd A =
-      Eigen::MatrixXd::Zero(vec_out_->Bfs().size(), indices_in.size());
-  return {};
+      Eigen::MatrixXd::Zero(indices_out.size(), indices_in.size());
+
+  for (int i = 0; i < indices_in.size(); ++i) {
+    assert(!indices_in_map.count(indices_in[i]));
+    indices_in_map[indices_in[i]] = i;
+  }
+  for (int i = 0; i < indices_out.size(); ++i) {
+    assert(!indices_out_map.count(indices_out[i]));
+    indices_out_map[indices_out[i]] = i;
+  }
+
+  // Create A.
+  for (int i = 0; i < indices_in.size(); ++i) {
+    SparseVector<BasisIn> vec{{{indices_in[i], 1.0}}};
+    auto op_vec = MatVec(vec);
+    for (auto [fn, coeff] : op_vec) {
+      A(indices_out_map[fn], i) = coeff;
+    }
+  }
+
+  return A;
 }
 
 /**
@@ -121,12 +145,12 @@ SparseVector<DiscLinearScalingFn> Prolongate<DiscLinearScalingFn>::Column(
   phi_in->Refine();
   const auto &children = phi_in->children();
   if (phi_in->pw_constant())
-    return {{{children[0].get(), 1.0}, {children[2].get(), 1.0}}};
+    return {{{children[0], 1.0}, {children[2], 1.0}}};
   else
-    return {{{children[0].get(), -sqrt(3) / 2},
-             {children[1].get(), 0.5},
-             {children[2].get(), sqrt(3) / 2},
-             {children[3].get(), 0.5}}};
+    return {{{children[0], -sqrt(3) / 2},
+             {children[1], 0.5},
+             {children[2], sqrt(3) / 2},
+             {children[3], 0.5}}};
 }
 
 template <>

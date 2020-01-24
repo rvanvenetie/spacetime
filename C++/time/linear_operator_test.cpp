@@ -1,10 +1,12 @@
 #include "linear_operator.hpp"
 
-#include <Eigen/Dense>
 #include <array>
 #include <cmath>
 #include <set>
 #include <unordered_map>
+
+#include <Eigen/Dense>
+#include <boost/math/quadrature/gauss.hpp>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -18,8 +20,7 @@ template <typename LinearOperator, typename BasisIn, typename BasisOut>
 void CheckMatrixTranspose(const SparseIndices<BasisIn> &indices_in,
                           const SparseIndices<BasisOut> &indices_out) {
   auto op = LinearOperator();
-  Eigen::MatrixXd A =
-      Eigen::MatrixXd::Zero(indices_out.size(), indices_in.size());
+  Eigen::MatrixXd A = op.ToMatrix(indices_in, indices_out);
   Eigen::MatrixXd AT =
       Eigen::MatrixXd::Zero(indices_in.size(), indices_out.size());
   std::unordered_map<BasisIn *, int> indices_in_map;
@@ -34,15 +35,13 @@ void CheckMatrixTranspose(const SparseIndices<BasisIn> &indices_in,
     indices_out_map[indices_out[i]] = i;
   }
 
-  // Create A.
+  // Check A.
   for (int i = 0; i < indices_in.size(); ++i) {
     SparseVector<BasisIn> vec{{{indices_in[i], 1.0}}};
     auto op_vec = op.MatVec(vec);
     for (auto [fn, coeff] : op_vec) {
       EXPECT_THAT(coeff, Not(DoubleEq(0)));
-      A(indices_out_map[fn], i) = coeff;
     }
-
     auto op_vec_check = op.MatVec(vec, indices_out);
     for (auto [fn, coeff] : op_vec_check)
       ASSERT_DOUBLE_EQ(coeff, A(indices_out_map[fn], i));
@@ -61,6 +60,29 @@ void CheckMatrixTranspose(const SparseIndices<BasisIn> &indices_in,
 
   // Check that they are the same.
   ASSERT_TRUE(A.transpose().isApprox(AT));
+}
+
+template <typename LinearOperator, typename BasisIn, typename BasisOut>
+void CheckMatrixQuadrature(const SparseIndices<BasisIn> &indices_in,
+                           bool deriv_in,
+                           const SparseIndices<BasisOut> &indices_out,
+                           bool deriv_out) {
+  auto mat = LinearOperator().ToMatrix(indices_in, indices_out);
+  for (int j = 0; j < indices_out.size(); ++j)
+    for (int i = 0; i < indices_in.size(); ++i) {
+      auto psi_j = indices_out[j];
+      auto phi_i = indices_in[i];
+
+      double ip = 0;
+      auto eval = [psi_j, deriv_out, phi_i, deriv_in](const double &t) {
+        return psi_j->Eval(t, deriv_out) * phi_i->Eval(t, deriv_in);
+      };
+      for (auto elem : phi_i->support())
+        ip += boost::math::quadrature::gauss<double, 7>::integrate(
+            eval, elem->Interval().first, elem->Interval().second);
+
+      ASSERT_NEAR(mat(j, i), ip, 1e-10);
+    }
 }
 
 TEST(ContLinearScaling, ProlongateEval) {
@@ -122,7 +144,7 @@ TEST(ContLinearScaling, CheckMatrixTransposes) {
   }
 }
 
-TEST(ContLinearScaling, MassQuadrature) {
+TEST(ContLinearScaling, MatrixQuadrature) {
   // Reset the persistent trees.
   ResetTrees();
 
@@ -132,26 +154,11 @@ TEST(ContLinearScaling, MassQuadrature) {
   auto Lambda = three_point_tree.NodesPerLevel();
   auto Delta = cont_lin_tree.NodesPerLevel();
 
-  for (int l = 1; l < ml; ++l) {
-    auto mass = MassOperator<ContLinearScalingFn, ContLinearScalingFn>();
-    auto mat = bil_form.ToMatrix(view_in);
-    auto nodes_in = view_in.Bfs();
-    auto nodes_out = vec_out.Bfs();
-    for (int j = 0; j < nodes_in.size(); ++j)
-      for (int i = 0; i < nodes_out.size(); ++i) {
-        auto f = nodes_in[j]->node();
-        auto g = nodes_out[i]->node();
-        if (g->level() > f->level()) std::swap(f, g);
-
-        double ip = 0;
-        auto eval = [f, g](const double &t) { return f->Eval(t) * g->Eval(t); };
-        for (auto elem : f->support())
-          ip += boost::math::quadrature::gauss<double, 7>::integrate(
-              eval, elem->Interval().first, elem->Interval().second);
-
-        ASSERT_NEAR(mat(i, j), ip, 1e-10);
-      }
-        {Delta[l - 1]}, {Delta[l - 1]});
+  for (int l = 0; l < ml; ++l) {
+    CheckMatrixQuadrature<
+        MassOperator<ContLinearScalingFn, ContLinearScalingFn>,
+        ContLinearScalingFn, ContLinearScalingFn>({Delta[l]}, false, {Delta[l]},
+                                                  false);
   }
 }
 
@@ -175,6 +182,24 @@ TEST(DiscLinearScaling, CheckMatrixTransposes) {
         ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>,
         DiscLinearScalingFn, DiscLinearScalingFn>({Delta[l - 1]},
                                                   {Delta[l - 1]});
+  }
+}
+
+TEST(DiscLinearScaling, MatrixQuadrature) {
+  // Reset the persistent trees.
+  ResetTrees();
+
+  int ml = 7;
+
+  ortho_tree.UniformRefine(ml);
+  auto Lambda = ortho_tree.NodesPerLevel();
+  auto Delta = disc_lin_tree.NodesPerLevel();
+
+  for (int l = 0; l < ml; ++l) {
+    CheckMatrixQuadrature<
+        MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>,
+        DiscLinearScalingFn, DiscLinearScalingFn>({Delta[l]}, false, {Delta[l]},
+                                                  false);
   }
 }
 
@@ -211,6 +236,44 @@ TEST(DiscContLinearScaling, CheckMatrixTransposes) {
         TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>,
         ContLinearScalingFn, DiscLinearScalingFn>({Delta_3pt[l - 1]},
                                                   {Delta_ortho[l - 1]});
+  }
+}
+
+TEST(DiscContLinearScaling, MatrixQuadrature) {
+  // Reset the persistent trees.
+  ResetTrees();
+
+  int ml = 7;
+
+  three_point_tree.UniformRefine(ml);
+  auto Lambda_3pt = three_point_tree.NodesPerLevel();
+  auto Delta_3pt = cont_lin_tree.NodesPerLevel();
+
+  ortho_tree.UniformRefine(ml);
+  auto Lambda_ortho = ortho_tree.NodesPerLevel();
+  auto Delta_ortho = disc_lin_tree.NodesPerLevel();
+
+  for (int l = 0; l < ml; ++l) {
+    CheckMatrixQuadrature<
+        MassOperator<ContLinearScalingFn, DiscLinearScalingFn>,
+        ContLinearScalingFn, DiscLinearScalingFn>({Delta_3pt[l]}, false,
+                                                  {Delta_ortho[l]}, false);
+    CheckMatrixQuadrature<
+        MassOperator<DiscLinearScalingFn, ContLinearScalingFn>,
+        DiscLinearScalingFn, ContLinearScalingFn>({Delta_ortho[l]}, false,
+                                                  {Delta_3pt[l]}, false);
+    bool matrices_are_transposes =
+        MassOperator<ContLinearScalingFn, DiscLinearScalingFn>()
+            .ToMatrix({Delta_3pt[l]}, {Delta_ortho[l]})
+            .transpose()
+            .isApprox(MassOperator<DiscLinearScalingFn, ContLinearScalingFn>()
+                          .ToMatrix({Delta_ortho[l]}, {Delta_3pt[l]}));
+    ASSERT_TRUE(matrices_are_transposes);
+
+    CheckMatrixQuadrature<
+        TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>,
+        ContLinearScalingFn, DiscLinearScalingFn>({Delta_3pt[l]}, true,
+                                                  {Delta_ortho[l]}, false);
   }
 }
 
