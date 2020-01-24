@@ -25,8 +25,9 @@ class LinearOperator {
   SparseVector<BasisOut> operator()(const SparseVector<BasisIn> &vec) const {
     return MatVec(vec);
   }
-  SparseVector<BasisOut> operator()(const SparseVector<BasisIn> &vec,
-                                    std::vector<BasisOut *> indices_out) const {
+  SparseVector<BasisOut> operator()(
+      const SparseVector<BasisIn> &vec,
+      const SparseIndices<BasisOut> &indices_out) const {
     return MatVec(vec, indices_out);
   }
 
@@ -38,6 +39,10 @@ class LinearOperator {
 
   // Row should be the column vector associated to the given basis function.
   virtual SparseVector<BasisIn> Row(BasisOut *phi_out) const = 0;
+
+  // Debug function, O(n^2).
+  Eigen::MatrixXd ToMatrix(const SparseIndices<BasisIn> &indices_in,
+                           const SparseIndices<BasisOut> &indices_out) const;
 };
 
 /**
@@ -60,12 +65,12 @@ class WaveletToScaling
 /**
  *  Below are the prolongation/restriction operators for single scale functions.
  */
-template <typename basis>
-class Prolongate : public LinearOperator<basis, basis> {
-  SparseVector<basis> Column(basis *phi_in) const final;
+template <typename Basis>
+class Prolongate : public LinearOperator<Basis, Basis> {
+  SparseVector<Basis> Column(Basis *phi_in) const final;
 
   // Also named the `restriction` operator
-  SparseVector<basis> Row(basis *phi_out) const final;
+  SparseVector<Basis> Row(Basis *phi_out) const final;
 };
 
 /**
