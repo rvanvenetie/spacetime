@@ -68,20 +68,20 @@ void CheckMatrixQuadrature(const SparseIndices<BasisIn> &indices_in,
                            const SparseIndices<BasisOut> &indices_out,
                            bool deriv_out) {
   auto mat = LinearOperator().ToMatrix(indices_in, indices_out);
-  for (int j = 0; j < indices_out.size(); ++j)
-    for (int i = 0; i < indices_in.size(); ++i) {
-      auto psi_j = indices_out[j];
-      auto phi_i = indices_in[i];
+  for (int j = 0; j < indices_in.size(); ++j)
+    for (int i = 0; i < indices_out.size(); ++i) {
+      auto psi_j = indices_in[j];
+      auto phi_i = indices_out[i];
 
       double ip = 0;
-      auto eval = [psi_j, deriv_out, phi_i, deriv_in](const double &t) {
-        return psi_j->Eval(t, deriv_out) * phi_i->Eval(t, deriv_in);
+      auto eval = [psi_j, deriv_in, phi_i, deriv_out](const double &t) {
+        return psi_j->Eval(t, deriv_in) * phi_i->Eval(t, deriv_out);
       };
       for (auto elem : phi_i->support())
         ip += boost::math::quadrature::gauss<double, 7>::integrate(
             eval, elem->Interval().first, elem->Interval().second);
 
-      ASSERT_NEAR(mat(j, i), ip, 1e-10);
+      ASSERT_NEAR(mat(i, j), ip, 1e-10);
     }
 }
 
