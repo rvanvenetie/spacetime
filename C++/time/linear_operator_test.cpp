@@ -78,7 +78,7 @@ void CheckMatrixQuadrature(const SparseIndices<BasisIn> &indices_in,
         return psi_j->Eval(t, deriv_in) * phi_i->Eval(t, deriv_out);
       };
       for (auto elem : phi_i->support())
-        ip += boost::math::quadrature::gauss<double, 7>::integrate(
+        ip += boost::math::quadrature::gauss<double, 2>::integrate(
             eval, elem->Interval().first, elem->Interval().second);
 
       ASSERT_NEAR(mat(i, j), ip, 1e-10);
@@ -239,6 +239,31 @@ TEST(DiscContLinearScaling, CheckMatrixTransposes) {
   }
 }
 
+TEST(DiscContLinearScaling, ZeroEvalWorks) {
+  // Reset the persistent trees.
+  ResetTrees();
+
+  int ml = 7;
+
+  three_point_tree.UniformRefine(ml);
+  auto Lambda_3pt = three_point_tree.NodesPerLevel();
+  auto Delta_3pt = cont_lin_tree.NodesPerLevel();
+
+  ortho_tree.UniformRefine(ml);
+  auto Lambda_ortho = ortho_tree.NodesPerLevel();
+  auto Delta_ortho = disc_lin_tree.NodesPerLevel();
+
+  for (int l = 0; l < ml; ++l) {
+    auto mat =
+        ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>().ToMatrix(
+            {Delta_3pt[l]}, {Delta_ortho[l]});
+    for (int j = 0; j < Delta_3pt[l].size(); ++j)
+      for (int i = 0; i < Delta_ortho[l].size(); ++i)
+        ASSERT_NEAR(mat(i, j),
+                    Delta_3pt[l][j]->Eval(0.0) * Delta_ortho[l][i]->Eval(0.0),
+                    1e-10);
+  }
+}
 TEST(DiscContLinearScaling, MatrixQuadrature) {
   // Reset the persistent trees.
   ResetTrees();
