@@ -149,14 +149,15 @@ auto Prolongate<ContLinearScalingFn>::Column(ContLinearScalingFn *phi_in) {
 
 template <>
 auto Prolongate<ContLinearScalingFn>::Row(ContLinearScalingFn *phi_in) {
+  StaticSparseVector<ContLinearScalingFn, 2> result;
   const auto &parents = phi_in->parents();
   if (parents.size() == 1)
-    return StaticSparseVector<ContLinearScalingFn, 2>{{{parents[0], 1.0}}};
+    result = {{{parents[0], 1.0}}};
   else if (parents.size() == 2)
-    return StaticSparseVector<ContLinearScalingFn, 2>{
-        {{parents[0], 0.5}, {parents[1], 0.5}}};
+    result = {{{parents[0], 0.5}, {parents[1], 0.5}}};
   else
     assert(false);
+  return result;
 }
 
 template <>
@@ -334,14 +335,14 @@ auto ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
     DiscLinearScalingFn *phi_in) {
   StaticSparseVector<DiscLinearScalingFn, 2> result;
   auto [l, n] = phi_in->labda();
-  if (n == 0) {
-    auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
-    assert(pdl0 != nullptr && pdl1 != nullptr);
-    if (phi_in->pw_constant())
-      result = {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
-    else
-      result = {{{pdl0, -sqrt(3)}, {pdl1, 3.0}}};
-  }
+  assert(result.size() == 2);
+  if (n > 0) return result;
+  auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
+  assert(pdl0 != nullptr && pdl1 != nullptr);
+  if (phi_in->pw_constant())
+    result = {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
+  else
+    result = {{{pdl0, -sqrt(3)}, {pdl1, 3.0}}};
   return result;
 }
 
