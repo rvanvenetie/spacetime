@@ -335,14 +335,14 @@ auto ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
     DiscLinearScalingFn *phi_in) {
   StaticSparseVector<DiscLinearScalingFn, 2> result;
   auto [l, n] = phi_in->labda();
-  assert(result.size() == 2);
-  if (n > 0) return result;
-  auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
-  assert(pdl0 != nullptr && pdl1 != nullptr);
-  if (phi_in->pw_constant())
-    result = {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
-  else
-    result = {{{pdl0, -sqrt(3)}, {pdl1, 3.0}}};
+  if (n <= 1) {
+    auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
+    assert(pdl0 != nullptr && pdl1 != nullptr);
+    if (phi_in->pw_constant())
+      result = {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
+    else
+      result = {{{pdl0, -sqrt(3)}, {pdl1, 3.0}}};
+  }
   return result;
 }
 
@@ -367,7 +367,7 @@ inline auto ThreeInOrthoOut(ContLinearScalingFn *phi_in) {
 inline auto OrthoInThreeOut(DiscLinearScalingFn *phi_in) {
   StaticSparseVector<ContLinearScalingFn, 1> result;
   auto [l, n] = phi_in->labda();
-  if (n == 0) {
+  if (n <= 1) {
     auto [pcl0, _] = phi_in->support().front()->RefineContLinear();
     assert(pcl0 != nullptr);
     if (phi_in->pw_constant())
