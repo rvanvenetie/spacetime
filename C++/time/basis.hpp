@@ -72,8 +72,6 @@ class Function : public datastructures::Node<I> {
   inline int index() const { return index_; }
   const std::vector<Element1D *> &support() const { return support_; }
 
-  virtual double Eval(double t, bool deriv = false) const = 0;
-
   friend std::ostream &operator<<(std::ostream &os, const Function<I> &fn) {
     os << I::name << "(" << fn.level() << ", " << fn.index() << ")";
     return os;
@@ -85,6 +83,8 @@ class Function : public datastructures::Node<I> {
 
   // The index inside this level.
   int index_;
+
+  // The vector of elements that make up this functions support.
   std::vector<Element1D *> support_;
 };
 
@@ -99,15 +99,13 @@ class ScalingFn : public Function<I> {
  public:
   using WaveletType = typename FunctionTrait<I>::Wavelet;
 
-  double Eval(double t, bool deriv = false) const override {
+  double Eval(double t, bool deriv = false) const {
     int l = this->level_;
     int n = this->index_;
     double chain_rule_constant = deriv ? std::pow(2, l) : 1;
-    return chain_rule_constant * EvalMother(std::pow(2, l) * t - n, deriv);
+    return chain_rule_constant * static_cast<const I &>(*this).EvalMother(
+                                     std::pow(2, l) * t - n, deriv);
   }
-
-  // To be implemented by derived classes.
-  virtual double EvalMother(double t, bool deriv) const = 0;
 
   const SparseVector<WaveletType> &multi_scale() const { return multi_scale_; }
 
@@ -155,7 +153,7 @@ class WaveletFn : public Function<I> {
     support_.erase(last, support_.end());
   }
 
-  double Eval(double t, bool deriv = false) const final {
+  double Eval(double t, bool deriv = false) const {
     double result = 0;
     for (auto [fn, coeff] : single_scale_) {
       result += coeff * fn->Eval(t, deriv);
