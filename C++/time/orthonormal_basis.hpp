@@ -38,8 +38,8 @@ class DiscLinearScalingFn : public ScalingFn<DiscLinearScalingFn> {
 
   inline bool pw_constant() const { return index() % 2 == 0; }
 
-  double EvalMother(double t, bool deriv) const override;
-  double Eval(double t, bool deriv = false) const override;
+  double Eval(double t, bool deriv = false) const;
+  double EvalMother(double t, bool deriv) const;
   bool Refine();
 
  protected:

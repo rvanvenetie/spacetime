@@ -40,7 +40,7 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
     }
   }
 
-  double EvalMother(double t, bool deriv) const final;
+  double EvalMother(double t, bool deriv) const;
 
   ContLinearScalingFn *RefineMiddle();
   ContLinearScalingFn *RefineLeft();
