@@ -149,7 +149,6 @@ MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
   double self_ip = 0;
   if (n > 0) {
     auto elem = phi_in->support()[0];
-<<<<<<< HEAD
     result.emplace_back(elem->RefineContLinear()[0], pow(2, -l) / 6.0);
     self_ip += pow(2, -l) / 3.0;
   }
@@ -157,15 +156,6 @@ MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
     auto elem = phi_in->support().back();
     result.emplace_back(elem->RefineContLinear()[1], pow(2, -l) / 6.0);
     self_ip += pow(2, -l) / 3.0;
-=======
-    result.emplace_back(elem->RefineContLinear()[0], 1. / 6 * pow(2, -l));
-    self_ip += 1. / 3 * pow(2, -l);
-  }
-  if (n < (1 << l)) {
-    auto elem = phi_in->support().back();
-    result.emplace_back(elem->RefineContLinear()[1], 1. / 6 * pow(2, -l));
-    self_ip += 1. / 3 * pow(2, -l);
->>>>>>> cpp/master
   }
   result.emplace_back(phi_in, self_ip);
   return result;

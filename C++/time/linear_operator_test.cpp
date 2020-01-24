@@ -16,7 +16,7 @@ using ::testing::Not;
 
 template <typename LinearOperator, typename BasisIn, typename BasisOut>
 void CheckMatrixTranspose(const SparseIndices<BasisIn> &indices_in,
-                          const SparseIndices<BasisIn> &indices_out) {
+                          const SparseIndices<BasisOut> &indices_out) {
   auto op = LinearOperator();
   Eigen::MatrixXd A =
       Eigen::MatrixXd::Zero(indices_out.size(), indices_in.size());
@@ -113,14 +113,15 @@ TEST(ContLinearScaling, CheckOperatorTransposes) {
   auto Delta = cont_lin_tree.NodesPerLevel();
 
   for (int l = 1; l < ml; ++l) {
-    CheckMatrixTranspose(Prolongate<ContLinearScalingFn>(), Delta[l - 1],
-                         Delta[l]);
-    CheckMatrixTranspose(
-        MassOperator<ContLinearScalingFn, ContLinearScalingFn>(), Delta[l - 1],
-        Delta[l - 1]);
-    CheckMatrixTranspose(
-        ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>(),
-        Delta[l - 1], Delta[l - 1]);
+    CheckMatrixTranspose<Prolongate<ContLinearScalingFn>, ContLinearScalingFn,
+                         ContLinearScalingFn>({Delta[l - 1]}, {Delta[l]});
+    CheckMatrixTranspose<MassOperator<ContLinearScalingFn, ContLinearScalingFn>,
+                         ContLinearScalingFn, ContLinearScalingFn>(
+        {Delta[l - 1]}, {Delta[l - 1]});
+    CheckMatrixTranspose<
+        ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>,
+        ContLinearScalingFn, ContLinearScalingFn>({Delta[l - 1]},
+                                                  {Delta[l - 1]});
   }
 }
 
@@ -135,14 +136,15 @@ TEST(DiscLinearScaling, CheckOperatorTransposes) {
   auto Delta = disc_lin_tree.NodesPerLevel();
 
   for (int l = 1; l < ml; ++l) {
-    CheckMatrixTranspose(Prolongate<DiscLinearScalingFn>(), Delta[l - 1],
-                         Delta[l]);
-    CheckMatrixTranspose(
-        MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>(), Delta[l - 1],
-        Delta[l - 1]);
-    CheckMatrixTranspose(
-        ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>(),
-        Delta[l - 1], Delta[l - 1]);
+    CheckMatrixTranspose<Prolongate<DiscLinearScalingFn>, DiscLinearScalingFn,
+                         DiscLinearScalingFn>({Delta[l - 1]}, {Delta[l]});
+    CheckMatrixTranspose<MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>,
+                         DiscLinearScalingFn, DiscLinearScalingFn>(
+        {Delta[l - 1]}, {Delta[l - 1]});
+    CheckMatrixTranspose<
+        ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>,
+        DiscLinearScalingFn, DiscLinearScalingFn>({Delta[l - 1]},
+                                                  {Delta[l - 1]});
   }
 }
 
@@ -161,21 +163,24 @@ TEST(DiscContLinearScaling, CheckOperatorTransposes) {
   auto Delta_ortho = disc_lin_tree.NodesPerLevel();
 
   for (int l = 1; l < ml; ++l) {
-    CheckMatrixTranspose(
-        MassOperator<ContLinearScalingFn, DiscLinearScalingFn>(),
-        Delta_3pt[l - 1], Delta_ortho[l - 1]);
-    CheckMatrixTranspose(
-        MassOperator<DiscLinearScalingFn, ContLinearScalingFn>(),
-        Delta_ortho[l - 1], Delta_3pt[l - 1]);
-    CheckMatrixTranspose(
-        ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>(),
-        Delta_3pt[l - 1], Delta_ortho[l - 1]);
-    CheckMatrixTranspose(
-        ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>(),
-        Delta_ortho[l - 1], Delta_3pt[l - 1]);
-    CheckMatrixTranspose(
-        TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>(),
-        Delta_3pt[l - 1], Delta_ortho[l - 1]);
+    CheckMatrixTranspose<MassOperator<ContLinearScalingFn, DiscLinearScalingFn>,
+                         ContLinearScalingFn, DiscLinearScalingFn>(
+        {Delta_3pt[l - 1]}, {Delta_ortho[l - 1]});
+    CheckMatrixTranspose<MassOperator<DiscLinearScalingFn, ContLinearScalingFn>,
+                         DiscLinearScalingFn, ContLinearScalingFn>(
+        {Delta_ortho[l - 1]}, {Delta_3pt[l - 1]});
+    CheckMatrixTranspose<
+        ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>,
+        ContLinearScalingFn, DiscLinearScalingFn>({Delta_3pt[l - 1]},
+                                                  {Delta_ortho[l - 1]});
+    CheckMatrixTranspose<
+        ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>,
+        DiscLinearScalingFn, ContLinearScalingFn>({Delta_ortho[l - 1]},
+                                                  {Delta_3pt[l - 1]});
+    CheckMatrixTranspose<
+        TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>,
+        ContLinearScalingFn, DiscLinearScalingFn>({Delta_3pt[l - 1]},
+                                                  {Delta_ortho[l - 1]});
   }
 }
 
