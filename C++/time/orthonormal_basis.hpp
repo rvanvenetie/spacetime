@@ -29,10 +29,17 @@ class DiscLinearScalingFn : public ScalingFn<DiscLinearScalingFn> {
   explicit DiscLinearScalingFn(const std::vector<DiscLinearScalingFn *> parents,
                                int index,
                                const std::vector<Element1D *> support)
-      : ScalingFn<DiscLinearScalingFn>(parents, index, support) {}
+      : ScalingFn<DiscLinearScalingFn>(parents, index, support) {
+    if (pw_constant())
+      support[0]->phi_disc_lin_[0] = this;
+    else
+      support[0]->phi_disc_lin_[1] = this;
+  }
 
-  double EvalMother(double t, bool deriv) const override;
-  double Eval(double t, bool deriv = false) const override;
+  inline bool pw_constant() const { return index() % 2 == 0; }
+
+  double Eval(double t, bool deriv = false) const;
+  double EvalMother(double t, bool deriv) const;
   bool Refine();
 
  protected:
@@ -46,8 +53,6 @@ class DiscLinearScalingFn : public ScalingFn<DiscLinearScalingFn> {
 
   // Protected constructor for creating a metaroot.
   DiscLinearScalingFn();
-
-  inline bool pw_constant() const { return index() % 2 == 0; }
 
   friend datastructures::Tree<DiscLinearScalingFn>;
   friend OrthonormalWaveletFn;

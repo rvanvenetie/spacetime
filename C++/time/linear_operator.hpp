@@ -1,4 +1,6 @@
 #pragma once
+
+#include <Eigen/Dense>
 #include <utility>
 #include <vector>
 
@@ -7,7 +9,7 @@
 
 namespace Time {
 
-template <typename BasisIn, typename BasisOut>
+template <typename I, typename BasisIn, typename BasisOut>
 class LinearOperator {
  public:
   // This MatVec applies the operator column-wise.
@@ -25,19 +27,18 @@ class LinearOperator {
   SparseVector<BasisOut> operator()(const SparseVector<BasisIn> &vec) const {
     return MatVec(vec);
   }
-  SparseVector<BasisOut> operator()(const SparseVector<BasisIn> &vec,
-                                    std::vector<BasisOut *> indices_out) const {
+  SparseVector<BasisOut> operator()(
+      const SparseVector<BasisIn> &vec,
+      const SparseIndices<BasisOut> &indices_out) const {
     return MatVec(vec, indices_out);
   }
 
   // Return the range of this operator if you were to apply the given indices.
   SparseIndices<BasisOut> Range(const SparseIndices<BasisIn> &ind) const;
 
-  // Column should be the column vector associated to the given basis function.
-  virtual SparseVector<BasisOut> Column(BasisIn *phi_in) const = 0;
-
-  // Row should be the column vector associated to the given basis function.
-  virtual SparseVector<BasisIn> Row(BasisOut *phi_out) const = 0;
+  // Debug function, O(n^2).
+  Eigen::MatrixXd ToMatrix(const SparseIndices<BasisIn> &indices_in,
+                           const SparseIndices<BasisOut> &indices_out) const;
 };
 
 /**
@@ -45,14 +46,11 @@ class LinearOperator {
  */
 template <typename Wavelet>
 class WaveletToScaling
-    : public LinearOperator<Wavelet, typename FunctionTrait<Wavelet>::Scaling> {
-  SparseVector<typename FunctionTrait<Wavelet>::Scaling> Column(
-      Wavelet *psi_in) const final {
-    return psi_in->single_scale();
-  }
-
-  SparseVector<Wavelet> Row(
-      typename FunctionTrait<Wavelet>::Scaling *phi_out) const final {
+    : public LinearOperator<WaveletToScaling<Wavelet>, Wavelet,
+                            typename FunctionTrait<Wavelet>::Scaling> {
+ public:
+  static inline auto Column(Wavelet *psi_in) { return psi_in->single_scale(); }
+  static inline auto Row(typename FunctionTrait<Wavelet>::Scaling *phi_out) {
     return phi_out->multi_scale();
   }
 };
@@ -60,21 +58,43 @@ class WaveletToScaling
 /**
  *  Below are the prolongation/restriction operators for single scale functions.
  */
-template <typename basis>
-class Prolongate : public LinearOperator<basis, basis> {
-  SparseVector<basis> Column(basis *phi_in) const final;
-
-  // Also named the `restriction` operator
-  SparseVector<basis> Row(basis *phi_out) const final;
+template <typename Basis>
+class Prolongate : public LinearOperator<Prolongate<Basis>, Basis, Basis> {
+ public:
+  static inline auto Column(Basis *phi_in);
+  static inline auto Row(Basis *phi_out);
 };
 
 /**
  *   Below are the single scale (levelwise) operators.
  */
 template <typename BasisIn, typename BasisOut>
-class MassOperator : public LinearOperator<BasisIn, BasisOut> {
-  SparseVector<BasisOut> Column(BasisIn *phi_in) const final;
-  SparseVector<BasisIn> Row(BasisOut *phi_out) const final;
+class MassOperator : public LinearOperator<MassOperator<BasisIn, BasisOut>,
+                                           BasisIn, BasisOut> {
+ public:
+  static inline auto Column(BasisIn *phi_in);
+  static inline auto Row(BasisOut *phi_out);
+};
+
+// Evaluates the functions in zero: <gamma_0 phi, gamma_0 psi> = phi(0)
+// psi(0).
+template <typename BasisIn, typename BasisOut>
+class ZeroEvalOperator
+    : public LinearOperator<ZeroEvalOperator<BasisIn, BasisOut>, BasisIn,
+                            BasisOut> {
+ public:
+  static inline auto Column(BasisIn *phi_in);
+  static inline auto Row(BasisOut *phi_out);
+};
+
+// Transport matrix <phi, d/dt psi>.
+template <typename BasisIn, typename BasisOut>
+class TransportOperator
+    : public LinearOperator<TransportOperator<BasisIn, BasisOut>, BasisIn,
+                            BasisOut> {
+ public:
+  static inline auto Column(BasisIn *phi_in);
+  static inline auto Row(BasisOut *phi_out);
 };
 
 }  // namespace Time
