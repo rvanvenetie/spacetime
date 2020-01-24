@@ -60,9 +60,6 @@ void CheckMatrixTranspose(const SparseIndices<BasisIn> &indices_in,
   }
 
   // Check that they are the same.
-  if (!A.transpose().isApprox(AT)) {
-    std::cout << A.transpose() - AT << std::endl;
-  }
   ASSERT_TRUE(A.transpose().isApprox(AT));
 }
 
