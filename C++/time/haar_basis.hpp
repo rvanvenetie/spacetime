@@ -33,7 +33,7 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
     support->phi_disc_const_ = this;
   }
 
-  double EvalMother(double t, bool deriv) const final;
+  double EvalMother(double t, bool deriv) const;
   bool Refine();
 
  protected:

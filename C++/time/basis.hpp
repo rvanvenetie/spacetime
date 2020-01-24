@@ -6,9 +6,12 @@
 
 #include "../datastructures/tree.hpp"
 #include "sparse_vector.hpp"
+
 namespace Time {
-class ContLinearScalingFn;
+
 class DiscConstantScalingFn;
+class ContLinearScalingFn;
+class DiscLinearScalingFn;
 
 class Element1D : public datastructures::BinaryNode<Element1D> {
  public:
@@ -26,6 +29,10 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
   // Ensures that the given basis functions exist on the element.
   const std::array<ContLinearScalingFn *, 2> &RefineContLinear();
 
+  const std::array<DiscLinearScalingFn *, 2> &PhiDiscLinear() {
+    return phi_disc_lin_;
+  }
+
   std::pair<double, double> Interval() const;
 
  protected:
@@ -37,11 +44,13 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
   int index_;
 
   // There is a mapping between the element and the basis functions.
-  std::array<ContLinearScalingFn *, 2> phi_cont_lin_ = {nullptr, nullptr};
   DiscConstantScalingFn *phi_disc_const_ = nullptr;
+  std::array<ContLinearScalingFn *, 2> phi_cont_lin_ = {nullptr, nullptr};
+  std::array<DiscLinearScalingFn *, 2> phi_disc_lin_ = {nullptr, nullptr};
 
-  friend ContLinearScalingFn;
   friend DiscConstantScalingFn;
+  friend ContLinearScalingFn;
+  friend DiscLinearScalingFn;
   friend datastructures::Tree<Element1D>;
 };
 
@@ -63,8 +72,6 @@ class Function : public datastructures::Node<I> {
   inline int index() const { return index_; }
   const std::vector<Element1D *> &support() const { return support_; }
 
-  virtual double Eval(double t, bool deriv = false) const = 0;
-
   friend std::ostream &operator<<(std::ostream &os, const Function<I> &fn) {
     os << I::name << "(" << fn.level() << ", " << fn.index() << ")";
     return os;
@@ -76,6 +83,8 @@ class Function : public datastructures::Node<I> {
 
   // The index inside this level.
   int index_;
+
+  // The vector of elements that make up this functions support.
   std::vector<Element1D *> support_;
 };
 
@@ -90,15 +99,13 @@ class ScalingFn : public Function<I> {
  public:
   using WaveletType = typename FunctionTrait<I>::Wavelet;
 
-  double Eval(double t, bool deriv = false) const override {
+  double Eval(double t, bool deriv = false) const {
     int l = this->level_;
     int n = this->index_;
     double chain_rule_constant = deriv ? std::pow(2, l) : 1;
-    return chain_rule_constant * EvalMother(std::pow(2, l) * t - n, deriv);
+    return chain_rule_constant * static_cast<const I &>(*this).EvalMother(
+                                     std::pow(2, l) * t - n, deriv);
   }
-
-  // To be implemented by derived classes.
-  virtual double EvalMother(double t, bool deriv) const = 0;
 
   const SparseVector<WaveletType> &multi_scale() const { return multi_scale_; }
 
@@ -146,7 +153,7 @@ class WaveletFn : public Function<I> {
     support_.erase(last, support_.end());
   }
 
-  double Eval(double t, bool deriv = false) const final {
+  double Eval(double t, bool deriv = false) const {
     double result = 0;
     for (auto [fn, coeff] : single_scale_) {
       result += coeff * fn->Eval(t, deriv);
