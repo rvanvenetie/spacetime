@@ -57,8 +57,6 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
 template <typename I>
 class Function : public datastructures::Node<I> {
  public:
-  using ElementType = Element1D;
-
   explicit Function(const std::vector<I *> &parents, int index,
                     const std::vector<Element1D *> &support = {})
       : datastructures::Node<I>(parents), index_(index), support_(support) {
@@ -72,22 +70,22 @@ class Function : public datastructures::Node<I> {
     return {this->level_, this->index_};
   }
   inline int index() const { return index_; }
+  const std::vector<Element1D *> &support() const { return support_; }
 
   friend std::ostream &operator<<(std::ostream &os, const Function<I> &fn) {
     os << I::name << "(" << fn.level() << ", " << fn.index() << ")";
     return os;
   }
 
-  const std::vector<Element1D *> &support() const { return support_; }
-
  protected:
-  std::vector<Element1D *> support_;
-
   // Protected constructor for creating a metaroot.
   Function() : datastructures::Node<I>(), index_(0) {}
 
   // The index inside this level.
   int index_;
+
+  // The vector of elements that make up this functions support.
+  std::vector<Element1D *> support_;
 };
 
 template <typename I>
