@@ -119,7 +119,6 @@ TEST(BilinearForm, FullTest) {
         });
     ASSERT_GT(three_view_in.Bfs().size(), 0);
     ASSERT_GT(three_vec_out.Bfs().size(), 0);
-    std::cout << three_view_in.Bfs().size() << std::endl;
 
     // Set up orthonormal tree.
     auto ortho_view_in = TreeView<OrthonormalWaveletFn>(ortho_tree.meta_root);
