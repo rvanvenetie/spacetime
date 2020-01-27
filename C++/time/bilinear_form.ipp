@@ -67,6 +67,70 @@ auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyRecur(
 
 template <template <typename, typename> class Operator, typename WaveletBasisIn,
           typename WaveletBasisOut>
+auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyUppRecur(
+    size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
+    const SparseVector<ScalingBasisIn> &d)
+    -> std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>> {
+  SparseVector<WaveletBasisIn> c;
+  if (l < lvl_vec_in_.size()) c = lvl_vec_in_[l];
+
+  SparseIndices<WaveletBasisOut> Lambda_l_out;
+  if (l < lvl_ind_out_.size()) Lambda_l_out = lvl_ind_out_[l];
+
+  SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
+  if ((Pi_out.size() + Lambda_l_out.size()) > 0 &&
+      (Pi_in.size() + c.size()) > 0) {
+    auto d_bar = WaveletToScaling<WaveletBasisIn>().MatVec(c);
+
+    auto [Pi_B_out, Pi_A_out] = ConstructPiOut(Pi_out);
+    auto Pi_bar_out = Prolongate<ScalingBasisOut>().Range(Pi_B_out);
+    Pi_bar_out |= WaveletToScaling<WaveletBasisOut>().Range(Lambda_l_out);
+
+    auto [e_bar, f_bar] = ApplyUppRecur(l + 1, Pi_bar_out, d_bar);
+
+    auto e = Operator<ScalingBasisIn, ScalingBasisOut>().MatVec(d, Pi_out);
+    e += Prolongate<ScalingBasisOut>().RMatVec(e_bar, Pi_B_out);
+
+    auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
+    f += f_bar;
+
+    return std::pair{e, f};
+  } else {
+    return std::pair{SparseVector<ScalingBasisOut>(),
+                     SparseVector<WaveletBasisOut>()};
+  }
+}
+
+template <template <typename, typename> class Operator, typename WaveletBasisIn,
+          typename WaveletBasisOut>
+auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyLowRecur(
+    size_t l, const SparseVector<ScalingBasisIn> &d)
+    -> SparseVector<WaveletBasisOut> {
+  SparseVector<WaveletBasisIn> c;
+  if (l < lvl_vec_in_.size()) c = lvl_vec_in_[l];
+
+  SparseIndices<WaveletBasisOut> Lambda_l_out;
+  if (l < lvl_ind_out_.size()) Lambda_l_out = lvl_ind_out_[l];
+
+  SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
+  if (Lambda_l_out.size() > 0 && (Pi_in.size() + c.size()) > 0) {
+    auto [Pi_B_in, _] = ConstructPiIn(Pi_in, {});
+    auto Pi_B_bar_out = WaveletToScaling<WaveletBasisOut>().Range(Lambda_l_out);
+
+    auto d_bar = Prolongate<ScalingBasisIn>().MatVec(d.Restrict(Pi_B_in));
+    auto e_bar =
+        Operator<ScalingBasisIn, ScalingBasisOut>().MatVec(d_bar, Pi_B_bar_out);
+    d_bar += WaveletToScaling<WaveletBasisIn>().MatVec(c);
+    auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
+    f += ApplyLowRecur(l + 1, d_bar);
+    return f;
+  } else {
+    return SparseVector<WaveletBasisOut>();
+  }
+}
+
+template <template <typename, typename> class Operator, typename WaveletBasisIn,
+          typename WaveletBasisOut>
 auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ConstructPiOut(
     const SparseIndices<ScalingBasisOut> &Pi_out)
     -> std::pair<SparseIndices<ScalingBasisOut>,
