@@ -79,9 +79,10 @@ void TestUppLow(BilinearForm& bil_form,
 
     bil_form.Apply(vec_in);
     auto vec_out_full = bil_form.vec_out()->DeepCopy();
-    bil_form.ApplyLow(vec_in);
-    auto vec_out_upplow = bil_form.vec_out()->DeepCopy();
+
     bil_form.ApplyUpp(vec_in);
+    auto vec_out_upplow = bil_form.vec_out()->DeepCopy();
+    bil_form.ApplyLow(vec_in);
     vec_out_upplow += *bil_form.vec_out();
 
     // Now check the results!
@@ -94,12 +95,13 @@ void TestUppLow(BilinearForm& bil_form,
   }
 }
 
-template <typename BilinearForm, typename WaveletBasisIn,
+template <template <typename, typename> class Operator, typename WaveletBasisIn,
           typename WaveletBasisOut>
 void CheckMatrixQuadrature(const TreeView<WaveletBasisIn>& view_in,
                            bool deriv_in, TreeVector<WaveletBasisOut>& vec_out,
                            bool deriv_out) {
-  auto bil_form = BilinearForm(&vec_out);
+  auto bil_form =
+      BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>(&vec_out);
   TestLinearity(bil_form, view_in);
   TestUppLow(bil_form, view_in);
 
@@ -132,7 +134,7 @@ TEST(BilinearForm, FullTest) {
   three_point_tree.UniformRefine(ml);
   ortho_tree.UniformRefine(ml);
 
-  for (size_t j = 0; j < 5; ++j) {
+  for (size_t j = 0; j < 20; ++j) {
     // Set up three-point tree.
     auto three_view_in =
         TreeView<ThreePointWaveletFn>(three_point_tree.meta_root);
@@ -154,36 +156,37 @@ TEST(BilinearForm, FullTest) {
     auto ortho_vec_out = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
     ortho_view_in.DeepRefine(
         /* call_filter */ [](auto&& nv) {
-          return nv->level() <= 0 || bsd_rnd() % 3 != 0;
+          return nv->level() <= 0 || bsd_rnd() % 3 == 0;
         });
     ortho_vec_out.DeepRefine(
         /* call_filter */ [](auto&& nv) {
-          return nv->level() <= 0 || bsd_rnd() % 3 != 0;
+          return nv->level() <= 0 || bsd_rnd() % 3 == 0;
         });
     ASSERT_GT(ortho_view_in.Bfs().size(), 0);
     ASSERT_GT(ortho_vec_out.Bfs().size(), 0);
 
+    auto zero_eval_bil_form =
+        BilinearForm<ZeroEvalOperator, ThreePointWaveletFn,
+                     ThreePointWaveletFn>(&three_vec_out);
+    TestLinearity(zero_eval_bil_form, three_view_in);
+    TestUppLow(zero_eval_bil_form, three_view_in);
+
     // Test linearity and validate the result using quadrature on a matrix.
-    CheckMatrixQuadrature<
-        BilinearForm<MassOperator, ThreePointWaveletFn, ThreePointWaveletFn>,
-        ThreePointWaveletFn, ThreePointWaveletFn>(three_view_in, false,
-                                                  three_vec_out, false);
-    CheckMatrixQuadrature<
-        BilinearForm<MassOperator, OrthonormalWaveletFn, OrthonormalWaveletFn>,
-        OrthonormalWaveletFn, OrthonormalWaveletFn>(ortho_view_in, false,
-                                                    ortho_vec_out, false);
-    CheckMatrixQuadrature<
-        BilinearForm<MassOperator, OrthonormalWaveletFn, ThreePointWaveletFn>,
-        OrthonormalWaveletFn, ThreePointWaveletFn>(ortho_view_in, false,
-                                                   three_vec_out, false);
-    CheckMatrixQuadrature<
-        BilinearForm<MassOperator, ThreePointWaveletFn, OrthonormalWaveletFn>,
-        ThreePointWaveletFn, OrthonormalWaveletFn>(three_view_in, false,
-                                                   ortho_vec_out, false);
-    CheckMatrixQuadrature<BilinearForm<TransportOperator, ThreePointWaveletFn,
-                                       OrthonormalWaveletFn>,
-                          ThreePointWaveletFn, OrthonormalWaveletFn>(
-        three_view_in, true, ortho_vec_out, false);
+    CheckMatrixQuadrature<MassOperator, ThreePointWaveletFn,
+                          ThreePointWaveletFn>(three_view_in, false,
+                                               three_vec_out, false);
+    CheckMatrixQuadrature<MassOperator, OrthonormalWaveletFn,
+                          OrthonormalWaveletFn>(ortho_view_in, false,
+                                                ortho_vec_out, false);
+    CheckMatrixQuadrature<MassOperator, OrthonormalWaveletFn,
+                          ThreePointWaveletFn>(ortho_view_in, false,
+                                               three_vec_out, false);
+    CheckMatrixQuadrature<MassOperator, ThreePointWaveletFn,
+                          OrthonormalWaveletFn>(three_view_in, false,
+                                                ortho_vec_out, false);
+    CheckMatrixQuadrature<TransportOperator, ThreePointWaveletFn,
+                          OrthonormalWaveletFn>(three_view_in, true,
+                                                ortho_vec_out, false);
   }
 }
 
