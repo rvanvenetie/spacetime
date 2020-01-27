@@ -80,7 +80,6 @@ auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyUppRecur(
   SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
   if ((Pi_out.size() + Lambda_l_out.size()) > 0 &&
       (Pi_in.size() + c.size()) > 0) {
-    auto Pi_bar_in = WaveletToScaling<WaveletBasisIn>().Range(c.Indices());
     auto d_bar = WaveletToScaling<WaveletBasisIn>().MatVec(c);
 
     auto [Pi_B_out, Pi_A_out] = ConstructPiOut(Pi_out);
@@ -117,8 +116,6 @@ auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyLowRecur(
   if (Lambda_l_out.size() > 0 && (Pi_in.size() + c.size()) > 0) {
     auto [Pi_B_in, _] = ConstructPiIn(Pi_in, {});
     auto Pi_B_bar_out = WaveletToScaling<WaveletBasisOut>().Range(Lambda_l_out);
-    auto Pi_bar_in = Prolongate<ScalingBasisIn>().Range(Pi_B_in);
-    Pi_bar_in |= WaveletToScaling<WaveletBasisIn>().Range(c.Indices());
 
     auto d_bar = Prolongate<ScalingBasisIn>().MatVec(d.Restrict(Pi_B_in));
     auto e_bar =
