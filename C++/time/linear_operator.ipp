@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/container/static_vector.hpp>
 #include <iostream>
 #include <unordered_map>
 
@@ -7,44 +8,49 @@
 #include "linear_operator.hpp"
 #include "orthonormal_basis.hpp"
 #include "three_point_basis.hpp"
-
 namespace Time {
 
 /**
  *  Implementations of LinearOperator.
  */
-template <typename BasisIn, typename BasisOut>
-SparseVector<BasisOut> LinearOperator<BasisIn, BasisOut>::MatVec(
+template <typename I, typename BasisIn, typename BasisOut>
+SparseVector<BasisOut> LinearOperator<I, BasisIn, BasisOut>::MatVec(
     const SparseVector<BasisIn> &vec) const {
   SparseVector<BasisOut> result;
-  for (auto [labda_in, coeff_in] : vec)
-    for (auto [labda_out, coeff_out] : Column(labda_in))
+  result.reserve(vec.size() * 2);
+
+  for (const auto [labda_in, coeff_in] : vec)
+    for (const auto [labda_out, coeff_out] : I::Column(labda_in))
       result.emplace_back(labda_out, coeff_in * coeff_out);
   result.Compress();
   return result;
 }
 
-template <typename BasisIn, typename BasisOut>
-SparseVector<BasisIn> LinearOperator<BasisIn, BasisOut>::RMatVec(
+template <typename I, typename BasisIn, typename BasisOut>
+SparseVector<BasisIn> LinearOperator<I, BasisIn, BasisOut>::RMatVec(
     const SparseVector<BasisOut> &vec) const {
   SparseVector<BasisIn> result;
-  for (auto [labda_out, coeff_out] : vec)
-    for (auto [labda_in, coeff_in] : Row(labda_out))
+  result.reserve(vec.size() * 2);
+
+  for (const auto [labda_out, coeff_out] : vec)
+    for (const auto [labda_in, coeff_in] : I::Row(labda_out))
       result.emplace_back(labda_in, coeff_out * coeff_in);
   result.Compress();
   return result;
 }
 
-template <typename BasisIn, typename BasisOut>
-SparseVector<BasisOut> LinearOperator<BasisIn, BasisOut>::MatVec(
+template <typename I, typename BasisIn, typename BasisOut>
+SparseVector<BasisOut> LinearOperator<I, BasisIn, BasisOut>::MatVec(
     const SparseVector<BasisIn> &vec,
     const SparseIndices<BasisOut> &indices_out) const {
   assert(indices_out.IsUnique());
-  vec.StoreInTree();
   SparseVector<BasisOut> result;
-  for (auto labda_out : indices_out) {
+  result.reserve(indices_out.size());
+
+  vec.StoreInTree();
+  for (const auto labda_out : indices_out) {
     double val = 0;
-    for (auto [labda_in, coeff_in] : Row(labda_out))
+    for (const auto [labda_in, coeff_in] : I::Row(labda_out))
       if (labda_in->has_data())
         val += coeff_in * (*labda_in->template data<double>());
     result.emplace_back(labda_out, val);
@@ -52,16 +58,19 @@ SparseVector<BasisOut> LinearOperator<BasisIn, BasisOut>::MatVec(
   vec.RemoveFromTree();
   return result;
 }
-template <typename BasisIn, typename BasisOut>
-SparseVector<BasisIn> LinearOperator<BasisIn, BasisOut>::RMatVec(
+
+template <typename I, typename BasisIn, typename BasisOut>
+SparseVector<BasisIn> LinearOperator<I, BasisIn, BasisOut>::RMatVec(
     const SparseVector<BasisOut> &vec,
     const SparseIndices<BasisIn> &indices_in) const {
   assert(indices_in.IsUnique());
-  vec.StoreInTree();
   SparseVector<BasisIn> result;
-  for (auto labda_in : indices_in) {
+  result.reserve(indices_in.size());
+
+  vec.StoreInTree();
+  for (const auto labda_in : indices_in) {
     double val = 0;
-    for (auto [labda_out, coeff_out] : Column(labda_in))
+    for (const auto [labda_out, coeff_out] : I::Column(labda_in))
       if (labda_out->has_data())
         val += coeff_out * (*labda_out->template data<double>());
     result.emplace_back(labda_in, val);
@@ -70,18 +79,21 @@ SparseVector<BasisIn> LinearOperator<BasisIn, BasisOut>::RMatVec(
   return result;
 }
 
-template <typename BasisIn, typename BasisOut>
-SparseIndices<BasisOut> LinearOperator<BasisIn, BasisOut>::Range(
+template <typename I, typename BasisIn, typename BasisOut>
+SparseIndices<BasisOut> LinearOperator<I, BasisIn, BasisOut>::Range(
     const SparseIndices<BasisIn> &ind) const {
   SparseIndices<BasisOut> result;
-  for (auto labda_in : ind)
-    for (auto [labda_out, _] : Column(labda_in)) result.emplace_back(labda_out);
+  result.reserve(ind.size() * 2);
+
+  for (const auto labda_in : ind)
+    for (const auto [labda_out, _] : I::Column(labda_in))
+      result.emplace_back(labda_out);
   result.Compress();
   return result;
 }
 
-template <typename BasisIn, typename BasisOut>
-Eigen::MatrixXd LinearOperator<BasisIn, BasisOut>::ToMatrix(
+template <typename I, typename BasisIn, typename BasisOut>
+Eigen::MatrixXd LinearOperator<I, BasisIn, BasisOut>::ToMatrix(
     const SparseIndices<BasisIn> &indices_in,
     const SparseIndices<BasisOut> &indices_out) const {
   assert(indices_in.IsUnique() && indices_out.IsUnique());
@@ -112,14 +124,23 @@ Eigen::MatrixXd LinearOperator<BasisIn, BasisOut>::ToMatrix(
 }
 
 /**
+ *  Below implementations have various return types based. The aliases
+ *  below are some handy containers with fixed memory size.
+ */
+template <typename Basis, size_t N>
+using StaticSparseVector =
+    boost::container::static_vector<std::pair<Basis *, double>, N>;
+template <typename Basis, size_t N>
+using ArraySparseVector = std::array<std::pair<Basis *, double>, N>;
+
+/**
  *  Implementations of Prolongate.
  */
-
 template <>
-SparseVector<ContLinearScalingFn> Prolongate<ContLinearScalingFn>::Column(
-    ContLinearScalingFn *phi_in) const {
+auto Prolongate<ContLinearScalingFn>::Column(ContLinearScalingFn *phi_in) {
+  StaticSparseVector<ContLinearScalingFn, 3> result;
+
   auto [l, n] = phi_in->labda();
-  SparseVector<ContLinearScalingFn> result;
   result.emplace_back(phi_in->RefineMiddle(), 1.0);
   if (n > 0) result.emplace_back(phi_in->RefineLeft(), 0.5);
   if (n < (1 << l)) result.emplace_back(phi_in->RefineRight(), 0.5);
@@ -127,47 +148,53 @@ SparseVector<ContLinearScalingFn> Prolongate<ContLinearScalingFn>::Column(
 }
 
 template <>
-SparseVector<ContLinearScalingFn> Prolongate<ContLinearScalingFn>::Row(
-    ContLinearScalingFn *phi_in) const {
+auto Prolongate<ContLinearScalingFn>::Row(ContLinearScalingFn *phi_in) {
+  StaticSparseVector<ContLinearScalingFn, 2> result;
   const auto &parents = phi_in->parents();
   if (parents.size() == 1)
-    return {{{parents[0], 1.0}}};
+    result = {{{parents[0], 1.0}}};
   else if (parents.size() == 2)
-    return {{{parents[0], 0.5}, {parents[1], 0.5}}};
+    result = {{{parents[0], 0.5}, {parents[1], 0.5}}};
   else
     assert(false);
+  return result;
 }
 
 template <>
-SparseVector<DiscLinearScalingFn> Prolongate<DiscLinearScalingFn>::Column(
-    DiscLinearScalingFn *phi_in) const {
+auto Prolongate<DiscLinearScalingFn>::Column(DiscLinearScalingFn *phi_in) {
+  StaticSparseVector<DiscLinearScalingFn, 4> result;
   auto [l, n] = phi_in->labda();
   phi_in->Refine();
   const auto &children = phi_in->children();
   if (phi_in->pw_constant())
-    return {{{children[0], 1.0}, {children[2], 1.0}}};
+    result = {{{children[0], 1.0}, {children[2], 1.0}}};
   else
-    return {{{children[0], -sqrt(3) / 2},
-             {children[1], 0.5},
-             {children[2], sqrt(3) / 2},
-             {children[3], 0.5}}};
+    result = {{{children[0], -sqrt(3) / 2},
+               {children[1], 0.5},
+               {children[2], sqrt(3) / 2},
+               {children[3], 0.5}}};
+  return result;
 }
 
 template <>
-SparseVector<DiscLinearScalingFn> Prolongate<DiscLinearScalingFn>::Row(
-    DiscLinearScalingFn *phi_in) const {
+auto Prolongate<DiscLinearScalingFn>::Row(DiscLinearScalingFn *phi_in) {
+  StaticSparseVector<DiscLinearScalingFn, 2> result;
   auto [l, n] = phi_in->labda();
   const auto &parents = phi_in->parents();
   switch (n % 4) {
     case 0:
-      return {{{parents[0], 1.0}, {parents[1], -sqrt(3) / 2}}};
+      result = {{{parents[0], 1.0}, {parents[1], -sqrt(3) / 2}}};
+      return result;
     case 1:
-      return {{{parents[1], 0.5}}};
+      result = {{{parents[1], 0.5}}};
+      return result;
     case 2:
-      return {{{parents[0], 1.0}, {parents[1], sqrt(3) / 2}}};
+      result = {{{parents[0], 1.0}, {parents[1], sqrt(3) / 2}}};
+      return result;
     case 3:
     default:
-      return {{{parents[1], 0.5}}};
+      result = {{{parents[1], 0.5}}};
+      return result;
   }
 }
 
@@ -175,10 +202,10 @@ SparseVector<DiscLinearScalingFn> Prolongate<DiscLinearScalingFn>::Row(
  *  Implementations of the Mass operator.
  */
 template <>
-SparseVector<ContLinearScalingFn>
-MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
-    ContLinearScalingFn *phi_in) const {
-  SparseVector<ContLinearScalingFn> result;
+auto MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) {
+  StaticSparseVector<ContLinearScalingFn, 3> result;
+
   auto [l, n] = phi_in->labda();
   double self_ip = 0;
   if (n > 0) {
@@ -196,56 +223,53 @@ MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
 }
 
 template <>
-SparseVector<ContLinearScalingFn>
-MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Row(
-    ContLinearScalingFn *phi_out) const {
+auto MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Row(
+    ContLinearScalingFn *phi_out) {
   // This MassOperator is symmetric.
   return Column(phi_out);
 }
 
 template <>
-SparseVector<DiscConstantScalingFn>
-MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Column(
-    DiscConstantScalingFn *phi_in) const {
-  return {{{phi_in, pow(2.0, -phi_in->level())}}};
+auto MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Column(
+    DiscConstantScalingFn *phi_in) {
+  return ArraySparseVector<DiscConstantScalingFn, 1>{
+      {{phi_in, pow(2.0, -phi_in->level())}}};
 }
 
 template <>
-SparseVector<DiscConstantScalingFn>
-MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Row(
-    DiscConstantScalingFn *phi_out) const {
+auto MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Row(
+    DiscConstantScalingFn *phi_out) {
   // This MassOperator is symmetric.
   return Column(phi_out);
 }
 
 template <>
-SparseVector<DiscLinearScalingFn>
-MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
-    DiscLinearScalingFn *phi_in) const {
-  return {{{phi_in, pow(2.0, -phi_in->level())}}};
+auto MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
+    DiscLinearScalingFn *phi_in) {
+  return ArraySparseVector<DiscLinearScalingFn, 1>{
+      {{phi_in, pow(2.0, -phi_in->level())}}};
 }
 
 template <>
-SparseVector<DiscLinearScalingFn>
-MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Row(
-    DiscLinearScalingFn *phi_out) const {
+auto MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Row(
+    DiscLinearScalingFn *phi_out) {
   // This MassOperator is symmetric.
   return Column(phi_out);
 }
 
 namespace Mass {
-inline SparseVector<DiscLinearScalingFn> ThreeInOrthoOut(
-    ContLinearScalingFn *phi_in) {
-  SparseVector<DiscLinearScalingFn> result;
+inline auto ThreeInOrthoOut(ContLinearScalingFn *phi_in) {
+  StaticSparseVector<DiscLinearScalingFn, 4> result;
+
   auto [l, n] = phi_in->labda();
   if (n > 0) {
-    auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
+    const auto &[pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
     assert(pdl0 != nullptr && pdl1 != nullptr);
     result.emplace_back(pdl0, pow(2.0, -(l + 1)));
     result.emplace_back(pdl1, pow(2.0, -(l + 1)) / sqrt(3));
   }
   if (n < (1 << l)) {
-    auto [pdl0, pdl1] = phi_in->support().back()->PhiDiscLinear();
+    const auto &[pdl0, pdl1] = phi_in->support().back()->PhiDiscLinear();
     assert(pdl0 != nullptr && pdl1 != nullptr);
     result.emplace_back(pdl0, pow(2.0, -(l + 1)));
     result.emplace_back(pdl1, -pow(2.0, -(l + 1)) / sqrt(3));
@@ -253,148 +277,145 @@ inline SparseVector<DiscLinearScalingFn> ThreeInOrthoOut(
   return result;
 }
 
-inline SparseVector<ContLinearScalingFn> OrthoInThreeOut(
-    DiscLinearScalingFn *phi_in) {
+inline auto OrthoInThreeOut(DiscLinearScalingFn *phi_in) {
+  ArraySparseVector<ContLinearScalingFn, 2> result;
   auto [l, n] = phi_in->labda();
-  auto [pcl0, pcl1] = phi_in->support()[0]->RefineContLinear();
+  const auto &[pcl0, pcl1] = phi_in->support()[0]->RefineContLinear();
   assert(pcl0 != nullptr && pcl1 != nullptr);
   if (phi_in->pw_constant())
-    return {{{pcl0, pow(2.0, -(l + 1))}, {pcl1, pow(2.0, -(l + 1))}}};
+    result = {{{pcl0, pow(2.0, -(l + 1))}, {pcl1, pow(2.0, -(l + 1))}}};
   else
-    return {{{pcl0, -pow(2.0, -(l + 1)) / sqrt(3)},
-             {pcl1, pow(2.0, -(l + 1)) / sqrt(3)}}};
+    result = {{{pcl0, -pow(2.0, -(l + 1)) / sqrt(3)},
+               {pcl1, pow(2.0, -(l + 1)) / sqrt(3)}}};
+  return result;
 }
 };  // namespace Mass
 
 template <>
-SparseVector<DiscLinearScalingFn>
-MassOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
-    ContLinearScalingFn *phi_in) const {
+auto MassOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) {
   return Mass::ThreeInOrthoOut(phi_in);
 }
 
 template <>
-SparseVector<ContLinearScalingFn>
-MassOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
-    DiscLinearScalingFn *phi_out) const {
+auto MassOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
+    DiscLinearScalingFn *phi_out) {
   return Mass::OrthoInThreeOut(phi_out);
 }
 
 template <>
-SparseVector<ContLinearScalingFn>
-MassOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
-    DiscLinearScalingFn *phi_in) const {
+auto MassOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
+    DiscLinearScalingFn *phi_in) {
   return Mass::OrthoInThreeOut(phi_in);
 }
 
 template <>
-SparseVector<DiscLinearScalingFn>
-MassOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
-    ContLinearScalingFn *phi_out) const {
+auto MassOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
+    ContLinearScalingFn *phi_out) {
   return Mass::ThreeInOrthoOut(phi_out);
 }
 
 template <>
-SparseVector<ContLinearScalingFn>
-ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
-    ContLinearScalingFn *phi_in) const {
+auto ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) {
+  StaticSparseVector<ContLinearScalingFn, 1> result;
   auto [l, n] = phi_in->labda();
-  if (n > 0) return {};
-  return {{{phi_in, 1.0}}};
+  if (n == 0) result = {{{phi_in, 1.0}}};
+  return result;
 }
 
 template <>
-SparseVector<ContLinearScalingFn>
-ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Row(
-    ContLinearScalingFn *phi_out) const {
+auto ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Row(
+    ContLinearScalingFn *phi_out) {
   return Column(phi_out);
 }
 
 template <>
-SparseVector<DiscLinearScalingFn>
-ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
-    DiscLinearScalingFn *phi_in) const {
+auto ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
+    DiscLinearScalingFn *phi_in) {
+  StaticSparseVector<DiscLinearScalingFn, 2> result;
   auto [l, n] = phi_in->labda();
-  if (n > 1) return {};
-  auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
-  assert(pdl0 != nullptr && pdl1 != nullptr);
-  if (phi_in->pw_constant())
-    return {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
-  else
-    return {{{pdl0, -sqrt(3)}, {pdl1, 3.0}}};
+  if (n <= 1) {
+    const auto &[pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
+    assert(pdl0 != nullptr && pdl1 != nullptr);
+    if (phi_in->pw_constant())
+      result = {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
+    else
+      result = {{{pdl0, -sqrt(3)}, {pdl1, 3.0}}};
+  }
+  return result;
 }
 
 template <>
-SparseVector<DiscLinearScalingFn>
-ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Row(
-    DiscLinearScalingFn *phi_out) const {
+auto ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Row(
+    DiscLinearScalingFn *phi_out) {
   return Column(phi_out);
 }
 
 namespace ZeroEval {
-inline SparseVector<DiscLinearScalingFn> ThreeInOrthoOut(
-    ContLinearScalingFn *phi_in) {
+inline auto ThreeInOrthoOut(ContLinearScalingFn *phi_in) {
+  StaticSparseVector<DiscLinearScalingFn, 2> result;
   auto [l, n] = phi_in->labda();
-  if (n > 0) return {};
-  auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
-  assert(pdl0 != nullptr && pdl1 != nullptr);
-  return {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
+  if (n == 0) {
+    const auto &[pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
+    assert(pdl0 != nullptr && pdl1 != nullptr);
+    result = {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
+  }
+  return result;
 }
 
-inline SparseVector<ContLinearScalingFn> OrthoInThreeOut(
-    DiscLinearScalingFn *phi_in) {
+inline auto OrthoInThreeOut(DiscLinearScalingFn *phi_in) {
+  StaticSparseVector<ContLinearScalingFn, 1> result;
   auto [l, n] = phi_in->labda();
-  if (n > 1) return {};
-  auto [pcl0, _] = phi_in->support().front()->RefineContLinear();
-  assert(pcl0 != nullptr);
-  if (phi_in->pw_constant())
-    return {{{pcl0, 1.0}}};
-  else
-    return {{{pcl0, -sqrt(3)}}};
+  if (n <= 1) {
+    const auto &pcl0 = phi_in->support().front()->RefineContLinear()[0];
+    assert(pcl0 != nullptr);
+    if (phi_in->pw_constant())
+      result = {{{pcl0, 1.0}}};
+    else
+      result = {{{pcl0, -sqrt(3)}}};
+  }
+  return result;
 }
 };  // namespace ZeroEval
 
 template <>
-SparseVector<DiscLinearScalingFn>
-ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
-    ContLinearScalingFn *phi_in) const {
+auto ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) {
   return ZeroEval::ThreeInOrthoOut(phi_in);
 }
 
 template <>
-SparseVector<ContLinearScalingFn>
-ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
-    DiscLinearScalingFn *phi_out) const {
+auto ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
+    DiscLinearScalingFn *phi_out) {
   return ZeroEval::OrthoInThreeOut(phi_out);
 }
 
 template <>
-SparseVector<ContLinearScalingFn>
-ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
-    DiscLinearScalingFn *phi_in) const {
+auto ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
+    DiscLinearScalingFn *phi_in) {
   return ZeroEval::OrthoInThreeOut(phi_in);
 }
 
 template <>
-SparseVector<DiscLinearScalingFn>
-ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
-    ContLinearScalingFn *phi_out) const {
+auto ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
+    ContLinearScalingFn *phi_out) {
   return ZeroEval::ThreeInOrthoOut(phi_out);
 }
 
 template <>
-SparseVector<DiscLinearScalingFn>
-TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
-    ContLinearScalingFn *phi_in) const {
-  SparseVector<DiscLinearScalingFn> result;
+auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) {
+  StaticSparseVector<DiscLinearScalingFn, 2> result;
+
   auto [l, n] = phi_in->labda();
   if (n > 0) {
-    auto [pdl0, _] = phi_in->support().front()->PhiDiscLinear();
+    const auto &pdl0 = phi_in->support().front()->PhiDiscLinear()[0];
     assert(pdl0 != nullptr);
     result.emplace_back(pdl0, 1.0);
   }
   if (n < (1 << l)) {
-    auto [pdl0, _] = phi_in->support().back()->PhiDiscLinear();
+    const auto &pdl0 = phi_in->support().back()->PhiDiscLinear()[0];
     assert(pdl0 != nullptr);
     result.emplace_back(pdl0, -1.0);
   }
@@ -402,16 +423,14 @@ TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
 }
 
 template <>
-SparseVector<ContLinearScalingFn>
-TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
-    DiscLinearScalingFn *phi_out) const {
+auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
+    DiscLinearScalingFn *phi_out) {
+  StaticSparseVector<ContLinearScalingFn, 2> result;
   auto [l, n] = phi_out->labda();
-  auto [pcl0, pcl1] = phi_out->support().front()->RefineContLinear();
+  const auto &[pcl0, pcl1] = phi_out->support().front()->RefineContLinear();
   assert(pcl0 != nullptr && pcl1 != nullptr);
-  if (phi_out->pw_constant())
-    return {{{pcl0, -1.0}, {pcl1, 1.0}}};
-  else
-    return {};
+  if (phi_out->pw_constant()) result = {{{pcl0, -1.0}, {pcl1, 1.0}}};
+  return result;
 }
 
 }  // namespace Time

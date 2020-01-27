@@ -7,6 +7,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "space/initial_triangulation.hpp"
 #include "space/triangulation.hpp"
 
 using namespace space;

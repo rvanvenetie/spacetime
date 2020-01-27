@@ -30,7 +30,8 @@ class BilinearForm {
     // Copy data to the output tree.
     f.StoreInTree();
     for (auto nv : vec_out_->Bfs())
-      nv->set_value(*nv->node()->template data<double>());
+      if (nv->node()->has_data())
+        nv->set_value(*nv->node()->template data<double>());
     f.RemoveFromTree();
   }
 
@@ -41,7 +42,8 @@ class BilinearForm {
     // Copy data to the output tree.
     f.StoreInTree();
     for (auto nv : vec_out_->Bfs())
-      nv->set_value(*nv->node()->template data<double>());
+      if (nv->node()->has_data())
+        nv->set_value(*nv->node()->template data<double>());
     f.RemoveFromTree();
   }
 
@@ -52,7 +54,8 @@ class BilinearForm {
     // Copy data to the output tree.
     f.StoreInTree();
     for (auto nv : vec_out_->Bfs())
-      nv->set_value(*nv->node()->template data<double>());
+      if (nv->node()->has_data())
+        nv->set_value(*nv->node()->template data<double>());
     f.RemoveFromTree();
   }
 

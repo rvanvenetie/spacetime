@@ -1,12 +1,11 @@
 #include "linear_operator.hpp"
 
+#include <Eigen/Dense>
 #include <array>
+#include <boost/math/quadrature/gauss.hpp>
 #include <cmath>
 #include <set>
 #include <unordered_map>
-
-#include <Eigen/Dense>
-#include <boost/math/quadrature/gauss.hpp>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -173,11 +172,14 @@ TEST(DiscLinearScaling, CheckMatrixTransposes) {
   auto Delta = disc_lin_tree.NodesPerLevel();
 
   for (int l = 1; l < ml; ++l) {
+    std::cout << "Prolongation" << std::endl;
     CheckMatrixTranspose<Prolongate<DiscLinearScalingFn>, DiscLinearScalingFn,
                          DiscLinearScalingFn>({Delta[l - 1]}, {Delta[l]});
+    std::cout << "MassOperator" << std::endl;
     CheckMatrixTranspose<MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>,
                          DiscLinearScalingFn, DiscLinearScalingFn>(
         {Delta[l - 1]}, {Delta[l - 1]});
+    std::cout << "ZeroEvalOperator" << std::endl;
     CheckMatrixTranspose<
         ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>,
         DiscLinearScalingFn, DiscLinearScalingFn>({Delta[l - 1]},
