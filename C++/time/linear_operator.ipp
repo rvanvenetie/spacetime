@@ -19,8 +19,8 @@ SparseVector<BasisOut> LinearOperator<I, BasisIn, BasisOut>::MatVec(
   SparseVector<BasisOut> result;
   result.reserve(vec.size() * 2);
 
-  for (auto [labda_in, coeff_in] : vec)
-    for (auto [labda_out, coeff_out] : I::Column(labda_in))
+  for (const auto [labda_in, coeff_in] : vec)
+    for (const auto [labda_out, coeff_out] : I::Column(labda_in))
       result.emplace_back(labda_out, coeff_in * coeff_out);
   result.Compress();
   return result;
@@ -32,8 +32,8 @@ SparseVector<BasisIn> LinearOperator<I, BasisIn, BasisOut>::RMatVec(
   SparseVector<BasisIn> result;
   result.reserve(vec.size() * 2);
 
-  for (auto [labda_out, coeff_out] : vec)
-    for (auto [labda_in, coeff_in] : I::Row(labda_out))
+  for (const auto [labda_out, coeff_out] : vec)
+    for (const auto [labda_in, coeff_in] : I::Row(labda_out))
       result.emplace_back(labda_in, coeff_out * coeff_in);
   result.Compress();
   return result;
@@ -48,9 +48,9 @@ SparseVector<BasisOut> LinearOperator<I, BasisIn, BasisOut>::MatVec(
   result.reserve(indices_out.size());
 
   vec.StoreInTree();
-  for (auto labda_out : indices_out) {
+  for (const auto labda_out : indices_out) {
     double val = 0;
-    for (auto [labda_in, coeff_in] : I::Row(labda_out))
+    for (const auto [labda_in, coeff_in] : I::Row(labda_out))
       if (labda_in->has_data())
         val += coeff_in * (*labda_in->template data<double>());
     result.emplace_back(labda_out, val);
@@ -68,9 +68,9 @@ SparseVector<BasisIn> LinearOperator<I, BasisIn, BasisOut>::RMatVec(
   result.reserve(indices_in.size());
 
   vec.StoreInTree();
-  for (auto labda_in : indices_in) {
+  for (const auto labda_in : indices_in) {
     double val = 0;
-    for (auto [labda_out, coeff_out] : I::Column(labda_in))
+    for (const auto [labda_out, coeff_out] : I::Column(labda_in))
       if (labda_out->has_data())
         val += coeff_out * (*labda_out->template data<double>());
     result.emplace_back(labda_in, val);
@@ -85,8 +85,8 @@ SparseIndices<BasisOut> LinearOperator<I, BasisIn, BasisOut>::Range(
   SparseIndices<BasisOut> result;
   result.reserve(ind.size() * 2);
 
-  for (auto labda_in : ind)
-    for (auto [labda_out, _] : I::Column(labda_in))
+  for (const auto labda_in : ind)
+    for (const auto [labda_out, _] : I::Column(labda_in))
       result.emplace_back(labda_out);
   result.Compress();
   return result;
@@ -263,13 +263,13 @@ inline auto ThreeInOrthoOut(ContLinearScalingFn *phi_in) {
 
   auto [l, n] = phi_in->labda();
   if (n > 0) {
-    auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
+    const auto &[pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
     assert(pdl0 != nullptr && pdl1 != nullptr);
     result.emplace_back(pdl0, pow(2.0, -(l + 1)));
     result.emplace_back(pdl1, pow(2.0, -(l + 1)) / sqrt(3));
   }
   if (n < (1 << l)) {
-    auto [pdl0, pdl1] = phi_in->support().back()->PhiDiscLinear();
+    const auto &[pdl0, pdl1] = phi_in->support().back()->PhiDiscLinear();
     assert(pdl0 != nullptr && pdl1 != nullptr);
     result.emplace_back(pdl0, pow(2.0, -(l + 1)));
     result.emplace_back(pdl1, -pow(2.0, -(l + 1)) / sqrt(3));
@@ -280,7 +280,7 @@ inline auto ThreeInOrthoOut(ContLinearScalingFn *phi_in) {
 inline auto OrthoInThreeOut(DiscLinearScalingFn *phi_in) {
   ArraySparseVector<ContLinearScalingFn, 2> result;
   auto [l, n] = phi_in->labda();
-  auto [pcl0, pcl1] = phi_in->support()[0]->RefineContLinear();
+  const auto &[pcl0, pcl1] = phi_in->support()[0]->RefineContLinear();
   assert(pcl0 != nullptr && pcl1 != nullptr);
   if (phi_in->pw_constant())
     result = {{{pcl0, pow(2.0, -(l + 1))}, {pcl1, pow(2.0, -(l + 1))}}};
@@ -336,7 +336,7 @@ auto ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
   StaticSparseVector<DiscLinearScalingFn, 2> result;
   auto [l, n] = phi_in->labda();
   if (n <= 1) {
-    auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
+    const auto &[pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
     assert(pdl0 != nullptr && pdl1 != nullptr);
     if (phi_in->pw_constant())
       result = {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
@@ -357,7 +357,7 @@ inline auto ThreeInOrthoOut(ContLinearScalingFn *phi_in) {
   StaticSparseVector<DiscLinearScalingFn, 2> result;
   auto [l, n] = phi_in->labda();
   if (n == 0) {
-    auto [pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
+    const auto &[pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
     assert(pdl0 != nullptr && pdl1 != nullptr);
     result = {{{pdl0, 1.0}, {pdl1, -sqrt(3)}}};
   }
@@ -368,7 +368,7 @@ inline auto OrthoInThreeOut(DiscLinearScalingFn *phi_in) {
   StaticSparseVector<ContLinearScalingFn, 1> result;
   auto [l, n] = phi_in->labda();
   if (n <= 1) {
-    auto [pcl0, _] = phi_in->support().front()->RefineContLinear();
+    const auto &pcl0 = phi_in->support().front()->RefineContLinear()[0];
     assert(pcl0 != nullptr);
     if (phi_in->pw_constant())
       result = {{{pcl0, 1.0}}};
@@ -410,12 +410,12 @@ auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
 
   auto [l, n] = phi_in->labda();
   if (n > 0) {
-    auto [pdl0, _] = phi_in->support().front()->PhiDiscLinear();
+    const auto &pdl0 = phi_in->support().front()->PhiDiscLinear()[0];
     assert(pdl0 != nullptr);
     result.emplace_back(pdl0, 1.0);
   }
   if (n < (1 << l)) {
-    auto [pdl0, _] = phi_in->support().back()->PhiDiscLinear();
+    const auto &pdl0 = phi_in->support().back()->PhiDiscLinear()[0];
     assert(pdl0 != nullptr);
     result.emplace_back(pdl0, -1.0);
   }
@@ -427,7 +427,7 @@ auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
     DiscLinearScalingFn *phi_out) {
   StaticSparseVector<ContLinearScalingFn, 2> result;
   auto [l, n] = phi_out->labda();
-  auto [pcl0, pcl1] = phi_out->support().front()->RefineContLinear();
+  const auto &[pcl0, pcl1] = phi_out->support().front()->RefineContLinear();
   assert(pcl0 != nullptr && pcl1 != nullptr);
   if (phi_out->pw_constant()) result = {{{pcl0, -1.0}, {pcl1, 1.0}}};
   return result;
