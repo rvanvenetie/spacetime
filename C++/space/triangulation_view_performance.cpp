@@ -5,6 +5,7 @@
 #include <set>
 
 #include "datastructures/multi_tree_view.hpp"
+#include "space/initial_triangulation.hpp"
 #include "space/triangulation.hpp"
 #include "space/triangulation_view.hpp"
 
