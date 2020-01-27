@@ -165,6 +165,12 @@ TEST(BilinearForm, FullTest) {
     ASSERT_GT(ortho_view_in.Bfs().size(), 0);
     ASSERT_GT(ortho_vec_out.Bfs().size(), 0);
 
+    auto zero_eval_bil_form =
+        BilinearForm<ZeroEvalOperator, ThreePointWaveletFn,
+                     ThreePointWaveletFn>(&three_vec_out);
+    TestLinearity(zero_eval_bil_form, three_view_in);
+    TestUppLow(zero_eval_bil_form, three_view_in);
+
     // Test linearity and validate the result using quadrature on a matrix.
     CheckMatrixQuadrature<MassOperator, ThreePointWaveletFn,
                           ThreePointWaveletFn>(three_view_in, false,
