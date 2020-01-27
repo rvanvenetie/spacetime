@@ -66,6 +66,34 @@ void TestLinearity(BilinearForm& bil_form,
     ASSERT_NEAR(nodes_comb[i]->value(), nodes_test[i]->value(), 1e-10);
 }
 
+template <typename BilinearForm, typename WaveletBasisIn>
+void TestUppLow(BilinearForm& bil_form,
+                const TreeView<WaveletBasisIn>& view_in) {
+  // Checks that BilForm::Apply() == BilForm::ApplyUpp() + BilForm::ApplyLow().
+  for (int i = 0; i < 20; i++) {
+    auto vec_in =
+        view_in.template DeepCopy<datastructures::TreeVector<WaveletBasisIn>>(
+            [](auto nv, auto _) {
+              nv->set_value(((double)std::rand()) / RAND_MAX);
+            });
+
+    bil_form.Apply(vec_in);
+    auto vec_out_full = bil_form.vec_out()->DeepCopy();
+    bil_form.ApplyLow(vec_in);
+    auto vec_out_upplow = bil_form.vec_out()->DeepCopy();
+    bil_form.ApplyUpp(vec_in);
+    vec_out_upplow += *bil_form.vec_out();
+
+    // Now check the results!
+    auto nodes_full = vec_out_full.Bfs();
+    auto nodes_upplow = vec_out_upplow.Bfs();
+    ASSERT_GT(nodes_full.size(), 0);
+    ASSERT_EQ(nodes_full.size(), nodes_upplow.size());
+    for (int i = 0; i < nodes_full.size(); ++i)
+      ASSERT_NEAR(nodes_full[i]->value(), nodes_upplow[i]->value(), 1e-10);
+  }
+}
+
 template <typename BilinearForm, typename WaveletBasisIn,
           typename WaveletBasisOut>
 void CheckMatrixQuadrature(const TreeView<WaveletBasisIn>& view_in,
@@ -73,6 +101,7 @@ void CheckMatrixQuadrature(const TreeView<WaveletBasisIn>& view_in,
                            bool deriv_out) {
   auto bil_form = BilinearForm(&vec_out);
   TestLinearity(bil_form, view_in);
+  TestUppLow(bil_form, view_in);
 
   auto mat = bil_form.ToMatrix(view_in);
   auto nodes_in = view_in.Bfs();

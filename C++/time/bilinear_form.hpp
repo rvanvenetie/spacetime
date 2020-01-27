@@ -34,6 +34,28 @@ class BilinearForm {
     f.RemoveFromTree();
   }
 
+  void ApplyUpp(const datastructures::TreeVector<WaveletBasisIn> &vec_in) {
+    InitializeInput(vec_in);
+    auto [_, f] = ApplyUppRecur(0, {}, {});
+
+    // Copy data to the output tree.
+    f.StoreInTree();
+    for (auto nv : vec_out_->Bfs())
+      nv->set_value(*nv->node()->template data<double>());
+    f.RemoveFromTree();
+  }
+
+  void ApplyLow(const datastructures::TreeVector<WaveletBasisIn> &vec_in) {
+    InitializeInput(vec_in);
+    auto f = ApplyLowRecur(0, {});
+
+    // Copy data to the output tree.
+    f.StoreInTree();
+    for (auto nv : vec_out_->Bfs())
+      nv->set_value(*nv->node()->template data<double>());
+    f.RemoveFromTree();
+  }
+
   // Debug function, O(n^2).
   Eigen::MatrixXd ToMatrix(
       const datastructures::TreeView<WaveletBasisIn> &tree_in);
@@ -75,6 +97,15 @@ class BilinearForm {
   std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>>
   ApplyRecur(size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
              const SparseVector<ScalingBasisIn> &d);
+
+  // Recursive apply upper part.
+  std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>>
+  ApplyUppRecur(size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
+                const SparseVector<ScalingBasisIn> &d);
+
+  // Recursive apply lower part.
+  SparseVector<WaveletBasisOut> ApplyLowRecur(
+      size_t l, const SparseVector<ScalingBasisIn> &d);
 
   // Index sets.
   std::pair<SparseIndices<ScalingBasisOut>, SparseIndices<ScalingBasisOut>>
