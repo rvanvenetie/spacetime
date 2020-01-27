@@ -27,10 +27,12 @@ def test_python(level, bilform_iters, inner_iters):
             call_filter=lambda fn: fn.level <= 0 or (bsd_rnd() % 3) != 0)
         applicator = Applicator(operators.mass(basis), basis)
         for _ in range(inner_iters):
-            vec_out.reset()
             for nv in vec_in.bfs():
                 nv.value = bsd_rnd()
-            applicator.apply(vec_in, vec_out)
+            applicator.apply_low(vec_in, vec_out)
+            vec_out.reset()
+            applicator.apply_upp(vec_in, vec_out)
+            vec_out.reset()
 
 
 if __name__ == "__main__":
