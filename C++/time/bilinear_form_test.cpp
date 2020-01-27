@@ -87,11 +87,11 @@ void TestUppLow(BilinearForm& bil_form,
 
     // Now check the results!
     auto nodes_full = vec_out_full.Bfs();
-    // auto nodes_upplow = vec_out_upplow.Bfs();
-    // ASSERT_GT(nodes_full.size(), 0);
-    // ASSERT_EQ(nodes_full.size(), nodes_upplow.size());
-    // for (int i = 0; i < nodes_full.size(); ++i)
-    //   ASSERT_NEAR(nodes_full[i]->value(), nodes_upplow[i]->value(), 1e-10);
+    auto nodes_upplow = vec_out_upplow.Bfs();
+    ASSERT_GT(nodes_full.size(), 0);
+    ASSERT_EQ(nodes_full.size(), nodes_upplow.size());
+    for (int i = 0; i < nodes_full.size(); ++i)
+      ASSERT_NEAR(nodes_full[i]->value(), nodes_upplow[i]->value(), 1e-10);
   }
 }
 
