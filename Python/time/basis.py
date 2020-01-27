@@ -7,7 +7,7 @@ import quadpy
 
 from ..datastructures.function import FunctionInterface
 from ..datastructures.tree import BinaryNodeAbstract, MetaRoot, NodeAbstract
-from ..datastructures.tree_view import NodeViewInterface
+from ..datastructures.tree_view import NodeViewInterface, TreeView
 from .linear_operator import LinearOperator
 from .sparse_vector import SparseVector
 
@@ -221,7 +221,8 @@ class MultiscaleFunctions:
     def __init__(self, functions):
         if isinstance(functions, MetaRoot):
             functions = [nv for nv in functions.bfs()]
-        if isinstance(functions, NodeViewInterface):
+        if isinstance(functions, NodeViewInterface) or isinstance(
+                functions, TreeView):
             functions = [nv.node for nv in functions.bfs()]
         if isinstance(functions, SparseVector):
             functions = list(functions)

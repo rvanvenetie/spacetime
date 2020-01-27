@@ -26,9 +26,9 @@ int main() {
 
   for (size_t j = 0; j < ::bilform_iters; ++j) {
     // Set up ortho tree.
-    auto view_in = TreeView<OrthonormalWaveletFn>(ortho_tree.meta_root);
+    auto vec_in = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
     auto vec_out = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
-    view_in.DeepRefine(
+    vec_in.DeepRefine(
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
         });
@@ -40,10 +40,12 @@ int main() {
     BilinearForm<MassOperator, OrthonormalWaveletFn, OrthonormalWaveletFn>
         bil_form(&vec_out);
     for (size_t k = 0; k < ::inner_iters; k++) {
-      auto vec_in = view_in.template DeepCopy<
-          datastructures::TreeVector<OrthonormalWaveletFn>>(
-          [](auto nv, auto _) { nv->set_value(1.0); });
+      vec_out.Reset();
+      for (auto& nv : vec_in.Bfs()) {
+        nv->set_value(bsd_rnd());
+      }
       bil_form.Apply(vec_in);
     }
   }
+  return 0;
 }

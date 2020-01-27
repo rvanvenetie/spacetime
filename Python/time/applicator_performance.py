@@ -1,7 +1,7 @@
 import numpy as np
 
-from ..datastructures.tree_view import TreeView
 from . import operators
+from ..datastructures.tree_vector import TreeVector
 from .applicator import Applicator
 from .orthonormal_basis import OrthonormalBasis
 from .sparse_vector import SparseVector
@@ -19,15 +19,18 @@ def test_python(level, bilform_iters, inner_iters):
     basis, _ = OrthonormalBasis.uniform_basis(max_level=level)
 
     for _ in range(bilform_iters):
-        vec = TreeView.from_metaroot(OrthonormalBasis.metaroot_wavelet)
-        vec.deep_refine(
+        vec_in = TreeVector.from_metaroot(OrthonormalBasis.metaroot_wavelet)
+        vec_out = TreeVector.from_metaroot(OrthonormalBasis.metaroot_wavelet)
+        vec_in.deep_refine(
             call_filter=lambda fn: fn.level <= 0 or (bsd_rnd() % 3) != 0)
-        Lambda = [node.node for node in vec.bfs()]
+        vec_out.deep_refine(
+            call_filter=lambda fn: fn.level <= 0 or (bsd_rnd() % 3) != 0)
         applicator = Applicator(operators.mass(basis), basis)
         for _ in range(inner_iters):
-            np_vec = np.ones(len(Lambda))
-            vec = SparseVector(Lambda, np_vec)
-            applicator.apply(vec)
+            vec_out.reset()
+            for nv in vec_in.bfs():
+                nv.value = bsd_rnd()
+            applicator.apply(vec_in, vec_out)
 
 
 if __name__ == "__main__":

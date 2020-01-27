@@ -59,6 +59,11 @@ class MultiTreeVector : public MultiTreeView<I> {
         });
   }
 
+  // Set all values to zero.
+  void Reset() {
+    for (const auto &node : Super::Bfs(true)) node->set_value(0);
+  }
+
   // Define some simple linear algebra functions.
   MultiTreeVector<I> &operator*=(double val) {
     for (const auto &nv : Super::Bfs()) {
