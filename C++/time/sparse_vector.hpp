@@ -73,6 +73,7 @@ class SparseVector : public std::vector<std::pair<Basis *, double>> {
 
   SparseIndices<Basis> Indices() const {
     SparseIndices<Basis> result;
+    result.reserve(this->size());
     for (auto [phi, _] : *this) {
       result.emplace_back(phi);
     }
@@ -101,12 +102,13 @@ class SparseVector : public std::vector<std::pair<Basis *, double>> {
       if (phi->has_data()) {
         (*phi->template data<double>()) += coeff;
       } else {
-        self[i] = self[j];
-        auto &[phi, coeff] = self[i];
+        if (i != j) self[i] = self[j];
+        auto &coeff = self[i].second;
         phi->set_data(&coeff);
         i++;
       }
     }
+
     // Remove extra space.
     this->resize(i);
 
@@ -116,6 +118,7 @@ class SparseVector : public std::vector<std::pair<Basis *, double>> {
 
   SparseVector<Basis> Restrict(const SparseIndices<Basis> &ind) const {
     SparseVector<Basis> result;
+    result.reserve(ind.size());
     for (auto phi : ind) phi->set_marked(true);
     for (auto [phi, coeff] : *this)
       if (phi->marked()) result.emplace_back(phi, coeff);
