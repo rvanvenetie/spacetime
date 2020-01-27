@@ -49,8 +49,11 @@ class WaveletToScaling
     : public LinearOperator<WaveletToScaling<Wavelet>, Wavelet,
                             typename FunctionTrait<Wavelet>::Scaling> {
  public:
-  static inline auto Column(Wavelet *psi_in) { return psi_in->single_scale(); }
-  static inline auto Row(typename FunctionTrait<Wavelet>::Scaling *phi_out) {
+  static inline const auto &Column(Wavelet *psi_in) {
+    return psi_in->single_scale();
+  }
+  static inline const auto &Row(
+      typename FunctionTrait<Wavelet>::Scaling *phi_out) {
     return phi_out->multi_scale();
   }
 };

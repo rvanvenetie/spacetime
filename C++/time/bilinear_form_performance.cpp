@@ -18,8 +18,8 @@ using namespace Time;
 using namespace datastructures;
 
 constexpr int level = 10;
-constexpr int bilform_iters = 10;
-constexpr int inner_iters = 150;
+constexpr int bilform_iters = 5;
+constexpr int inner_iters = 40;
 
 int main() {
   ortho_tree.UniformRefine(::level);
