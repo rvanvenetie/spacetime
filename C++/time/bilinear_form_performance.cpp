@@ -22,12 +22,12 @@ constexpr int bilform_iters = 10;
 constexpr int inner_iters = 150;
 
 int main() {
-  three_point_tree.UniformRefine(::level);
+  ortho_tree.UniformRefine(::level);
 
   for (size_t j = 0; j < ::bilform_iters; ++j) {
-    // Set up three-point tree.
-    auto view_in = TreeView<ThreePointWaveletFn>(three_point_tree.meta_root);
-    auto vec_out = TreeVector<ThreePointWaveletFn>(three_point_tree.meta_root);
+    // Set up ortho tree.
+    auto view_in = TreeView<OrthonormalWaveletFn>(ortho_tree.meta_root);
+    auto vec_out = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
     view_in.DeepRefine(
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
@@ -37,11 +37,11 @@ int main() {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
         });
 
-    BilinearForm<MassOperator, ThreePointWaveletFn, ThreePointWaveletFn>
+    BilinearForm<MassOperator, OrthonormalWaveletFn, OrthonormalWaveletFn>
         bil_form(&vec_out);
     for (size_t k = 0; k < ::inner_iters; k++) {
       auto vec_in = view_in.template DeepCopy<
-          datastructures::TreeVector<ThreePointWaveletFn>>(
+          datastructures::TreeVector<OrthonormalWaveletFn>>(
           [](auto nv, auto _) { nv->set_value(1.0); });
       bil_form.Apply(vec_in);
     }

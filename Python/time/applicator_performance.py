@@ -3,8 +3,8 @@ import numpy as np
 from ..datastructures.tree_view import TreeView
 from . import operators
 from .applicator import Applicator
+from .orthonormal_basis import OrthonormalBasis
 from .sparse_vector import SparseVector
-from .three_point_basis import ThreePointBasis
 
 seed = 0
 
@@ -16,10 +16,10 @@ def bsd_rnd():
 
 
 def test_python(level, bilform_iters, inner_iters):
-    basis, _ = ThreePointBasis.uniform_basis(max_level=level)
+    basis, _ = OrthonormalBasis.uniform_basis(max_level=level)
 
     for _ in range(bilform_iters):
-        vec = TreeView.from_metaroot(ThreePointBasis.metaroot_wavelet)
+        vec = TreeView.from_metaroot(OrthonormalBasis.metaroot_wavelet)
         vec.deep_refine(
             call_filter=lambda fn: fn.level <= 0 or (bsd_rnd() % 3) != 0)
         Lambda = [node.node for node in vec.bfs()]
