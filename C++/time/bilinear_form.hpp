@@ -32,6 +32,8 @@ class BilinearForm {
     for (auto nv : vec_out_->Bfs())
       if (nv->node()->has_data())
         nv->set_value(*nv->node()->template data<double>());
+      else
+        nv->set_value(0);
     f.RemoveFromTree();
   }
 
@@ -44,6 +46,8 @@ class BilinearForm {
     for (auto nv : vec_out_->Bfs())
       if (nv->node()->has_data())
         nv->set_value(*nv->node()->template data<double>());
+      else
+        nv->set_value(0);
     f.RemoveFromTree();
   }
 
@@ -56,6 +60,8 @@ class BilinearForm {
     for (auto nv : vec_out_->Bfs())
       if (nv->node()->has_data())
         nv->set_value(*nv->node()->template data<double>());
+      else
+        nv->set_value(0);
     f.RemoveFromTree();
   }
 
