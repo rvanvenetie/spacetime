@@ -19,10 +19,10 @@ def test_python(level, bilform_iters, inner_iters):
     basis, _ = OrthonormalBasis.uniform_basis(max_level=level)
 
     for _ in range(bilform_iters):
-        vec = TreeView.from_metaroot(OrthonormalBasis.metaroot_wavelet)
-        vec.deep_refine(
+        view = TreeView.from_metaroot(OrthonormalBasis.metaroot_wavelet)
+        view.deep_refine(
             call_filter=lambda fn: fn.level <= 0 or (bsd_rnd() % 3) != 0)
-        Lambda = [node.node for node in vec.bfs()]
+        Lambda = [node.node for node in view.bfs()]
         applicator = Applicator(operators.mass(basis), basis)
         for _ in range(inner_iters):
             np_vec = np.ones(len(Lambda))
