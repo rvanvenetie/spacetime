@@ -53,7 +53,6 @@ class BackwardOperator : public Operator {
  protected:
   // Inverse Hierarhical Basis Transformations.
   void ApplyInverseHierarchToSingle(Eigen::VectorXd &vec_SS) const;
-
   void ApplyTransposeInverseHierarchToSingle(Eigen::VectorXd &vec_HB) const;
 };
 
