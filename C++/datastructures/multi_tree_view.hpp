@@ -273,6 +273,12 @@ class MultiTreeView {
                   const FuncPost& call_postprocess = func_noop) {
     return root->DeepRefine(call_filter, call_postprocess);
   }
+  template <typename T_other = I, typename FuncFilt = T_func_true,
+            typename FuncPost = T_func_noop>
+  void Union(const T_other& other, const FuncFilt& call_filter = func_true,
+             const FuncPost& call_postprocess = func_noop) {
+    return root->Union(other.root, call_filter, call_postprocess);
+  }
 };
 
 template <typename T0>

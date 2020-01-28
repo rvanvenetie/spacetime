@@ -12,6 +12,8 @@ class Operator {
   Operator(const TriangulationView &triang, bool dirichlet_boundary = true)
       : triang_(triang), dirichlet_boundary_(dirichlet_boundary) {}
 
+  virtual ~Operator() {}
+
   virtual void Apply(
       const datastructures::TreeVector<HierarchicalBasisFn> &vec_in,
       datastructures::TreeVector<HierarchicalBasisFn> *vec_out) const = 0;

@@ -1,11 +1,14 @@
-add_library(triangulation SHARED triangulation.cpp triangulation.hpp initial_triangulation.cpp initial_triangulation.hpp basis.hpp operators.cpp operators.hpp)
+add_library(space SHARED triangulation.cpp triangulation.hpp initial_triangulation.cpp initial_triangulation.hpp basis.hpp operators.cpp operators.hpp bilinear_form.hpp)
 
 add_executable(triangulation_view_performance  triangulation_view_performance.cpp)
-target_link_libraries(triangulation_view_performance triangulation)
+target_link_libraries(triangulation_view_performance space)
 
 # Create tests
 package_add_test(triangulation_test triangulation_test.cpp)
-target_link_libraries(triangulation_test triangulation)
+target_link_libraries(triangulation_test space)
 
 package_add_test(triangulation_view_test triangulation_view_test.cpp)
-target_link_libraries(triangulation_view_test triangulation)
+target_link_libraries(triangulation_view_test space)
+
+package_add_test(bilinear_formtest bilinear_form_test.cpp)
+target_link_libraries(bilinear_formtest space)

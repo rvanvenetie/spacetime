@@ -11,7 +11,7 @@ namespace space {
 void Operator::ApplyBoundaryConditions(VectorXd &vec) const {
   const auto &vertices = triang_.vertices();
   for (int i = 0; i < vertices.size(); ++i)
-    if (vertices[i]->node()->on_domain_boundary) vec[i] = 0;
+    if (vertices[i]->on_domain_boundary) vec[i] = 0;
 }
 
 void ForwardOperator::Apply(const TreeVector<HierarchicalBasisFn> &vec_in,

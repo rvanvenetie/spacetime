@@ -3,12 +3,12 @@
 #include <utility>
 #include <vector>
 
+#include "../datastructures/multi_tree_vector.hpp"
 #include "../datastructures/multi_tree_view.hpp"
+#include "basis.hpp"
 #include "triangulation.hpp"
 
 namespace space {
-
-using VertexView = datastructures::NodeView<Vertex>;
 
 class Element2DView
     : public datastructures::NodeViewBase<Element2DView, Element2D> {
@@ -25,15 +25,38 @@ class Element2DView
 
 class TriangulationView {
  public:
-  TriangulationView(datastructures::TreeView<Vertex> &vertex_view)
-      : vertices_(vertex_view.Bfs()),
-        element_view_(
-            vertex_view.root->node()->children()[0]->patch[0]->parents()[0]) {
+  TriangulationView(const datastructures::TreeView<Vertex> &vertex_view)
+      : TriangulationView(transform(vertex_view)) {}
+  TriangulationView(
+      const datastructures::TreeVector<HierarchicalBasisFn> &basis_vector)
+      : TriangulationView(transform(basis_vector)) {}
+
+  const std::vector<Vertex *> &vertices() const { return vertices_; }
+  const std::vector<std::shared_ptr<Element2DView>> &elements() const {
+    return elements_;
+  }
+
+  const std::vector<std::pair<size_t, Element2DView *>> &history() const {
+    return history_;
+  }
+  const datastructures::MultiTreeView<Element2DView> &element_view() const {
+    return element_view_;
+  }
+
+ protected:
+  datastructures::MultiTreeView<Element2DView> element_view_;
+  std::vector<Vertex *> vertices_;
+  std::vector<std::shared_ptr<Element2DView>> elements_;
+  std::vector<std::pair<size_t, Element2DView *>> history_;
+
+  TriangulationView(std::vector<Vertex *> vertices)
+      : vertices_(vertices),
+        element_view_(vertices[0]->patch[0]->parents()[0]) {
     // First, we store a reference to this object in the underlying tree.
     std::vector<size_t> indices(vertices_.size());
     for (size_t i = 0; i < vertices_.size(); ++i) {
       indices[i] = i;
-      vertices_[i]->node()->set_data(&indices[i]);
+      vertices_[i]->set_data(&indices[i]);
     }
 
     // Now create the associated element tree
@@ -62,30 +85,25 @@ class TriangulationView {
     // Unset all the data!
     for (auto &nv : vertices_) {
       nv->set_marked(false);
-      nv->node()->reset_data();
+      nv->reset_data();
     }
   }
 
-  const std::vector<std::shared_ptr<VertexView>> &vertices() const {
-    return vertices_;
+  static std::vector<Vertex *> transform(
+      const datastructures::TreeView<Vertex> &tree) {
+    std::vector<Vertex *> result;
+    auto nodes = tree.Bfs();
+    result.reserve(nodes.size());
+    for (const auto nv : nodes) result.emplace_back(nv->node());
+    return result;
   }
-  const std::vector<std::shared_ptr<Element2DView>> &elements() const {
-    return elements_;
+  static std::vector<Vertex *> transform(
+      const datastructures::TreeVector<HierarchicalBasisFn> &tree) {
+    std::vector<Vertex *> result;
+    auto nodes = tree.Bfs();
+    result.reserve(nodes.size());
+    for (const auto nv : nodes) result.emplace_back(nv->node()->vertex());
+    return result;
   }
-
-  const std::vector<std::pair<size_t, Element2DView *>> &history() const {
-    return history_;
-  }
-  const datastructures::MultiTreeView<Element2DView> &element_view() const {
-    return element_view_;
-  }
-
- protected:
-  datastructures::MultiTreeView<Element2DView> element_view_;
-
-  std::vector<std::shared_ptr<VertexView>> vertices_;
-  std::vector<std::shared_ptr<Element2DView>> elements_;
-
-  std::vector<std::pair<size_t, Element2DView *>> history_;
 };
 }  // namespace space

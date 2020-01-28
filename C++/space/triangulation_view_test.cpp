@@ -58,8 +58,8 @@ TEST(TriangulationView, VertexSubTree) {
 
   // Check there are no duplicats.
   std::set<Vertex *> vertices_subtree;
-  for (auto &nv : T_view.vertices()) {
-    vertices_subtree.insert(nv->node());
+  for (auto vertex : T_view.vertices()) {
+    vertices_subtree.insert(vertex);
   }
   ASSERT_EQ(vertices_subtree.size(), T_view.vertices().size());
   // Check all nodes necessary for the elem subtree are
@@ -80,7 +80,7 @@ TEST(TriangulationView, VertexSubTree) {
   // Check all nodes necessary for the elem subtree are
   // inside the elements_subtree.
   for (auto &vertex : T_view.vertices()) {
-    for (auto elem : vertex->node()->patch) {
+    for (auto elem : vertex->patch) {
       ASSERT_TRUE(elements_subtree.count(elem));
     }
   }
