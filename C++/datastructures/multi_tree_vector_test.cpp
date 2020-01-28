@@ -36,7 +36,7 @@ TEST(TreeVector, add) {
   }
 
   // Add something to vec_copy, assert some things.
-  auto vec_values = vec.ToArray();
+  auto vec_values = vec.ToVector();
   vec_copy += vec;
   for (size_t i = 0; i < vec_items.size(); ++i)
     ASSERT_DOUBLE_EQ(2 * vec_items[i]->value(), vec_copy_items[i]->value());

@@ -1,4 +1,4 @@
-add_library(triangulation SHARED triangulation.cpp triangulation.hpp initial_triangulation.cpp initial_triangulation.hpp basis.hpp)
+add_library(triangulation SHARED triangulation.cpp triangulation.hpp initial_triangulation.cpp initial_triangulation.hpp basis.hpp operators.cpp operators.hpp)
 
 add_executable(triangulation_view_performance  triangulation_view_performance.cpp)
 target_link_libraries(triangulation_view_performance triangulation)

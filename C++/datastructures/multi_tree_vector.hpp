@@ -1,4 +1,5 @@
 #pragma once
+#include <Eigen/Dense>
 #include <iostream>
 #include <vector>
 
@@ -42,12 +43,16 @@ class MultiTreeVector : public MultiTreeView<I> {
   using MultiTreeView<I>::MultiTreeView;
 
   // Note: this is not compatible with the Python ToArray!
-  std::vector<double> ToArray(bool include_metaroot = false) const {
+  Eigen::VectorXd ToVector(bool include_metaroot = false) const {
     auto nodes = Super::Bfs(include_metaroot);
-    std::vector<double> result;
-    result.reserve(nodes.size());
-    for (const auto &node : nodes) result.push_back(node->value());
+    Eigen::VectorXd result(nodes.size());
+    for (const auto &node : nodes) result << node->value();
     return result;
+  }
+  void FromVector(const Eigen::VectorXd &vec, bool include_metaroot = false) {
+    auto nodes = Super::Bfs(include_metaroot);
+    assert(nodes.size() == vec.size());
+    for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
   }
 
   // Create a deepcopy that copies the vector data as well.

@@ -155,9 +155,9 @@ TEST(DoubleTreeVector, frozen_vector) {
   }
 
   // Check that the to_array is correct.
-  auto dt_np = db_tree.ToArray();
+  auto dt_np = db_tree.ToVector();
   ASSERT_EQ(dt_np.size(), db_tree.Bfs().size());
-  for (auto val : dt_np) ASSERT_EQ(val, 1.0);
+  for (size_t i = 0; i < dt_np.size(); ++i) ASSERT_EQ(dt_np[i], 1.0);
 
   // Check that copying works.
   auto db_tree_copy = db_tree.DeepCopy();
