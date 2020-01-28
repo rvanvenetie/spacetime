@@ -46,7 +46,7 @@ class MultiTreeVector : public MultiTreeView<I> {
   Eigen::VectorXd ToVector(bool include_metaroot = false) const {
     auto nodes = Super::Bfs(include_metaroot);
     Eigen::VectorXd result(nodes.size());
-    for (const auto &node : nodes) result << node->value();
+    for (size_t i = 0; i < nodes.size(); ++i) result[i] = nodes[i]->value();
     return result;
   }
   void FromVector(const Eigen::VectorXd &vec, bool include_metaroot = false) {
