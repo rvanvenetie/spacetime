@@ -21,7 +21,7 @@ class Operator {
   bool dirichlet_boundary_;
 
   // Apply the dirichlet boundary conditions.
-  Eigen::VectorXd ApplyBoundaryConditions(const Eigen::VectorXd &vec) const;
+  void ApplyBoundaryConditions(Eigen::VectorXd &vec) const;
 };
 
 class ForwardOperator : public Operator {
@@ -39,9 +39,8 @@ class ForwardOperator : public Operator {
   Eigen::SparseMatrix<double> matrix_;
 
   // Hierarhical Basis Transformations from HB to SS, and its transpose.
-  Eigen::VectorXd ApplyHierarchToSingle(const Eigen::VectorXd &vec_HB) const;
-  Eigen::VectorXd ApplyTransposeHierarchToSingle(
-      const Eigen::VectorXd &vec_SS) const;
+  void ApplyHierarchToSingle(Eigen::VectorXd &vec_HB) const;
+  void ApplyTransposeHierarchToSingle(Eigen::VectorXd &vec_SS) const;
 };
 
 class BackwardOperator : public Operator {
@@ -53,11 +52,9 @@ class BackwardOperator : public Operator {
 
  protected:
   // Inverse Hierarhical Basis Transformations.
-  Eigen::VectorXd ApplyInverseHierarchToSingle(
-      const Eigen::VectorXd &vec_SS) const;
+  void ApplyInverseHierarchToSingle(Eigen::VectorXd &vec_SS) const;
 
-  Eigen::VectorXd ApplyTransposeInverseHierarchToSingle(
-      const Eigen::VectorXd &vec_HB) const;
+  void ApplyTransposeInverseHierarchToSingle(Eigen::VectorXd &vec_HB) const;
 };
 
 /**

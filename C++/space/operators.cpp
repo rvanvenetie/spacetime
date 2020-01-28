@@ -1,52 +1,42 @@
-
 #include "operators.hpp"
 
 #include <boost/range/adaptor/reversed.hpp>
 #include <vector>
 
-namespace {
 using datastructures::TreeVector;
 using Eigen::VectorXd;
-}  // namespace
 
 namespace space {
 
-VectorXd Operator::ApplyBoundaryConditions(const VectorXd &vec) const {
-  VectorXd result{vec};
+void Operator::ApplyBoundaryConditions(VectorXd &vec) const {
   const auto &vertices = triang_.vertices();
   for (int i = 0; i < vertices.size(); ++i)
-    if (vertices[i]->node()->on_domain_boundary) result[i] = 0;
-  return result;
+    if (vertices[i]->node()->on_domain_boundary) vec[i] = 0;
 }
 
 void ForwardOperator::Apply(const TreeVector<HierarchicalBasisFn> &vec_in,
                             TreeVector<HierarchicalBasisFn> *vec_out) const {
   VectorXd v{vec_in.ToVector()};
 
-  if (dirichlet_boundary_) v = ApplyBoundaryConditions(v);
+  if (dirichlet_boundary_) ApplyBoundaryConditions(v);
 
-  v = ApplyHierarchToSingle(v);
+  ApplyHierarchToSingle(v);
   v = MatrixSingleScale() * v;
-  v = ApplyTransposeHierarchToSingle(v);
+  ApplyTransposeHierarchToSingle(v);
 
-  if (dirichlet_boundary_) v = ApplyBoundaryConditions(v);
+  if (dirichlet_boundary_) ApplyBoundaryConditions(v);
 
   vec_out->FromVector(v);
 }
 
-VectorXd ForwardOperator::ApplyHierarchToSingle(const VectorXd &vec_HB) const {
-  VectorXd w{vec_HB};
+void ForwardOperator::ApplyHierarchToSingle(VectorXd &w) const {
   for (auto [vi, T] : triang_.history())
     for (auto gp : T->RefinementEdge()) w[vi] = w[vi] + 0.5 * w[gp];
-  return w;
 }
 
-VectorXd ForwardOperator::ApplyTransposeHierarchToSingle(
-    const VectorXd &vec_SS) const {
-  VectorXd w{vec_SS};
+void ForwardOperator::ApplyTransposeHierarchToSingle(VectorXd &w) const {
   for (auto [vi, T] : boost::adaptors::reverse(triang_.history()))
     for (auto gp : T->RefinementEdge()) w[gp] = w[gp] + 0.5 * w[vi];
-  return w;
 }
 
 MassOperator::MassOperator(const TriangulationView &triang,
@@ -54,9 +44,8 @@ MassOperator::MassOperator(const TriangulationView &triang,
     : ForwardOperator(triang, dirichlet_boundary) {
   matrix_ = Eigen::SparseMatrix<double>(triang_.vertices().size(),
                                         triang_.vertices().size());
-  Eigen::Matrix3d element_mass;
-  element_mass << 2, 1, 1, 1, 2, 1, 1, 1, 2;
-  element_mass *= 1.0 / 12.0;
+  static const Eigen::Matrix3d element_mass =
+      1.0 / 12.0 * (Eigen::Matrix3d() << 2, 1, 1, 1, 2, 1, 1, 1, 2).finished();
 
   std::vector<Eigen::Triplet<double>> triplets;
   triplets.reserve(triang_.elements().size() * 3);
