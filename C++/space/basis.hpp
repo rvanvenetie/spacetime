@@ -43,17 +43,19 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
       a << elem->vertices()[0]->x, elem->vertices()[0]->y;
       b << elem->vertices()[1]->x, elem->vertices()[1]->y;
       c << elem->vertices()[2]->x, elem->vertices()[2]->y;
-      auto v0 = b - a;
-      auto v1 = c - a;
-      auto v2 = p - a;
+
+      auto v0 = b - a, v1 = c - a, v2 = p - a;
+
       auto d00 = v0.dot(v0);
       auto d01 = v0.dot(v1);
       auto d11 = v1.dot(v1);
       auto d20 = v2.dot(v0);
       auto d21 = v2.dot(v1);
+
       double denom = (d00 * d11 - d01 * d01);
       double v = (d11 * d20 - d01 * d21) / denom;
       double w = (d00 * d21 - d01 * d20) / denom;
+
       Eigen::Vector3d bary;
       bary << 1 - v - w, v, w;
 

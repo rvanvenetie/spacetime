@@ -44,13 +44,14 @@ Eigen::MatrixXd MatrixQuad(const TreeVector<HierarchicalBasisFn>& tree_in,
         auto elems_fine = fn_in->level() < fn_out->level() ? fn_out->support()
                                                            : fn_in->support();
         for (auto elem : elems_fine) {
-          Eigen::Vector2d p1, p2, p3, m1, m2, m3;
+          Eigen::Vector2d p1, p2, p3;
           p1 << elem->vertices()[0]->x, elem->vertices()[0]->y;
           p2 << elem->vertices()[1]->x, elem->vertices()[1]->y;
           p3 << elem->vertices()[2]->x, elem->vertices()[2]->y;
-          m1 = (p1 + p2) / 2.0;
-          m2 = (p1 + p3) / 2.0;
-          m3 = (p2 + p3) / 2.0;
+
+          Eigen::Vector2d m1 = (p1 + p2) / 2.0, m2 = (p1 + p3) / 2.0,
+                          m3 = (p2 + p3) / 2.0;
+
           quad += elem->area() / 3.0 * (eval(m1) + eval(m2) + eval(m3));
         }
       }
@@ -70,6 +71,13 @@ TEST(BilinearForm, MassSymmetricQuadrature) {
   auto mat = bil_form.ToMatrix();
   auto mat_quad = MatrixQuad(vec_in, vec_out);
   ASSERT_TRUE(mat.isApprox(mat_quad));
+
+  // Check also the apply of a random vector.
+  Eigen::VectorXd v(vec_in.Bfs().size());
+  v.setRandom();
+  vec_in.FromVector(v);
+  bil_form.Apply();
+  ASSERT_TRUE(vec_out.ToVector().isApprox(mat_quad * v));
 }
 
 TEST(BilinearForm, MassUnsymmetricQuadrature) {
@@ -90,5 +98,12 @@ TEST(BilinearForm, MassUnsymmetricQuadrature) {
     auto mat = bil_form.ToMatrix();
     auto mat_quad = MatrixQuad(vec_in, vec_out);
     ASSERT_TRUE(mat.isApprox(mat_quad));
+
+    // Check also the apply of a random vector.
+    Eigen::VectorXd v(vec_in.Bfs().size());
+    v.setRandom();
+    vec_in.FromVector(v);
+    bil_form.Apply();
+    ASSERT_TRUE(vec_out.ToVector().isApprox(mat_quad * v));
   }
 }

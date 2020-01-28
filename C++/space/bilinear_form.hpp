@@ -14,7 +14,6 @@ class BilinearForm {
                bool dirichlet_boundary = true);
 
   void Apply();
-
   Eigen::MatrixXd ToMatrix();
 
  protected:
@@ -24,7 +23,6 @@ class BilinearForm {
 
   std::unique_ptr<datastructures::TreeVector<HierarchicalBasisFn>> vec_union_;
   std::unique_ptr<TriangulationView> triang_;
-
   std::unique_ptr<Operator> operator_;
 };
 
