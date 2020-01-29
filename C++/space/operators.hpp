@@ -1,7 +1,6 @@
 #pragma once
 #include <Eigen/Sparse>
 
-#include "../datastructures/multi_tree_vector.hpp"
 #include "basis.hpp"
 #include "triangulation_view.hpp"
 

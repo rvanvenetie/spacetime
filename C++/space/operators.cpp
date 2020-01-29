@@ -3,7 +3,6 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <vector>
 
-using datastructures::TreeVector;
 using Eigen::VectorXd;
 
 namespace space {
