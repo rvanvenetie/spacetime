@@ -21,13 +21,13 @@ TEST(Integration, ProductOfMonomials) {
     }
   });
 
-  static_for<10>([&T](auto order) {
+  static_for<10>([&T](auto degree) {
     auto root = T.elem_tree.Bfs()[0];
-    for (size_t n = 0; n < order; n++) {
-      for (size_t m = 0; m + n <= order; m++) {
+    for (size_t n = 0; n < degree; n++) {
+      for (size_t m = 0; m + n <= degree; m++) {
         auto f = [n, m](double x, double y) { return pow(x, n) * pow(y, m); };
         EXPECT_NEAR(
-            IntegrationRule<order>::Integrate(f, *root),
+            IntegrationRule<degree>::Integrate(f, *root),
             tgamma(2 + m) * tgamma(1 + n) / ((1 + m) * tgamma(3 + m + n)),
             1e-10);
       }

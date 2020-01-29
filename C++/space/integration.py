@@ -5,27 +5,16 @@ print("""#pragma once
 
 #include "integration.hpp"
 
-namespace space {
-template <unsigned P>
-template <class F>
-double IntegrationRule<P>::Integrate(F f, const Element2D &elem) {
-  double integral = 0.0;
-  for (const auto [p, q, w] : rule) {
-    auto [x, y] = elem.GlobalCoordinates(p, q);
-    integral += w * f(x, y);
-  }
-  return elem.area() * integral;
-}
-""")
-for order in range(10):
-    nco = quadpy.triangle.newton_cotes_open(order)
-    npoints = len(nco.weights)
+namespace space {""")
+for degree in range(15):
+    rule = quadpy.nsimplex.grundmann_moeller(n=2, s=max(0, degree // 2))
+    npoints = len(rule.weights)
     print("template <>")
     print("std::vector<std::tuple<double, double, double>>"
-          " IntegrationRule<%d>::rule{" % order)
+          " IntegrationRule<%d>::rule{" % degree)
     for p in range(npoints):
         print(
             "\t\t{%.20f, %.20f, %.20f}," %
-            (nco.points[p][1], nco.points[p][2], nco.weights[p]), )
+            (rule.points[p][1], rule.points[p][2], rule.weights[p]), )
     print("};")
 print("};  // namespace space")
