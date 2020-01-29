@@ -24,9 +24,9 @@ int bsd_rnd() {
   return (seed = (a * seed + c) % m);
 }
 
-Eigen::MatrixXd MassMatrixQuad(
-    const TreeVector<HierarchicalBasisFn>& tree_in,
-    const TreeVector<HierarchicalBasisFn>& tree_out) {
+Eigen::MatrixXd MatrixQuad(const TreeVector<HierarchicalBasisFn>& tree_in,
+                           const TreeVector<HierarchicalBasisFn>& tree_out,
+                           bool deriv) {
   auto functions_in = tree_in.Bfs();
   auto functions_out = tree_out.Bfs();
   Eigen::MatrixXd mat(functions_out.size(), functions_in.size());
@@ -40,7 +40,12 @@ Eigen::MatrixXd MassMatrixQuad(
           !fn_in->vertex()->on_domain_boundary) {
         // Do midpoint quadrature.
         auto eval = [&](auto pt) {
-          return fn_out->Eval(pt[0], pt[1]) * fn_in->Eval(pt[0], pt[1]);
+          if (deriv) {
+            return fn_out->EvalGrad(pt[0], pt[1])
+                .dot(fn_in->EvalGrad(pt[0], pt[1]));
+          } else {
+            return fn_out->Eval(pt[0], pt[1]) * fn_in->Eval(pt[0], pt[1]);
+          }
         };
         auto elems_fine = fn_in->level() < fn_out->level() ? fn_out->support()
                                                            : fn_in->support();
@@ -50,10 +55,15 @@ Eigen::MatrixXd MassMatrixQuad(
           p2 << elem->vertices()[1]->x, elem->vertices()[1]->y;
           p3 << elem->vertices()[2]->x, elem->vertices()[2]->y;
 
-          Eigen::Vector2d m1 = (p1 + p2) / 2.0, m2 = (p1 + p3) / 2.0,
-                          m3 = (p2 + p3) / 2.0;
+          if (deriv) {
+            quad += elem->area() * eval((p1 + p2 + p3) / 3.0);
+          } else {
+            // Midpoint rule.
+            Eigen::Vector2d m1 = (p1 + p2) / 2.0, m2 = (p1 + p3) / 2.0,
+                            m3 = (p2 + p3) / 2.0;
 
-          quad += elem->area() / 3.0 * (eval(m1) + eval(m2) + eval(m3));
+            quad += elem->area() / 3.0 * (eval(m1) + eval(m2) + eval(m3));
+          }
         }
       }
       mat(i, j) = quad;
@@ -61,27 +71,39 @@ Eigen::MatrixXd MassMatrixQuad(
   return mat;
 }
 
-constexpr int max_level = 8;
-TEST(BilinearForm, MassSymmetricQuadrature) {
+constexpr int max_level = 3;
+
+TEST(BilinearForm, SymmetricQuadrature) {
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
   auto vec_in = TreeVector<HierarchicalBasisFn>(T.hierarch_basis_meta_root);
   vec_in.DeepRefine();
   auto vec_out = vec_in.DeepCopy();
-  auto bil_form = BilinearForm<MassOperator>(vec_in, &vec_out);
-  auto mat = bil_form.ToMatrix();
-  auto mat_quad = MassMatrixQuad(vec_in, vec_out);
-  ASSERT_TRUE(mat.isApprox(mat_quad));
+  auto mass_bil_form = BilinearForm<MassOperator>(vec_in, &vec_out);
+  auto mass_mat = mass_bil_form.ToMatrix();
+  auto mass_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ false);
+  ASSERT_TRUE(mass_mat.isApprox(mass_quad));
 
   // Check also the apply of a random vector.
   Eigen::VectorXd v(vec_in.Bfs().size());
   v.setRandom();
   vec_in.FromVector(v);
-  bil_form.Apply();
-  ASSERT_TRUE(vec_out.ToVector().isApprox(mat_quad * v));
+  mass_bil_form.Apply();
+  ASSERT_TRUE(vec_out.ToVector().isApprox(mass_quad * v));
+
+  auto stiff_bil_form = BilinearForm<StiffnessOperator>(vec_in, &vec_out);
+  auto stiff_mat = stiff_bil_form.ToMatrix();
+  auto stiff_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ true);
+  ASSERT_TRUE(stiff_mat.isApprox(stiff_quad));
+
+  // Check also the apply of a random vector.
+  v.setRandom();
+  vec_in.FromVector(v);
+  stiff_bil_form.Apply();
+  ASSERT_TRUE(vec_out.ToVector().isApprox(stiff_quad * v));
 }
 
-TEST(BilinearForm, MassUnsymmetricQuadrature) {
+TEST(BilinearForm, UnsymmetricQuadrature) {
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
   for (size_t j = 0; j < 20; ++j) {
@@ -95,16 +117,27 @@ TEST(BilinearForm, MassUnsymmetricQuadrature) {
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
         });
-    auto bil_form = BilinearForm<MassOperator>(vec_in, &vec_out);
-    auto mat = bil_form.ToMatrix();
-    auto mat_quad = MassMatrixQuad(vec_in, vec_out);
-    ASSERT_TRUE(mat.isApprox(mat_quad));
+    auto mass_bil_form = BilinearForm<MassOperator>(vec_in, &vec_out);
+    auto mass_mat = mass_bil_form.ToMatrix();
+    auto mass_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ false);
+    ASSERT_TRUE(mass_mat.isApprox(mass_quad));
 
     // Check also the apply of a random vector.
     Eigen::VectorXd v(vec_in.Bfs().size());
     v.setRandom();
     vec_in.FromVector(v);
-    bil_form.Apply();
-    ASSERT_TRUE(vec_out.ToVector().isApprox(mat_quad * v));
+    mass_bil_form.Apply();
+    ASSERT_TRUE(vec_out.ToVector().isApprox(mass_quad * v));
+
+    auto stiff_bil_form = BilinearForm<StiffnessOperator>(vec_in, &vec_out);
+    auto stiff_mat = stiff_bil_form.ToMatrix();
+    auto stiff_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ true);
+    ASSERT_TRUE(stiff_mat.isApprox(stiff_quad));
+
+    // Check also the apply of a random vector.
+    v.setRandom();
+    vec_in.FromVector(v);
+    stiff_bil_form.Apply();
+    ASSERT_TRUE(vec_out.ToVector().isApprox(stiff_quad * v));
   }
 }

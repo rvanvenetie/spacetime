@@ -44,15 +44,15 @@ Eigen::Vector2d HierarchicalBasisFn::EvalGrad(double x, double y) const {
       // Find which barycentric coordinate corresponds to this hat fn.
       for (int i = 0; i < 3; ++i)
         if (elem->vertices()[i] == vertex()) {
-          auto edge = elem->edge(i);
-          Eigen::Vector2d normal{edge[1], -edge[0]};
+          auto [vp1, vm1] = elem->edge(i);
+          Eigen::Vector2d normal{vm1->y - vp1->y, vp1->x - vm1->x};
           normal /= 2.0 * elem->area();
           return normal;
         }
       assert(false);
     }
   }
-  return 0;
+  return {0, 0};
 }
 
 }  // namespace space

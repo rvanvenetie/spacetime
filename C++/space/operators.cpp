@@ -78,7 +78,8 @@ StiffnessOperator::StiffnessOperator(const TriangulationView &triang,
     Eigen::Matrix<double, 3, 2> D;
     D << v2[0] - v1[0], v2[1] - v1[1], v0[0] - v2[0], v0[1] - v2[1],
         v1[0] - v0[0], v1[1] - v0[1];
-    Eigen::Matrix3d elem_stiff = D * D.transpose() / (4 * elem->node()->area());
+    Eigen::Matrix3d elem_stiff =
+        D * D.transpose() / (4.0 * elem->node()->area());
 
     for (size_t i = 0; i < 3; ++i)
       for (size_t j = 0; j < 3; ++j)
