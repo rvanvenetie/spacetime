@@ -1,4 +1,6 @@
 #pragma once
+#include <Eigen/Dense>
+
 #include "../datastructures/tree.hpp"
 #include "triangulation.hpp"
 
@@ -13,25 +15,11 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
                       Vertex *vertex)
       : Node(parents), vertex_(vertex) {}
 
-  bool Refine() {
-    if (is_full()) return false;
-    for (auto &elem : vertex_->patch) {
-      elem->Refine();
-      assert(elem->children().size() == 2);
-      elem->children()[0]->newest_vertex()->RefineHierarchicalBasisFn();
-    }
-    assert(is_full());
-    return true;
-  }
-
-  bool is_full() const {
-    if (is_metaroot()) return vertex_->children().size() == children().size();
-    for (auto &elem : vertex_->patch)
-      if (!elem->is_full()) return false;
-    return true;
-  }
-
+  bool Refine();
+  bool is_full() const;
   Vertex *vertex() const { return vertex_; }
+  const std::vector<Element2D *> &support() const { return vertex_->patch; }
+  double eval(double x, double y) const;
 
  private:
   Vertex *vertex_;

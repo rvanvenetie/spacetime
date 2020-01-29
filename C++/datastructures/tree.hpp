@@ -11,8 +11,10 @@ namespace datastructures {
 // Below are two convenient lambda functions.
 constexpr auto func_noop = [](const auto &... x) {};
 constexpr auto func_true = [](const auto &... x) { return true; };
+constexpr auto func_false = [](const auto &... x) { return false; };
 using T_func_noop = decltype(func_noop);
 using T_func_true = decltype(func_true);
+using T_func_false = decltype(func_false);
 
 template <typename I>
 class NodeInterface {

@@ -1,7 +1,6 @@
 #pragma once
 #include <Eigen/Sparse>
 
-#include "../datastructures/multi_tree_vector.hpp"
 #include "basis.hpp"
 #include "triangulation_view.hpp"
 
@@ -12,9 +11,9 @@ class Operator {
   Operator(const TriangulationView &triang, bool dirichlet_boundary = true)
       : triang_(triang), dirichlet_boundary_(dirichlet_boundary) {}
 
-  virtual void Apply(
-      const datastructures::TreeVector<HierarchicalBasisFn> &vec_in,
-      datastructures::TreeVector<HierarchicalBasisFn> *vec_out) const = 0;
+  virtual ~Operator() {}
+
+  virtual Eigen::VectorXd Apply(Eigen::VectorXd vec_in) const = 0;
 
  protected:
   const TriangulationView &triang_;
@@ -27,9 +26,7 @@ class Operator {
 class ForwardOperator : public Operator {
  public:
   using Operator::Operator;
-  void Apply(
-      const datastructures::TreeVector<HierarchicalBasisFn> &vec_in,
-      datastructures::TreeVector<HierarchicalBasisFn> *vec_out) const final;
+  virtual Eigen::VectorXd Apply(Eigen::VectorXd vec_in) const final;
 
   const Eigen::SparseMatrix<double> &MatrixSingleScale() const {
     return matrix_;
@@ -46,9 +43,7 @@ class ForwardOperator : public Operator {
 class BackwardOperator : public Operator {
  public:
   using Operator::Operator;
-  void Apply(
-      const datastructures::TreeVector<HierarchicalBasisFn> &vec_in,
-      datastructures::TreeVector<HierarchicalBasisFn> *vec_out) const final;
+  virtual Eigen::VectorXd Apply(Eigen::VectorXd vec_in) const final;
 
  protected:
   // Inverse Hierarhical Basis Transformations.
