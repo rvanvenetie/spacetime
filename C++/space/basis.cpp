@@ -1,5 +1,5 @@
-
 #include "basis.hpp"
+
 namespace space {
 
 bool HierarchicalBasisFn::Refine() {
