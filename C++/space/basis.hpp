@@ -19,7 +19,9 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
   bool is_full() const;
   Vertex *vertex() const { return vertex_; }
   const std::vector<Element2D *> &support() const { return vertex_->patch; }
-  double eval(double x, double y) const;
+
+  double Eval(double x, double y) const;
+  Eigen::Vector2d EvalGrad(double x, double y) const;
 
  private:
   Vertex *vertex_;

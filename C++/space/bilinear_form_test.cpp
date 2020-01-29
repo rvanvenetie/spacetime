@@ -40,7 +40,7 @@ Eigen::MatrixXd MassMatrixQuad(
           !fn_in->vertex()->on_domain_boundary) {
         // Do midpoint quadrature.
         auto eval = [&](auto pt) {
-          return fn_out->eval(pt[0], pt[1]) * fn_in->eval(pt[0], pt[1]);
+          return fn_out->Eval(pt[0], pt[1]) * fn_in->Eval(pt[0], pt[1]);
         };
         auto elems_fine = fn_in->level() < fn_out->level() ? fn_out->support()
                                                            : fn_in->support();

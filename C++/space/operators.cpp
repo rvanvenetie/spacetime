@@ -72,6 +72,7 @@ StiffnessOperator::StiffnessOperator(const TriangulationView &triang,
     if (!elem->is_leaf()) continue;
     auto &Vids = elem->vertices_view_idx_;
     Eigen::Vector2d v0, v1, v2;
+
     v0 << elem->node()->vertices()[0]->x, elem->node()->vertices()[0]->y;
     v1 << elem->node()->vertices()[1]->x, elem->node()->vertices()[1]->y;
     v2 << elem->node()->vertices()[2]->x, elem->node()->vertices()[2]->y;
@@ -79,6 +80,7 @@ StiffnessOperator::StiffnessOperator(const TriangulationView &triang,
     D << v2[0] - v1[0], v2[1] - v1[1], v0[0] - v2[0], v0[1] - v2[1],
         v1[0] - v0[0], v1[1] - v0[1];
     Eigen::Matrix3d elem_stiff = D * D.transpose() / (4 * elem->node()->area());
+
     for (size_t i = 0; i < 3; ++i)
       for (size_t j = 0; j < 3; ++j)
         triplets.emplace_back(Vids[i], Vids[j], elem_stiff(i, j));
