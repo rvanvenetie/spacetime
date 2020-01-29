@@ -58,10 +58,9 @@ Eigen::Vector3d Element2D::BarycentricCoordinates(double x, double y) const {
 std::pair<double, double> Element2D::GlobalCoordinates(double bary2,
                                                        double bary3) const {
   assert(0 <= bary2 && bary2 <= 1 && 0 <= bary3 && bary3 <= 1);
-  return {(vertices_[1]->x - vertices_[0]->x) * bary2 +
-              (vertices_[2]->x - vertices_[0]->x) * bary3 + vertices_[0]->x,
-          (vertices_[1]->y - vertices_[0]->y) * bary2 +
-              (vertices_[2]->y - vertices_[0]->y) * bary3 + vertices_[0]->y};
+  auto V = vertices_;
+  return {(V[1]->x - V[0]->x) * bary2 + (V[2]->x - V[0]->x) * bary3 + V[0]->x,
+          (V[1]->y - V[0]->y) * bary2 + (V[2]->y - V[0]->y) * bary3 + V[0]->y};
 }
 
 bool Element2D::Refine() {
