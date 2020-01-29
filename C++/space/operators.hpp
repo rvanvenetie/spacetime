@@ -63,4 +63,13 @@ class MassOperator : public ForwardOperator {
   using ForwardOperator::matrix_;
 };
 
+class StiffnessOperator : public ForwardOperator {
+ public:
+  StiffnessOperator(const TriangulationView &triang,
+                    bool dirichlet_boundary = true);
+
+ protected:
+  using ForwardOperator::matrix_;
+};
+
 }  // namespace space
