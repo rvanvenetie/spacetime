@@ -277,7 +277,7 @@ class MultiTreeView {
             typename FuncPost = T_func_noop>
   void Union(const T_other& other, const FuncFilt& call_filter = func_true,
              const FuncPost& call_postprocess = func_noop) {
-    return root->Union(other.root, call_filter, call_postprocess);
+    root->Union(other.root, call_filter, call_postprocess);
   }
 };
 

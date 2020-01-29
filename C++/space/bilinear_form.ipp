@@ -12,7 +12,7 @@ BilinearForm<Operator>::BilinearForm(
   auto vec_out_nodes = vec_out->Bfs();
 
   // Determine whether the input and output vector coincide.
-  symmetric_ = vec_in_nodes.size() == vec_out_nodes.size();
+  symmetric_ = (vec_in_nodes.size() == vec_out_nodes.size());
   if (symmetric_)
     for (size_t i = 0; i < vec_in_nodes.size(); ++i)
       if (vec_in_nodes[i]->node() != vec_out_nodes[i]->node()) {
@@ -28,8 +28,8 @@ BilinearForm<Operator>::BilinearForm(
     vec_union_ =
         std::make_unique<datastructures::TreeVector<HierarchicalBasisFn>>(
             vec_in.root->node());
-    vec_union_->Union(vec_in_);
-    vec_union_->Union(*vec_out_);
+    vec_union_->Union(vec_in);
+    vec_union_->Union(*vec_out);
     triang_ = std::make_unique<TriangulationView>(*vec_union_);
   }
   operator_ = std::make_unique<Operator>(*triang_, dirichlet_boundary);
@@ -37,7 +37,9 @@ BilinearForm<Operator>::BilinearForm(
 
 template <typename Operator>
 void BilinearForm<Operator>::Apply() {
-  if (symmetric_) return operator_->Apply(vec_in_, vec_out_);
+  if (symmetric_)
+    // Apply the operator in SS.
+    return vec_out_->FromVector(operator_->Apply(vec_in_.ToVector()));
 
   // Not symmetric, we must do some magic tricks.
   auto lambda_copy = [](const auto &new_node, const auto &old_node) {
@@ -45,7 +47,8 @@ void BilinearForm<Operator>::Apply() {
   };
   vec_union_->Reset();
   vec_union_->Union(vec_in_, datastructures::func_false, lambda_copy);
-  operator_->Apply(*vec_union_, vec_union_.get());
+  // Apply the operator in SS.
+  vec_union_->FromVector(operator_->Apply(vec_union_->ToVector()));
   vec_out_->Union(*vec_union_, datastructures::func_false, lambda_copy);
 }
 

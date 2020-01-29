@@ -14,10 +14,7 @@ void Operator::ApplyBoundaryConditions(VectorXd &vec) const {
     if (vertices[i]->on_domain_boundary) vec[i] = 0;
 }
 
-void ForwardOperator::Apply(const TreeVector<HierarchicalBasisFn> &vec_in,
-                            TreeVector<HierarchicalBasisFn> *vec_out) const {
-  VectorXd v{vec_in.ToVector()};
-
+Eigen::VectorXd ForwardOperator::Apply(Eigen::VectorXd v) const {
   if (dirichlet_boundary_) ApplyBoundaryConditions(v);
 
   ApplyHierarchToSingle(v);
@@ -26,7 +23,7 @@ void ForwardOperator::Apply(const TreeVector<HierarchicalBasisFn> &vec_in,
 
   if (dirichlet_boundary_) ApplyBoundaryConditions(v);
 
-  vec_out->FromVector(v);
+  return v;
 }
 
 void ForwardOperator::ApplyHierarchToSingle(VectorXd &w) const {

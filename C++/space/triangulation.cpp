@@ -30,6 +30,31 @@ std::array<Vertex *, 2> Element2D::reversed_edge(int i) const {
   return {{vertices_[(i + 2) % 3], vertices_[(i + 1) % 3]}};
 }
 
+Eigen::Vector3d Element2D::BarycentricCoordinates(double x, double y) const {
+  // https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
+  Eigen::Vector2d p, a, b, c;
+  p << x, y;
+  a << vertices_[0]->x, vertices_[0]->y;
+  b << vertices_[1]->x, vertices_[1]->y;
+  c << vertices_[2]->x, vertices_[2]->y;
+
+  auto v0 = b - a, v1 = c - a, v2 = p - a;
+
+  auto d00 = v0.dot(v0);
+  auto d01 = v0.dot(v1);
+  auto d11 = v1.dot(v1);
+  auto d20 = v2.dot(v0);
+  auto d21 = v2.dot(v1);
+
+  double denom = (d00 * d11 - d01 * d01);
+  double v = (d11 * d20 - d01 * d21) / denom;
+  double w = (d00 * d21 - d01 * d20) / denom;
+
+  Eigen::Vector3d bary;
+  bary << 1 - v - w, v, w;
+  return bary;
+}
+
 bool Element2D::Refine() {
   if (!is_full()) {
     auto nbr = neighbours[0];

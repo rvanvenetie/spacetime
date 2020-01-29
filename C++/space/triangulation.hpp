@@ -1,4 +1,5 @@
 #pragma once
+#include <Eigen/Dense>
 #include <array>
 #include <cmath>
 #include <iostream>
@@ -66,6 +67,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   Vertex *newest_vertex() const { return vertices_[0]; }
   std::array<Vertex *, 2> edge(int i) const;
   std::array<Vertex *, 2> reversed_edge(int i) const;
+  Eigen::Vector3d BarycentricCoordinates(double x, double y) const;
 
   bool Refine();
 

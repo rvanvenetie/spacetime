@@ -24,8 +24,9 @@ int bsd_rnd() {
   return (seed = (a * seed + c) % m);
 }
 
-Eigen::MatrixXd MatrixQuad(const TreeVector<HierarchicalBasisFn>& tree_in,
-                           const TreeVector<HierarchicalBasisFn>& tree_out) {
+Eigen::MatrixXd MassMatrixQuad(
+    const TreeVector<HierarchicalBasisFn>& tree_in,
+    const TreeVector<HierarchicalBasisFn>& tree_out) {
   auto functions_in = tree_in.Bfs();
   auto functions_out = tree_out.Bfs();
   Eigen::MatrixXd mat(functions_out.size(), functions_in.size());
@@ -69,7 +70,7 @@ TEST(BilinearForm, MassSymmetricQuadrature) {
   auto vec_out = vec_in.DeepCopy();
   auto bil_form = BilinearForm<MassOperator>(vec_in, &vec_out);
   auto mat = bil_form.ToMatrix();
-  auto mat_quad = MatrixQuad(vec_in, vec_out);
+  auto mat_quad = MassMatrixQuad(vec_in, vec_out);
   ASSERT_TRUE(mat.isApprox(mat_quad));
 
   // Check also the apply of a random vector.
@@ -96,7 +97,7 @@ TEST(BilinearForm, MassUnsymmetricQuadrature) {
         });
     auto bil_form = BilinearForm<MassOperator>(vec_in, &vec_out);
     auto mat = bil_form.ToMatrix();
-    auto mat_quad = MatrixQuad(vec_in, vec_out);
+    auto mat_quad = MassMatrixQuad(vec_in, vec_out);
     ASSERT_TRUE(mat.isApprox(mat_quad));
 
     // Check also the apply of a random vector.
