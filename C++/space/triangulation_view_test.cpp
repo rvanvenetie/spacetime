@@ -29,7 +29,7 @@ TEST(TriangulationView, UniformRefine) {
     TriangulationView triang_view(vertex_view);
 
     // Lets see if this actually gives some fruitful results!
-    auto elements = triang_view.element_view_.Bfs();
+    auto elements = triang_view.element_view().Bfs();
     ASSERT_EQ(elements.size(), pow(2, level + 2) - 2);
 
     for (auto elem : elements) {
@@ -50,29 +50,28 @@ TEST(TriangulationView, VertexSubTree) {
   ASSERT_TRUE(vertex_subtree.Bfs().size() < T.vertex_meta_root->Bfs().size());
 
   auto T_view = TriangulationView(vertex_subtree);
-  ASSERT_TRUE(T_view.history_.size() < T.elem_meta_root->Bfs().size());
+  ASSERT_TRUE(T_view.history().size() < T.elem_meta_root->Bfs().size());
 
   // Check that the history object contains exactly non-root vertices
-  ASSERT_EQ(T_view.history_.size(), vertex_subtree.Bfs().size() -
-                                        T.vertex_meta_root->children().size());
+  ASSERT_EQ(T_view.history().size(), vertex_subtree.Bfs().size() -
+                                         T.vertex_meta_root->children().size());
 
   // Check there are no duplicats.
-  auto vertices_view = T_view.vertex_view_.Bfs();
   std::set<Vertex *> vertices_subtree;
-  for (auto &nv : vertices_view) {
+  for (auto &nv : T_view.vertices()) {
     vertices_subtree.insert(nv->node());
   }
-  ASSERT_EQ(vertices_subtree.size(), vertices_view.size());
+  ASSERT_EQ(vertices_subtree.size(), T_view.vertices().size());
   // Check all nodes necessary for the elem subtree are
   // inside the vertices_subtree.
-  for (auto &elem : T_view.element_view_.Bfs()) {
+  for (auto &elem : T_view.element_view().Bfs()) {
     for (auto &vtx : elem->node()->vertices()) {
       ASSERT_TRUE(vertices_subtree.count(vtx));
     }
   }
 
   // And the other way around.
-  auto elements_view = T_view.element_view_.Bfs();
+  auto elements_view = T_view.element_view().Bfs();
   std::set<Element2D *> elements_subtree;
   for (auto &nv : elements_view) {
     elements_subtree.insert(nv->node());
@@ -80,7 +79,7 @@ TEST(TriangulationView, VertexSubTree) {
   ASSERT_EQ(elements_subtree.size(), elements_view.size());
   // Check all nodes necessary for the elem subtree are
   // inside the elements_subtree.
-  for (auto &vertex : vertices_view) {
+  for (auto &vertex : T_view.vertices()) {
     for (auto elem : vertex->node()->patch) {
       ASSERT_TRUE(elements_subtree.count(elem));
     }
