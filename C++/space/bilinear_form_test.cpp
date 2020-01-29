@@ -9,6 +9,7 @@
 #include "gtest/gtest.h"
 #include "operators.hpp"
 #include "space/initial_triangulation.hpp"
+#include "space/integration.hpp"
 #include "space/triangulation.hpp"
 #include "space/triangulation_view.hpp"
 
@@ -38,31 +39,21 @@ Eigen::MatrixXd MatrixQuad(const TreeVector<HierarchicalBasisFn>& tree_in,
       auto fn_in = functions_in[j]->node();
       if (!fn_out->vertex()->on_domain_boundary &&
           !fn_in->vertex()->on_domain_boundary) {
-        // Do midpoint quadrature.
-        auto eval = [&](auto pt) {
-          if (deriv) {
-            return fn_out->EvalGrad(pt[0], pt[1])
-                .dot(fn_in->EvalGrad(pt[0], pt[1]));
-          } else {
-            return fn_out->Eval(pt[0], pt[1]) * fn_in->Eval(pt[0], pt[1]);
-          }
-        };
         auto elems_fine = fn_in->level() < fn_out->level() ? fn_out->support()
                                                            : fn_in->support();
         for (auto elem : elems_fine) {
-          Eigen::Vector2d p1, p2, p3;
-          p1 << elem->vertices()[0]->x, elem->vertices()[0]->y;
-          p2 << elem->vertices()[1]->x, elem->vertices()[1]->y;
-          p3 << elem->vertices()[2]->x, elem->vertices()[2]->y;
-
           if (deriv) {
-            quad += elem->area() * eval((p1 + p2 + p3) / 3.0);
+            quad += IntegrationRule<0>::Integrate(
+                [&](double x, double y) {
+                  return fn_out->EvalGrad(x, y).dot(fn_in->EvalGrad(x, y));
+                },
+                *elem);
           } else {
-            // Midpoint rule.
-            Eigen::Vector2d m1 = (p1 + p2) / 2.0, m2 = (p1 + p3) / 2.0,
-                            m3 = (p2 + p3) / 2.0;
-
-            quad += elem->area() / 3.0 * (eval(m1) + eval(m2) + eval(m3));
+            quad += IntegrationRule<2>::Integrate(
+                [&](double x, double y) {
+                  return fn_out->Eval(x, y) * fn_in->Eval(x, y);
+                },
+                *elem);
           }
         }
       }
