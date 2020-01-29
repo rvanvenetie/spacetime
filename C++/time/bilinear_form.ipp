@@ -57,7 +57,8 @@ auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyRecur(
     e += Prolongate<ScalingBasisOut>().RMatVec(e_bar, Pi_B_out);
 
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    f += f_bar;
+    // We know that f and f_bar are disjoint; we can simply append f_bar to f.
+    f.insert(f.end(), f_bar.begin(), f_bar.end());
     return std::pair{e, f};
   } else {
     return std::pair{SparseVector<ScalingBasisOut>(),
@@ -92,8 +93,8 @@ auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyUppRecur(
     e += Prolongate<ScalingBasisOut>().RMatVec(e_bar, Pi_B_out);
 
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    f += f_bar;
-
+    // We know that f and f_bar are disjoint; we can simply append f_bar to f.
+    f.insert(f.end(), f_bar.begin(), f_bar.end());
     return std::pair{e, f};
   } else {
     return std::pair{SparseVector<ScalingBasisOut>(),
@@ -121,8 +122,10 @@ auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyLowRecur(
     auto e_bar =
         Operator<ScalingBasisIn, ScalingBasisOut>().MatVec(d_bar, Pi_B_bar_out);
     d_bar += WaveletToScaling<WaveletBasisIn>().MatVec(c);
+    auto f_bar = ApplyLowRecur(l + 1, d_bar);
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    f += ApplyLowRecur(l + 1, d_bar);
+    // We know that f and f_bar are disjoint; we can simply append f_bar to f.
+    f.insert(f.end(), f_bar.begin(), f_bar.end());
     return f;
   } else {
     return SparseVector<WaveletBasisOut>();

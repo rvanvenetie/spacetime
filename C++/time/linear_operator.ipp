@@ -166,13 +166,15 @@ auto Prolongate<DiscLinearScalingFn>::Column(DiscLinearScalingFn *phi_in) {
   auto [l, n] = phi_in->labda();
   phi_in->Refine();
   const auto &children = phi_in->children();
-  if (phi_in->pw_constant())
-    result = {{{children[0], 1.0}, {children[2], 1.0}}};
-  else
-    result = {{{children[0], -sqrt(3) / 2},
-               {children[1], 0.5},
-               {children[2], sqrt(3) / 2},
-               {children[3], 0.5}}};
+  if (phi_in->pw_constant()) {
+    result.emplace_back(children[0], 1);
+    result.emplace_back(children[2], 1);
+  } else {
+    result.emplace_back(children[0], -sqrt(3) / 2);
+    result.emplace_back(children[1], 0.5);
+    result.emplace_back(children[2], sqrt(3) / 2);
+    result.emplace_back(children[3], 0.5);
+  }
   return result;
 }
 

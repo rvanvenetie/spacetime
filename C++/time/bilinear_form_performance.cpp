@@ -18,8 +18,8 @@ using namespace Time;
 using namespace datastructures;
 
 constexpr int level = 10;
-constexpr int bilform_iters = 5;
-constexpr int inner_iters = 40;
+constexpr int bilform_iters = 10;
+constexpr int inner_iters = 150;
 
 int main() {
   ortho_tree.UniformRefine(::level);
@@ -40,11 +40,13 @@ int main() {
     BilinearForm<MassOperator, OrthonormalWaveletFn, OrthonormalWaveletFn>
         bil_form(&vec_out);
     for (size_t k = 0; k < ::inner_iters; k++) {
-      vec_out.Reset();
       for (auto& nv : vec_in.Bfs()) {
         nv->set_value(bsd_rnd());
       }
-      bil_form.Apply(vec_in);
+      bil_form.ApplyLow(vec_in);
+      vec_out.Reset();
+      bil_form.ApplyUpp(vec_in);
+      vec_out.Reset();
     }
   }
   return 0;
