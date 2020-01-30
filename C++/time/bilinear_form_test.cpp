@@ -1,12 +1,12 @@
 #include "bilinear_form.hpp"
 
-#include <boost/math/quadrature/gauss.hpp>
 #include <cmath>
 #include <cstdlib>
 #include <set>
 #include <unordered_map>
 
 #include "../datastructures/multi_tree_vector.hpp"
+#include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "linear_operator.hpp"
@@ -24,6 +24,7 @@ namespace Time {
 using datastructures::TreeVector;
 using datastructures::TreeView;
 using ::testing::ElementsAre;
+using tools::IntegrationRule;
 
 template <typename BilinearForm, typename WaveletBasisIn>
 void TestLinearity(BilinearForm& bil_form,
@@ -114,14 +115,13 @@ void CheckMatrixQuadrature(const TreeView<WaveletBasisIn>& view_in,
       auto g = nodes_out[i]->node();
       auto support = f->support();
       if (g->level() > f->level()) support = g->support();
-
       double ip = 0;
-      auto eval = [f, deriv_in, g, deriv_out](const double& t) {
-        return f->Eval(t, deriv_in) * g->Eval(t, deriv_out);
-      };
       for (auto elem : support)
-        ip += boost::math::quadrature::gauss<double, 2>::integrate(
-            eval, elem->Interval().first, elem->Interval().second);
+        ip += IntegrationRule<1, 2>::Integrate(
+            [f, deriv_in, g, deriv_out](const double& t) {
+              return f->Eval(t, deriv_in) * g->Eval(t, deriv_out);
+            },
+            *elem);
 
       ASSERT_NEAR(mat(i, j), ip, 1e-10);
     }
