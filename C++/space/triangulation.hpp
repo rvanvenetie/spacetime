@@ -68,6 +68,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   std::array<Vertex *, 2> edge(int i) const;
   std::array<Vertex *, 2> reversed_edge(int i) const;
   Eigen::Vector3d BarycentricCoordinates(double x, double y) const;
+  std::pair<double, double> GlobalCoordinates(double bary2, double bary3) const;
 
   bool Refine();
 

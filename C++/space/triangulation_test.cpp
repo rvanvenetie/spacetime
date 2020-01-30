@@ -180,4 +180,26 @@ TEST(Triangulation, RefineHierarchicalBasisFn) {
   }
 }
 
+TEST(Triangulation, BarycentricCoordinates) {
+  auto T = InitialTriangulation::UnitSquare();
+
+  size_t ml = 10;
+  for (int i = 0; i < 15; ++i) {
+    auto T = InitialTriangulation::UnitSquare();
+    T.hierarch_basis_tree.DeepRefine([ml](auto node) {
+      return node->is_metaroot() || (node->level() < ml && bsd_rnd() % 3 != 0);
+    });
+    for (auto elem : T.elem_tree.Bfs()) {
+      for (auto v : elem->vertices()) {
+        auto bary = elem->BarycentricCoordinates(v->x, v->y);
+        ASSERT_TRUE((bary.array() >= 0).all());
+        ASSERT_TRUE((bary.array() >= 1).any());
+        auto found_coords = elem->GlobalCoordinates(bary[1], bary[2]);
+        ASSERT_FLOAT_EQ(found_coords.first, v->x);
+        ASSERT_FLOAT_EQ(found_coords.second, v->y);
+      }
+    }
+  }
+}
+
 }  // namespace space
