@@ -39,6 +39,12 @@ std::pair<double, double> Element1D::Interval() const {
   return {h * index_, h * (index_ + 1)};
 }
 
+double Element1D::GlobalCoordinates(double bary2) const {
+  assert(0 <= bary2 && bary2 <= 1);
+  auto [a, b] = Interval();
+  return a + bary2 * (b - a);
+}
+
 void ResetTrees() {
   // Reset the element tree.
   elem_tree = datastructures::Tree<Element1D>();

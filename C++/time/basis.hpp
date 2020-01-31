@@ -34,6 +34,11 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
   }
 
   std::pair<double, double> Interval() const;
+  double GlobalCoordinates(double bary2) const;
+  double area() const {
+    auto [a, b] = Interval();
+    return b - a;
+  }
 
  protected:
   // Protected constructor for creating a metaroot.
