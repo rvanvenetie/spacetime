@@ -12,7 +12,7 @@ for dim in [1, 2]:
         rule = quadpy.nsimplex.grundmann_moeller(n=dim, s=max(0, degree // 2))
         npoints = len(rule.weights)
         print("template <>")
-        print("std::vector<std::array<double, %d>>"
+        print("const std::vector<std::array<double, %d>>"
               " IntegrationRule<%d, %d>::rule{" % (dim + 1, dim, degree))
         for p in range(npoints):
             print("\t\t{", end='')

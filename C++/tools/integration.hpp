@@ -7,14 +7,7 @@
 
 namespace tools {
 template <unsigned dim, unsigned degree>
-class IntegrationRule {
- public:
-  template <class Function, class Element>
-  static double Integrate(const Function& f, const Element& elem);
-
-  // Vector of tuples <bary2, ..., bary_{dim+1}, weight>.
-  static std::vector<std::array<double, dim + 1>> rule;
-};
+class IntegrationRule;
 
 template <unsigned degree>
 class IntegrationRule<1, degree> {
@@ -29,7 +22,7 @@ class IntegrationRule<1, degree> {
     return elem.area() * integral;
   }
 
-  static std::vector<std::array<double, 2>> rule;
+  const static std::vector<std::array<double, 2>> rule;
 };
 
 template <unsigned degree>
@@ -45,7 +38,7 @@ class IntegrationRule<2, degree> {
     return elem.area() * integral;
   }
 
-  static std::vector<std::array<double, 3>> rule;
+  const static std::vector<std::array<double, 3>> rule;
 };
 };  // namespace tools
 
