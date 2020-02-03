@@ -65,6 +65,20 @@ class FrozenDoubleNode
     return Refine(node()->children(), call_filter, make_conforming);
   }
 
+  // Deep-refines in the `i`-axis.
+  template <typename FuncFilt = T_func_true, typename FuncPost = T_func_noop>
+  void DeepRefine(const FuncFilt& call_filter = func_true,
+                  const FuncPost& call_postprocess = func_noop) {
+    this->Bfs(true, [&call_filter, &call_postprocess](const auto& node) {
+      call_postprocess(node);
+      node->template Refine<i>(
+          [&call_filter](auto& nodes) {
+            return call_filter(std::get<i>(nodes));
+          },
+          true);
+    });
+  }
+
   // In case this is a vectoral double node.
   inline double value() const { return dbl_node_->value(); }
   inline void set_value(double val) { dbl_node_->set_value(val); }

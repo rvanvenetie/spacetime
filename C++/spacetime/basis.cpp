@@ -20,30 +20,23 @@ DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn> GenerateYDelta(
 
   Y_delta.Project_1()->Union(X_delta.Project_1());
 
-  for (auto &x_labda_0 : X_delta.Project_0()->Bfs()) {
-    for (auto &elem : x_labda_0->node()->support()) {
+  for (auto &x_labda_0 : X_delta.Project_0()->Bfs())
+    for (auto &elem : x_labda_0->node()->support())
       for (auto &mu : elem->RefinePsiOrthonormal()) {
-        if (!mu->marked()) {
-          mu->set_marked(true);
-          mu->set_data(new SpaceTreeVector());
-        }
+        if (!mu->has_data()) mu->set_data(new SpaceTreeVector());
         mu->template data<SpaceTreeVector>()->push_back(
             x_labda_0->FrozenOtherAxis());
       }
-    }
-  }
 
-  Y_delta.Project_0()->DeepRefine(
-      [](auto node) { return std::get<0>(node)->marked(); });
+  Y_delta.Project_0()->DeepRefine([](auto node) { return node->has_data(); });
 
   for (auto &y_labda_0 : Y_delta.Project_0()->Bfs()) {
-    assert(y_labda_0->node()->marked());
-    for (auto &space_tree :
-         *y_labda_0->node()->template data<SpaceTreeVector>()) {
+    assert(y_labda_0->node()->has_data());
+    auto data = y_labda_0->node()->template data<SpaceTreeVector>();
+    for (const auto &space_tree : *data)
       y_labda_0->FrozenOtherAxis()->Union(space_tree);
-    }
-    y_labda_0->node()->template delete_data<SpaceTreeVector>();
-    y_labda_0->node()->set_marked(false);
+    y_labda_0->node()->reset_data();
+    delete data;
   }
 
   return Y_delta;
