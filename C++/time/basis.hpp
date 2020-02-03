@@ -12,6 +12,7 @@ namespace Time {
 class DiscConstantScalingFn;
 class ContLinearScalingFn;
 class DiscLinearScalingFn;
+class OrthonormalWaveletFn;
 
 class Element1D : public datastructures::BinaryNode<Element1D> {
  public:
@@ -33,6 +34,8 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
     return phi_disc_lin_;
   }
 
+  const std::array<OrthonormalWaveletFn *, 2> &RefinePsiOrthonormal();
+
   std::pair<double, double> Interval() const;
   double GlobalCoordinates(double bary2) const;
   double area() const {
@@ -52,10 +55,12 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
   DiscConstantScalingFn *phi_disc_const_ = nullptr;
   std::array<ContLinearScalingFn *, 2> phi_cont_lin_ = {nullptr, nullptr};
   std::array<DiscLinearScalingFn *, 2> phi_disc_lin_ = {nullptr, nullptr};
+  std::array<OrthonormalWaveletFn *, 2> psi_ortho_ = {nullptr, nullptr};
 
   friend DiscConstantScalingFn;
   friend ContLinearScalingFn;
   friend DiscLinearScalingFn;
+  friend OrthonormalWaveletFn;
   friend datastructures::Tree<Element1D>;
 };
 

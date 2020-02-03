@@ -67,7 +67,12 @@ class OrthonormalWaveletFn : public WaveletFn<OrthonormalWaveletFn> {
   explicit OrthonormalWaveletFn(
       const std::vector<OrthonormalWaveletFn *> parents, int index,
       const SparseVector<DiscLinearScalingFn> &single_scale)
-      : WaveletFn(parents, index, single_scale) {}
+      : WaveletFn(parents, index, single_scale) {
+    for (auto &elem : support()) {
+      assert(elem->psi_ortho_[index % 2] == nullptr);
+      elem->psi_ortho_[index % 2] = this;
+    }
+  }
 
   bool Refine();
   bool is_full() const;
