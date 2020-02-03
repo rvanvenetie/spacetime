@@ -87,6 +87,13 @@ class Node : public NodeInterface<I> {
     assert(data_ != nullptr);
     data_ = nullptr;
   }
+
+  template <typename T>
+  void delete_data() {
+    assert(data_ != nullptr);
+    delete data<T>();
+    data_ = nullptr;
+  }
   bool has_data() { return data_ != nullptr; }
 
  protected:

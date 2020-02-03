@@ -58,6 +58,12 @@ class FrozenDoubleNode
     return dbl_node_->template Refine<i>(children_i, call_filter,
                                          make_conforming);
   }
+  // Define a practical overload:
+  template <size_t _ = 0, typename Func>
+  bool Refine(const Func& call_filter, bool make_conforming = false) {
+    static_assert(_ == 0);
+    return Refine(node()->children(), call_filter, make_conforming);
+  }
 
   // In case this is a vectoral double node.
   inline double value() const { return dbl_node_->value(); }
@@ -79,7 +85,7 @@ class DoubleTreeViewBase : public MT_Base<I> {
   using MT_Base<I>::MT_Base;
 
   template <size_t i>
-  std::shared_ptr<FrozenDoubleNode<I, i>> Project() {
+  std::shared_ptr<FrozenDoubleNode<I, i>> Project() const {
     return std::make_shared<FrozenDoubleNode<I, i>>(Super::root);
   }
   std::shared_ptr<FrozenDoubleNode<I, 0>> Fiber(T1 mu) {
@@ -92,8 +98,8 @@ class DoubleTreeViewBase : public MT_Base<I> {
   }
 
   // Helper functions..
-  auto Project_0() { return Project<0>(); }
-  auto Project_1() { return Project<1>(); }
+  auto Project_0() const { return Project<0>(); }
+  auto Project_1() const { return Project<1>(); }
   template <size_t i>
   auto Fiber(std::shared_ptr<FrozenDoubleNode<I, i>> mu) {
     return Fiber(mu->node());

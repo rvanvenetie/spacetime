@@ -23,6 +23,12 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
   double Eval(double x, double y) const;
   Eigen::Vector2d EvalGrad(double x, double y) const;
 
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const HierarchicalBasisFn &fn) {
+    os << "HBF(" << fn.vertex()->x << ", " << fn.vertex()->y << ")";
+    return os;
+  }
+
  private:
   Vertex *vertex_;
 

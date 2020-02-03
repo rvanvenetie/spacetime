@@ -33,6 +33,16 @@ const std::array<ContLinearScalingFn *, 2> &Element1D::RefineContLinear() {
   return phi_cont_lin_;
 }
 
+const std::array<OrthonormalWaveletFn *, 2> &Element1D::RefinePsiOrthonormal() {
+  if (!psi_ortho_[0] || !psi_ortho_[1]) {
+    assert(level() > 0);
+    auto psi_parent = parent()->RefinePsiOrthonormal();
+    psi_parent[0]->Refine();
+    assert(psi_ortho_[0] && psi_ortho_[1]);
+  }
+  return psi_ortho_;
+}
+
 std::pair<double, double> Element1D::Interval() const {
   assert(!is_metaroot());
   double h = 1.0 / std::pow(2, level_);
