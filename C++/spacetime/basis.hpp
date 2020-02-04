@@ -1,6 +1,5 @@
 #include "../datastructures/double_tree_view.hpp"
 #include "../space/basis.hpp"
-#include "../time/haar_basis.hpp"
 #include "../time/orthonormal_basis.hpp"
 #include "../time/three_point_basis.hpp"
 
