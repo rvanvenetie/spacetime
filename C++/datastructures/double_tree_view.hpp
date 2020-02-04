@@ -97,19 +97,19 @@ class DoubleTreeViewBase : public MT_Base<I> {
  public:
   using T0p = typename std::tuple_element_t<0, typename I::TupleNodes>;
   using T1p = typename std::tuple_element_t<1, typename I::TupleNodes>;
-  using T0 = typename std::remove_pointer<T0p>::type;
-  using T1 = typename std::remove_pointer<T1p>::type;
+  using T0 = typename std::remove_pointer_t<T0p>;
+  using T1 = typename std::remove_pointer_t<T1p>;
   using MT_Base<I>::MT_Base;
 
   template <size_t i>
   std::shared_ptr<FrozenDoubleNode<I, i>> Project() const {
     return std::make_shared<FrozenDoubleNode<I, i>>(Super::root);
   }
-  std::shared_ptr<FrozenDoubleNode<I, 0>> Fiber_0(T1p mu) {
+  std::shared_ptr<FrozenDoubleNode<I, 0>> Fiber_0(T1p mu) const {
     if (!std::get<0>(fibers_).count(mu)) compute_fibers();
     return std::get<0>(fibers_).at(mu);
   }
-  std::shared_ptr<FrozenDoubleNode<I, 1>> Fiber_1(T0p mu) {
+  std::shared_ptr<FrozenDoubleNode<I, 1>> Fiber_1(T0p mu) const {
     if (!std::get<1>(fibers_).count(mu)) compute_fibers();
     return std::get<1>(fibers_).at(mu);
   }
@@ -119,11 +119,12 @@ class DoubleTreeViewBase : public MT_Base<I> {
   auto Project_1() const { return Project<1>(); }
 
  protected:
-  std::tuple<std::unordered_map<T1p, std::shared_ptr<FrozenDoubleNode<I, 0>>>,
-             std::unordered_map<T0p, std::shared_ptr<FrozenDoubleNode<I, 1>>>>
+  mutable std::tuple<
+      std::unordered_map<T1p, std::shared_ptr<FrozenDoubleNode<I, 0>>>,
+      std::unordered_map<T0p, std::shared_ptr<FrozenDoubleNode<I, 1>>>>
       fibers_;
 
-  void compute_fibers() {
+  void compute_fibers() const {
     static_for<2>([&](auto i) {
       for (const auto& f_node :
            Project<i>()->Bfs(/* include_metaroot */ true)) {

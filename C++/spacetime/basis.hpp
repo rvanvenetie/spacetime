@@ -10,10 +10,10 @@ GenerateYDelta(const datastructures::DoubleTreeView<
                Time::ThreePointWaveletFn, space::HierarchicalBasisFn> &X_delta);
 
 template <class DblTreeIn, class DblTreeOut>
-auto GenerateSigma(DblTreeIn &Lambda_in, DblTreeOut &Lambda_out);
+auto GenerateSigma(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out);
 
 template <class DblTreeIn, class DblTreeOut>
-auto GenerateTheta(DblTreeIn &Lambda_in, DblTreeOut &Lambda_out);
+auto GenerateTheta(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out);
 };  // namespace spacetime
 
 #include "basis.ipp"
