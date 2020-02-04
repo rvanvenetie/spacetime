@@ -88,7 +88,7 @@ bool HaarWaveletFn::Refine() {
 }
 
 bool HaarWaveletFn::is_full() const {
-  if (level_ <= 0)
+  if (level_ <= 1)
     return children_.size() == 1;
   else
     return children_.size() == 2;

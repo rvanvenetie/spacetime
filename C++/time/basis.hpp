@@ -43,6 +43,12 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
     return b - a;
   }
 
+  friend std::ostream &operator<<(std::ostream &os, const Element1D &elem) {
+    os << "I(" << elem.Interval().first << ", " << elem.Interval().second
+       << ")";
+    return os;
+  }
+
  protected:
   // Protected constructor for creating a metaroot.
   Element1D() : BinaryNode(), index_(0) {

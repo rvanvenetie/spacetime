@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <tuple>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -92,21 +93,23 @@ template <typename I, template <typename> typename MT_Base>
 class DoubleTreeViewBase : public MT_Base<I> {
  private:
   using Super = MT_Base<I>;
-  using T0 = typename std::tuple_element_t<0, typename I::TupleNodes>;
-  using T1 = typename std::tuple_element_t<1, typename I::TupleNodes>;
 
  public:
+  using T0p = typename std::tuple_element_t<0, typename I::TupleNodes>;
+  using T1p = typename std::tuple_element_t<1, typename I::TupleNodes>;
+  using T0 = typename std::remove_pointer<T0p>::type;
+  using T1 = typename std::remove_pointer<T1p>::type;
   using MT_Base<I>::MT_Base;
 
   template <size_t i>
   std::shared_ptr<FrozenDoubleNode<I, i>> Project() const {
     return std::make_shared<FrozenDoubleNode<I, i>>(Super::root);
   }
-  std::shared_ptr<FrozenDoubleNode<I, 0>> Fiber(T1 mu) {
+  std::shared_ptr<FrozenDoubleNode<I, 0>> Fiber_0(T1p mu) {
     if (!std::get<0>(fibers_).count(mu)) compute_fibers();
     return std::get<0>(fibers_).at(mu);
   }
-  std::shared_ptr<FrozenDoubleNode<I, 1>> Fiber(T0 mu) {
+  std::shared_ptr<FrozenDoubleNode<I, 1>> Fiber_1(T0p mu) {
     if (!std::get<1>(fibers_).count(mu)) compute_fibers();
     return std::get<1>(fibers_).at(mu);
   }
@@ -114,14 +117,10 @@ class DoubleTreeViewBase : public MT_Base<I> {
   // Helper functions..
   auto Project_0() const { return Project<0>(); }
   auto Project_1() const { return Project<1>(); }
-  template <size_t i>
-  auto Fiber(std::shared_ptr<FrozenDoubleNode<I, i>> mu) {
-    return Fiber(mu->node());
-  }
 
  protected:
-  std::tuple<std::unordered_map<T1, std::shared_ptr<FrozenDoubleNode<I, 0>>>,
-             std::unordered_map<T0, std::shared_ptr<FrozenDoubleNode<I, 1>>>>
+  std::tuple<std::unordered_map<T1p, std::shared_ptr<FrozenDoubleNode<I, 0>>>,
+             std::unordered_map<T0p, std::shared_ptr<FrozenDoubleNode<I, 1>>>>
       fibers_;
 
   void compute_fibers() {
