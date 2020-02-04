@@ -119,4 +119,37 @@ TEST(GenerateSigma, FullTensorSigma) {
       ASSERT_EQ(sigma_nodes[i]->nodes(), test_nodes[i]->nodes());
   }
 }
+
+TEST(GenerateTheta, FullTensorTheta) {
+  for (int level = 0; level < 6; level++) {
+    ortho_tree.UniformRefine(level);
+    three_point_tree.UniformRefine(level);
+    auto T = space::InitialTriangulation::UnitSquare();
+    T.hierarch_basis_tree.UniformRefine(level);
+
+    auto Lambda_in =
+        DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>(
+            ortho_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+    Lambda_in.UniformRefine(level);
+    auto Lambda_out =
+        DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
+            three_point_tree.meta_root.get(),
+            T.hierarch_basis_tree.meta_root.get());
+    Lambda_out.UniformRefine(level);
+
+    auto Theta = GenerateTheta(Lambda_in, Lambda_out);
+    auto theta_nodes = Theta.Bfs();
+
+    auto test_dbltree =
+        DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
+            three_point_tree.meta_root.get(),
+            T.hierarch_basis_tree.meta_root.get());
+    test_dbltree.UniformRefine(level);
+    auto test_nodes = test_dbltree.Bfs();
+
+    ASSERT_EQ(theta_nodes.size(), test_nodes.size());
+    for (int i = 0; i < theta_nodes.size(); ++i)
+      ASSERT_EQ(theta_nodes[i]->nodes(), test_nodes[i]->nodes());
+  }
+}
 };  // namespace spacetime
