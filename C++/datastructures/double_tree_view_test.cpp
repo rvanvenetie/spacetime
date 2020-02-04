@@ -60,7 +60,7 @@ TEST(DoubleTreeView, Union) {
 
   // Copy all subtrees in axis 1 into `to_tree`.
   for (auto item : to_tree.Project_0()->Bfs(true)) {
-    item->FrozenOtherAxis()->Union(from_tree.Fiber(item));
+    item->FrozenOtherAxis()->Union(from_tree.Fiber_1(item->node()));
   }
   ASSERT_EQ(to_tree.Bfs().size(), from_tree.Bfs().size());
 
@@ -146,11 +146,11 @@ TEST(DoubleTreeVector, frozen_vector) {
 
   // Check that this also holds for the fibers.
   for (auto labda : db_tree.Project_0()->Bfs()) {
-    auto fiber = db_tree.Fiber(labda);
+    auto fiber = db_tree.Fiber_1(labda->node());
     for (auto f_node : fiber->Bfs()) ASSERT_EQ(f_node->value(), 1.0);
   }
   for (auto labda : db_tree.Project_1()->Bfs()) {
-    auto fiber = db_tree.Fiber(labda);
+    auto fiber = db_tree.Fiber_0(labda->node());
     for (auto f_node : fiber->Bfs()) ASSERT_EQ(f_node->value(), 1.0);
   }
 
