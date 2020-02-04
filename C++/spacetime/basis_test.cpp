@@ -1,5 +1,6 @@
 #include "basis.hpp"
 #include "../space/initial_triangulation.hpp"
+#include "../time/haar_basis.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
