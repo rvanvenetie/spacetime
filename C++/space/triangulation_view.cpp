@@ -44,26 +44,4 @@ TriangulationView::TriangulationView(std::vector<Vertex *> vertices)
   }
 }
 
-// Create some convenient constructors.
-std::vector<Vertex *> transform(const TreeView<Vertex> &tree) {
-  std::vector<Vertex *> result;
-  auto nodes = tree.Bfs();
-  result.reserve(nodes.size());
-  for (const auto nv : nodes) result.emplace_back(nv->node());
-  return result;
-}
-std::vector<Vertex *> transform(const TreeVector<HierarchicalBasisFn> &tree) {
-  std::vector<Vertex *> result;
-  auto nodes = tree.Bfs();
-  result.reserve(nodes.size());
-  for (const auto nv : nodes) result.emplace_back(nv->node()->vertex());
-  return result;
-}
-
-TriangulationView::TriangulationView(const TreeView<Vertex> &vertex_view)
-    : TriangulationView(transform(vertex_view)) {}
-TriangulationView::TriangulationView(
-    const TreeVector<HierarchicalBasisFn> &basis_vector)
-    : TriangulationView(transform(basis_vector)) {}
-
 }  // namespace space

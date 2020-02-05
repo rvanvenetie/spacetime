@@ -43,17 +43,8 @@ class MultiTreeVector : public MultiTreeView<I> {
   using MultiTreeView<I>::MultiTreeView;
 
   // Note: this is not compatible with the Python ToArray!
-  Eigen::VectorXd ToVector() const {
-    auto nodes = Super::Bfs();
-    Eigen::VectorXd result(nodes.size());
-    for (size_t i = 0; i < nodes.size(); ++i) result[i] = nodes[i]->value();
-    return result;
-  }
-  void FromVector(const Eigen::VectorXd &vec) {
-    auto nodes = Super::Bfs();
-    assert(nodes.size() == vec.size());
-    for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
-  }
+  Eigen::VectorXd ToVector() const { return Super::root->ToVector(); }
+  void FromVector(const Eigen::VectorXd &vec) { Super::root->FromVector(vec); }
 
   // Create a deepcopy that copies the vector data as well.
   template <typename MT_other = MultiTreeVector<I>>

@@ -71,7 +71,7 @@ TEST(BilinearForm, SymmetricQuadrature) {
   auto vec_in = TreeVector<HierarchicalBasisFn>(T.hierarch_basis_meta_root);
   vec_in.DeepRefine();
   auto vec_out = vec_in.DeepCopy();
-  auto mass_bil_form = BilinearForm<MassOperator>(vec_in, &vec_out);
+  auto mass_bil_form = CreateBilinearForm<MassOperator>(vec_in, vec_out);
   auto mass_mat = mass_bil_form.ToMatrix();
   auto mass_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ false);
   ASSERT_TRUE(mass_mat.isApprox(mass_quad));
@@ -83,7 +83,7 @@ TEST(BilinearForm, SymmetricQuadrature) {
   mass_bil_form.Apply();
   ASSERT_TRUE(vec_out.ToVector().isApprox(mass_quad * v));
 
-  auto stiff_bil_form = BilinearForm<StiffnessOperator>(vec_in, &vec_out);
+  auto stiff_bil_form = CreateBilinearForm<StiffnessOperator>(vec_in, vec_out);
   auto stiff_mat = stiff_bil_form.ToMatrix();
   auto stiff_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ true);
   ASSERT_TRUE(stiff_mat.isApprox(stiff_quad));
@@ -109,7 +109,7 @@ TEST(BilinearForm, UnsymmetricQuadrature) {
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
         });
-    auto mass_bil_form = BilinearForm<MassOperator>(vec_in, &vec_out);
+    auto mass_bil_form = CreateBilinearForm<MassOperator>(vec_in, vec_out);
     auto mass_mat = mass_bil_form.ToMatrix();
     auto mass_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ false);
     ASSERT_TRUE(mass_mat.isApprox(mass_quad));
@@ -121,7 +121,8 @@ TEST(BilinearForm, UnsymmetricQuadrature) {
     mass_bil_form.Apply();
     ASSERT_TRUE(vec_out.ToVector().isApprox(mass_quad * v));
 
-    auto stiff_bil_form = BilinearForm<StiffnessOperator>(vec_in, &vec_out);
+    auto stiff_bil_form =
+        CreateBilinearForm<StiffnessOperator>(vec_in, vec_out);
     auto stiff_mat = stiff_bil_form.ToMatrix();
     auto stiff_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ true);
     ASSERT_TRUE(stiff_mat.isApprox(stiff_quad));
