@@ -11,9 +11,10 @@
 namespace space {
 
 class Element2DView
-    : public datastructures::NodeViewBase<Element2DView, Element2D> {
+    : public datastructures::MultiNodeViewBase<Element2DView, Element2D> {
  public:
-  using datastructures::NodeViewBase<Element2DView, Element2D>::NodeViewBase;
+  using datastructures::MultiNodeViewBase<Element2DView,
+                                          Element2D>::MultiNodeViewBase;
 
   size_t NewestVertex() const { return vertices_view_idx_[0]; }
   std::array<size_t, 2> RefinementEdge() const {

@@ -45,19 +45,6 @@ class MultiNodeVector : public MultiNodeViewBase<MultiNodeVector<T...>, T...>,
   using MultiNodeViewBase<MultiNodeVector<T...>, T...>::MultiNodeViewBase;
 };
 
-template <typename T>
-class NodeVector : public NodeViewBase<NodeVector<T>, T>,
-                   public VectorElement,
-                   public MultiNodeVectorInterface<NodeVector<T>> {
- public:
-  using NodeViewBase<NodeVector<T>, T>::NodeViewBase;
-
-  friend std::ostream &operator<<(std::ostream &os, const NodeVector<T> &nv) {
-    os << "(" << *nv.node() << ", " << nv.value() << ")";
-    return os;
-  }
-};
-
 template <typename I>
 class MultiTreeVector : public MultiTreeView<I> {
  private:
@@ -109,7 +96,10 @@ class MultiTreeVector : public MultiTreeView<I> {
 };
 
 template <typename T0>
-using TreeVector = MultiTreeVector<NodeVector<T0>>;
+using NodeVector = MultiNodeVector<T0>;
+
+template <typename T0>
+using TreeVector = MultiTreeVector<MultiNodeVector<T0>>;
 
 template <typename T0, typename T1, typename T2>
 using TripleTreeVector = MultiTreeVector<MultiNodeVector<T0, T1, T2>>;
