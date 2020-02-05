@@ -135,24 +135,6 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
     return os;
   }
 
-  // In case this node view represents a vector.
-  // Note: this is not compatible with the Python ToArray!
-  Eigen::VectorXd ToVector() const {
-    auto nodes =
-        const_cast<MultiNodeViewInterface<I, TupleNodes>*>(this)->Bfs();
-    Eigen::VectorXd result(nodes.size());
-    for (size_t i = 0; i < nodes.size(); ++i) result[i] = nodes[i]->value();
-    return result;
-  }
-  void FromVector(const Eigen::VectorXd& vec) {
-    auto nodes = Bfs();
-    assert(nodes.size() == vec.size());
-    for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
-  }
-  void Reset() {
-    for (const auto& node : Bfs(true)) node->set_value(0);
-  }
-
  private:
   template <size_t i, size_t j>
   std::shared_ptr<I> FindBrother(const TupleNodes& nodes, bool make_conforming);

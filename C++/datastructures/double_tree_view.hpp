@@ -19,7 +19,8 @@ using T_frozen =
 template <typename I_dbl_node, size_t i>
 class FrozenDoubleNode
     : public MultiNodeViewInterface<FrozenDoubleNode<I_dbl_node, i>,
-                                    details::T_frozen<I_dbl_node, i>> {
+                                    details::T_frozen<I_dbl_node, i>>,
+      public MultiNodeVectorInterface<FrozenDoubleNode<I_dbl_node, i>> {
  private:
   using Super = MultiNodeViewInterface<FrozenDoubleNode<I_dbl_node, i>,
                                        details::T_frozen<I_dbl_node, i>>;
