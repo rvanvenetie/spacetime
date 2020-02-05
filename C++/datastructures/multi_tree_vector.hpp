@@ -16,15 +16,39 @@ class VectorElement {
   double value_ = 0.0;
 };
 
+template <typename I>
+class MultiNodeVectorInterface {
+ public:
+  // Note: this is not compatible with the Python ToArray!
+  Eigen::VectorXd ToVector() const {
+    auto nodes = const_cast<I *>(static_cast<const I *>(this))->Bfs();
+    Eigen::VectorXd result(nodes.size());
+    for (size_t i = 0; i < nodes.size(); ++i) result[i] = nodes[i]->value();
+    return result;
+  }
+  void FromVector(const Eigen::VectorXd &vec) {
+    auto nodes = static_cast<I *>(this)->Bfs();
+    assert(nodes.size() == vec.size());
+    for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
+  }
+  void Reset() {
+    for (const auto &node : static_cast<I *>(this)->Bfs(true))
+      node->set_value(0);
+  }
+};
+
 template <typename... T>
 class MultiNodeVector : public MultiNodeViewBase<MultiNodeVector<T...>, T...>,
-                        public VectorElement {
+                        public VectorElement,
+                        public MultiNodeVectorInterface<MultiNodeVector<T...>> {
  public:
   using MultiNodeViewBase<MultiNodeVector<T...>, T...>::MultiNodeViewBase;
 };
 
 template <typename T>
-class NodeVector : public NodeViewBase<NodeVector<T>, T>, public VectorElement {
+class NodeVector : public NodeViewBase<NodeVector<T>, T>,
+                   public VectorElement,
+                   public MultiNodeVectorInterface<NodeVector<T>> {
  public:
   using NodeViewBase<NodeVector<T>, T>::NodeViewBase;
 
@@ -43,17 +67,8 @@ class MultiTreeVector : public MultiTreeView<I> {
   using MultiTreeView<I>::MultiTreeView;
 
   // Note: this is not compatible with the Python ToArray!
-  Eigen::VectorXd ToVector() const {
-    auto nodes = Super::Bfs();
-    Eigen::VectorXd result(nodes.size());
-    for (size_t i = 0; i < nodes.size(); ++i) result[i] = nodes[i]->value();
-    return result;
-  }
-  void FromVector(const Eigen::VectorXd &vec) {
-    auto nodes = Super::Bfs();
-    assert(nodes.size() == vec.size());
-    for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
-  }
+  Eigen::VectorXd ToVector() const { return Super::root->ToVector(); }
+  void FromVector(const Eigen::VectorXd &vec) { Super::root->FromVector(vec); }
 
   // Create a deepcopy that copies the vector data as well.
   template <typename MT_other = MultiTreeVector<I>>
@@ -65,9 +80,7 @@ class MultiTreeVector : public MultiTreeView<I> {
   }
 
   // Set all values to zero.
-  void Reset() {
-    for (const auto &node : Super::Bfs(true)) node->set_value(0);
-  }
+  void Reset() { Super::root->Reset(); }
 
   // Define some simple linear algebra functions.
   MultiTreeVector<I> &operator*=(double val) {
