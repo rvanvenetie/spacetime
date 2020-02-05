@@ -149,6 +149,9 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
     assert(nodes.size() == vec.size());
     for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
   }
+  void Reset() {
+    for (const auto& node : Bfs(true)) node->set_value(0);
+  }
 
  private:
   template <size_t i, size_t j>

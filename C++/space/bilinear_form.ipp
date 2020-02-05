@@ -25,10 +25,10 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(
   } else {
     // This operator is not symmetric, calculate a union.
     vec_union_ =
-        std::make_unique<datastructures::TreeVector<HierarchicalBasisFn>>(
+        std::make_shared<datastructures::NodeVector<HierarchicalBasisFn>>(
             vec_in_->node());
-    vec_union_->root->Union(vec_in_);
-    vec_union_->root->Union(vec_out_);
+    vec_union_->Union(vec_in_);
+    vec_union_->Union(vec_out_);
     triang_ = std::make_unique<TriangulationView>(*vec_union_);
   }
   operator_ = std::make_unique<Operator>(*triang_, dirichlet_boundary);
@@ -45,10 +45,10 @@ void BilinearForm<Operator, I_in, I_out>::Apply() {
     new_node->set_value(old_node->value());
   };
   vec_union_->Reset();
-  vec_union_->root->Union(vec_in_, datastructures::func_false, lambda_copy);
+  vec_union_->Union(vec_in_, datastructures::func_false, lambda_copy);
   // Apply the operator in SS.
   vec_union_->FromVector(operator_->Apply(vec_union_->ToVector()));
-  vec_out_->Union(vec_union_->root, datastructures::func_false, lambda_copy);
+  vec_out_->Union(vec_union_, datastructures::func_false, lambda_copy);
 }
 
 template <typename Operator, typename I_in, typename I_out>
