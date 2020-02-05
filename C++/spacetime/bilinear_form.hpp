@@ -2,27 +2,41 @@
 #include <utility>
 
 #include "../datastructures/double_tree_view.hpp"
+#include "../space/basis.hpp"
 
 namespace spacetime {
 
 template <template <typename, typename> class OperatorTime,
-          typename OperatorSpace, typename DblTreeIn, typename DblTreeOut>
+          typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 class BilinearForm {
+ protected:
+  template <typename T0, typename T1>
+  using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
+  using BasisSpace = space::HierarchicalBasisFn;
+
  public:
-  BilinearForm(const DblTreeIn &vec_in, DblTreeOut *vec_out);
+  BilinearForm(const DoubleTreeVector<BasisTimeIn, BasisSpace> &vec_in,
+               DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out);
   void Apply() const;
 
  protected:
-  const DblTreeIn &vec_in_;
-  DblTreeOut *vec_out_;
+  const DoubleTreeVector<BasisTimeIn, BasisSpace> &vec_in_;
+  DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out_;
 
-  datastructures::DoubleTreeVector<typename DblTreeIn::T0,
-                                   typename DblTreeOut::T1>
-      sigma_;
-  datastructures::DoubleTreeVector<typename DblTreeOut::T0,
-                                   typename DblTreeIn::T1>
-      theta_;
+  DoubleTreeVector<BasisTimeIn, BasisSpace> sigma_;
+  DoubleTreeVector<BasisTimeOut, BasisSpace> theta_;
 };
+
+// Helper function.
+template <template <typename, typename> class OpTime, typename OpSpace,
+          typename BTimeIn, typename BTimeOut>
+BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut> CreateBilinearForm(
+    const datastructures::DoubleTreeVector<BTimeIn, space::HierarchicalBasisFn>
+        &vec_in,
+    datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>
+        *vec_out) {
+  return BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>(vec_in, vec_out);
+}
 
 }  // namespace spacetime
 

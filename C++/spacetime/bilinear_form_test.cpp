@@ -23,21 +23,20 @@ TEST(BilinearForm, XDeltaYDeltaFullTensorSparse) {
   three_point_tree.UniformRefine(6);
 
   for (int level = 0; level < 6; level++) {
-    auto X_delta = DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
         three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     X_delta.UniformRefine(level);
+    auto Y_delta = GenerateYDelta(X_delta);
 
-    //    auto Y_delta = GenerateYDelta(X_delta);
-    //    auto Y_delta_fulltensor =
-    //        DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>(
-    //            ortho_tree.meta_root.get(),
-    //            T.hierarch_basis_tree.meta_root.get());
-    //    Y_delta_fulltensor.UniformRefine(level);
+    auto vec_in = X_delta.template DeepCopy<
+        DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
+    auto vec_out = Y_delta.template DeepCopy<
+        DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
 
-    auto bil_form =
-        BilinearForm<Time::MassOperator, space::MassOperator, decltype(X_delta),
-                     decltype(&X_delta)>(X_delta, &X_delta);
+    auto bil_form = CreateBilinearForm<Time::MassOperator, space::MassOperator>(
+        vec_in, &vec_out);
+    bil_form.Apply();
   }
 }
 
