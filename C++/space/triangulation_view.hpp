@@ -58,6 +58,7 @@ class TriangulationView {
   Vertex *ToVertex(HierarchicalBasisFn *phi) { return phi->vertex(); }
   template <typename I>
   std::vector<Vertex *> Transform(const std::shared_ptr<I> &root) {
+    assert(root->is_root());
     std::vector<Vertex *> result;
     auto nodes = root->Bfs();
     result.reserve(nodes.size());

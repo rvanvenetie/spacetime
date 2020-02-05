@@ -7,6 +7,8 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(
     std::shared_ptr<I_in> root_vec_in, std::shared_ptr<I_out> root_vec_out,
     bool dirichlet_boundary)
     : vec_in_(root_vec_in), vec_out_(root_vec_out) {
+  assert(root_vec_in->is_root());
+  assert(root_vec_out->is_root());
   auto vec_in_nodes = vec_in_->Bfs();
   auto vec_out_nodes = vec_out_->Bfs();
 
