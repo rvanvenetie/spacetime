@@ -29,7 +29,7 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(
             vec_in_->node());
     vec_union_->Union(vec_in_);
     vec_union_->Union(vec_out_);
-    triang_ = std::make_unique<TriangulationView>(*vec_union_);
+    triang_ = std::make_unique<TriangulationView>(vec_union_);
   }
   operator_ = std::make_unique<Operator>(*triang_, dirichlet_boundary);
 }
