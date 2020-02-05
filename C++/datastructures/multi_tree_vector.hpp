@@ -19,7 +19,6 @@ class VectorElement {
 template <typename I>
 class MultiNodeVectorInterface {
  public:
-  // In case this node view represents a vector.
   // Note: this is not compatible with the Python ToArray!
   Eigen::VectorXd ToVector() const {
     auto nodes = const_cast<I *>(static_cast<const I *>(this))->Bfs();
