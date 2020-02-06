@@ -215,6 +215,11 @@ TEST(BilinearForm, SparseQuadrature) {
         vec_X_in, vec_Y_out, /* deriv_space */ false,
         /* deriv_time_in */ true,
         /* deriv_time_out*/ false);
+    TestSpacetimeQuadrature<Time::TransportOperator, space::StiffnessOperator,
+                            ThreePointWaveletFn, OrthonormalWaveletFn>(
+        vec_X_in, vec_Y_out, /* deriv_space */ false,
+        /* deriv_time_in */ true,
+        /* deriv_time_out*/ false);
 
     // Test some stuff we *could* use.
     TestSpacetimeQuadrature<Time::MassOperator, space::MassOperator,
