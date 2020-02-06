@@ -13,5 +13,5 @@ target_link_libraries(linear_operator_test time)
 package_add_test(sparse_vector_test sparse_vector_test.cpp)
 target_link_libraries(sparse_vector_test time)
 
-package_add_test(bilinear_form_test bilinear_form_test.cpp)
-target_link_libraries(bilinear_form_test time)
+package_add_test(time_bilinear_form_test bilinear_form_test.cpp)
+target_link_libraries(time_bilinear_form_test time)

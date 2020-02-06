@@ -31,7 +31,8 @@ template <typename Operator, typename I_in, typename I_out>
 BilinearForm<Operator, I_in, I_out> CreateBilinearForm(
     std::shared_ptr<I_in> root_vec_in, std::shared_ptr<I_out> root_vec_out,
     bool dirichlet_boundary = true) {
-  return BilinearForm<Operator, I_in, I_out>(root_vec_in, root_vec_out);
+  return BilinearForm<Operator, I_in, I_out>(root_vec_in, root_vec_out,
+                                             dirichlet_boundary);
 }
 
 // Helper function.
@@ -42,7 +43,7 @@ auto CreateBilinearForm(
     bool dirichlet_boundary = true) {
   return BilinearForm<Operator,
                       datastructures::NodeVector<HierarchicalBasisFn>>(
-      vec_in.root, vec_out.root);
+      vec_in.root, vec_out.root, dirichlet_boundary);
 }
 
 }  // namespace space

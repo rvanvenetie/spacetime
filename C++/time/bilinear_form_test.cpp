@@ -22,24 +22,20 @@ int bsd_rnd() {
 
 namespace Time {
 using datastructures::TreeVector;
-using datastructures::TreeView;
 using ::testing::ElementsAre;
 using tools::IntegrationRule;
 
-template <typename BilinearForm, typename WaveletBasisIn>
-void TestLinearity(BilinearForm& bil_form,
-                   const TreeView<WaveletBasisIn>& view_in) {
+template <template <typename, typename> class Operator, typename WaveletBasisIn,
+          typename WaveletBasisOut>
+void TestLinearity(const TreeVector<WaveletBasisIn>& vec_in,
+                   const TreeVector<WaveletBasisOut>& vec_out) {
   // Create two random vectors.
-  auto vec_in_1 =
-      view_in.template DeepCopy<datastructures::TreeVector<WaveletBasisIn>>(
-          [](auto nv, auto _) {
-            nv->set_value(((double)std::rand()) / RAND_MAX);
-          });
-  auto vec_in_2 =
-      view_in.template DeepCopy<datastructures::TreeVector<WaveletBasisIn>>(
-          [](auto nv, auto _) {
-            nv->set_value(((double)std::rand()) / RAND_MAX);
-          });
+  auto vec_in_1 = vec_in.DeepCopy();
+  auto vec_in_2 = vec_in.DeepCopy();
+  for (auto nv : vec_in_1.Bfs())
+    nv->set_value(((double)std::rand()) / RAND_MAX);
+  for (auto nv : vec_in_2.Bfs())
+    nv->set_value(((double)std::rand()) / RAND_MAX);
 
   // Also calculate a lin. comb. of this vector
   double alpha = 1.337;
@@ -48,15 +44,15 @@ void TestLinearity(BilinearForm& bil_form,
   vec_in_comb += vec_in_2;
 
   // Apply this weighted comb. by hand
-  bil_form.Apply(vec_in_1);
-  auto vec_out_test = bil_form.vec_out()->DeepCopy();
+  CreateBilinearForm<Operator>(vec_in_1, vec_out).Apply();
+  auto vec_out_test = vec_out.DeepCopy();
   vec_out_test *= alpha;
-  bil_form.Apply(vec_in_2);
-  vec_out_test += *bil_form.vec_out();
+  CreateBilinearForm<Operator>(vec_in_2, vec_out).Apply();
+  vec_out_test += vec_out;
 
   // Do it using the lin comb.
-  bil_form.Apply(vec_in_comb);
-  auto vec_out_comb = bil_form.vec_out()->DeepCopy();
+  CreateBilinearForm<Operator>(vec_in_comb, vec_out).Apply();
+  auto vec_out_comb = vec_out.DeepCopy();
 
   // Now check the results!
   auto nodes_comb = vec_out_comb.Bfs();
@@ -67,24 +63,22 @@ void TestLinearity(BilinearForm& bil_form,
     ASSERT_NEAR(nodes_comb[i]->value(), nodes_test[i]->value(), 1e-10);
 }
 
-template <typename BilinearForm, typename WaveletBasisIn>
-void TestUppLow(BilinearForm& bil_form,
-                const TreeView<WaveletBasisIn>& view_in) {
+template <template <typename, typename> class Operator, typename WaveletBasisIn,
+          typename WaveletBasisOut>
+void TestUppLow(const TreeVector<WaveletBasisIn>& vec_in,
+                const TreeVector<WaveletBasisOut>& vec_out) {
   // Checks that BilForm::Apply() == BilForm::ApplyUpp() + BilForm::ApplyLow().
   for (int i = 0; i < 20; i++) {
-    auto vec_in =
-        view_in.template DeepCopy<datastructures::TreeVector<WaveletBasisIn>>(
-            [](auto nv, auto _) {
-              nv->set_value(((double)std::rand()) / RAND_MAX);
-            });
+    for (auto nv : vec_in.Bfs())
+      nv->set_value(((double)std::rand()) / RAND_MAX);
 
-    bil_form.Apply(vec_in);
-    auto vec_out_full = bil_form.vec_out()->DeepCopy();
+    CreateBilinearForm<Operator>(vec_in, vec_out).Apply();
+    auto vec_out_full = vec_out.DeepCopy();
 
-    bil_form.ApplyUpp(vec_in);
-    auto vec_out_upplow = bil_form.vec_out()->DeepCopy();
-    bil_form.ApplyLow(vec_in);
-    vec_out_upplow += *bil_form.vec_out();
+    CreateBilinearForm<Operator>(vec_in, vec_out).ApplyUpp();
+    auto vec_out_upplow = vec_out.DeepCopy();
+    CreateBilinearForm<Operator>(vec_in, vec_out).ApplyLow();
+    vec_out_upplow += vec_out;
 
     // Now check the results!
     auto nodes_full = vec_out_full.Bfs();
@@ -98,16 +92,14 @@ void TestUppLow(BilinearForm& bil_form,
 
 template <template <typename, typename> class Operator, typename WaveletBasisIn,
           typename WaveletBasisOut>
-void CheckMatrixQuadrature(const TreeView<WaveletBasisIn>& view_in,
+void CheckMatrixQuadrature(const TreeVector<WaveletBasisIn>& vec_in,
                            bool deriv_in, TreeVector<WaveletBasisOut>& vec_out,
                            bool deriv_out) {
-  auto bil_form =
-      BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>(&vec_out);
-  TestLinearity(bil_form, view_in);
-  TestUppLow(bil_form, view_in);
+  TestLinearity<Operator>(vec_in, vec_out);
+  TestUppLow<Operator>(vec_in, vec_out);
 
-  auto mat = bil_form.ToMatrix(view_in);
-  auto nodes_in = view_in.Bfs();
+  auto mat = CreateBilinearForm<Operator>(vec_in, vec_out).ToMatrix();
+  auto nodes_in = vec_in.Bfs();
   auto nodes_out = vec_out.Bfs();
   for (int j = 0; j < nodes_in.size(); ++j)
     for (int i = 0; i < nodes_out.size(); ++i) {
@@ -136,11 +128,11 @@ TEST(BilinearForm, FullTest) {
 
   for (size_t j = 0; j < 20; ++j) {
     // Set up three-point tree.
-    auto three_view_in =
-        TreeView<ThreePointWaveletFn>(three_point_tree.meta_root);
+    auto three_vec_in =
+        TreeVector<ThreePointWaveletFn>(three_point_tree.meta_root);
     auto three_vec_out =
         TreeVector<ThreePointWaveletFn>(three_point_tree.meta_root);
-    three_view_in.DeepRefine(
+    three_vec_in.DeepRefine(
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
         });
@@ -148,13 +140,13 @@ TEST(BilinearForm, FullTest) {
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
         });
-    ASSERT_GT(three_view_in.Bfs().size(), 0);
+    ASSERT_GT(three_vec_in.Bfs().size(), 0);
     ASSERT_GT(three_vec_out.Bfs().size(), 0);
 
     // Set up orthonormal tree.
-    auto ortho_view_in = TreeView<OrthonormalWaveletFn>(ortho_tree.meta_root);
+    auto ortho_vec_in = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
     auto ortho_vec_out = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
-    ortho_view_in.DeepRefine(
+    ortho_vec_in.DeepRefine(
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 == 0;
         });
@@ -162,30 +154,27 @@ TEST(BilinearForm, FullTest) {
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 == 0;
         });
-    ASSERT_GT(ortho_view_in.Bfs().size(), 0);
+    ASSERT_GT(ortho_vec_in.Bfs().size(), 0);
     ASSERT_GT(ortho_vec_out.Bfs().size(), 0);
 
-    auto zero_eval_bil_form =
-        BilinearForm<ZeroEvalOperator, ThreePointWaveletFn,
-                     ThreePointWaveletFn>(&three_vec_out);
-    TestLinearity(zero_eval_bil_form, three_view_in);
-    TestUppLow(zero_eval_bil_form, three_view_in);
+    TestLinearity<ZeroEvalOperator>(three_vec_in, three_vec_out);
+    TestUppLow<ZeroEvalOperator>(three_vec_in, three_vec_out);
 
     // Test linearity and validate the result using quadrature on a matrix.
     CheckMatrixQuadrature<MassOperator, ThreePointWaveletFn,
-                          ThreePointWaveletFn>(three_view_in, false,
+                          ThreePointWaveletFn>(three_vec_in, false,
                                                three_vec_out, false);
     CheckMatrixQuadrature<MassOperator, OrthonormalWaveletFn,
-                          OrthonormalWaveletFn>(ortho_view_in, false,
+                          OrthonormalWaveletFn>(ortho_vec_in, false,
                                                 ortho_vec_out, false);
     CheckMatrixQuadrature<MassOperator, OrthonormalWaveletFn,
-                          ThreePointWaveletFn>(ortho_view_in, false,
+                          ThreePointWaveletFn>(ortho_vec_in, false,
                                                three_vec_out, false);
     CheckMatrixQuadrature<MassOperator, ThreePointWaveletFn,
-                          OrthonormalWaveletFn>(three_view_in, false,
+                          OrthonormalWaveletFn>(three_vec_in, false,
                                                 ortho_vec_out, false);
     CheckMatrixQuadrature<TransportOperator, ThreePointWaveletFn,
-                          OrthonormalWaveletFn>(three_view_in, true,
+                          OrthonormalWaveletFn>(three_vec_in, true,
                                                 ortho_vec_out, false);
   }
 }

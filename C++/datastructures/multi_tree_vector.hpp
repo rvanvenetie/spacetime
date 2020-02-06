@@ -9,7 +9,7 @@ namespace datastructures {
 
 class VectorElement {
  public:
-  inline double value() const { return value_; }
+  inline const double &value() const { return value_; }
   inline void set_value(double val) { value_ = val; }
 
  protected:
@@ -19,21 +19,36 @@ class VectorElement {
 template <typename I>
 class MultiNodeVectorInterface {
  public:
+  inline I *self() { return static_cast<I *>(this); }
+  inline const I *self() const { return static_cast<const I *>(this); }
+
+  void Reset() {
+    for (const auto &node : self()->Bfs(true)) node->set_value(0);
+  }
+
   // Note: this is not compatible with the Python ToArray!
   Eigen::VectorXd ToVector() const {
-    auto nodes = const_cast<I *>(static_cast<const I *>(this))->Bfs();
+    auto nodes = const_cast<I *>(self())->Bfs();
     Eigen::VectorXd result(nodes.size());
     for (size_t i = 0; i < nodes.size(); ++i) result[i] = nodes[i]->value();
     return result;
   }
   void FromVector(const Eigen::VectorXd &vec) {
-    auto nodes = static_cast<I *>(this)->Bfs();
+    auto nodes = self()->Bfs();
     assert(nodes.size() == vec.size());
     for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
   }
-  void Reset() {
-    for (const auto &node : static_cast<I *>(this)->Bfs(true))
-      node->set_value(0);
+
+  // In case dim == 1, we add functionality to read data from the
+  // underlying tree.
+  void ReadFromTree() {
+    for (const auto &nv : self()->Bfs()) {
+      auto node = nv->node();
+      if (node->has_data())
+        nv->set_value(*node->template data<double>());
+      else
+        nv->set_value(0);
+    }
   }
 };
 
