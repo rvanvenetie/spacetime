@@ -61,6 +61,83 @@ double SpaceQuadrature(HierarchicalBasisFn *fn_in, HierarchicalBasisFn *fn_out,
 }
 
 template <template <typename, typename> class OperatorTime,
+          typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
+void TestSpacetimeCache(
+    DoubleTreeVector<BasisTimeIn, HierarchicalBasisFn> &vec_in,
+    DoubleTreeVector<BasisTimeOut, HierarchicalBasisFn> &vec_out) {
+  for (int i = 0; i < 2; ++i) {
+    // Create a bilinear form and do some caching tests.
+    auto bil_form = CreateBilinearForm<OperatorTime, OperatorSpace>(
+        vec_in, &vec_out, /* use_cache */ i == 0);
+
+    // Put some random values into vec_in.
+    for (auto nv : vec_in.Bfs())
+      nv->set_value(((double)std::rand()) / RAND_MAX);
+
+    // Apply the spacetime bilinear form.
+    bil_form.Apply();
+
+    // Check that applying it a couple times still gives the same result.
+    auto eigen_out = vec_out.ToVector();
+    bil_form.Apply();
+    bil_form.Apply();
+    ASSERT_TRUE(eigen_out.isApprox(vec_out.ToVector()));
+
+    // Check that applying it with a different input gives another result.
+    for (auto nv : vec_in.Bfs())
+      nv->set_value(((double)std::rand()) / RAND_MAX);
+    bil_form.Apply();
+    ASSERT_FALSE(eigen_out.isApprox(vec_out.ToVector()));
+
+    // Which stays the same if we apply it multiple times.
+    eigen_out = vec_out.ToVector();
+    bil_form.Apply();
+    bil_form.Apply();
+    ASSERT_TRUE(eigen_out.isApprox(vec_out.ToVector()));
+  }
+}
+
+template <template <typename, typename> class OperatorTime,
+          typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
+void TestSpacetimeLinearity(
+    DoubleTreeVector<BasisTimeIn, HierarchicalBasisFn> &vec_in,
+    DoubleTreeVector<BasisTimeOut, HierarchicalBasisFn> &vec_out) {
+  // Create two random vectors.
+  auto vec_in_1 = vec_in.DeepCopy();
+  auto vec_in_2 = vec_in.DeepCopy();
+  for (auto nv : vec_in_1.Bfs())
+    nv->set_value(((double)std::rand()) / RAND_MAX);
+  for (auto nv : vec_in_1.Bfs())
+    nv->set_value(((double)std::rand()) / RAND_MAX);
+
+  // Also calculate a lin. comb. of this vector
+  double alpha = 1.337;
+  auto vec_in_comb = vec_in_1.DeepCopy();
+  vec_in_comb *= alpha;
+  vec_in_comb += vec_in_2;
+
+  // Apply this weighted comb. by hand
+  CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in_1, &vec_out).Apply();
+  auto vec_out_test = vec_out.DeepCopy();
+  vec_out_test *= alpha;
+  CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in_2, &vec_out).Apply();
+  vec_out_test += vec_out;
+
+  // Do it using the lin comb.
+  CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in_comb, &vec_out)
+      .Apply();
+  auto vec_out_comb = vec_out.DeepCopy();
+
+  // Now check the results!
+  auto nodes_comb = vec_out_comb.Bfs();
+  auto nodes_test = vec_out_test.Bfs();
+  ASSERT_GT(nodes_comb.size(), 0);
+  ASSERT_EQ(nodes_comb.size(), nodes_test.size());
+  for (int i = 0; i < nodes_comb.size(); ++i)
+    ASSERT_NEAR(nodes_comb[i]->value(), nodes_test[i]->value(), 1e-10);
+}
+
+template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn,
           typename BasisTimeOut = BasisTimeIn>
 void TestSpacetimeQuadrature(
@@ -68,6 +145,15 @@ void TestSpacetimeQuadrature(
     DoubleTreeVector<BasisTimeOut, HierarchicalBasisFn> &vec_out,
     bool deriv_space = false, bool deriv_time_in = false,
     bool deriv_time_out = false) {
+  // First do some linearity check!
+  TestSpacetimeLinearity<OperatorTime, OperatorSpace, BasisTimeIn,
+                         BasisTimeOut>(vec_in, vec_out);
+
+  // Then do some cache checks!
+  TestSpacetimeCache<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>(
+      vec_in, vec_out);
+
+  // Create a bilinear form and do some quadrature tests.
   auto bil_form =
       CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in, &vec_out);
 
@@ -95,13 +181,14 @@ void TestSpacetimeQuadrature(
     ASSERT_NEAR(quad_val, db_nodes_out[j]->value(), 1e-10);
   }
 }
-TEST(BilinearForm, XDeltaYDeltaFullTensorSparse) {
+
+TEST(BilinearForm, SparseQuadrature) {
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(6);
   ortho_tree.UniformRefine(6);
   three_point_tree.UniformRefine(6);
 
-  for (int level = 0; level < 6; level++) {
+  for (int level = 1; level < 6; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
         three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
@@ -117,9 +204,28 @@ TEST(BilinearForm, XDeltaYDeltaFullTensorSparse) {
     auto vec_Y_out = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
 
+    // Test the actual operators that we use.
     TestSpacetimeQuadrature<Time::MassOperator, space::StiffnessOperator,
                             ThreePointWaveletFn, ThreePointWaveletFn>(
-        vec_X_in, vec_X_out, /* deriv_space */ true, /* deriv_time_in */ false,
+        vec_X_in, vec_X_out, /* deriv_space */ true,
+        /* deriv_time_in */ false,
+        /* deriv_time_out*/ false);
+    TestSpacetimeQuadrature<Time::TransportOperator, space::MassOperator,
+                            ThreePointWaveletFn, OrthonormalWaveletFn>(
+        vec_X_in, vec_Y_out, /* deriv_space */ false,
+        /* deriv_time_in */ true,
+        /* deriv_time_out*/ false);
+
+    // Test some stuff we *could* use.
+    TestSpacetimeQuadrature<Time::MassOperator, space::MassOperator,
+                            OrthonormalWaveletFn, OrthonormalWaveletFn>(
+        vec_Y_in, vec_Y_out, /* deriv_space */ false,
+        /* deriv_time_in */ false,
+        /* deriv_time_out*/ false);
+    TestSpacetimeQuadrature<Time::MassOperator, space::MassOperator,
+                            OrthonormalWaveletFn, ThreePointWaveletFn>(
+        vec_Y_in, vec_X_out, /* deriv_space */ false,
+        /* deriv_time_in */ false,
         /* deriv_time_out*/ false);
   }
 }
