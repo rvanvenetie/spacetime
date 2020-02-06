@@ -10,9 +10,9 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
                  bool use_cache)
     : vec_in_(vec_in),
       vec_out_(vec_out),
-      vec_out_low_(vec_out->DeepCopy()),
       sigma_(GenerateSigma(vec_in, *vec_out)),
       theta_(GenerateTheta(vec_in, *vec_out)),
+      vec_out_low_(vec_out->DeepCopy()),
       use_cache_(use_cache) {}
 
 template <template <typename, typename> class OperatorTime,

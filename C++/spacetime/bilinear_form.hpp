@@ -26,10 +26,10 @@ class BilinearForm {
  protected:
   const DoubleTreeVector<BasisTimeIn, BasisSpace> &vec_in_;
   DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out_;
-  DoubleTreeVector<BasisTimeOut, BasisSpace> vec_out_low_;
 
   DoubleTreeVector<BasisTimeIn, BasisSpace> sigma_;
   DoubleTreeVector<BasisTimeOut, BasisSpace> theta_;
+  DoubleTreeVector<BasisTimeOut, BasisSpace> vec_out_low_;
   bool use_cache_;
 
   // Define frozen templates, useful for storing the bil forms.
