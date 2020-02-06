@@ -26,7 +26,7 @@ double TimeQuadrature(WaveletBasisIn *f, WaveletBasisOut *g, bool deriv_in,
   if (g->level() > f->level()) support = g->support();
   double ip = 0;
   for (auto elem : support)
-    ip += IntegrationRule<1, 2>::Integrate(
+    ip += IntegrationRule</*dim*/ 1, /*degree*/ 2>::Integrate(
         [f, deriv_in, g, deriv_out](const double &t) {
           return f->Eval(t, deriv_in) * g->Eval(t, deriv_out);
         },
