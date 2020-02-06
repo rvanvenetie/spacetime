@@ -82,7 +82,7 @@ class FrozenDoubleNode
   }
 
   // In case this is a vectoral double node.
-  inline double value() const { return dbl_node_->value(); }
+  inline const double& value() const { return dbl_node_->value(); }
   inline void set_value(double val) { dbl_node_->set_value(val); }
 
  protected:

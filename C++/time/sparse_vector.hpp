@@ -7,6 +7,7 @@
 #include "cassert"
 
 namespace Time {
+
 template <typename Basis>
 class SparseIndices : public std::vector<Basis *> {
  public:
@@ -83,6 +84,12 @@ class SparseVector : public std::vector<std::pair<Basis *, double>> {
   void StoreInTree() const {
     for (auto &[phi, coeff] : *this) {
       phi->set_data(const_cast<double *>(&coeff));
+    }
+  }
+
+  void ReadFromTree() {
+    for (auto &[phi, coeff] : *this) {
+      coeff = phi->template data<double>();
     }
   }
 
