@@ -180,27 +180,6 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, std::tuple<T*...>> {
     return parents_[i];
   }
 
-  // Coarsen this node, only possible if this is a leaf and not a root!
-  void Coarsen() {
-    // Keep a shared_ptr of ourselves, so that we wait with deconstruction.
-    std::shared_ptr<I> self = this->shared_from_this();
-
-    // First we have to remove all of our children.
-    for (int i = 0; i < dim; ++i)
-      while (!children(i).empty()) children(i)[0]->Coarsen();
-
-    // Remove ourselves from all of the parents, this should deconstruct us.
-    for (int i = 0; i < dim; ++i)
-      for (auto parent : parents(i)) {
-        auto& children_parent = parent->children(i);
-        children_parent.erase(
-            std::remove_if(
-                children_parent.begin(), children_parent.end(),
-                [this](auto nv) { return nv->nodes() == this->nodes(); }),
-            children_parent.end());
-      }
-  }
-
   // Use SFINAE to add convenient functions in case dim == 1.
   template <size_t dim = dim, typename = typename std::enable_if_t<dim == 1>>
   inline auto node() const {
