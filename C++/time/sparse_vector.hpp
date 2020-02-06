@@ -87,12 +87,6 @@ class SparseVector : public std::vector<std::pair<Basis *, double>> {
     }
   }
 
-  void ReadFromTree() {
-    for (auto &[phi, coeff] : *this) {
-      coeff = phi->template data<double>();
-    }
-  }
-
   void RemoveFromTree() const {
     for (auto [phi, _] : *this) {
       phi->reset_data();
