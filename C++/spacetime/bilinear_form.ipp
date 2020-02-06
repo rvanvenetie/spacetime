@@ -27,7 +27,7 @@ void BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
 
   // Check whether we have to recalculate the bilinear forms.
   if (!use_cache_ || (bil_space_low_.empty() && bil_time_upp_.empty())) {
-    // Calculate R_sigma(Id x A_1)I_Lambda
+    // Calculate R_sigma(Id x A_1)I_Lambda.
     for (auto psi_in_labda : sigma_.Project_0()->Bfs()) {
       auto fiber_in = vec_in_.Fiber_1(psi_in_labda->node());
       auto fiber_out = psi_in_labda->FrozenOtherAxis();
@@ -38,7 +38,7 @@ void BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       if (use_cache_) bil_space_low_.emplace_back(std::move(bil_form));
     }
 
-    // Calculate R_Lambda(L_0 x Id)I_Sigma
+    // Calculate R_Lambda(L_0 x Id)I_Sigma.
     for (auto psi_out_labda : vec_out_low_.Project_1()->Bfs()) {
       auto fiber_in = sigma_.Fiber_0(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
@@ -49,7 +49,7 @@ void BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       if (use_cache_) bil_time_low_.emplace_back(std::move(bil_form));
     }
 
-    // Calculate R_Theta(U_1 x Id)I_Lambda
+    // Calculate R_Theta(U_1 x Id)I_Lambda.
     for (auto psi_in_labda : theta_.Project_1()->Bfs()) {
       auto fiber_in = vec_in_.Fiber_0(psi_in_labda->node());
       auto fiber_out = psi_in_labda->FrozenOtherAxis();
@@ -60,7 +60,7 @@ void BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       if (use_cache_) bil_time_upp_.emplace_back(std::move(bil_form));
     }
 
-    // Calculate R_Lambda(Id x A2)I_Theta
+    // Calculate R_Lambda(Id x A2)I_Theta.
     for (auto psi_out_labda : vec_out_->Project_0()->Bfs()) {
       auto fiber_in = theta_.Fiber_1(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
