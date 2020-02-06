@@ -19,7 +19,8 @@ using T_frozen =
 template <typename I_dbl_node, size_t i>
 class FrozenDoubleNode
     : public MultiNodeViewInterface<FrozenDoubleNode<I_dbl_node, i>,
-                                    details::T_frozen<I_dbl_node, i>> {
+                                    details::T_frozen<I_dbl_node, i>>,
+      public MultiNodeVectorInterface<FrozenDoubleNode<I_dbl_node, i>> {
  private:
   using Super = MultiNodeViewInterface<FrozenDoubleNode<I_dbl_node, i>,
                                        details::T_frozen<I_dbl_node, i>>;
@@ -81,7 +82,7 @@ class FrozenDoubleNode
   }
 
   // In case this is a vectoral double node.
-  inline double value() const { return dbl_node_->value(); }
+  inline const double& value() const { return dbl_node_->value(); }
   inline void set_value(double val) { dbl_node_->set_value(val); }
 
  protected:

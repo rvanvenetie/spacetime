@@ -6,30 +6,57 @@
 
 namespace Time {
 
-template <template <typename, typename> class Operator, typename WaveletBasisIn,
-          typename WaveletBasisOut>
-Eigen::MatrixXd
-BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ToMatrix(
-    const datastructures::TreeView<WaveletBasisIn> &tree_in) {
-  auto indices_in = tree_in.Bfs();
-  Eigen::MatrixXd A =
-      Eigen::MatrixXd::Zero(vec_out_->Bfs().size(), indices_in.size());
-  for (int i = 0; i < indices_in.size(); ++i) {
-    auto vec_in =
-        tree_in.template DeepCopy<datastructures::TreeVector<WaveletBasisIn>>();
-    vec_in.Bfs()[i]->set_value(1);
-    Apply(vec_in);
-    auto nodes_out = vec_out_->Bfs();
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
+BilinearForm<Operator, I_in, I_out>::BilinearForm(
+    std::shared_ptr<I_in> root_vec_in, std::shared_ptr<I_out> root_vec_out)
+    : vec_in_(root_vec_in), vec_out_(root_vec_out) {
+  assert(vec_in_->is_root());
+  assert(vec_out_->is_root());
+  // Slice the output vector into levelwise sparse indices.
+  for (const auto &node : vec_out_->Bfs()) {
+    assert(node->level() >= 0 && node->level() <= lvl_ind_out_.size());
+    if (node->level() == lvl_ind_out_.size()) lvl_ind_out_.emplace_back();
+    lvl_ind_out_[node->level()].emplace_back(node->node());
+  }
+}
+
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
+void BilinearForm<Operator, I_in, I_out>::InitializeInput() {
+  // Reset existing input nodes.
+  for (auto &sparse_vec : lvl_vec_in_) sparse_vec.clear();
+
+  // Slice the input vector into levelwise sparse vectors.
+  for (const auto &node : vec_in_->Bfs()) {
+    assert(node->level() >= 0 && node->level() <= lvl_vec_in_.size());
+    if (node->level() == lvl_vec_in_.size()) lvl_vec_in_.emplace_back();
+    lvl_vec_in_[node->level()].emplace_back(node->node(), node->value());
+  }
+}
+
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
+Eigen::MatrixXd BilinearForm<Operator, I_in, I_out>::ToMatrix() {
+  auto values_backup = vec_in_->ToVector();
+  auto nodes_in = vec_in_->Bfs();
+  auto nodes_out = vec_out_->Bfs();
+  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(nodes_out.size(), nodes_in.size());
+  for (int i = 0; i < nodes_in.size(); ++i) {
+    vec_in_->Reset();
+    nodes_in[i]->set_value(1);
+    Apply();
     for (int j = 0; j < nodes_out.size(); ++j) {
       A(j, i) = nodes_out[j]->value();
     }
   }
+  vec_in_->FromVector(values_backup);
   return A;
 }
 
-template <template <typename, typename> class Operator, typename WaveletBasisIn,
-          typename WaveletBasisOut>
-auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyRecur(
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
+auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
     size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
     const SparseVector<ScalingBasisIn> &d)
     -> std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>> {
@@ -66,9 +93,9 @@ auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyRecur(
   }
 }
 
-template <template <typename, typename> class Operator, typename WaveletBasisIn,
-          typename WaveletBasisOut>
-auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyUppRecur(
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
+auto BilinearForm<Operator, I_in, I_out>::ApplyUppRecur(
     size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
     const SparseVector<ScalingBasisIn> &d)
     -> std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>> {
@@ -102,9 +129,9 @@ auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyUppRecur(
   }
 }
 
-template <template <typename, typename> class Operator, typename WaveletBasisIn,
-          typename WaveletBasisOut>
-auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyLowRecur(
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
+auto BilinearForm<Operator, I_in, I_out>::ApplyLowRecur(
     size_t l, const SparseVector<ScalingBasisIn> &d)
     -> SparseVector<WaveletBasisOut> {
   SparseVector<WaveletBasisIn> c;
@@ -132,9 +159,9 @@ auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ApplyLowRecur(
   }
 }
 
-template <template <typename, typename> class Operator, typename WaveletBasisIn,
-          typename WaveletBasisOut>
-auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ConstructPiOut(
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
+auto BilinearForm<Operator, I_in, I_out>::ConstructPiOut(
     const SparseIndices<ScalingBasisOut> &Pi_out)
     -> std::pair<SparseIndices<ScalingBasisOut>,
                  SparseIndices<ScalingBasisOut>> {
@@ -163,9 +190,9 @@ auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ConstructPiOut(
   return {Pi_B_out, Pi_A_out};
 }
 
-template <template <typename, typename> class Operator, typename WaveletBasisIn,
-          typename WaveletBasisOut>
-auto BilinearForm<Operator, WaveletBasisIn, WaveletBasisOut>::ConstructPiIn(
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
+auto BilinearForm<Operator, I_in, I_out>::ConstructPiIn(
     const SparseIndices<ScalingBasisIn> &Pi_in,
     const SparseIndices<ScalingBasisOut> &Pi_B_out)
     -> std::pair<SparseIndices<ScalingBasisIn>, SparseIndices<ScalingBasisIn>> {

@@ -9,29 +9,55 @@ namespace datastructures {
 
 class VectorElement {
  public:
-  inline double value() const { return value_; }
+  inline const double &value() const { return value_; }
   inline void set_value(double val) { value_ = val; }
 
  protected:
   double value_ = 0.0;
 };
 
-template <typename... T>
-class MultiNodeVector : public MultiNodeViewBase<MultiNodeVector<T...>, T...>,
-                        public VectorElement {
+template <typename I>
+class MultiNodeVectorInterface {
  public:
-  using MultiNodeViewBase<MultiNodeVector<T...>, T...>::MultiNodeViewBase;
+  inline I *self() { return static_cast<I *>(this); }
+  inline const I *self() const { return static_cast<const I *>(this); }
+
+  void Reset() {
+    for (const auto &node : self()->Bfs(true)) node->set_value(0);
+  }
+
+  // Note: this is not compatible with the Python ToArray!
+  Eigen::VectorXd ToVector() const {
+    auto nodes = const_cast<I *>(self())->Bfs();
+    Eigen::VectorXd result(nodes.size());
+    for (size_t i = 0; i < nodes.size(); ++i) result[i] = nodes[i]->value();
+    return result;
+  }
+  void FromVector(const Eigen::VectorXd &vec) {
+    auto nodes = self()->Bfs();
+    assert(nodes.size() == vec.size());
+    for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
+  }
+
+  // In case dim == 1, we add functionality to read data from the
+  // underlying tree.
+  void ReadFromTree() {
+    for (const auto &nv : self()->Bfs()) {
+      auto node = nv->node();
+      if (node->has_data())
+        nv->set_value(*node->template data<double>());
+      else
+        nv->set_value(0);
+    }
+  }
 };
 
-template <typename T>
-class NodeVector : public NodeViewBase<NodeVector<T>, T>, public VectorElement {
+template <typename... T>
+class MultiNodeVector : public MultiNodeViewBase<MultiNodeVector<T...>, T...>,
+                        public VectorElement,
+                        public MultiNodeVectorInterface<MultiNodeVector<T...>> {
  public:
-  using NodeViewBase<NodeVector<T>, T>::NodeViewBase;
-
-  friend std::ostream &operator<<(std::ostream &os, const NodeVector<T> &nv) {
-    os << "(" << *nv.node() << ", " << nv.value() << ")";
-    return os;
-  }
+  using MultiNodeViewBase<MultiNodeVector<T...>, T...>::MultiNodeViewBase;
 };
 
 template <typename I>
@@ -43,17 +69,8 @@ class MultiTreeVector : public MultiTreeView<I> {
   using MultiTreeView<I>::MultiTreeView;
 
   // Note: this is not compatible with the Python ToArray!
-  Eigen::VectorXd ToVector() const {
-    auto nodes = Super::Bfs();
-    Eigen::VectorXd result(nodes.size());
-    for (size_t i = 0; i < nodes.size(); ++i) result[i] = nodes[i]->value();
-    return result;
-  }
-  void FromVector(const Eigen::VectorXd &vec) {
-    auto nodes = Super::Bfs();
-    assert(nodes.size() == vec.size());
-    for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
-  }
+  Eigen::VectorXd ToVector() const { return Super::root->ToVector(); }
+  void FromVector(const Eigen::VectorXd &vec) { Super::root->FromVector(vec); }
 
   // Create a deepcopy that copies the vector data as well.
   template <typename MT_other = MultiTreeVector<I>>
@@ -65,9 +82,7 @@ class MultiTreeVector : public MultiTreeView<I> {
   }
 
   // Set all values to zero.
-  void Reset() {
-    for (const auto &node : Super::Bfs(true)) node->set_value(0);
-  }
+  void Reset() { Super::root->Reset(); }
 
   // Define some simple linear algebra functions.
   MultiTreeVector<I> &operator*=(double val) {
@@ -96,7 +111,10 @@ class MultiTreeVector : public MultiTreeView<I> {
 };
 
 template <typename T0>
-using TreeVector = MultiTreeVector<NodeVector<T0>>;
+using NodeVector = MultiNodeVector<T0>;
+
+template <typename T0>
+using TreeVector = MultiTreeVector<MultiNodeVector<T0>>;
 
 template <typename T0, typename T1, typename T2>
 using TripleTreeVector = MultiTreeVector<MultiNodeVector<T0, T1, T2>>;

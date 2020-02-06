@@ -175,10 +175,19 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, std::tuple<T*...>> {
     assert(i < dim);
     return children_[i];
   }
-
   const auto& parents(size_t i) const {
     assert(i < dim);
     return parents_[i];
+  }
+
+  // Use SFINAE to add convenient functions in case dim == 1.
+  template <size_t dim = dim, typename = typename std::enable_if_t<dim == 1>>
+  inline auto node() const {
+    return std::get<0>(nodes_);
+  }
+  template <size_t dim = dim, typename = typename std::enable_if_t<dim == 1>>
+  inline const auto& parents() const {
+    return parents_[0];
   }
 
  protected:
@@ -192,35 +201,6 @@ template <typename... T>
 class MultiNodeView : public MultiNodeViewBase<MultiNodeView<T...>, T...> {
  public:
   using MultiNodeViewBase<MultiNodeView<T...>, T...>::MultiNodeViewBase;
-};
-
-// Way to inherit NodeView:
-//
-// struct CrtpFinal;
-// template <typename T, typename I = CrtpFinal>
-// class NodeView
-//    : public MultiNodeView<std::conditional_t<std::is_same_v<I, CrtpFinal>,
-//                                              NodeView<T>, NodeView<T, I>>,
-//                                              T
-
-template <typename I, typename T>
-class NodeViewBase : public MultiNodeViewBase<I, T> {
- private:
-  using Super = MultiNodeViewBase<I, T>;
-
- public:
-  using MultiNodeViewBase<I, T>::MultiNodeViewBase;
-
-  inline auto& children(size_t i = 0) { return Super::children(0); }
-  inline const auto& children(size_t i = 0) const { return Super::children(0); }
-  inline const auto& parents(size_t i = 0) const { return Super::parents(0); }
-  inline T* node() const { return std::get<0>(Super::nodes_); }
-};
-
-template <typename T>
-class NodeView : public NodeViewBase<NodeView<T>, T> {
- public:
-  using NodeViewBase<NodeView<T>, T>::NodeViewBase;
 };
 
 template <typename I>
@@ -282,7 +262,7 @@ class MultiTreeView {
 };
 
 template <typename T0>
-using TreeView = MultiTreeView<NodeView<T0>>;
+using TreeView = MultiTreeView<MultiNodeView<T0>>;
 
 template <typename T0, typename T1, typename T2>
 using TripleTreeView = MultiTreeView<MultiNodeView<T0, T1, T2>>;

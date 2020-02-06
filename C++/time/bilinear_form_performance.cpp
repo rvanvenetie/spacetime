@@ -37,15 +37,14 @@ int main() {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
         });
 
-    BilinearForm<MassOperator, OrthonormalWaveletFn, OrthonormalWaveletFn>
-        bil_form(&vec_out);
+    auto bil_form = CreateBilinearForm<MassOperator>(vec_in, vec_out);
     for (size_t k = 0; k < ::inner_iters; k++) {
       for (auto& nv : vec_in.Bfs()) {
         nv->set_value(bsd_rnd());
       }
-      bil_form.ApplyLow(vec_in);
+      bil_form.ApplyLow();
       vec_out.Reset();
-      bil_form.ApplyUpp(vec_in);
+      bil_form.ApplyUpp();
       vec_out.Reset();
     }
   }

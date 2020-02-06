@@ -7,6 +7,7 @@
 #include "cassert"
 
 namespace Time {
+
 template <typename Basis>
 class SparseIndices : public std::vector<Basis *> {
  public:

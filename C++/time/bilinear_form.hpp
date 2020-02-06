@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Dense>
 #include <memory>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -11,92 +12,65 @@
 
 namespace Time {
 
-template <template <typename, typename> class Operator, typename WaveletBasisIn,
-          typename WaveletBasisOut>
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
 class BilinearForm {
  public:
+  using WaveletBasisIn =
+      std::remove_pointer_t<std::tuple_element_t<0, typename I_in::TupleNodes>>;
+  using WaveletBasisOut = std::remove_pointer_t<
+      std::tuple_element_t<0, typename I_out::TupleNodes>>;
   using ScalingBasisIn = typename FunctionTrait<WaveletBasisIn>::Scaling;
   using ScalingBasisOut = typename FunctionTrait<WaveletBasisOut>::Scaling;
 
   // Create a stateful BilinearForm.
-  explicit BilinearForm(datastructures::TreeVector<WaveletBasisOut> *vec_out) {
-    InitializeOutput(vec_out);
-  }
+  BilinearForm(std::shared_ptr<I_in> root_vec_in,
+               std::shared_ptr<I_out> root_vec_out);
 
-  void Apply(const datastructures::TreeVector<WaveletBasisIn> &vec_in) {
-    InitializeInput(vec_in);
+  void Apply() {
+    InitializeInput();
     auto [_, f] = ApplyRecur(0, {}, {});
 
     // Copy data to the output tree.
     f.StoreInTree();
-    for (auto nv : vec_out_->Bfs()) {
-      nv->set_value(*nv->node()->template data<double>());
-    }
+    vec_out_->ReadFromTree();
     f.RemoveFromTree();
   }
 
-  void ApplyUpp(const datastructures::TreeVector<WaveletBasisIn> &vec_in) {
-    InitializeInput(vec_in);
+  void ApplyUpp() {
+    InitializeInput();
     auto [_, f] = ApplyUppRecur(0, {}, {});
 
     // Copy data to the output tree.
     f.StoreInTree();
-    for (auto nv : vec_out_->Bfs())
-      if (nv->node()->has_data())
-        nv->set_value(*nv->node()->template data<double>());
-      else
-        nv->set_value(0);
+    vec_out_->ReadFromTree();
     f.RemoveFromTree();
   }
 
-  void ApplyLow(const datastructures::TreeVector<WaveletBasisIn> &vec_in) {
-    InitializeInput(vec_in);
+  void ApplyLow() {
+    InitializeInput();
     auto f = ApplyLowRecur(0, {});
 
     // Copy data to the output tree.
     f.StoreInTree();
-    for (auto nv : vec_out_->Bfs()) {
-      nv->set_value(*nv->node()->template data<double>());
-    }
+    vec_out_->ReadFromTree();
     f.RemoveFromTree();
   }
 
   // Debug function, O(n^2).
-  Eigen::MatrixXd ToMatrix(
-      const datastructures::TreeView<WaveletBasisIn> &tree_in);
-
-  // Small helper function.
-  datastructures::TreeVector<WaveletBasisOut> *vec_out() const {
-    return vec_out_;
-  }
+  Eigen::MatrixXd ToMatrix();
 
  protected:
+  // Roots of the treeviews we are considering.
+  std::shared_ptr<I_in> vec_in_;
+  std::shared_ptr<I_out> vec_out_;
+
+  // A flattened, levelwise view of the trees.
   std::vector<SparseVector<WaveletBasisIn>> lvl_vec_in_;
   std::vector<SparseIndices<WaveletBasisOut>> lvl_ind_out_;
-  datastructures::TreeVector<WaveletBasisOut> *vec_out_ = nullptr;
 
-  // Initialize the output data.
-  void InitializeOutput(datastructures::TreeVector<WaveletBasisOut> *vec_out) {
-    vec_out_ = vec_out;
-    // Slice the output vector into levelwise sparse indices.
-    lvl_ind_out_.clear();
-    for (const auto &node : vec_out->Bfs()) {
-      assert(node->level() >= 0 && node->level() <= lvl_ind_out_.size());
-      if (node->level() == lvl_ind_out_.size()) lvl_ind_out_.emplace_back();
-      lvl_ind_out_[node->level()].emplace_back(node->node());
-    }
-  }
-
-  void InitializeInput(
-      const datastructures::TreeVector<WaveletBasisIn> &vec_in) {
-    // Slice the input vector into levelwise sparse vectors.
-    lvl_vec_in_.clear();
-    for (const auto &node : vec_in.Bfs()) {
-      assert(node->level() >= 0 && node->level() <= lvl_vec_in_.size());
-      if (node->level() == lvl_vec_in_.size()) lvl_vec_in_.emplace_back();
-      lvl_vec_in_[node->level()].emplace_back(node->node(), node->value());
-    }
-  }
+  // Helper function to set the levelwise input vector.
+  void InitializeInput();
 
   // Recursive apply.
   std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>>
@@ -120,6 +94,24 @@ class BilinearForm {
   ConstructPiIn(const SparseIndices<ScalingBasisIn> &Pi_in,
                 const SparseIndices<ScalingBasisOut> &Pi_B_out);
 };
+
+// Helper functions .
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
+BilinearForm<Operator, I_in, I_out> CreateBilinearForm(
+    std::shared_ptr<I_in> root_vec_in, std::shared_ptr<I_out> root_vec_out) {
+  return BilinearForm<Operator, I_in, I_out>(root_vec_in, root_vec_out);
+}
+
+// Helper functions .
+template <template <typename, typename> class Operator, typename WaveletBasisIn,
+          typename WaveletBasisOut>
+BilinearForm<Operator, datastructures::NodeVector<WaveletBasisIn>,
+             datastructures::NodeVector<WaveletBasisOut>>
+CreateBilinearForm(const datastructures::TreeVector<WaveletBasisIn> &vec_in,
+                   const datastructures::TreeVector<WaveletBasisOut> &vec_out) {
+  return {vec_in.root, vec_out.root};
+}
 
 }  // namespace Time
 
