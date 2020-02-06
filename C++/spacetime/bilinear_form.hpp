@@ -32,23 +32,19 @@ class BilinearForm {
   DoubleTreeVector<BasisTimeOut, BasisSpace> theta_;
   bool use_cache_;
 
-  // The code below is necessary for caching the bilinear_forms.
+  // Define frozen templates, useful for storing the bil forms.
   template <size_t i>
-  using FrozenIn = datastructures::FrozenDoubleNode<
+  using FI = datastructures::FrozenDoubleNode<
       datastructures::MultiNodeVector<BasisTimeIn, BasisSpace>, i>;
   template <size_t i>
-  using FrozenOut = datastructures::FrozenDoubleNode<
+  using FO = datastructures::FrozenDoubleNode<
       datastructures::MultiNodeVector<BasisTimeOut, BasisSpace>, i>;
 
   // Store bilinear forms in vectors.
-  std::vector<space::BilinearForm<OperatorSpace, FrozenIn<1>, FrozenIn<1>>>
-      bil_space_low_;
-  std::vector<Time::BilinearForm<OperatorTime, FrozenIn<0>, FrozenOut<0>>>
-      bil_time_low_;
-  std::vector<Time::BilinearForm<OperatorTime, FrozenIn<0>, FrozenOut<0>>>
-      bil_time_upp_;
-  std::vector<space::BilinearForm<OperatorSpace, FrozenOut<1>, FrozenOut<1>>>
-      bil_space_upp_;
+  std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> bil_space_low_;
+  std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_low_;
+  std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_upp_;
+  std::vector<space::BilinearForm<OperatorSpace, FO<1>, FO<1>>> bil_space_upp_;
 };
 
 // Helper function.
