@@ -11,6 +11,8 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(
   assert(root_vec_out->is_root());
   auto vec_in_nodes = vec_in_->Bfs();
   auto vec_out_nodes = vec_out_->Bfs();
+  assert(vec_in_nodes.size());
+  assert(vec_out_nodes.size());
 
   // Determine whether the input and output vector coincide.
   symmetric_ = (vec_in_nodes.size() == vec_out_nodes.size());

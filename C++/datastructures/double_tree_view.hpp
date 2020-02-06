@@ -27,6 +27,8 @@ class FrozenDoubleNode
   using Self = FrozenDoubleNode<I_dbl_node, i>;
 
  public:
+  using TupleNodes = details::T_frozen<I_dbl_node, i>;
+
   explicit FrozenDoubleNode(std::shared_ptr<I_dbl_node> dbl_node)
       : dbl_node_(dbl_node) {}
 
