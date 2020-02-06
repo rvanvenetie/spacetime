@@ -151,16 +151,17 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, std::tuple<T*...>> {
                  dim>;
 
  public:
+  // Constructor for a node.
+  explicit MultiNodeViewBase(const TupleNodes& nodes, const TParents& parents)
+      : nodes_(std::move(nodes)), parents_(std::move(parents)) {}
+
   // Constructor for a root.
-  explicit MultiNodeViewBase(const TupleNodes& nodes) : nodes_(nodes) {
+  explicit MultiNodeViewBase(const TupleNodes& nodes)
+      : MultiNodeViewBase(nodes, {}) {
     assert(this->is_root());
   }
   explicit MultiNodeViewBase(T*... nodes)
       : MultiNodeViewBase(TupleNodes(nodes...)) {}
-
-  // Constructor for a node.
-  explicit MultiNodeViewBase(TupleNodes&& nodes, TParents&& parents)
-      : nodes_(std::move(nodes)), parents_(std::move(parents)) {}
 
   MultiNodeViewBase(const MultiNodeViewBase&) = delete;
 

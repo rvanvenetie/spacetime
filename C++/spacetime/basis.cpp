@@ -1,4 +1,5 @@
 #include "basis.hpp"
+
 #include <vector>
 
 using datastructures::DoubleTreeView;
@@ -9,7 +10,8 @@ using Time::three_point_tree;
 using Time::ThreePointWaveletFn;
 using SpaceTreeVector =
     std::vector<std::shared_ptr<datastructures::FrozenDoubleNode<
-        datastructures::MultiNodeView<ThreePointWaveletFn, HierarchicalBasisFn>,
+        datastructures::DoubleNodeView<ThreePointWaveletFn,
+                                       HierarchicalBasisFn>,
         /*i*/ 1>>>;
 
 namespace spacetime {

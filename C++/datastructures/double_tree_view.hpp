@@ -30,7 +30,9 @@ class FrozenDoubleNode
   using TupleNodes = details::T_frozen<I_dbl_node, i>;
 
   explicit FrozenDoubleNode(std::shared_ptr<I_dbl_node> dbl_node)
-      : dbl_node_(dbl_node) {}
+      : dbl_node_(dbl_node) {
+    assert(dbl_node);
+  }
 
   auto nodes() const { return std::tuple{std::get<i>(dbl_node_->nodes())}; }
   auto node() const { return std::get<i>(dbl_node_->nodes()); }
@@ -92,6 +94,44 @@ class FrozenDoubleNode
   std::shared_ptr<I_dbl_node> dbl_node_;
 };
 
+template <typename I, typename... T>
+class DoubleNodeViewBase : public MultiNodeViewBase<I, T...> {
+ private:
+  using Super = MultiNodeViewBase<I, T...>;
+
+ public:
+  using typename Super::TParents;
+  using typename Super::TupleNodes;
+
+  // Constructor for a node.
+  explicit DoubleNodeViewBase(const TupleNodes& nodes, const TParents& parents)
+      : MultiNodeViewBase<I, T...>(nodes, parents),
+        frozen_double_nodes_(
+            new FrozenDoubleNode<I, 0>(this->shared_from_this()),
+            new FrozenDoubleNode<I, 1>(this->shared_from_this())) {}
+
+  // // Constructor for a root.
+  explicit DoubleNodeViewBase(const typename Super::TupleNodes& nodes)
+      : DoubleNodeViewBase(nodes, {}) {
+    assert(this->is_root());
+  }
+  explicit DoubleNodeViewBase(T*... nodes)
+      : DoubleNodeViewBase(typename Super::TupleNodes(nodes...)) {}
+
+  template <size_t i>
+  auto Project() const {
+    static_assert(i < 2, "Invalid project");
+    return std::get<i>(frozen_double_nodes_);
+  }
+  auto Project_0() const { return Project<0>(); }
+  auto Project_1() const { return Project<1>(); }
+
+ protected:
+  std::tuple<std::shared_ptr<FrozenDoubleNode<I, 0>>,
+             std::shared_ptr<FrozenDoubleNode<I, 1>>>
+      frozen_double_nodes_;
+};
+
 // This is is some sincere template hacking
 template <typename I, template <typename> typename MT_Base>
 class DoubleTreeViewBase : public MT_Base<I> {
@@ -146,7 +186,15 @@ class DoubleTreeViewBase : public MT_Base<I> {
 };
 
 template <typename T0, typename T1>
-using DoubleTreeView = DoubleTreeViewBase<MultiNodeView<T0, T1>, MultiTreeView>;
+class DoubleNodeView
+    : public DoubleNodeViewBase<DoubleNodeView<T0, T1>, T0, T1> {
+ public:
+  using DoubleNodeViewBase<DoubleNodeView<T0, T1>, T0, T1>::DoubleNodeViewBase;
+};
+
+template <typename T0, typename T1>
+using DoubleTreeView =
+    DoubleTreeViewBase<DoubleNodeView<T0, T1>, MultiTreeView>;
 
 template <typename T0, typename T1>
 using DoubleTreeVector =
