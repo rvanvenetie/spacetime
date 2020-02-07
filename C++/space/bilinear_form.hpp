@@ -20,7 +20,7 @@ class BilinearForm {
   I_out* vec_out_;
   bool symmetric_;
 
-  std::unique_ptr<datastructures::NodeVector<HierarchicalBasisFn>> vec_union_;
+  std::unique_ptr<datastructures::TreeVector<HierarchicalBasisFn>> vec_union_;
   std::unique_ptr<TriangulationView> triang_;
   std::unique_ptr<Operator> operator_;
 };

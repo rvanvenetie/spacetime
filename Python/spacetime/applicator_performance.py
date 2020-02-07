@@ -53,6 +53,11 @@ def test_python(level, bilform_iters, inner_iters):
                            basis_out=basis_time_Y),
                        applicator_space=s_applicator.Applicator(
                            s_operators.MassOperator(), use_cache=use_cache))
+        # print('----')
+        # print('X_delta size', len(X_delta.bfs()))
+        # print('Y_delta size', len(Y_delta.bfs()))
+        # print('Sigma size', len(B.sigma.bfs()))
+        # print('Theta size', len(B.theta.bfs()))
         for _ in range(inner_iters):
             for nv in vec_X.bfs():
                 nv.value = bsd_rnd()

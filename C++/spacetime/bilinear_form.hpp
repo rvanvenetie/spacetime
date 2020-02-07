@@ -23,6 +23,9 @@ class BilinearForm {
                bool use_cache = true);
   void Apply();
 
+  const DoubleTreeVector<BasisTimeIn, BasisSpace> &sigma() { return sigma_; }
+  const DoubleTreeVector<BasisTimeOut, BasisSpace> &theta() { return theta_; }
+
  protected:
   const DoubleTreeVector<BasisTimeIn, BasisSpace> &vec_in_;
   DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out_;

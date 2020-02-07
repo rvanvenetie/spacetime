@@ -1,4 +1,5 @@
 #pragma once
+#include <deque>
 #include <memory>
 #include <numeric>
 #include <queue>
@@ -151,16 +152,17 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
 
  public:
   // Constructor for a node.
-  explicit MultiNodeViewBase(const TupleNodes& nodes, const TParents& parents)
-      : nodes_(nodes), parents_(parents) {}
+  explicit MultiNodeViewBase(std::deque<I>* container, const TupleNodes& nodes,
+                             const TParents& parents)
+      : container_(container), nodes_(nodes), parents_(parents) {}
 
   // Constructors for root.
-  explicit MultiNodeViewBase(const TupleNodes& nodes)
-      : MultiNodeViewBase(nodes, {}) {
+  explicit MultiNodeViewBase(std::deque<I>* container, const TupleNodes& nodes)
+      : MultiNodeViewBase(container, nodes, {}) {}
+  explicit MultiNodeViewBase(std::deque<I>* container, T*... nodes)
+      : MultiNodeViewBase(container, TupleNodes(nodes...)) {
     assert(this->is_root());
   }
-  explicit MultiNodeViewBase(T*... nodes)
-      : MultiNodeViewBase(TupleNodes(nodes...)) {}
 
   // Remove copy constructor.
   MultiNodeViewBase(const MultiNodeViewBase&) = delete;
@@ -182,11 +184,9 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   }
 
   // Create the ability to make a child.
-  template <typename... Args>
-  inline I* make_child(Args&&... args) {
-    children_own_.emplace_back(
-        std::make_unique<I>(std::forward<Args>(args)...));
-    return children_own_.back().get();
+  inline I* make_child(const TupleNodes& nodes, const TParents& parents) {
+    container_->emplace_back(container_, nodes, parents);
+    return &container_->back();
   }
 
   // Use SFINAE to add convenient functions in case dim == 1.
@@ -207,8 +207,8 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   TParents parents_;
   TChildren children_;
 
-  // If a multinode creates a child, it becomes the `owner` of this child.
-  std::vector<std::unique_ptr<I>> children_own_;
+  // Pointer to the deque that holds all the childen.
+  std::deque<I>* container_;
 };
 
 template <typename... T>
@@ -223,12 +223,14 @@ class MultiTreeView {
   using Impl = I;
   static constexpr size_t dim = I::dim;
 
-  I* root() { return root_.get(); }
-  I* root() const { return root_.get(); }
+  I* root() { return root_; }
+  I* root() const { return root_; }
 
   // This constructs the tree with a single meta_root.
   template <typename... T>
-  explicit MultiTreeView(T... nodes) : root_(std::make_unique<I>(nodes...)) {
+  explicit MultiTreeView(T... nodes) {
+    multi_nodes_.emplace_back(&multi_nodes_, nodes...);
+    root_ = &multi_nodes_.back();
     assert(root_->is_root());
   }
 
@@ -276,8 +278,10 @@ class MultiTreeView {
   }
 
  protected:
-  // Store the root as shared_ptr.
-  std::unique_ptr<I> root_;
+  // Store the root.
+  I* root_;
+
+  std::deque<I> multi_nodes_;
 };
 
 template <typename T0>

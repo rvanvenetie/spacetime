@@ -162,8 +162,9 @@ inline bool MultiNodeViewInterface<I, T...>::Refine(const container& children_i,
     });
 
     // Now finally, lets create an actual child!
-    auto child = self().make_child(/*nodes*/ std::move(child_nodes),
-                                   /*parents*/ std::move(brothers));
+    auto child = self().make_child(
+        /*nodes*/ std::move(child_nodes),
+        /*parents*/ std::move(brothers));
 
     // Add this child to all brothers.
     for (size_t j = 0; j < dim; ++j) {
