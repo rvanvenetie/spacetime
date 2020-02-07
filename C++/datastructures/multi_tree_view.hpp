@@ -184,6 +184,7 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   // Create the ability to make a child.
   template <typename... Args>
   inline I* make_child(Args&&... args) {
+    children_own_.reserve(std::max({T::N_children...}));
     children_own_.emplace_back(
         std::make_unique<I>(std::forward<Args>(args)...));
     return children_own_.back().get();
