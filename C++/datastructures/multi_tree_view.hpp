@@ -154,7 +154,9 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   // Constructor for a node.
   explicit MultiNodeViewBase(std::deque<I>* container, const TupleNodes& nodes,
                              const TParents& parents)
-      : container_(container), nodes_(nodes), parents_(parents) {}
+      : container_(container), nodes_(nodes), parents_(parents) {
+    assert(container);
+  }
 
   // Constructors for root.
   explicit MultiNodeViewBase(std::deque<I>* container, const TupleNodes& nodes)
@@ -188,6 +190,9 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
     container_->emplace_back(container_, nodes, parents);
     return &container_->back();
   }
+
+  // Access to the deque.
+  std::deque<I>* container() { return container_; }
 
   // Use SFINAE to add convenient functions in case dim == 1.
   template <size_t dim = dim, typename = typename std::enable_if_t<dim == 1>>
