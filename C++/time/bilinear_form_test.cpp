@@ -34,7 +34,7 @@ void TestLinearity(const TreeVector<WaveletBasisIn>& vec_in,
   auto vec_in_2 = vec_in.DeepCopy();
   for (auto nv : vec_in_1.Bfs())
     nv->set_value(((double)std::rand()) / RAND_MAX);
-  for (auto nv : vec_in_1.Bfs())
+  for (auto nv : vec_in_2.Bfs())
     nv->set_value(((double)std::rand()) / RAND_MAX);
 
   // Also calculate a lin. comb. of this vector
