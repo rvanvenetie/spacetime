@@ -1,4 +1,5 @@
 #include "basis.hpp"
+
 #include <vector>
 
 using datastructures::DoubleTreeView;
