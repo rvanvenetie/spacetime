@@ -28,18 +28,15 @@ class TriangulationView {
  public:
   TriangulationView(std::vector<Vertex *> vertices);
   template <typename I>
-  TriangulationView(const std::shared_ptr<I> &root)
-      : TriangulationView(Transform(root)) {}
+  TriangulationView(I root) : TriangulationView(Transform(root)) {}
   TriangulationView(const datastructures::TreeView<Vertex> &vertex_view)
-      : TriangulationView(Transform(vertex_view.root)) {}
+      : TriangulationView(Transform(vertex_view.root())) {}
   TriangulationView(
       const datastructures::TreeVector<HierarchicalBasisFn> &basis_vector)
-      : TriangulationView(Transform(basis_vector.root)) {}
+      : TriangulationView(Transform(basis_vector.root())) {}
 
   const std::vector<Vertex *> &vertices() const { return vertices_; }
-  const std::vector<std::shared_ptr<Element2DView>> &elements() const {
-    return elements_;
-  }
+  const std::vector<Element2DView *> &elements() const { return elements_; }
 
   const std::vector<std::pair<size_t, Element2DView *>> &history() const {
     return history_;
@@ -51,14 +48,14 @@ class TriangulationView {
  protected:
   datastructures::MultiTreeView<Element2DView> element_view_;
   std::vector<Vertex *> vertices_;
-  std::vector<std::shared_ptr<Element2DView>> elements_;
+  std::vector<Element2DView *> elements_;
   std::vector<std::pair<size_t, Element2DView *>> history_;
 
   // A convenient helper function for the constructor.
   Vertex *ToVertex(Vertex *v) { return v; }
   Vertex *ToVertex(HierarchicalBasisFn *phi) { return phi->vertex(); }
   template <typename I>
-  std::vector<Vertex *> Transform(const std::shared_ptr<I> &root) {
+  std::vector<Vertex *> Transform(I root) {
     assert(root->is_root());
     std::vector<Vertex *> result;
     auto nodes = root->Bfs();

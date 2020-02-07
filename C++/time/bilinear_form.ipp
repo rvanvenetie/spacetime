@@ -8,8 +8,8 @@ namespace Time {
 
 template <template <typename, typename> class Operator, typename I_in,
           typename I_out>
-BilinearForm<Operator, I_in, I_out>::BilinearForm(
-    std::shared_ptr<I_in> root_vec_in, std::shared_ptr<I_out> root_vec_out)
+BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in *root_vec_in,
+                                                  I_out *root_vec_out)
     : vec_in_(root_vec_in), vec_out_(root_vec_out) {
   assert(vec_in_->is_root());
   assert(vec_out_->is_root());

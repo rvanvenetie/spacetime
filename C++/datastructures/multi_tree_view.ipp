@@ -7,13 +7,13 @@ namespace datastructures {
 
 template <typename I, typename... T>
 template <typename Func>
-inline std::vector<std::shared_ptr<I>> MultiNodeViewInterface<I, T...>::Bfs(
+inline std::vector<I*> MultiNodeViewInterface<I, T...>::Bfs(
     bool include_metaroot, const Func& callback, bool return_nodes) {
   assert(is_root() && !self().marked());
-  std::vector<std::shared_ptr<I>> nodes;
-  std::queue<std::shared_ptr<I>> queue;
+  std::vector<I*> nodes;
+  std::queue<I*> queue;
 
-  queue.emplace(self().shared_from_this());
+  queue.emplace(&self());
   self().set_marked(true);
   while (!queue.empty()) {
     auto node = queue.front();
@@ -62,19 +62,19 @@ inline void MultiNodeViewInterface<I, T...>::DeepRefine(
 
 template <typename I, typename... T>
 template <typename I_other, typename FuncFilt, typename FuncPost>
-void MultiNodeViewInterface<I, T...>::Union(std::shared_ptr<I_other> other,
+void MultiNodeViewInterface<I, T...>::Union(I_other* other,
                                             const FuncFilt& call_filter,
                                             const FuncPost& call_postprocess) {
   assert(is_root() && other->is_root());
   assert(self().nodes() == other->nodes());
-  std::queue<std::pair<std::shared_ptr<I>, std::shared_ptr<I_other>>> queue;
-  queue.emplace(self().shared_from_this(), other);
+  std::queue<std::pair<I*, I_other*>> queue;
+  queue.emplace(&self(), other);
   self().set_marked(true);
 
-  std::vector<std::shared_ptr<I>> my_nodes;
+  std::vector<I*> my_nodes;
   while (!queue.empty()) {
-    std::shared_ptr<I> my_node;
-    std::shared_ptr<I_other> other_node;
+    I* my_node;
+    I_other* other_node;
 
     std::tie(my_node, other_node) = queue.front();
     queue.pop();
@@ -157,20 +157,13 @@ inline bool MultiNodeViewInterface<I, T...>::Refine(const container& children_i,
         TupleNodes brother_nodes(child_nodes);
         std::get<j>(brother_nodes) = child_parent_j;
         brothers[j].push_back(
-            FindBrother<i, j>(brother_nodes, make_conforming).get());
+            FindBrother<i, j>(brother_nodes, make_conforming));
       }
     });
 
     // Now finally, lets create an actual child!
-#ifndef BOOST_ALLOCATOR
-    auto child = std::make_shared<I>(/*nodes*/ std::move(child_nodes),
-                                     /*parents*/ std::move(brothers));
-#else
-    typedef boost::fast_pool_allocator<I> BoostAlloc;
-    auto child = std::allocate_shared<I, BoostAlloc>(
-        BoostAlloc(), /*nodes*/ std::move(child_nodes),
-        /*parents*/ std::move(brothers));
-#endif
+    auto child = self().make_child(/*nodes*/ std::move(child_nodes),
+                                   /*parents*/ std::move(brothers));
 
     // Add this child to all brothers.
     for (size_t j = 0; j < dim; ++j) {
@@ -185,10 +178,10 @@ inline bool MultiNodeViewInterface<I, T...>::Refine(const container& children_i,
 
 template <typename I, typename... T>
 template <size_t i, size_t j>
-inline std::shared_ptr<I> MultiNodeViewInterface<I, T...>::FindBrother(
-    const TupleNodes& nodes, bool make_conforming) {
+inline I* MultiNodeViewInterface<I, T...>::FindBrother(const TupleNodes& nodes,
+                                                       bool make_conforming) {
   if (nodes == self().nodes()) {
-    return self().shared_from_this();
+    return &self();
   }
 
   for (const auto& parent_j : self().parents(j)) {
@@ -244,9 +237,9 @@ template <typename I>
 template <typename MT_other, typename FuncPost>
 inline MT_other MultiTreeView<I>::DeepCopy(
     const FuncPost& call_postprocess) const {
-  assert(root->is_root());
-  MT_other new_tree(root->nodes());
-  new_tree.root->Union(root, /*call_filter*/ func_true, call_postprocess);
+  assert(root_->is_root());
+  MT_other new_tree(root_->nodes());
+  new_tree.root()->Union(root(), /*call_filter*/ func_true, call_postprocess);
   return new_tree;
 }
 };  // namespace datastructures

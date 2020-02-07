@@ -8,17 +8,15 @@ using Time::ortho_tree;
 using Time::OrthonormalWaveletFn;
 using Time::three_point_tree;
 using Time::ThreePointWaveletFn;
-using SpaceTreeVector =
-    std::vector<std::shared_ptr<datastructures::FrozenDoubleNode<
-        datastructures::DoubleNodeView<ThreePointWaveletFn,
-                                       HierarchicalBasisFn>,
-        /*i*/ 1>>>;
+using SpaceTreeVector = std::vector<datastructures::FrozenDoubleNode<
+    datastructures::DoubleNodeView<ThreePointWaveletFn, HierarchicalBasisFn>,
+    /*i*/ 1> *>;
 
 namespace spacetime {
 DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn> GenerateYDelta(
     const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta) {
   auto Y_delta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>(
-      ortho_tree.meta_root.get(), std::get<1>(X_delta.root->nodes()));
+      ortho_tree.meta_root.get(), std::get<1>(X_delta.root()->nodes()));
 
   Y_delta.Project_1()->Union(X_delta.Project_1());
 

@@ -3,9 +3,9 @@
 
 namespace space {
 template <typename Operator, typename I_in, typename I_out>
-BilinearForm<Operator, I_in, I_out>::BilinearForm(
-    std::shared_ptr<I_in> root_vec_in, std::shared_ptr<I_out> root_vec_out,
-    bool dirichlet_boundary)
+BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
+                                                  I_out* root_vec_out,
+                                                  bool dirichlet_boundary)
     : vec_in_(root_vec_in), vec_out_(root_vec_out) {
   assert(root_vec_in->is_root());
   assert(root_vec_out->is_root());
@@ -29,11 +29,11 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(
   } else {
     // This operator is not symmetric, calculate a union.
     vec_union_ =
-        std::make_shared<datastructures::NodeVector<HierarchicalBasisFn>>(
+        std::make_unique<datastructures::NodeVector<HierarchicalBasisFn>>(
             vec_in_->node());
     vec_union_->Union(vec_in_);
     vec_union_->Union(vec_out_);
-    triang_ = std::make_unique<TriangulationView>(vec_union_);
+    triang_ = std::make_unique<TriangulationView>(vec_union_.get());
   }
   operator_ = std::make_unique<Operator>(*triang_, dirichlet_boundary);
 }
@@ -45,14 +45,14 @@ void BilinearForm<Operator, I_in, I_out>::Apply() {
     return vec_out_->FromVector(operator_->Apply(vec_in_->ToVector()));
 
   // Not symmetric, we must do some magic tricks.
-  auto lambda_copy = [](const auto &new_node, const auto &old_node) {
+  auto lambda_copy = [](const auto& new_node, const auto& old_node) {
     new_node->set_value(old_node->value());
   };
   vec_union_->Reset();
   vec_union_->Union(vec_in_, datastructures::func_false, lambda_copy);
   // Apply the operator in SS.
   vec_union_->FromVector(operator_->Apply(vec_union_->ToVector()));
-  vec_out_->Union(vec_union_, datastructures::func_false, lambda_copy);
+  vec_out_->Union(vec_union_.get(), datastructures::func_false, lambda_copy);
 }
 
 template <typename Operator, typename I_in, typename I_out>
