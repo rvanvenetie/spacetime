@@ -2,14 +2,15 @@
 #include <boost/container/deque.hpp>
 #include <boost/container/small_vector.hpp>
 #include <boost/container/static_vector.hpp>
-
-#define BOOST_ALLOCATOR
-#ifdef BOOST_ALLOCATOR
-#define BOOST_POOL_NO_MT
-#include <boost/pool/pool_alloc.hpp>
-#endif
 template <typename I, size_t N>
 using SmallVector = boost::container::small_vector<I, N>;
 
 template <typename I, size_t N>
 using StaticVector = boost::container::static_vector<I, N>;
+
+// Boost deque container with default block size N.
+template <typename I, size_t N = 128>
+using BoostDeque =
+    boost::container::deque<I, void,
+                            typename boost::container::deque_options<
+                                boost::container::block_size<N>>::type>;
