@@ -27,6 +27,8 @@ class FrozenDoubleNode
   using Self = FrozenDoubleNode<I_dbl_node, i>;
 
  public:
+  using TupleNodes = details::T_frozen<I_dbl_node, i>;
+
   explicit FrozenDoubleNode(std::shared_ptr<I_dbl_node> dbl_node)
       : dbl_node_(dbl_node) {}
 
@@ -51,6 +53,7 @@ class FrozenDoubleNode
   auto FrozenOtherAxis() const {
     return std::make_shared<FrozenDoubleNode<I_dbl_node, 1 - i>>(dbl_node_);
   }
+  auto DoubleNode() const { return dbl_node_; }
 
   // Refine is handled by simply refining the underlying double node
   template <size_t _ = 0, typename container, typename Func>
@@ -118,6 +121,12 @@ class DoubleTreeViewBase : public MT_Base<I> {
   // Helper functions..
   auto Project_0() const { return Project<0>(); }
   auto Project_1() const { return Project<1>(); }
+
+  // Set the default parameter for deep copy.
+  template <typename MT_other = DoubleTreeViewBase<I, MT_Base>>
+  MT_other DeepCopy() const {
+    return MT_Base<I>::template DeepCopy<MT_other>();
+  }
 
  protected:
   mutable std::tuple<

@@ -19,6 +19,8 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(
     if (node->level() == lvl_ind_out_.size()) lvl_ind_out_.emplace_back();
     lvl_ind_out_[node->level()].emplace_back(node->node());
   }
+  assert(lvl_ind_out_.size());
+  assert(lvl_ind_out_[0].size());
 }
 
 template <template <typename, typename> class Operator, typename I_in,
@@ -33,6 +35,8 @@ void BilinearForm<Operator, I_in, I_out>::InitializeInput() {
     if (node->level() == lvl_vec_in_.size()) lvl_vec_in_.emplace_back();
     lvl_vec_in_[node->level()].emplace_back(node->node(), node->value());
   }
+  assert(lvl_vec_in_.size());
+  assert(lvl_vec_in_[0].size());
 }
 
 template <template <typename, typename> class Operator, typename I_in,

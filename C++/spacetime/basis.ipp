@@ -1,4 +1,5 @@
 #pragma once
+#include "spacetime/basis.hpp"
 
 namespace spacetime {
 template <class DblTreeIn, class DblTreeOut>

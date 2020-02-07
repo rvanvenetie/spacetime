@@ -62,6 +62,7 @@ class TriangulationView {
     assert(root->is_root());
     std::vector<Vertex *> result;
     auto nodes = root->Bfs();
+    assert(nodes.size());
     result.reserve(nodes.size());
     for (const auto nv : nodes) result.emplace_back(ToVertex(nv->node()));
     return result;
