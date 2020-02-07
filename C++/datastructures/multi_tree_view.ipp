@@ -5,12 +5,10 @@
 
 namespace datastructures {
 
-template <typename I, typename TupleNodes>
+template <typename I, typename... T>
 template <typename Func>
-inline std::vector<std::shared_ptr<I>>
-MultiNodeViewInterface<I, TupleNodes>::Bfs(bool include_metaroot,
-                                           const Func& callback,
-                                           bool return_nodes) {
+inline std::vector<std::shared_ptr<I>> MultiNodeViewInterface<I, T...>::Bfs(
+    bool include_metaroot, const Func& callback, bool return_nodes) {
   assert(is_root() && !self().marked());
   std::vector<std::shared_ptr<I>> nodes;
   std::queue<std::shared_ptr<I>> queue;
@@ -43,9 +41,9 @@ MultiNodeViewInterface<I, TupleNodes>::Bfs(bool include_metaroot,
   return nodes;
 }
 
-template <typename I, typename TupleNodes>
+template <typename I, typename... T>
 template <typename FuncFilt, typename FuncPost>
-inline void MultiNodeViewInterface<I, TupleNodes>::DeepRefine(
+inline void MultiNodeViewInterface<I, T...>::DeepRefine(
     const FuncFilt& call_filter, const FuncPost& call_postprocess) {
   // This callback will invoke call_postprocess, and refine according
   // to the given filter.
@@ -62,11 +60,11 @@ inline void MultiNodeViewInterface<I, TupleNodes>::DeepRefine(
       /*return_nodes*/ false);
 }
 
-template <typename I, typename TupleNodes>
+template <typename I, typename... T>
 template <typename I_other, typename FuncFilt, typename FuncPost>
-void MultiNodeViewInterface<I, TupleNodes>::Union(
-    std::shared_ptr<I_other> other, const FuncFilt& call_filter,
-    const FuncPost& call_postprocess) {
+void MultiNodeViewInterface<I, T...>::Union(std::shared_ptr<I_other> other,
+                                            const FuncFilt& call_filter,
+                                            const FuncPost& call_postprocess) {
   assert(is_root() && other->is_root());
   assert(self().nodes() == other->nodes());
   std::queue<std::pair<std::shared_ptr<I>, std::shared_ptr<I_other>>> queue;
@@ -115,11 +113,11 @@ void MultiNodeViewInterface<I, TupleNodes>::Union(
   }
 }
 
-template <typename I, typename TupleNodes>
+template <typename I, typename... T>
 template <size_t i, typename container, typename Func>
-inline bool MultiNodeViewInterface<I, TupleNodes>::Refine(
-    const container& children_i, const Func& call_filter,
-    bool make_conforming) {
+inline bool MultiNodeViewInterface<I, T...>::Refine(const container& children_i,
+                                                    const Func& call_filter,
+                                                    bool make_conforming) {
   static_assert(i < dim);
   if (is_full<i>()) return false;
 
@@ -185,9 +183,9 @@ inline bool MultiNodeViewInterface<I, TupleNodes>::Refine(
   return refined;
 }
 
-template <typename I, typename TupleNodes>
+template <typename I, typename... T>
 template <size_t i, size_t j>
-inline std::shared_ptr<I> MultiNodeViewInterface<I, TupleNodes>::FindBrother(
+inline std::shared_ptr<I> MultiNodeViewInterface<I, T...>::FindBrother(
     const TupleNodes& nodes, bool make_conforming) {
   if (nodes == self().nodes()) {
     return self().shared_from_this();

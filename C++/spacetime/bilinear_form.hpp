@@ -35,10 +35,10 @@ class BilinearForm {
   // Define frozen templates, useful for storing the bil forms.
   template <size_t i>
   using FI = datastructures::FrozenDoubleNode<
-      datastructures::MultiNodeVector<BasisTimeIn, BasisSpace>, i>;
+      datastructures::DoubleNodeVector<BasisTimeIn, BasisSpace>, i>;
   template <size_t i>
   using FO = datastructures::FrozenDoubleNode<
-      datastructures::MultiNodeVector<BasisTimeOut, BasisSpace>, i>;
+      datastructures::DoubleNodeVector<BasisTimeOut, BasisSpace>, i>;
 
   // Store bilinear forms in vectors.
   std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> bil_space_low_;

@@ -4,7 +4,7 @@
 namespace spacetime {
 template <class DblTreeIn, class DblTreeOut>
 auto GenerateSigma(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out) {
-  using OutNodeVector = std::vector<typename DblTreeOut::T0p>;
+  using OutNodeVector = std::vector<typename DblTreeOut::T0 *>;
 
   for (const auto &psi_out : Lambda_out.Project_0()->Bfs())
     for (auto elem : psi_out->node()->support()) {

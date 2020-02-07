@@ -41,10 +41,11 @@ constexpr int level(const TupleNodes& nodes) {
 // Template arguments are as follows:
 // I - The final implementation of this class, i.e. the derived class;
 // TupleNodes - The tuple type that represents a node;
-template <typename I, typename TupleNodes>
+template <typename I, typename... T>
 class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
  public:
-  constexpr static size_t dim = std::tuple_size_v<TupleNodes>;
+  static constexpr size_t dim = sizeof...(T);
+  using TupleNodes = std::tuple<T*...>;
 
   inline const I& self() const { return static_cast<const I&>(*this); }
   inline I& self() { return static_cast<I&>(*this); }
@@ -123,8 +124,8 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
   }
 
   // Some convenient debug function.
-  friend std::ostream& operator<<(
-      std::ostream& os, const MultiNodeViewInterface<I, TupleNodes>& mnv) {
+  friend std::ostream& operator<<(std::ostream& os,
+                                  const MultiNodeViewInterface<I, T...>& mnv) {
     static_for<dim>([&os, &mnv](auto i) {
       if constexpr (i > 0) {
         os << std::string(" x ");
@@ -140,10 +141,10 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 };
 
 template <typename I, typename... T>
-class MultiNodeViewBase : public MultiNodeViewInterface<I, std::tuple<T*...>> {
+class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
  public:
-  static constexpr size_t dim = sizeof...(T);
-  using TupleNodes = std::tuple<T*...>;
+  using MultiNodeViewInterface<I, T...>::dim;
+  using typename MultiNodeViewInterface<I, T...>::TupleNodes;
   using TParents =
       std::array<StaticVector<I*, std::max({T::N_parents...})>, dim>;
   using TChildren =
