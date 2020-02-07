@@ -10,18 +10,17 @@
 
 namespace datastructures {
 
-template <typename I_dbl, size_t i,
-          typename T_frozen = std::tuple_element_t<i, typename I_dbl::Types>>
+template <typename I_dbl, size_t i>
 class FrozenDoubleNode
-    : public MultiNodeViewInterface<FrozenDoubleNode<I_dbl, i>, T_frozen>,
+    : public MultiNodeViewInterface<
+          FrozenDoubleNode<I_dbl, i>,
+          std::tuple_element_t<i, typename I_dbl::Types>>,
       public MultiNodeVectorInterface<FrozenDoubleNode<I_dbl, i>> {
  private:
-  // Ensure that T_frozen equals to the default parameter type.
-  static_assert(
-      std::is_same_v<T_frozen, std::tuple_element_t<i, typename I_dbl::Types>>);
-
   // Some aliases to make life easier.
-  using Super = MultiNodeViewInterface<FrozenDoubleNode<I_dbl, i>, T_frozen>;
+  using Super =
+      MultiNodeViewInterface<FrozenDoubleNode<I_dbl, i>,
+                             std::tuple_element_t<i, typename I_dbl::Types>>;
   using Self = FrozenDoubleNode<I_dbl, i>;
 
  public:
@@ -109,9 +108,8 @@ class DoubleNodeBase : public Base<DoubleNodeBase<Base, T...>, T...> {
   // Constructor for a node.
   explicit DoubleNodeBase(const TupleNodes& nodes, const TParents& parents)
       : Super(nodes, parents),
-        frozen_double_nodes_(
-            std::make_shared<FrozenDoubleNode<I, 0, T0>>(this),
-            std::make_shared<FrozenDoubleNode<I, 1, T1>>(this)) {}
+        frozen_double_nodes_(std::make_shared<FrozenDoubleNode<I, 0>>(this),
+                             std::make_shared<FrozenDoubleNode<I, 1>>(this)) {}
 
   // // Constructor for a root.
   explicit DoubleNodeBase(const typename Super::TupleNodes& nodes)
@@ -129,8 +127,8 @@ class DoubleNodeBase : public Base<DoubleNodeBase<Base, T...>, T...> {
   }
 
  protected:
-  std::tuple<std::shared_ptr<FrozenDoubleNode<I, 0, T0>>,
-             std::shared_ptr<FrozenDoubleNode<I, 1, T1>>>
+  std::tuple<std::shared_ptr<FrozenDoubleNode<I, 0>>,
+             std::shared_ptr<FrozenDoubleNode<I, 1>>>
       frozen_double_nodes_;
 };
 
