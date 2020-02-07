@@ -32,14 +32,17 @@ class FrozenDoubleNode
   auto node() const { return std::get<i>(dbl_node_->nodes()); }
   bool marked() const { return dbl_node_->marked(); }
   void set_marked(bool value) { dbl_node_->set_marked(value); }
-  auto children(size_t _ = 0) {
+  const std::vector<Self*>& children(size_t _ = 0) {
     assert(_ == 0);
-    std::vector<Self*> result;
     const auto& dbl_children = dbl_node_->children(i);
-    result.reserve(dbl_children.size());
-    for (const auto& db_child : dbl_children)
-      result.emplace_back(db_child->template Frozen<i>());
-    return result;
+    if (children_.size() != dbl_children.size()) {
+      assert(children_.size() < dbl_children.size());
+      children_.clear();
+      children_.reserve(dbl_children.size());
+      for (const auto& db_child : dbl_children)
+        children_.emplace_back(db_child->template Frozen<i>());
+    }
+    return children_;
   }
   auto parents(size_t _ = 0) {
     assert(_ == 0);
@@ -88,6 +91,7 @@ class FrozenDoubleNode
 
  protected:
   I_dbl* dbl_node_;
+  std::vector<Self*> children_;
 };
 
 // Add the FrozenDoubleNode as member to some MultiNode*.

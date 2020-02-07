@@ -26,7 +26,7 @@ class Element2DView
 
 class TriangulationView {
  public:
-  TriangulationView(std::vector<Vertex *> vertices);
+  TriangulationView(std::vector<Vertex *> &&vertices);
   template <typename I>
   TriangulationView(I root) : TriangulationView(Transform(root)) {}
   TriangulationView(const datastructures::TreeView<Vertex> &vertex_view)
@@ -52,8 +52,10 @@ class TriangulationView {
   std::vector<std::pair<size_t, Element2DView *>> history_;
 
   // A convenient helper function for the constructor.
-  Vertex *ToVertex(Vertex *v) { return v; }
-  Vertex *ToVertex(HierarchicalBasisFn *phi) { return phi->vertex(); }
+  inline static Vertex *ToVertex(Vertex *v) { return v; }
+  inline static Vertex *ToVertex(HierarchicalBasisFn *phi) {
+    return phi->vertex();
+  }
   template <typename I>
   std::vector<Vertex *> Transform(I root) {
     assert(root->is_root());

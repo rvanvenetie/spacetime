@@ -5,8 +5,9 @@ namespace space {
 using datastructures::TreeVector;
 using datastructures::TreeView;
 
-TriangulationView::TriangulationView(std::vector<Vertex *> vertices)
-    : vertices_(vertices), element_view_(vertices[0]->patch[0]->parents()[0]) {
+TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
+    : vertices_(std::move(vertices)),
+      element_view_(vertices[0]->patch[0]->parents()[0]) {
   // First, we store a reference to this object in the underlying tree.
   std::vector<size_t> indices(vertices_.size());
   for (size_t i = 0; i < vertices_.size(); ++i) {
