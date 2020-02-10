@@ -29,18 +29,6 @@ class MultiNodeVectorInterface {
     assert(nodes.size() == vec.size());
     for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
   }
-
-  // In case dim == 1, we add functionality to read data from the
-  // underlying tree.
-  void ReadFromTree() {
-    for (const auto &nv : self()->Bfs()) {
-      auto node = nv->node();
-      if (node->has_data())
-        nv->set_value(*node->template data<double>());
-      else
-        nv->set_value(0);
-    }
-  }
 };
 
 template <typename I, typename... T>

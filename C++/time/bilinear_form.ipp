@@ -22,11 +22,14 @@ template <template <typename, typename> class Operator, typename I_in,
           typename I_out>
 BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in *root_vec_in,
                                                   I_out *root_vec_out)
-    : vec_in_(root_vec_in), vec_out_(root_vec_out) {
+    : vec_in_(root_vec_in),
+      nodes_vec_in_(vec_in_->Bfs()),
+      vec_out_(root_vec_out),
+      nodes_vec_out_(vec_out_->Bfs()) {
   assert(vec_in_->is_root());
   assert(vec_out_->is_root());
   // Slice the output vector into levelwise sparse indices.
-  for (const auto &node : vec_out_->Bfs()) {
+  for (const auto &node : nodes_vec_out_) {
     assert(node->level() >= 0 && node->level() <= lvl_ind_out_.size());
     if (node->level() == lvl_ind_out_.size()) lvl_ind_out_.emplace_back();
     lvl_ind_out_[node->level()].emplace_back(node->node());
@@ -37,12 +40,32 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in *root_vec_in,
 
 template <template <typename, typename> class Operator, typename I_in,
           typename I_out>
+void BilinearForm<Operator, I_in, I_out>::FinalizeOutput(
+    const SparseVector<WaveletBasisOut> &f) {
+  // Store the sparse vector in the underlying tree.
+  f.StoreInTree();
+
+  // Copy the values in the underlying tree to the output vector.
+  for (const auto &nv : nodes_vec_out_) {
+    auto node = nv->node();
+    if (node->has_data())
+      nv->set_value(*node->template data<double>());
+    else
+      nv->set_value(0);
+  }
+
+  // Remove the data in the underlying tree.
+  f.RemoveFromTree();
+}
+
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
 void BilinearForm<Operator, I_in, I_out>::InitializeInput() {
   // Reset existing input nodes.
   for (auto &sparse_vec : lvl_vec_in_) sparse_vec.clear();
 
   // Slice the input vector into levelwise sparse vectors.
-  for (const auto &node : vec_in_->Bfs()) {
+  for (const auto &node : nodes_vec_in_) {
     assert(node->level() >= 0 && node->level() <= lvl_vec_in_.size());
     if (node->level() == lvl_vec_in_.size()) lvl_vec_in_.emplace_back();
     lvl_vec_in_[node->level()].emplace_back(node->node(), node->value());

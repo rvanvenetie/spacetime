@@ -29,31 +29,19 @@ class BilinearForm {
   void Apply() {
     InitializeInput();
     auto [_, f] = ApplyRecur(0, {}, {});
-
-    // Copy data to the output tree.
-    f.StoreInTree();
-    vec_out_->ReadFromTree();
-    f.RemoveFromTree();
+    FinalizeOutput(f);
   }
 
   void ApplyUpp() {
     InitializeInput();
     auto [_, f] = ApplyUppRecur(0, {}, {});
-
-    // Copy data to the output tree.
-    f.StoreInTree();
-    vec_out_->ReadFromTree();
-    f.RemoveFromTree();
+    FinalizeOutput(f);
   }
 
   void ApplyLow() {
     InitializeInput();
     auto f = ApplyLowRecur(0, {});
-
-    // Copy data to the output tree.
-    f.StoreInTree();
-    vec_out_->ReadFromTree();
-    f.RemoveFromTree();
+    FinalizeOutput(f);
   }
 
   // Debug function, O(n^2).
@@ -64,6 +52,10 @@ class BilinearForm {
   I_in *vec_in_;
   I_out *vec_out_;
 
+  // A flattened bfs view of the vectors.
+  std::vector<I_in *> nodes_vec_in_;
+  std::vector<I_out *> nodes_vec_out_;
+
   // A flattened, levelwise view of the trees.
   std::vector<SparseVector<WaveletBasisIn>> lvl_vec_in_;
   std::vector<SparseIndices<WaveletBasisOut>> lvl_ind_out_;
@@ -72,8 +64,9 @@ class BilinearForm {
   SparseVector<WaveletBasisIn> empty_vec_in_;
   SparseIndices<WaveletBasisOut> empty_ind_out_;
 
-  // Helper function to set the levelwise input vector.
+  // Helper function to set the levelwise input/output vector.
   void InitializeInput();
+  void FinalizeOutput(const SparseVector<WaveletBasisOut> &f);
 
   // Recursive apply.
   std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>>
