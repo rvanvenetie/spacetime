@@ -49,6 +49,12 @@ int main() {
     auto bil_form =
         CreateBilinearForm<Time::TransportOperator, space::MassOperator>(
             vec_X, &vec_Y, /* use_cache */ use_cache);
+
+    // std::cout << "----" << std::endl;
+    // std::cout << "X_delta size " << X_delta.Bfs().size() << std::endl;
+    // std::cout << "Y_delta size " << Y_delta.Bfs().size() << std::endl;
+    // std::cout << "Sigma size " << bil_form.sigma().Bfs().size() << std::endl;
+    // std::cout << "Theta size " << bil_form.theta().Bfs().size() << std::endl;
     for (size_t k = 0; k < ::inner_iters; k++) {
       for (auto& nv : vec_X.Bfs()) {
         nv->set_value(bsd_rnd());
