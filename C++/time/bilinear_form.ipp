@@ -64,11 +64,11 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
     size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
     const SparseVector<ScalingBasisIn> &d)
     -> std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>> {
-  if (l < lvl_vec_in_.size()) lvl_vec_in_.resize(l);
-  const SparseVector<WaveletBasisIn> &c = lvl_vec_in_[l];
+  const SparseVector<WaveletBasisIn> &c =
+      l < lvl_vec_in_.size() ? lvl_vec_in_[l] : empty_vec_in_;
 
-  if (l < lvl_ind_out_.size()) lvl_ind_out_.resize(l);
-  const SparseIndices<WaveletBasisOut> &Lambda_l_out = lvl_ind_out_[l];
+  const SparseIndices<WaveletBasisOut> &Lambda_l_out =
+      l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
 
   SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
   if ((Pi_out.size() + Lambda_l_out.size()) > 0 &&
@@ -103,11 +103,11 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyUppRecur(
     size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
     const SparseVector<ScalingBasisIn> &d)
     -> std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>> {
-  if (l < lvl_vec_in_.size()) lvl_vec_in_.resize(l);
-  const SparseVector<WaveletBasisIn> &c = lvl_vec_in_[l];
+  const SparseVector<WaveletBasisIn> &c =
+      l < lvl_vec_in_.size() ? lvl_vec_in_[l] : empty_vec_in_;
 
-  if (l < lvl_ind_out_.size()) lvl_ind_out_.resize(l);
-  const SparseIndices<WaveletBasisOut> &Lambda_l_out = lvl_ind_out_[l];
+  const SparseIndices<WaveletBasisOut> &Lambda_l_out =
+      l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
 
   SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
   if ((Pi_out.size() + Lambda_l_out.size()) > 0 &&
@@ -138,11 +138,11 @@ template <template <typename, typename> class Operator, typename I_in,
 auto BilinearForm<Operator, I_in, I_out>::ApplyLowRecur(
     size_t l, const SparseVector<ScalingBasisIn> &d)
     -> SparseVector<WaveletBasisOut> {
-  if (l < lvl_vec_in_.size()) lvl_vec_in_.resize(l);
-  const SparseVector<WaveletBasisIn> &c = lvl_vec_in_[l];
+  const SparseVector<WaveletBasisIn> &c =
+      l < lvl_vec_in_.size() ? lvl_vec_in_[l] : empty_vec_in_;
 
-  if (l < lvl_ind_out_.size()) lvl_ind_out_.resize(l);
-  const SparseIndices<WaveletBasisOut> &Lambda_l_out = lvl_ind_out_[l];
+  const SparseIndices<WaveletBasisOut> &Lambda_l_out =
+      l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
 
   SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
   if (Lambda_l_out.size() > 0 && (Pi_in.size() + c.size()) > 0) {

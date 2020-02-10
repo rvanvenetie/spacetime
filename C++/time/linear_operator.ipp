@@ -43,6 +43,7 @@ template <typename I, typename BasisIn, typename BasisOut>
 SparseVector<BasisOut> LinearOperator<I, BasisIn, BasisOut>::MatVec(
     const SparseVector<BasisIn> &vec,
     const SparseIndices<BasisOut> &indices_out) const {
+  if (vec.empty() || indices_out.empty()) return {};
   assert(indices_out.IsUnique());
   SparseVector<BasisOut> result;
   result.reserve(indices_out.size());
@@ -63,6 +64,7 @@ template <typename I, typename BasisIn, typename BasisOut>
 SparseVector<BasisIn> LinearOperator<I, BasisIn, BasisOut>::RMatVec(
     const SparseVector<BasisOut> &vec,
     const SparseIndices<BasisIn> &indices_in) const {
+  if (vec.empty() || indices_in.empty()) return {};
   assert(indices_in.IsUnique());
   SparseVector<BasisIn> result;
   result.reserve(indices_in.size());

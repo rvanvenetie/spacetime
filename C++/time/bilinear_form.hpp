@@ -68,6 +68,10 @@ class BilinearForm {
   std::vector<SparseVector<WaveletBasisIn>> lvl_vec_in_;
   std::vector<SparseIndices<WaveletBasisOut>> lvl_ind_out_;
 
+  // Helper variables.
+  SparseVector<WaveletBasisIn> empty_vec_in_;
+  SparseIndices<WaveletBasisOut> empty_ind_out_;
+
   // Helper function to set the levelwise input vector.
   void InitializeInput();
 
