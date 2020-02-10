@@ -72,10 +72,10 @@ class ThreePointWaveletFn : public WaveletFn<ThreePointWaveletFn> {
   constexpr static size_t N_parents = 2;
   constexpr static const char *name = "Three";
 
-  explicit ThreePointWaveletFn(
-      const std::vector<ThreePointWaveletFn *> parents, int index,
-      const SparseVector<ContLinearScalingFn> &single_scale)
-      : WaveletFn(parents, index, single_scale) {}
+  explicit ThreePointWaveletFn(const std::vector<ThreePointWaveletFn *> parents,
+                               int index,
+                               SparseVector<ContLinearScalingFn> &&single_scale)
+      : WaveletFn(parents, index, std::move(single_scale)) {}
 
   bool is_full() const;
   bool Refine();
