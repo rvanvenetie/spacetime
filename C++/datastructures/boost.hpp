@@ -1,5 +1,6 @@
 #pragma once
 #include <boost/container/deque.hpp>
+#include <boost/container/options.hpp>
 #include <boost/container/small_vector.hpp>
 #include <boost/container/static_vector.hpp>
 template <typename I, size_t N>
