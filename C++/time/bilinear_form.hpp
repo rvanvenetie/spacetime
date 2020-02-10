@@ -24,8 +24,7 @@ class BilinearForm {
   using ScalingBasisOut = typename FunctionTrait<WaveletBasisOut>::Scaling;
 
   // Create a stateful BilinearForm.
-  BilinearForm(std::shared_ptr<I_in> root_vec_in,
-               std::shared_ptr<I_out> root_vec_out);
+  BilinearForm(I_in *root_vec_in, I_out *root_vec_out);
 
   void Apply() {
     InitializeInput();
@@ -62,8 +61,8 @@ class BilinearForm {
 
  protected:
   // Roots of the treeviews we are considering.
-  std::shared_ptr<I_in> vec_in_;
-  std::shared_ptr<I_out> vec_out_;
+  I_in *vec_in_;
+  I_out *vec_out_;
 
   // A flattened, levelwise view of the trees.
   std::vector<SparseVector<WaveletBasisIn>> lvl_vec_in_;
@@ -98,8 +97,8 @@ class BilinearForm {
 // Helper functions .
 template <template <typename, typename> class Operator, typename I_in,
           typename I_out>
-BilinearForm<Operator, I_in, I_out> CreateBilinearForm(
-    std::shared_ptr<I_in> root_vec_in, std::shared_ptr<I_out> root_vec_out) {
+BilinearForm<Operator, I_in, I_out> CreateBilinearForm(I_in *root_vec_in,
+                                                       I_out *root_vec_out) {
   return BilinearForm<Operator, I_in, I_out>(root_vec_in, root_vec_out);
 }
 
@@ -110,7 +109,7 @@ BilinearForm<Operator, datastructures::NodeVector<WaveletBasisIn>,
              datastructures::NodeVector<WaveletBasisOut>>
 CreateBilinearForm(const datastructures::TreeVector<WaveletBasisIn> &vec_in,
                    const datastructures::TreeVector<WaveletBasisOut> &vec_out) {
-  return {vec_in.root, vec_out.root};
+  return {vec_in.root(), vec_out.root()};
 }
 
 }  // namespace Time

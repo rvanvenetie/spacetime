@@ -64,8 +64,8 @@ TEST(DoubleTreeView, Union) {
   }
   ASSERT_EQ(to_tree.Bfs().size(), from_tree.Bfs().size());
 
-  ASSERT_EQ(to_tree.root->children(0)[0]->children(1)[0],
-            to_tree.root->children(1)[0]->children(0)[0]);
+  ASSERT_EQ(to_tree.root()->children(0)[0]->children(1)[0],
+            to_tree.root()->children(1)[0]->children(0)[0]);
 }
 
 TEST(DoubleTreeVector, sum) {

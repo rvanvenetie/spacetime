@@ -73,8 +73,8 @@ class MultiTreeVector : public MultiTreeView<I> {
   using MultiTreeView<I>::MultiTreeView;
 
   // Note: this is not compatible with the Python ToArray!
-  Eigen::VectorXd ToVector() const { return Super::root->ToVector(); }
-  void FromVector(const Eigen::VectorXd &vec) { Super::root->FromVector(vec); }
+  Eigen::VectorXd ToVector() const { return Super::root_->ToVector(); }
+  void FromVector(const Eigen::VectorXd &vec) { Super::root_->FromVector(vec); }
 
   // Create a deepcopy that copies the vector data as well.
   template <typename MT_other = MultiTreeVector<I>>
@@ -86,7 +86,7 @@ class MultiTreeVector : public MultiTreeView<I> {
   }
 
   // Set all values to zero.
-  void Reset() { Super::root->Reset(); }
+  void Reset() { Super::root_->Reset(); }
 
   // Define some simple linear algebra functions.
   MultiTreeVector<I> &operator*=(double val) {
@@ -97,8 +97,8 @@ class MultiTreeVector : public MultiTreeView<I> {
   }
   template <typename MT_other = MultiTreeVector<I>>
   MultiTreeVector<I> &operator+=(const MT_other &rhs) {
-    Super::root->Union(
-        rhs.root, /* call_filter*/ func_true, /* call_postprocess*/
+    Super::root_->Union(
+        rhs.root(), /* call_filter*/ func_true, /* call_postprocess*/
         [](const auto &my_node, const auto &other_node) {
           my_node->set_value(my_node->value() + other_node->value());
         });

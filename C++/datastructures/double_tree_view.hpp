@@ -32,18 +32,21 @@ class FrozenDoubleNode
   auto node() const { return std::get<i>(dbl_node_->nodes()); }
   bool marked() const { return dbl_node_->marked(); }
   void set_marked(bool value) { dbl_node_->set_marked(value); }
-  auto children(size_t _ = 0) {
+  const std::vector<Self*>& children(size_t _ = 0) {
     assert(_ == 0);
-    std::vector<std::shared_ptr<Self>> result;
     const auto& dbl_children = dbl_node_->children(i);
-    result.reserve(dbl_children.size());
-    for (const auto& db_child : dbl_children)
-      result.emplace_back(db_child->template Frozen<i>());
-    return result;
+    if (children_.size() != dbl_children.size()) {
+      assert(children_.size() < dbl_children.size());
+      children_.clear();
+      children_.reserve(dbl_children.size());
+      for (const auto& db_child : dbl_children)
+        children_.emplace_back(db_child->template Frozen<i>());
+    }
+    return children_;
   }
   auto parents(size_t _ = 0) {
     assert(_ == 0);
-    std::vector<std::shared_ptr<Self>> result;
+    std::vector<Self*> result;
     const auto& dbl_parents = dbl_node_->parents(i);
     result.reserve(dbl_parents.size());
     for (const auto& db_parent : dbl_parents)
@@ -88,6 +91,7 @@ class FrozenDoubleNode
 
  protected:
   I_dbl* dbl_node_;
+  std::vector<Self*> children_;
 };
 
 // Add the FrozenDoubleNode as member to some MultiNode*.
@@ -107,9 +111,7 @@ class DoubleNodeBase : public Base<DoubleNodeBase<Base, T...>, T...> {
 
   // Constructor for a node.
   explicit DoubleNodeBase(const TupleNodes& nodes, const TParents& parents)
-      : Super(nodes, parents),
-        frozen_double_nodes_(std::make_shared<FrozenDoubleNode<I, 0>>(this),
-                             std::make_shared<FrozenDoubleNode<I, 1>>(this)) {}
+      : Super(nodes, parents), frozen_double_nodes_(this, this) {}
 
   // // Constructor for a root.
   explicit DoubleNodeBase(const typename Super::TupleNodes& nodes)
@@ -120,15 +122,13 @@ class DoubleNodeBase : public Base<DoubleNodeBase<Base, T...>, T...> {
       : DoubleNodeBase(typename Super::TupleNodes(nodes...)) {}
 
   template <size_t i>
-  auto Frozen() const {
+  FrozenDoubleNode<I, i>* Frozen() {
     static_assert(i < 2, "Invalid project");
-    assert(std::get<i>(frozen_double_nodes_));
-    return std::get<i>(frozen_double_nodes_);
+    return &std::get<i>(frozen_double_nodes_);
   }
 
  protected:
-  std::tuple<std::shared_ptr<FrozenDoubleNode<I, 0>>,
-             std::shared_ptr<FrozenDoubleNode<I, 1>>>
+  std::tuple<FrozenDoubleNode<I, 0>, FrozenDoubleNode<I, 1>>
       frozen_double_nodes_;
 };
 
@@ -143,11 +143,11 @@ class DoubleTreeBase : public MT_Base<I> {
   using T0 = typename I::T0;
   using T1 = typename I::T1;
 
-  std::shared_ptr<FrozenDoubleNode<I, 0>> Fiber_0(T1* mu) const {
+  FrozenDoubleNode<I, 0>* Fiber_0(T1* mu) const {
     if (!std::get<0>(fibers_).count(mu)) compute_fibers();
     return std::get<0>(fibers_).at(mu);
   }
-  std::shared_ptr<FrozenDoubleNode<I, 1>> Fiber_1(T0* mu) const {
+  FrozenDoubleNode<I, 1>* Fiber_1(T0* mu) const {
     if (!std::get<1>(fibers_).count(mu)) compute_fibers();
     return std::get<1>(fibers_).at(mu);
   }
@@ -155,7 +155,7 @@ class DoubleTreeBase : public MT_Base<I> {
   // Helper functions..
   template <size_t i>
   auto Project() const {
-    return this->root->template Frozen<i>();
+    return this->root()->template Frozen<i>();
   }
   auto Project_0() const { return Project<0>(); }
   auto Project_1() const { return Project<1>(); }
@@ -167,9 +167,8 @@ class DoubleTreeBase : public MT_Base<I> {
   }
 
  protected:
-  mutable std::tuple<
-      std::unordered_map<T1*, std::shared_ptr<FrozenDoubleNode<I, 0>>>,
-      std::unordered_map<T0*, std::shared_ptr<FrozenDoubleNode<I, 1>>>>
+  mutable std::tuple<std::unordered_map<T1*, FrozenDoubleNode<I, 0>*>,
+                     std::unordered_map<T0*, FrozenDoubleNode<I, 1>*>>
       fibers_;
 
   void compute_fibers() const {

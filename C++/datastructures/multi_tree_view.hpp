@@ -42,7 +42,7 @@ constexpr int level(const TupleNodes& nodes) {
 // I - The final implementation of this class, i.e. the derived class;
 // TupleNodes - The tuple type that represents a node;
 template <typename I, typename... T>
-class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
+class MultiNodeViewInterface {
  public:
   static constexpr size_t dim = sizeof...(T);
   using TupleNodes = std::tuple<T*...>;
@@ -84,9 +84,9 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 
   // Bfs can be used to retrieve the underlying nodes.
   template <typename Func = T_func_noop>
-  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false,
-                                      const Func& callback = func_noop,
-                                      bool return_nodes = true);
+  std::vector<I*> Bfs(bool include_metaroot = false,
+                      const Func& callback = func_noop,
+                      bool return_nodes = true);
 
   // DeepRefine refines the multitree according to the underlying trees.
   template <typename FuncFilt = T_func_true, typename FuncPost = T_func_noop>
@@ -95,8 +95,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 
   template <typename I_other = I, typename FuncFilt = T_func_true,
             typename FuncPost = T_func_noop>
-  void Union(std::shared_ptr<I_other> other,
-             const FuncFilt& call_filter = func_true,
+  void Union(I_other* other, const FuncFilt& call_filter = func_true,
              const FuncPost& call_postprocess = func_noop);
 
   template <
@@ -137,7 +136,7 @@ class MultiNodeViewInterface : public std::enable_shared_from_this<I> {
 
  private:
   template <size_t i, size_t j>
-  std::shared_ptr<I> FindBrother(const TupleNodes& nodes, bool make_conforming);
+  I* FindBrother(const TupleNodes& nodes, bool make_conforming);
 };
 
 template <typename I, typename... T>
@@ -148,15 +147,14 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   using TParents =
       std::array<StaticVector<I*, std::max({T::N_parents...})>, dim>;
   using TChildren =
-      std::array<SmallVector<std::shared_ptr<I>, std::max({T::N_children...})>,
-                 dim>;
+      std::array<SmallVector<I*, std::max({T::N_children...})>, dim>;
 
  public:
   // Constructor for a node.
   explicit MultiNodeViewBase(const TupleNodes& nodes, const TParents& parents)
       : nodes_(nodes), parents_(parents) {}
 
-  // Constructor for a root.
+  // Constructors for root.
   explicit MultiNodeViewBase(const TupleNodes& nodes)
       : MultiNodeViewBase(nodes, {}) {
     assert(this->is_root());
@@ -164,6 +162,7 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   explicit MultiNodeViewBase(T*... nodes)
       : MultiNodeViewBase(TupleNodes(nodes...)) {}
 
+  // Remove copy constructor.
   MultiNodeViewBase(const MultiNodeViewBase&) = delete;
 
   const TupleNodes& nodes() const { return nodes_; }
@@ -182,6 +181,15 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
     return parents_[i];
   }
 
+  // Create the ability to make a child.
+  template <typename... Args>
+  inline I* make_child(Args&&... args) {
+    children_own_.reserve(std::max({T::N_children...}));
+    children_own_.emplace_back(
+        std::make_unique<I>(std::forward<Args>(args)...));
+    return children_own_.back().get();
+  }
+
   // Use SFINAE to add convenient functions in case dim == 1.
   template <size_t dim = dim, typename = typename std::enable_if_t<dim == 1>>
   inline auto node() const {
@@ -195,8 +203,13 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
  protected:
   bool marked_ = false;
   TupleNodes nodes_;
+
+  // Store parents/children as raw pointers.
   TParents parents_;
   TChildren children_;
+
+  // If a multinode creates a child, it becomes the `owner` of this child.
+  std::vector<std::unique_ptr<I>> children_own_;
 };
 
 template <typename... T>
@@ -210,13 +223,14 @@ class MultiTreeView {
  public:
   using Impl = I;
   static constexpr size_t dim = I::dim;
-  std::shared_ptr<I> root;
+
+  I* root() { return root_.get(); }
+  I* root() const { return root_.get(); }
 
   // This constructs the tree with a single meta_root.
   template <typename... T>
-  explicit MultiTreeView(T... nodes) {
-    root = std::make_shared<I>(nodes...);
-    assert(root->is_root());
+  explicit MultiTreeView(T... nodes) : root_(std::make_unique<I>(nodes...)) {
+    assert(root_->is_root());
   }
 
   template <typename... T>
@@ -247,20 +261,24 @@ class MultiTreeView {
   MT_other DeepCopy(const FuncPost& call_postprocess = func_noop) const;
 
   // Simple helpers.
-  std::vector<std::shared_ptr<I>> Bfs(bool include_metaroot = false) const {
-    return root->Bfs(include_metaroot);
+  std::vector<I*> Bfs(bool include_metaroot = false) const {
+    return root_->Bfs(include_metaroot);
   }
   template <typename FuncFilt = T_func_true, typename FuncPost = T_func_noop>
   void DeepRefine(const FuncFilt& call_filter = func_true,
                   const FuncPost& call_postprocess = func_noop) {
-    return root->DeepRefine(call_filter, call_postprocess);
+    return root_->DeepRefine(call_filter, call_postprocess);
   }
   template <typename T_other = I, typename FuncFilt = T_func_true,
             typename FuncPost = T_func_noop>
   void Union(const T_other& other, const FuncFilt& call_filter = func_true,
              const FuncPost& call_postprocess = func_noop) {
-    root->Union(other.root, call_filter, call_postprocess);
+    root_->Union(other.root(), call_filter, call_postprocess);
   }
+
+ protected:
+  // Store the root as unique_ptr.
+  std::unique_ptr<I> root_;
 };
 
 template <typename T0>
