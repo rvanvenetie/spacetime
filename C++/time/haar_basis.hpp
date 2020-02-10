@@ -57,10 +57,9 @@ class HaarWaveletFn : public WaveletFn<HaarWaveletFn> {
   constexpr static size_t N_parents = 1;
   constexpr static const char *name = "Haar";
 
-  explicit HaarWaveletFn(
-      HaarWaveletFn *parent, int index,
-      const SparseVector<DiscConstantScalingFn> &single_scale)
-      : WaveletFn({parent}, index, single_scale) {}
+  explicit HaarWaveletFn(HaarWaveletFn *parent, int index,
+                         SparseVector<DiscConstantScalingFn> &&single_scale)
+      : WaveletFn({parent}, index, std::move(single_scale)) {}
 
   bool Refine();
   bool is_full() const;

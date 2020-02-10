@@ -6,6 +6,18 @@
 
 namespace Time {
 
+// Optimized helper function for unioning two disjoint basisvectors.
+template <typename Basis>
+inline SparseVector<Basis> Union(SparseVector<Basis> &&a,
+                                 SparseVector<Basis> &&b) {
+  if (a.empty()) return std::move(b);
+  if (b.empty()) return std::move(a);
+  a.reserve(a.size() + b.size());
+  a.insert(a.end(), std::make_move_iterator(b.begin()),
+           std::make_move_iterator(b.end()));
+  return std::move(a);
+}
+
 template <template <typename, typename> class Operator, typename I_in,
           typename I_out>
 BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in *root_vec_in,
@@ -64,11 +76,11 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
     size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
     const SparseVector<ScalingBasisIn> &d)
     -> std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>> {
-  SparseVector<WaveletBasisIn> c;
-  if (l < lvl_vec_in_.size()) c = lvl_vec_in_[l];
+  const SparseVector<WaveletBasisIn> &c =
+      l < lvl_vec_in_.size() ? lvl_vec_in_[l] : empty_vec_in_;
 
-  SparseIndices<WaveletBasisOut> Lambda_l_out;
-  if (l < lvl_ind_out_.size()) Lambda_l_out = lvl_ind_out_[l];
+  const SparseIndices<WaveletBasisOut> &Lambda_l_out =
+      l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
 
   SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
   if ((Pi_out.size() + Lambda_l_out.size()) > 0 &&
@@ -88,9 +100,7 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
     e += Prolongate<ScalingBasisOut>().RMatVec(e_bar, Pi_B_out);
 
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    // We know that f and f_bar are disjoint; we can simply append f_bar to f.
-    f.insert(f.end(), f_bar.begin(), f_bar.end());
-    return std::pair{e, f};
+    return std::pair{std::move(e), Union(std::move(f), std::move(f_bar))};
   } else {
     return std::pair{SparseVector<ScalingBasisOut>(),
                      SparseVector<WaveletBasisOut>()};
@@ -103,11 +113,11 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyUppRecur(
     size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
     const SparseVector<ScalingBasisIn> &d)
     -> std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>> {
-  SparseVector<WaveletBasisIn> c;
-  if (l < lvl_vec_in_.size()) c = lvl_vec_in_[l];
+  const SparseVector<WaveletBasisIn> &c =
+      l < lvl_vec_in_.size() ? lvl_vec_in_[l] : empty_vec_in_;
 
-  SparseIndices<WaveletBasisOut> Lambda_l_out;
-  if (l < lvl_ind_out_.size()) Lambda_l_out = lvl_ind_out_[l];
+  const SparseIndices<WaveletBasisOut> &Lambda_l_out =
+      l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
 
   SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
   if ((Pi_out.size() + Lambda_l_out.size()) > 0 &&
@@ -124,9 +134,7 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyUppRecur(
     e += Prolongate<ScalingBasisOut>().RMatVec(e_bar, Pi_B_out);
 
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    // We know that f and f_bar are disjoint; we can simply append f_bar to f.
-    f.insert(f.end(), f_bar.begin(), f_bar.end());
-    return std::pair{e, f};
+    return std::pair{std::move(e), Union(std::move(f), std::move(f_bar))};
   } else {
     return std::pair{SparseVector<ScalingBasisOut>(),
                      SparseVector<WaveletBasisOut>()};
@@ -138,11 +146,11 @@ template <template <typename, typename> class Operator, typename I_in,
 auto BilinearForm<Operator, I_in, I_out>::ApplyLowRecur(
     size_t l, const SparseVector<ScalingBasisIn> &d)
     -> SparseVector<WaveletBasisOut> {
-  SparseVector<WaveletBasisIn> c;
-  if (l < lvl_vec_in_.size()) c = lvl_vec_in_[l];
+  const SparseVector<WaveletBasisIn> &c =
+      l < lvl_vec_in_.size() ? lvl_vec_in_[l] : empty_vec_in_;
 
-  SparseIndices<WaveletBasisOut> Lambda_l_out;
-  if (l < lvl_ind_out_.size()) Lambda_l_out = lvl_ind_out_[l];
+  const SparseIndices<WaveletBasisOut> &Lambda_l_out =
+      l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
 
   SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
   if (Lambda_l_out.size() > 0 && (Pi_in.size() + c.size()) > 0) {
@@ -155,9 +163,7 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyLowRecur(
     d_bar += WaveletToScaling<WaveletBasisIn>().MatVec(c);
     auto f_bar = ApplyLowRecur(l + 1, d_bar);
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    // We know that f and f_bar are disjoint; we can simply append f_bar to f.
-    f.insert(f.end(), f_bar.begin(), f_bar.end());
-    return f;
+    return Union(std::move(f), std::move(f_bar));
   } else {
     return SparseVector<WaveletBasisOut>();
   }
@@ -173,7 +179,8 @@ auto BilinearForm<Operator, I_in, I_out>::ConstructPiOut(
   if (Pi_out.empty()) return {{}, {}};
 
   int level = Pi_out[0]->level();
-  if (level + 1 >= lvl_vec_in_.size()) return {{}, Pi_out};
+  if (level + 1 >= lvl_vec_in_.size() || lvl_vec_in_[level + 1].empty())
+    return {{}, Pi_out};
 
   // Mark the support of wavelets psi, on one level higher.
   auto wavelets = lvl_vec_in_.at(level + 1).Indices();
@@ -191,7 +198,7 @@ auto BilinearForm<Operator, I_in, I_out>::ConstructPiOut(
   for (auto psi : wavelets)
     for (auto elem : psi->support()) elem->parent()->set_marked(false);
 
-  return {Pi_B_out, Pi_A_out};
+  return {std::move(Pi_B_out), std::move(Pi_A_out)};
 }
 
 template <template <typename, typename> class Operator, typename I_in,
@@ -228,7 +235,7 @@ auto BilinearForm<Operator, I_in, I_out>::ConstructPiIn(
   for (auto phi : Pi_B_out)
     for (auto elem : phi->support()) elem->set_marked(false);
 
-  return {Pi_B_in, Pi_A_in};
+  return {std::move(Pi_B_in), std::move(Pi_A_in)};
 }
 
 }  // namespace Time

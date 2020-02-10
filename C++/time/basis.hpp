@@ -139,14 +139,14 @@ class WaveletFn : public Function<I> {
   using ScalingType = typename FunctionTrait<I>::Scaling;
 
   explicit WaveletFn(const std::vector<I *> &parents, int index,
-                     const SparseVector<ScalingType> &single_scale)
-      : Function<I>(parents, index), single_scale_(single_scale) {
+                     SparseVector<ScalingType> &&single_scale)
+      : Function<I>(parents, index), single_scale_(std::move(single_scale)) {
     // Now do two things:
     // 1) Register this wavelet in the scaling fn's multi_scale_.
     // 2) Figure out the support of this Wavelet using the single scale repr.
 
     for (int i = 0; i < single_scale_.size(); ++i) {
-      assert(single_scale[i].first != nullptr);
+      assert(single_scale_[i].first != nullptr);
       // Sanity check.
       if (i > 0) {
         assert(single_scale_[i - 1].first->index() <

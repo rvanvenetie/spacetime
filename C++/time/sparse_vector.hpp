@@ -46,7 +46,7 @@ class SparseIndices : public std::vector<Basis *> {
     return result;
   }
 
-  SparseIndices<Basis> operator|=(const SparseIndices<Basis> &rhs) {
+  SparseIndices<Basis> &operator|=(const SparseIndices<Basis> &rhs) {
     this->insert(this->end(), rhs.begin(), rhs.end());
     Compress();
     return *this;
@@ -66,11 +66,11 @@ class SparseVector : public std::vector<std::pair<Basis *, double>> {
   using Super = std::vector<std::pair<Basis *, double>>;
 
   SparseVector() = default;
-  SparseVector(const SparseVector<Basis> &) = default;
+  SparseVector(const SparseVector<Basis> &) = delete;
   SparseVector(SparseVector<Basis> &&) = default;
   SparseVector(Super &&vec) : Super(std::move(vec)) {}
   SparseVector<Basis> &operator=(SparseVector<Basis> &&) = default;
-  SparseVector<Basis> &operator=(const SparseVector<Basis> &) = default;
+  SparseVector<Basis> &operator=(const SparseVector<Basis> &) = delete;
 
   SparseIndices<Basis> Indices() const {
     SparseIndices<Basis> result;
@@ -127,13 +127,13 @@ class SparseVector : public std::vector<std::pair<Basis *, double>> {
     return result;
   }
 
-  SparseVector<Basis> operator+=(const SparseVector<Basis> &rhs) {
+  SparseVector<Basis> &operator+=(const SparseVector<Basis> &rhs) {
     this->insert(this->end(), rhs.begin(), rhs.end());
     Compress();
     return *this;
   }
 
-  SparseVector<Basis> operator*=(double alpha) {
+  SparseVector<Basis> &operator*=(double alpha) {
     for (auto &[_, coeff] : *this) coeff *= alpha;
     return *this;
   }
