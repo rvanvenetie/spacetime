@@ -7,6 +7,29 @@
 
 namespace datastructures {
 
+// Helper functions for converting between (flattened) trees and vectors.
+template <typename Iterable>
+Eigen::VectorXd ToVector(const Iterable &nodes) {
+  Eigen::VectorXd result(nodes.size());
+  for (size_t i = 0; i < nodes.size(); ++i) {
+    if constexpr (std::is_pointer_v<typename Iterable::value_type>)
+      result[i] = nodes[i]->value();
+    else
+      result[i] = nodes[i].value();
+  }
+  return result;
+}
+template <typename Iterable>
+void FromVector(const Iterable &nodes, const Eigen::VectorXd &vec) {
+  assert(nodes.size() == vec.size());
+  for (int i = 0; i < nodes.size(); ++i) {
+    if constexpr (std::is_pointer_v<typename Iterable::value_type>)
+      nodes[i]->set_value(vec[i]);
+    else
+      const_cast<typename Iterable::value_type &>(nodes[i]).set_value(vec[i]);
+  }
+}
+
 template <typename I>
 class MultiNodeVectorInterface {
  public:
@@ -19,15 +42,10 @@ class MultiNodeVectorInterface {
 
   // Note: this is not compatible with the Python ToArray!
   Eigen::VectorXd ToVector() const {
-    auto nodes = const_cast<I *>(self())->Bfs();
-    Eigen::VectorXd result(nodes.size());
-    for (size_t i = 0; i < nodes.size(); ++i) result[i] = nodes[i]->value();
-    return result;
+    return datastructures::ToVector(const_cast<I *>(self())->Bfs());
   }
   void FromVector(const Eigen::VectorXd &vec) {
-    auto nodes = self()->Bfs();
-    assert(nodes.size() == vec.size());
-    for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
+    datastructures::FromVector(self()->Bfs(), vec);
   }
 };
 
