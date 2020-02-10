@@ -189,7 +189,6 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   inline I* make_child(const TupleNodes& nodes, const TParents& parents) {
     container_->emplace_back(container_, nodes, parents);
     return &container_->back();
-  }
 
   // Access to the deque.
   std::deque<I>* container() { return container_; }
