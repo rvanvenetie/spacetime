@@ -40,8 +40,7 @@ def test_python(level, bilform_iters, inner_iters):
         # Create X^\delta
         X_delta = DoubleTree.from_metaroots(
             (basis_time_X.metaroot_wavelet, basis_space.root))
-        X_delta.deep_refine(lambda nv: nv[0].level <= 0 or nv[1].level <= 0 or
-                            (bsd_rnd() % 3) != 0)
+        X_delta.sparse_refine(level, [2, 1])
         Y_delta = generate_y_delta(X_delta)
         vec_X = X_delta.deep_copy(DoubleTreeVector)
         vec_Y = Y_delta.deep_copy(DoubleTreeVector)
@@ -65,4 +64,4 @@ def test_python(level, bilform_iters, inner_iters):
 
 
 if __name__ == "__main__":
-    test_python(level=5, bilform_iters=20, inner_iters=5)
+    test_python(level=10, bilform_iters=5, inner_iters=10)
