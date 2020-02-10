@@ -7,15 +7,6 @@
 
 namespace datastructures {
 
-class VectorElement {
- public:
-  inline const double &value() const { return value_; }
-  inline void set_value(double val) { value_ = val; }
-
- protected:
-  double value_ = 0.0;
-};
-
 template <typename I>
 class MultiNodeVectorInterface {
  public:
@@ -52,12 +43,25 @@ class MultiNodeVectorInterface {
   }
 };
 
-template <typename... T>
-class MultiNodeVector : public MultiNodeViewBase<MultiNodeVector<T...>, T...>,
-                        public VectorElement,
-                        public MultiNodeVectorInterface<MultiNodeVector<T...>> {
+template <typename I, typename... T>
+class MultiNodeVectorBase : public MultiNodeViewBase<I, T...>,
+                            public MultiNodeVectorInterface<I> {
  public:
-  using MultiNodeViewBase<MultiNodeVector<T...>, T...>::MultiNodeViewBase;
+  using MultiNodeViewBase<I, T...>::MultiNodeViewBase;
+
+  inline const double &value() const { return value_; }
+  inline void set_value(double val) { value_ = val; }
+
+ protected:
+  double value_ = 0.0;
+};
+
+// Create instance of this class
+template <typename... T>
+class MultiNodeVector
+    : public MultiNodeVectorBase<MultiNodeVector<T...>, T...> {
+ public:
+  using MultiNodeVectorBase<MultiNodeVector<T...>, T...>::MultiNodeVectorBase;
 };
 
 template <typename I>
