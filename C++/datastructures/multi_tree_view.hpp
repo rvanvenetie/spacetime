@@ -277,7 +277,7 @@ class MultiTreeView {
   }
 
  protected:
-  // Store the root as shared_ptr.
+  // Store the root as unique_ptr.
   std::unique_ptr<I> root_;
 };
 
