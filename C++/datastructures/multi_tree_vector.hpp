@@ -7,14 +7,28 @@
 
 namespace datastructures {
 
-class VectorElement {
- public:
-  inline const double &value() const { return value_; }
-  inline void set_value(double val) { value_ = val; }
-
- protected:
-  double value_ = 0.0;
-};
+// Helper functions for converting between (flattened) trees and vectors.
+template <typename Iterable>
+Eigen::VectorXd ToVector(const Iterable &nodes) {
+  Eigen::VectorXd result(nodes.size());
+  for (size_t i = 0; i < nodes.size(); ++i) {
+    if constexpr (std::is_pointer_v<typename Iterable::value_type>)
+      result[i] = nodes[i]->value();
+    else
+      result[i] = nodes[i].value();
+  }
+  return result;
+}
+template <typename Iterable>
+void FromVector(const Iterable &nodes, const Eigen::VectorXd &vec) {
+  assert(nodes.size() == vec.size());
+  for (int i = 0; i < nodes.size(); ++i) {
+    if constexpr (std::is_pointer_v<typename Iterable::value_type>)
+      nodes[i]->set_value(vec[i]);
+    else
+      const_cast<typename Iterable::value_type &>(nodes[i]).set_value(vec[i]);
+  }
+}
 
 template <typename I>
 class MultiNodeVectorInterface {
@@ -28,36 +42,32 @@ class MultiNodeVectorInterface {
 
   // Note: this is not compatible with the Python ToArray!
   Eigen::VectorXd ToVector() const {
-    auto nodes = const_cast<I *>(self())->Bfs();
-    Eigen::VectorXd result(nodes.size());
-    for (size_t i = 0; i < nodes.size(); ++i) result[i] = nodes[i]->value();
-    return result;
+    return datastructures::ToVector(const_cast<I *>(self())->Bfs());
   }
   void FromVector(const Eigen::VectorXd &vec) {
-    auto nodes = self()->Bfs();
-    assert(nodes.size() == vec.size());
-    for (int i = 0; i < nodes.size(); ++i) nodes[i]->set_value(vec[i]);
-  }
-
-  // In case dim == 1, we add functionality to read data from the
-  // underlying tree.
-  void ReadFromTree() {
-    for (const auto &nv : self()->Bfs()) {
-      auto node = nv->node();
-      if (node->has_data())
-        nv->set_value(*node->template data<double>());
-      else
-        nv->set_value(0);
-    }
+    datastructures::FromVector(self()->Bfs(), vec);
   }
 };
 
-template <typename... T>
-class MultiNodeVector : public MultiNodeViewBase<MultiNodeVector<T...>, T...>,
-                        public VectorElement,
-                        public MultiNodeVectorInterface<MultiNodeVector<T...>> {
+template <typename I, typename... T>
+class MultiNodeVectorBase : public MultiNodeViewBase<I, T...>,
+                            public MultiNodeVectorInterface<I> {
  public:
-  using MultiNodeViewBase<MultiNodeVector<T...>, T...>::MultiNodeViewBase;
+  using MultiNodeViewBase<I, T...>::MultiNodeViewBase;
+
+  inline const double &value() const { return value_; }
+  inline void set_value(double val) { value_ = val; }
+
+ protected:
+  double value_ = 0.0;
+};
+
+// Create instance of this class
+template <typename... T>
+class MultiNodeVector
+    : public MultiNodeVectorBase<MultiNodeVector<T...>, T...> {
+ public:
+  using MultiNodeVectorBase<MultiNodeVector<T...>, T...>::MultiNodeVectorBase;
 };
 
 template <typename I>
@@ -69,8 +79,8 @@ class MultiTreeVector : public MultiTreeView<I> {
   using MultiTreeView<I>::MultiTreeView;
 
   // Note: this is not compatible with the Python ToArray!
-  Eigen::VectorXd ToVector() const { return Super::root->ToVector(); }
-  void FromVector(const Eigen::VectorXd &vec) { Super::root->FromVector(vec); }
+  Eigen::VectorXd ToVector() const { return Super::root_->ToVector(); }
+  void FromVector(const Eigen::VectorXd &vec) { Super::root_->FromVector(vec); }
 
   // Create a deepcopy that copies the vector data as well.
   template <typename MT_other = MultiTreeVector<I>>
@@ -82,19 +92,21 @@ class MultiTreeVector : public MultiTreeView<I> {
   }
 
   // Set all values to zero.
-  void Reset() { Super::root->Reset(); }
+  void Reset() {
+    for (auto &node : Super::multi_nodes_) node.set_value(0);
+  }
 
   // Define some simple linear algebra functions.
   MultiTreeVector<I> &operator*=(double val) {
-    for (const auto &nv : Super::Bfs()) {
-      nv->set_value(nv->value() * val);
+    for (auto &nv : Super::multi_nodes_) {
+      nv.set_value(nv.value() * val);
     }
     return *this;
   }
   template <typename MT_other = MultiTreeVector<I>>
   MultiTreeVector<I> &operator+=(const MT_other &rhs) {
-    Super::root->Union(
-        rhs.root, /* call_filter*/ func_true, /* call_postprocess*/
+    Super::root_->Union(
+        rhs.root(), /* call_filter*/ func_true, /* call_postprocess*/
         [](const auto &my_node, const auto &other_node) {
           my_node->set_value(my_node->value() + other_node->value());
         });

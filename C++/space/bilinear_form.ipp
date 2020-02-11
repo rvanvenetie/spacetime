@@ -3,54 +3,68 @@
 
 namespace space {
 template <typename Operator, typename I_in, typename I_out>
-BilinearForm<Operator, I_in, I_out>::BilinearForm(
-    std::shared_ptr<I_in> root_vec_in, std::shared_ptr<I_out> root_vec_out,
-    bool dirichlet_boundary)
+BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
+                                                  I_out* root_vec_out,
+                                                  bool dirichlet_boundary)
     : vec_in_(root_vec_in), vec_out_(root_vec_out) {
   assert(root_vec_in->is_root());
   assert(root_vec_out->is_root());
-  auto vec_in_nodes = vec_in_->Bfs();
-  auto vec_out_nodes = vec_out_->Bfs();
+  auto nodes_vec_in = vec_in_->Bfs();
+  auto nodes_vec_out = vec_out_->Bfs();
+  assert(nodes_vec_in.size());
+  assert(nodes_vec_out.size());
 
   // Determine whether the input and output vector coincide.
-  symmetric_ = (vec_in_nodes.size() == vec_out_nodes.size());
+  symmetric_ = (nodes_vec_in.size() == nodes_vec_out.size());
   if (symmetric_)
-    for (size_t i = 0; i < vec_in_nodes.size(); ++i)
-      if (vec_in_nodes[i]->node() != vec_out_nodes[i]->node()) {
+    for (size_t i = 0; i < nodes_vec_in.size(); ++i)
+      if (nodes_vec_in[i]->node() != nodes_vec_out[i]->node()) {
         symmetric_ = false;
         break;
       }
 
   // If this applicator is symmetric, there is not a lot to do.
   if (symmetric_) {
-    triang_ = std::make_unique<TriangulationView>(vec_in_);
+    triang_ = std::make_unique<TriangulationView>(nodes_vec_in);
+    nodes_vec_in_ = std::move(nodes_vec_in);
+    nodes_vec_out_ = std::move(nodes_vec_out);
   } else {
     // This operator is not symmetric, calculate a union.
     vec_union_ =
-        std::make_shared<datastructures::NodeVector<HierarchicalBasisFn>>(
+        std::make_unique<datastructures::TreeVector<HierarchicalBasisFn>>(
             vec_in_->node());
-    vec_union_->Union(vec_in_);
-    vec_union_->Union(vec_out_);
-    triang_ = std::make_unique<TriangulationView>(vec_union_);
+    vec_union_->root()->Union(vec_in_);
+    vec_union_->root()->Union(vec_out_);
+    nodes_vec_union_ = vec_union_->Bfs();
+    triang_ = std::make_unique<TriangulationView>(nodes_vec_union_);
   }
   operator_ = std::make_unique<Operator>(*triang_, dirichlet_boundary);
 }
 
 template <typename Operator, typename I_in, typename I_out>
 void BilinearForm<Operator, I_in, I_out>::Apply() {
-  if (symmetric_)
+  if (symmetric_) {
     // Apply the operator in SS.
-    return vec_out_->FromVector(operator_->Apply(vec_in_->ToVector()));
+    auto v = ToVector(nodes_vec_in_);
+    v = operator_->Apply(v);
+    FromVector(nodes_vec_out_, v);
+    return;
+  }
 
   // Not symmetric, we must do some magic tricks.
-  auto lambda_copy = [](const auto &new_node, const auto &old_node) {
+  auto lambda_copy = [](const auto& new_node, const auto& old_node) {
     new_node->set_value(old_node->value());
   };
   vec_union_->Reset();
-  vec_union_->Union(vec_in_, datastructures::func_false, lambda_copy);
+  vec_union_->root()->Union(vec_in_, datastructures::func_false, lambda_copy);
+
   // Apply the operator in SS.
-  vec_union_->FromVector(operator_->Apply(vec_union_->ToVector()));
-  vec_out_->Union(vec_union_, datastructures::func_false, lambda_copy);
+  auto v = ToVector(nodes_vec_union_);
+  v = operator_->Apply(v);
+  FromVector(nodes_vec_union_, v);
+
+  // Copy the results from the union vector back to the output vector.
+  vec_out_->Union(vec_union_->root(), datastructures::func_false, lambda_copy);
 }
 
 template <typename Operator, typename I_in, typename I_out>

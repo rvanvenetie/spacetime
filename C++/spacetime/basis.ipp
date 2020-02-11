@@ -1,9 +1,10 @@
 #pragma once
+#include "spacetime/basis.hpp"
 
 namespace spacetime {
 template <class DblTreeIn, class DblTreeOut>
 auto GenerateSigma(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out) {
-  using OutNodeVector = std::vector<typename DblTreeOut::T0p>;
+  using OutNodeVector = std::vector<typename DblTreeOut::T0 *>;
 
   for (const auto &psi_out : Lambda_out.Project_0()->Bfs())
     for (auto elem : psi_out->node()->support()) {
@@ -13,8 +14,8 @@ auto GenerateSigma(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out) {
 
   auto Sigma = datastructures::DoubleTreeVector<typename DblTreeIn::T0,
                                                 typename DblTreeOut::T1>(
-      std::get<0>(Lambda_in.root->nodes()),
-      std::get<1>(Lambda_out.root->nodes()));
+      std::get<0>(Lambda_in.root()->nodes()),
+      std::get<1>(Lambda_out.root()->nodes()));
   Sigma.Project_0()->Union(Lambda_in.Project_0());
   Sigma.Project_1()->Union(Lambda_out.Project_1());
 
@@ -51,8 +52,8 @@ template <class DblTreeIn, class DblTreeOut>
 auto GenerateTheta(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out) {
   auto Theta = datastructures::DoubleTreeVector<typename DblTreeOut::T0,
                                                 typename DblTreeIn::T1>(
-      std::get<0>(Lambda_out.root->nodes()),
-      std::get<1>(Lambda_in.root->nodes()));
+      std::get<0>(Lambda_out.root()->nodes()),
+      std::get<1>(Lambda_in.root()->nodes()));
   Theta.Project_0()->Union(Lambda_out.Project_0());
   Theta.Project_1()->Union(Lambda_in.Project_1());
 
