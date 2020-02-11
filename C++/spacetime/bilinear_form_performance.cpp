@@ -19,8 +19,8 @@ using namespace space;
 using namespace Time;
 using namespace datastructures;
 
-constexpr int num_threads = 1;
-constexpr int level = 18;
+constexpr int num_threads = 4;
+constexpr int level = 15;
 constexpr int bilform_iters = 5;
 constexpr int inner_iters = 10;
 constexpr bool use_cache = true;
