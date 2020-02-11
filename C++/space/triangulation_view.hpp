@@ -27,13 +27,14 @@ class Element2DView
 class TriangulationView {
  public:
   TriangulationView(std::vector<Vertex *> &&vertices);
-  template <typename I>
-  TriangulationView(I root) : TriangulationView(Transform(root)) {}
+  template <typename Iterable>
+  TriangulationView(const Iterable &vertices)
+      : TriangulationView(Transform(vertices)) {}
   TriangulationView(const datastructures::TreeView<Vertex> &vertex_view)
-      : TriangulationView(Transform(vertex_view.root())) {}
+      : TriangulationView(vertex_view.Bfs()) {}
   TriangulationView(
       const datastructures::TreeVector<HierarchicalBasisFn> &basis_vector)
-      : TriangulationView(Transform(basis_vector.root())) {}
+      : TriangulationView(basis_vector.Bfs()) {}
 
   const std::vector<Vertex *> &vertices() const { return vertices_; }
   const std::vector<Element2DView *> &elements() const { return elements_; }
@@ -56,11 +57,9 @@ class TriangulationView {
   inline static Vertex *ToVertex(HierarchicalBasisFn *phi) {
     return phi->vertex();
   }
-  template <typename I>
-  std::vector<Vertex *> Transform(I root) {
-    assert(root->is_root());
+  template <typename Iterable>
+  std::vector<Vertex *> Transform(const Iterable &nodes) {
     std::vector<Vertex *> result;
-    auto nodes = root->Bfs();
     assert(nodes.size());
     result.reserve(nodes.size());
     for (const auto nv : nodes) result.emplace_back(ToVertex(nv->node()));

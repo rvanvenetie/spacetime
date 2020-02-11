@@ -19,10 +19,17 @@ class BilinearForm {
   I_in* vec_in_;
   I_out* vec_out_;
   bool symmetric_;
-
-  std::unique_ptr<datastructures::TreeVector<HierarchicalBasisFn>> vec_union_;
   std::unique_ptr<TriangulationView> triang_;
   std::unique_ptr<Operator> operator_;
+
+  // If symmetric, a flattened bfs view of input/output vectors.
+  std::vector<I_in*> nodes_vec_in_;
+  std::vector<I_out*> nodes_vec_out_;
+
+  // If not symmetric, a treevector and flattened list of the union.
+  std::unique_ptr<datastructures::TreeVector<HierarchicalBasisFn>> vec_union_;
+  std::vector<datastructures::NodeVector<HierarchicalBasisFn>*>
+      nodes_vec_union_;
 };
 
 // Helper functions .
