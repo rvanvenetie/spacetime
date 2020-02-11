@@ -2,7 +2,6 @@
 #include <omp.h>
 
 #include <algorithm>
-#include <iostream>
 #include <memory>
 #include <queue>
 #include <utility>
@@ -58,7 +57,9 @@ class Node : public NodeInterface<I> {
   // The implementation must publish constexpr N_parents and N_children. This
   // will give us possible optimalisations :-).
   explicit Node(const std::vector<I *> &parents)
-      : parents_(parents), marked_(4, false), data_(4, nullptr) {
+      : parents_(parents),
+        marked_(omp_get_max_threads(), 0),
+        data_(omp_get_max_threads(), nullptr) {
     children_.reserve(I::N_children);
     assert(parents.size());
     level_ = parents[0]->level() + 1;
@@ -69,12 +70,7 @@ class Node : public NodeInterface<I> {
 
   int level() const { return level_; }
   bool marked() const { return marked_[omp_get_thread_num()]; }
-  void set_marked(bool value) {
-    std::cout << static_cast<I &>(*this) << " [" << omp_get_thread_num()
-              << "] = " << value << " from " << marked_[omp_get_thread_num()]
-              << std::endl;
-    marked_[omp_get_thread_num()] = value;
-  }
+  void set_marked(bool value) { marked_[omp_get_thread_num()] = value; }
   bool is_leaf() const { return children_.size() == 0; }
   inline bool is_metaroot() const { return (level_ == -1); }
   const std::vector<I *> &parents() const { return parents_; }
@@ -100,7 +96,7 @@ class Node : public NodeInterface<I> {
 
  protected:
   int level_;
-  std::vector<bool> marked_;
+  std::vector<unsigned short> marked_;
   std::vector<void *> data_;
 
   // Store parents/children as raw pointers.
@@ -118,7 +114,10 @@ class Node : public NodeInterface<I> {
     return children_own_.back().get();
   }
 
-  Node() : level_(-1), marked_(4, false), data_(4, nullptr) {}
+  Node()
+      : level_(-1),
+        marked_(omp_get_max_threads(), 0),
+        data_(omp_get_max_threads(), nullptr) {}
 };
 
 template <typename I>

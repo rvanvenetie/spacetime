@@ -30,8 +30,8 @@ class FrozenDoubleNode
 
   auto nodes() const { return std::tuple{std::get<i>(dbl_node_->nodes())}; }
   auto node() const { return std::get<i>(dbl_node_->nodes()); }
-  bool marked() const { return dbl_node_->marked(); }
-  void set_marked(bool value) { dbl_node_->set_marked(value); }
+  bool marked() const { return marked_; }
+  void set_marked(bool value) { marked_ = value; }
   const std::vector<Self*>& children(size_t _ = 0) {
     assert(_ == 0);
     const auto& dbl_children = dbl_node_->children(i);
@@ -90,6 +90,7 @@ class FrozenDoubleNode
   inline void set_value(double val) { dbl_node_->set_value(val); }
 
  protected:
+  bool marked_ = false;
   I_dbl* dbl_node_;
   std::vector<Self*> children_;
 };
@@ -168,11 +169,6 @@ class DoubleTreeBase : public MT_Base<I> {
     return MT_Base<I>::template DeepCopy<MT_other>();
   }
 
- protected:
-  mutable std::tuple<std::unordered_map<T1*, FrozenDoubleNode<I, 0>*>,
-                     std::unordered_map<T0*, FrozenDoubleNode<I, 1>*>>
-      fibers_;
-
   void compute_fibers() const {
     static_for<2>([&](auto i) {
       for (const auto& f_node :
@@ -182,6 +178,11 @@ class DoubleTreeBase : public MT_Base<I> {
       }
     });
   }
+
+ protected:
+  mutable std::tuple<std::unordered_map<T1*, FrozenDoubleNode<I, 0>*>,
+                     std::unordered_map<T0*, FrozenDoubleNode<I, 1>*>>
+      fibers_;
 };
 
 // DoubleNodeView + DoubleTreeView implementation.

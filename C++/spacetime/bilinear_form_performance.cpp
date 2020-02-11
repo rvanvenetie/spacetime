@@ -19,12 +19,14 @@ using namespace space;
 using namespace Time;
 using namespace datastructures;
 
-constexpr int level = 16;
+constexpr int num_threads = 1;
+constexpr int level = 18;
 constexpr int bilform_iters = 5;
 constexpr int inner_iters = 10;
 constexpr bool use_cache = true;
 
 int main() {
+  omp_set_num_threads(num_threads);
 #pragma omp parallel
   {
     // Code inside this region runs in parallel.
