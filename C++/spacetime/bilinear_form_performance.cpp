@@ -19,12 +19,17 @@ using namespace space;
 using namespace Time;
 using namespace datastructures;
 
-constexpr int level = 19;
+constexpr int level = 16;
 constexpr int bilform_iters = 5;
 constexpr int inner_iters = 10;
 constexpr bool use_cache = true;
 
 int main() {
+#pragma omp parallel
+  {
+    // Code inside this region runs in parallel.
+    std::cout << "Hello from thread " << omp_get_thread_num() << std::endl;
+  }
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(::level);
   ortho_tree.UniformRefine(::level);

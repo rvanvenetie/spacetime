@@ -1,6 +1,9 @@
 #pragma once
+#include <omp.h>
+
 #include <cmath>
 #include <iostream>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -37,12 +40,22 @@ class SparseIndices : public std::vector<Basis *> {
     // Loop over all indices, mark the unseen ones.
     for (auto phi : *this)
       if (phi->marked()) {
+        std::cout << "Thread " << omp_get_thread_num() << " found " << *phi
+                  << std::endl;
         result = false;
         break;
       } else
         phi->set_marked(true);
 
     for (auto phi : *this) phi->set_marked(false);
+    if (!result) {
+      std::stringstream ss;
+      ss << "Thread " << omp_get_thread_num() << " out of "
+         << omp_get_max_threads() << " has indices ";
+      for (auto ind : *this) ss << *ind << " ";
+      ss << std::endl;
+      std::cout << ss.str();
+    }
     return result;
   }
 

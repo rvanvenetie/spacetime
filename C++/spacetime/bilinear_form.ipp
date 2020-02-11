@@ -73,18 +73,27 @@ void BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       bil_form.Apply();
       if (use_cache_) bil_space_upp_.emplace_back(std::move(bil_form));
     }
-  } else {
+  } else
+#pragma omp parallel
+  {
     // Apply the lower part using cached bil forms.
-    for (auto &bil_form : bil_space_low_) bil_form.Apply();
-    for (auto &bil_form : bil_time_low_) bil_form.ApplyLow();
+#pragma omp for
+    for (int i = 0; i < bil_space_low_.size(); ++i) bil_space_low_[i].Apply();
+#pragma omp for
+    for (int i = 0; i < bil_time_low_.size(); ++i) bil_time_low_[i].ApplyLow();
 
-    // Store the lower output.
-    v = vec_out_->ToVectorContainer();
-    vec_out_->Reset();
+      // Store the lower output.
+#pragma single
+    {
+      v = vec_out_->ToVectorContainer();
+      vec_out_->Reset();
+    }
 
-    // Apply the upper part using cached bil forms.
-    for (auto &bil_form : bil_time_upp_) bil_form.ApplyUpp();
-    for (auto &bil_form : bil_space_upp_) bil_form.Apply();
+// Apply the upper part using cached bil forms.
+#pragma omp for
+    for (int i = 0; i < bil_time_upp_.size(); ++i) bil_time_upp_[i].ApplyUpp();
+#pragma omp for
+    for (int i = 0; i < bil_space_upp_.size(); ++i) bil_space_upp_[i].Apply();
   }
 
   // Add the upper part to the output.

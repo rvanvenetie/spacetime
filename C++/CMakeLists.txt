@@ -21,6 +21,9 @@ if(CCACHE_PROGRAM)
     set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
+# Set OpenMP
+find_package(OpenMP)
+
 ### Download GoogleTest
 include(FetchContent)
 FetchContent_Declare(

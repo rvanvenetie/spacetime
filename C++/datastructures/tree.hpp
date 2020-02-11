@@ -1,5 +1,8 @@
 #pragma once
+#include <omp.h>
+
 #include <algorithm>
+#include <iostream>
 #include <memory>
 #include <queue>
 #include <utility>
@@ -54,7 +57,8 @@ class Node : public NodeInterface<I> {
  public:
   // The implementation must publish constexpr N_parents and N_children. This
   // will give us possible optimalisations :-).
-  explicit Node(const std::vector<I *> &parents) : parents_(parents) {
+  explicit Node(const std::vector<I *> &parents)
+      : parents_(parents), marked_(4, false), data_(4, nullptr) {
     children_.reserve(I::N_children);
     assert(parents.size());
     level_ = parents[0]->level() + 1;
@@ -64,8 +68,13 @@ class Node : public NodeInterface<I> {
   }
 
   int level() const { return level_; }
-  bool marked() const { return marked_; }
-  void set_marked(bool value) { marked_ = value; }
+  bool marked() const { return marked_[omp_get_thread_num()]; }
+  void set_marked(bool value) {
+    std::cout << static_cast<I &>(*this) << " [" << omp_get_thread_num()
+              << "] = " << value << " from " << marked_[omp_get_thread_num()]
+              << std::endl;
+    marked_[omp_get_thread_num()] = value;
+  }
   bool is_leaf() const { return children_.size() == 0; }
   inline bool is_metaroot() const { return (level_ == -1); }
   const std::vector<I *> &parents() const { return parents_; }
@@ -74,25 +83,25 @@ class Node : public NodeInterface<I> {
   // General data field for universal storage.
   template <typename T>
   T *data() {
-    assert(data_ != nullptr);
-    return static_cast<T *>(data_);
+    assert(data_[omp_get_thread_num()] != nullptr);
+    return static_cast<T *>(data_[omp_get_thread_num()]);
   }
 
   template <typename T>
   void set_data(T *value) {
-    assert(data_ == nullptr);
-    data_ = static_cast<void *>(value);
+    assert(data_[omp_get_thread_num()] == nullptr);
+    data_[omp_get_thread_num()] = static_cast<void *>(value);
   }
   void reset_data() {
-    assert(data_ != nullptr);
-    data_ = nullptr;
+    assert(data_[omp_get_thread_num()] != nullptr);
+    data_[omp_get_thread_num()] = nullptr;
   }
-  bool has_data() { return data_ != nullptr; }
+  bool has_data() { return data_[omp_get_thread_num()] != nullptr; }
 
  protected:
   int level_;
-  bool marked_ = false;
-  void *data_ = nullptr;
+  std::vector<bool> marked_;
+  std::vector<void *> data_;
 
   // Store parents/children as raw pointers.
   std::vector<I *> parents_;
@@ -109,7 +118,7 @@ class Node : public NodeInterface<I> {
     return children_own_.back().get();
   }
 
-  Node() : level_(-1) {}
+  Node() : level_(-1), marked_(4, false), data_(4, nullptr) {}
 };
 
 template <typename I>
