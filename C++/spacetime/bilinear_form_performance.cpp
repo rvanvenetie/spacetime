@@ -19,7 +19,7 @@ using namespace space;
 using namespace Time;
 using namespace datastructures;
 
-constexpr int level = 10;
+constexpr int level = 19;
 constexpr int bilform_iters = 5;
 constexpr int inner_iters = 10;
 constexpr bool use_cache = true;
@@ -46,11 +46,13 @@ int main() {
         CreateBilinearForm<Time::TransportOperator, space::MassOperator>(
             vec_X, &vec_Y, /* use_cache */ use_cache);
 
-    // std::cout << "----" << std::endl;
-    // std::cout << "X_delta size " << X_delta.Bfs().size() << std::endl;
-    // std::cout << "Y_delta size " << Y_delta.Bfs().size() << std::endl;
-    // std::cout << "Sigma size " << bil_form.sigma().Bfs().size() << std::endl;
-    // std::cout << "Theta size " << bil_form.theta().Bfs().size() << std::endl;
+    std::cout << "----" << std::endl;
+    std::cout << "X_delta size " << X_delta.Bfs().size() << " sizeof element "
+              << sizeof(decltype(X_delta)::Impl) << std::endl;
+    std::cout << "Y_delta size " << Y_delta.Bfs().size() << " sizeof element "
+              << sizeof(decltype(Y_delta)::Impl) << std::endl;
+    std::cout << "Sigma size " << bil_form.sigma().Bfs().size() << std::endl;
+    std::cout << "Theta size " << bil_form.theta().Bfs().size() << std::endl;
     for (size_t k = 0; k < ::inner_iters; k++) {
       for (auto& nv : vec_X.Bfs()) {
         nv->set_value(bsd_rnd());
