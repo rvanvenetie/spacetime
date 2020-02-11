@@ -19,9 +19,9 @@ using namespace space;
 using namespace Time;
 using namespace datastructures;
 
-constexpr int level = 5;
-constexpr int bilform_iters = 20;
-constexpr int inner_iters = 5;
+constexpr int level = 10;
+constexpr int bilform_iters = 5;
+constexpr int inner_iters = 10;
 constexpr bool use_cache = true;
 
 int main() {
@@ -35,11 +35,7 @@ int main() {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
         three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
-    X_delta.DeepRefine(
-        /* call_filter */ [](auto&& nv) {
-          return std::get<0>(nv)->level() <= 0 ||
-                 std::get<1>(nv)->level() <= 0 || bsd_rnd() % 3 != 0;
-        });
+    X_delta.SparseRefine(::level, {2, 1});
     auto Y_delta = GenerateYDelta(X_delta);
 
     auto vec_X = X_delta.template DeepCopy<

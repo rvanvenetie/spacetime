@@ -191,9 +191,6 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
     return &container_->back();
   }
 
-  // Access to the deque.
-  std::deque<I>* container() { return container_; }
-
   // Use SFINAE to add convenient functions in case dim == 1.
   template <size_t dim = dim, typename = typename std::enable_if_t<dim == 1>>
   inline auto node() const {
@@ -230,6 +227,7 @@ class MultiTreeView {
 
   I* root() { return root_; }
   I* root() const { return root_; }
+  const std::deque<I>& container() const { return multi_nodes_; }
 
   // This constructs the tree with a single meta_root.
   template <typename... T>
