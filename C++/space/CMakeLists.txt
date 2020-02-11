@@ -12,3 +12,6 @@ target_link_libraries(triangulation_view_test space)
 
 package_add_test(bilinear_formtest bilinear_form_test.cpp)
 target_link_libraries(bilinear_formtest space)
+
+package_add_test(space_linear_functional_test linear_functional_test.cpp)
+target_link_libraries(space_linear_functional_test space)
