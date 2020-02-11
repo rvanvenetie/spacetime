@@ -44,7 +44,7 @@ auto GenerateSigma(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out) {
       elem->reset_data();
       delete data;
     }
-
+  Sigma.compute_fibers();
   return Sigma;
 }
 
@@ -75,6 +75,7 @@ auto GenerateTheta(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out) {
       for (auto elem : psi_in_labda_0->node()->support())
         elem->set_marked(false);
   }
+  Theta.compute_fibers();
   return Theta;
 }
 };  // namespace spacetime

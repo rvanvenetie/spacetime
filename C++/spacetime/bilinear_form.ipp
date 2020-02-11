@@ -12,12 +12,7 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
       vec_out_(vec_out),
       sigma_(GenerateSigma(vec_in, *vec_out)),
       theta_(GenerateTheta(vec_in, *vec_out)),
-      use_cache_(use_cache) {
-  vec_in_.compute_fibers();
-  vec_out_->compute_fibers();
-  sigma_.compute_fibers();
-  theta_.compute_fibers();
-}
+      use_cache_(use_cache) {}
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>

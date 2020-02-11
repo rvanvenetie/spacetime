@@ -147,11 +147,9 @@ class DoubleTreeBase : public MT_Base<I> {
   using T1 = typename I::T1;
 
   FrozenDoubleNode<I, 0>* Fiber_0(T1* mu) const {
-    if (!std::get<0>(fibers_).count(mu)) compute_fibers();
     return std::get<0>(fibers_).at(mu);
   }
   FrozenDoubleNode<I, 1>* Fiber_1(T0* mu) const {
-    if (!std::get<1>(fibers_).count(mu)) compute_fibers();
     return std::get<1>(fibers_).at(mu);
   }
 

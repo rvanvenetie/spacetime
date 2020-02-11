@@ -82,7 +82,6 @@ class Node : public NodeInterface<I> {
     assert(data_[omp_get_thread_num()] != nullptr);
     return static_cast<T *>(data_[omp_get_thread_num()]);
   }
-
   template <typename T>
   void set_data(T *value) {
     assert(data_[omp_get_thread_num()] == nullptr);
