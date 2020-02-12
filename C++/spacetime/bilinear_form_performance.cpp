@@ -53,13 +53,14 @@ int main() {
     // std::cout << "Y_delta size " << Y_delta.Bfs().size() << " sizeof element
     // "
     //          << sizeof(decltype(Y_delta)::Impl) << std::endl;
-    // std::cout << "Sigma size " << bil_form.sigma().Bfs().size() << std::endl;
-    // std::cout << "Theta size " << bil_form.theta().Bfs().size() << std::endl;
+    // std::cout << "Sigma size " << bil_form->sigma().Bfs().size() <<
+    // std::endl; std::cout << "Theta size " << bil_form->theta().Bfs().size()
+    // << std::endl;
     for (size_t k = 0; k < ::inner_iters; k++) {
       for (auto& nv : vec_X.Bfs()) {
         nv->set_value(bsd_rnd());
       }
-      bil_form.Apply();
+      bil_form->Apply();
     }
   }
   return 0;
