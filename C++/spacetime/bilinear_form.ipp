@@ -109,7 +109,7 @@ void BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
   Eigen::VectorXd v;
 
   // Check whether we have already cached the transpose bil forms.
-  if (is_tcached_) {
+  if (!is_tcached_) {
     for (auto &bil_form : bil_space_low_)
       tbil_space_low_.emplace_back(bil_form.Transpose());
     for (auto &bil_form : bil_time_low_)
@@ -118,6 +118,7 @@ void BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       tbil_time_upp_.emplace_back(bil_form.Transpose());
     for (auto &bil_form : bil_space_upp_)
       tbil_space_upp_.emplace_back(bil_form.Transpose());
+    is_tcached_ = true;
   }
 
   // Apply the lower part using cached bil forms.
