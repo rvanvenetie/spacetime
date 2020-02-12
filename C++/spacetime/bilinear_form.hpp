@@ -15,7 +15,9 @@ class TransposeBilinearForm;
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-class BilinearForm {
+class BilinearForm
+    : public std::enable_shared_from_this<BilinearForm<
+          OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>> {
  protected:
   template <typename T0, typename T1>
   using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
@@ -27,6 +29,10 @@ class BilinearForm {
                bool use_cache = true);
 
   Eigen::VectorXd Apply();
+  Eigen::VectorXd ApplyTranspose();
+
+  // Returns the transpose operator.
+  auto Transpose() const { return TransposeBilinearForm(shared_from_this()); }
 
   auto vec_in() const { return vec_in_; }
   auto vec_out() const { return vec_out_; }
@@ -41,6 +47,7 @@ class BilinearForm {
   DoubleTreeVector<BasisTimeOut, BasisSpace> theta_;
   bool use_cache_;
   bool is_cached_ = false;
+  bool is_tcached_ = false;
 
   // Define frozen templates, useful for storing the bil forms.
   template <size_t i>
@@ -56,13 +63,11 @@ class BilinearForm {
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_upp_;
   std::vector<space::BilinearForm<OperatorSpace, FO<1>, FO<1>>> bil_space_upp_;
 
-  // Some shortcut definitions for the transpose operator.
-  using TransBilSpaceLow = space::BilinearForm<OperatorSpace, FI<1>, FI<1>>;
-  using TransBilTimeLow = Time::BilinearForm<OperatorTime, FO<0>, FI<0>>;
-  using TransBilTimeUpp = Time::BilinearForm<OperatorTime, FO<0>, FI<0>>;
-  using TransBilSpaceUpp = space::BilinearForm<OperatorSpace, FO<1>, FO<1>>;
-  friend TransposeBilinearForm<
-      BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>>;
+  // Store bilinear forms of the transpose operations.
+  std::vector<Time::BilinearForm<OperatorTime, FO<0>, FI<0>>> tbil_time_low_;
+  std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> tbil_space_low_;
+  std::vector<space::BilinearForm<OperatorSpace, FO<1>, FO<1>>> tbil_space_upp_;
+  std::vector<Time::BilinearForm<OperatorTime, FO<0>, FI<0>>> tbil_time_upp_;
 };
 
 // Helper function.
@@ -115,20 +120,13 @@ class TransposeBilinearForm {
     assert(bil_form_->use_cache_);
   }
 
-  Eigen::VectorXd Apply();
+  Eigen::VectorXd Apply() { return bil_form_->ApplyTranspose(); }
 
   auto vec_in() const { return bil_form_->vec_in(); }
   auto vec_out() const { return bil_form_->vec_out(); }
 
  protected:
   std::shared_ptr<BilForm> bil_form_;
-  bool is_tcached_ = false;
-
-  // Store bilinear forms of the transpose operations.
-  std::vector<typename BilForm::TransBilTimeLow> tbil_time_low_;
-  std::vector<typename BilForm::TransBilSpaceLow> tbil_space_low_;
-  std::vector<typename BilForm::TransBilSpaceUpp> tbil_space_upp_;
-  std::vector<typename BilForm::TransBilTimeUpp> tbil_time_upp_;
 };
 
 }  // namespace spacetime

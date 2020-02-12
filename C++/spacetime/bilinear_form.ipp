@@ -98,26 +98,28 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
   return v;
 }
 
-template <typename BilForm>
-Eigen::VectorXd TransposeBilinearForm<BilForm>::Apply() {
+template <template <typename, typename> class OperatorTime,
+          typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
+Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
+                             BasisTimeOut>::ApplyTranspose() {
   // ApplyTranspose only works with if we have cached the bil forms.
-  assert(bil_form_->is_cached_);
+  assert(is_cached_);
 
   // Reset the necessary DoubleTrees.
-  bil_form_->vec_in_->Reset();
-  bil_form_->sigma_.Reset();
-  bil_form_->theta_.Reset();
+  vec_in_->Reset();
+  sigma_.Reset();
+  theta_.Reset();
   Eigen::VectorXd v;
 
   // Check whether we have already cached the transpose bil forms.
   if (!is_tcached_) {
-    for (auto &bil_form : bil_form_->bil_space_low_)
+    for (auto &bil_form : bil_space_low_)
       tbil_space_low_.emplace_back(bil_form.Transpose());
-    for (auto &bil_form : bil_form_->bil_time_low_)
+    for (auto &bil_form : bil_time_low_)
       tbil_time_low_.emplace_back(bil_form.Transpose());
-    for (auto &bil_form : bil_form_->bil_time_upp_)
+    for (auto &bil_form : bil_time_upp_)
       tbil_time_upp_.emplace_back(bil_form.Transpose());
-    for (auto &bil_form : bil_form_->bil_space_upp_)
+    for (auto &bil_form : bil_space_upp_)
       tbil_space_upp_.emplace_back(bil_form.Transpose());
     is_tcached_ = true;
   }
@@ -127,18 +129,18 @@ Eigen::VectorXd TransposeBilinearForm<BilForm>::Apply() {
   for (auto &bil_form : tbil_space_low_) bil_form.Apply();
 
   // Store the lower output.
-  v = bil_form_->vec_in_->ToVectorContainer();
-  bil_form_->vec_in_->Reset();
+  v = vec_in_->ToVectorContainer();
+  vec_in_->Reset();
 
   // Apply the upper part using cached bil forms.
   for (auto &bil_form : tbil_space_upp_) bil_form.Apply();
   for (auto &bil_form : tbil_time_upp_) bil_form.ApplyUpp();
 
   // Add the upper part to the output.
-  v += bil_form_->vec_in_->ToVectorContainer();
+  v += vec_in_->ToVectorContainer();
 
   // Set the output.
-  bil_form_->vec_in_->FromVectorContainer(v);
+  vec_in_->FromVectorContainer(v);
 
   // Return vectorized output
   return v;
