@@ -18,3 +18,6 @@ target_link_libraries(time_bilinear_form_test time)
 
 package_add_test(time_linear_functional_test linear_functional_test.cpp)
 target_link_libraries(time_linear_functional_test time)
+
+package_add_test(time_linear_form_test linear_form_test.cpp)
+target_link_libraries(time_linear_form_test time)
