@@ -7,16 +7,15 @@
 
 namespace space {
 namespace {
-template <class Elem>
-double EvalHatFn(double x, double y, Elem elem, size_t i) {
-  auto bary = elem->node()->BarycentricCoordinates(x, y);
+double EvalHatFn(double x, double y, Element2D *elem, size_t i) {
+  auto bary = elem->BarycentricCoordinates(x, y);
   assert((bary.array() >= 0).all());
   return bary[i];
 }
 }  // namespace
 
 template <size_t order, class F, typename I>
-void ApplyQuadrature(const F &f, I *root, bool dirichlet_boundary = true) {
+void ApplyQuadrature(const F &f, I *root, bool dirichlet_boundary) {
   assert(root->is_root());
   auto triang = TriangulationView(root->Bfs());
   const auto &vertices = triang.vertices();
@@ -28,7 +27,7 @@ void ApplyQuadrature(const F &f, I *root, bool dirichlet_boundary = true) {
       vec[Vids[i]] +=
           tools::IntegrationRule</*dim*/ 2, /*order*/ order + 1>::Integrate(
               [&](double x, double y) {
-                return f(x, y) * EvalHatFn(x, y, elem, i);
+                return f(x, y) * EvalHatFn(x, y, elem->node(), i);
               },
               *elem->node());
   }

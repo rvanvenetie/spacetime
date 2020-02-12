@@ -26,14 +26,29 @@ TEST(LinearForm, Quadrature) {
         T.hierarch_basis_tree.meta_root.get());
     vec.SparseRefine(level);
     linform.Apply(&vec);
-    // for (auto phi : vec.Bfs())
-    //   std::cout << *std::get<0>(phi->nodes()) << " "
-    //             << *std::get<1>(phi->nodes()) << " " << phi->value()
-    //             << std::endl;
-    // std::cout << std::endl;
     for (auto phi : vec.Bfs())
       if (!std::get<1>(phi->nodes())->vertex()->on_domain_boundary)
         ASSERT_NE(phi->value(), 0.0);
   }
 }
-};  // namespace spacetime
+
+TEST(LinearForm, ZeroEval) {
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(max_level);
+  Time::ortho_tree.UniformRefine(max_level);
+
+  auto space_f = [](double x, double y) { return x * y; };
+
+  auto linform =
+      CreateZeroEvalLinearForm<Time::OrthonormalWaveletFn, 2>(space_f);
+  for (int level = 1; level < max_level; level++) {
+    auto vec = datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
+                                                space::HierarchicalBasisFn>(
+        Time::ortho_tree.meta_root.get(),
+        T.hierarch_basis_tree.meta_root.get());
+    vec.SparseRefine(level);
+    linform.Apply(&vec);
+    ASSERT_NE(vec.ToVector().sum(), 0.0);
+  }
+}
+}  // namespace spacetime
