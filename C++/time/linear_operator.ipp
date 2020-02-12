@@ -407,9 +407,8 @@ auto ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
   return ZeroEval::ThreeInOrthoOut(phi_out);
 }
 
-template <>
-auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
-    ContLinearScalingFn *phi_in) {
+namespace Transport {
+inline auto ThreeInOrthoOut(ContLinearScalingFn *phi_in) {
   StaticSparseVector<DiscLinearScalingFn, 2> result;
 
   auto [l, n] = phi_in->labda();
@@ -425,16 +424,38 @@ auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
   }
   return result;
 }
+inline auto OrthoInThreeOut(DiscLinearScalingFn *phi_in) {
+  StaticSparseVector<ContLinearScalingFn, 2> result;
+  auto [l, n] = phi_in->labda();
+  const auto &[pcl0, pcl1] = phi_in->support().front()->RefineContLinear();
+  assert(pcl0 != nullptr && pcl1 != nullptr);
+  if (phi_in->pw_constant()) result = {{{pcl0, -1.0}, {pcl1, 1.0}}};
+  return result;
+}
+}  // namespace Transport
+
+template <>
+auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) {
+  return Transport::ThreeInOrthoOut(phi_in);
+}
 
 template <>
 auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
     DiscLinearScalingFn *phi_out) {
-  StaticSparseVector<ContLinearScalingFn, 2> result;
-  auto [l, n] = phi_out->labda();
-  const auto &[pcl0, pcl1] = phi_out->support().front()->RefineContLinear();
-  assert(pcl0 != nullptr && pcl1 != nullptr);
-  if (phi_out->pw_constant()) result = {{{pcl0, -1.0}, {pcl1, 1.0}}};
-  return result;
+  return Transport::OrthoInThreeOut(phi_out);
+}
+
+template <>
+auto TransportOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
+    DiscLinearScalingFn *phi_in) {
+  return Transport::OrthoInThreeOut(phi_in);
+}
+
+template <>
+auto TransportOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
+    ContLinearScalingFn *phi_out) {
+  return Transport::ThreeInOrthoOut(phi_out);
 }
 
 }  // namespace Time
