@@ -11,22 +11,24 @@ namespace datastructures {
 template <typename Iterable>
 Eigen::VectorXd ToVector(const Iterable &nodes) {
   Eigen::VectorXd result(nodes.size());
-  for (size_t i = 0; i < nodes.size(); ++i) {
+  size_t i = 0;
+  for (const auto &node : nodes) {
     if constexpr (std::is_pointer_v<typename Iterable::value_type>)
-      result[i] = nodes[i]->value();
+      result[i++] = node->value();
     else
-      result[i] = nodes[i].value();
+      result[i++] = node.value();
   }
   return result;
 }
 template <typename Iterable>
 void FromVector(const Iterable &nodes, const Eigen::VectorXd &vec) {
   assert(nodes.size() == vec.size());
-  for (int i = 0; i < nodes.size(); ++i) {
+  size_t i = 0;
+  for (auto &node : const_cast<Iterable &>(nodes)) {
     if constexpr (std::is_pointer_v<typename Iterable::value_type>)
-      nodes[i]->set_value(vec[i]);
+      node->set_value(vec[i++]);
     else
-      const_cast<typename Iterable::value_type &>(nodes[i]).set_value(vec[i]);
+      node.set_value(vec[i++]);
   }
 }
 
@@ -81,6 +83,14 @@ class MultiTreeVector : public MultiTreeView<I> {
   // Note: this is not compatible with the Python ToArray!
   Eigen::VectorXd ToVector() const { return Super::root_->ToVector(); }
   void FromVector(const Eigen::VectorXd &vec) { Super::root_->FromVector(vec); }
+
+  // This uses the ordering as in the underlying container.
+  Eigen::VectorXd ToVectorContainer() const {
+    return datastructures::ToVector(Super::multi_nodes_);
+  }
+  void FromVectorContainer(const Eigen::VectorXd &vec) {
+    datastructures::FromVector(Super::multi_nodes_, vec);
+  }
 
   // Create a deepcopy that copies the vector data as well.
   template <typename MT_other = MultiTreeVector<I>>

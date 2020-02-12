@@ -96,7 +96,7 @@ Eigen::MatrixXd BilinearForm<Operator, I_in, I_out>::ToMatrix() {
 template <template <typename, typename> class Operator, typename I_in,
           typename I_out>
 auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
-    size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
+    size_t l, SparseIndices<ScalingBasisOut> &&Pi_out,
     const SparseVector<ScalingBasisIn> &d)
     -> std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>> {
   const SparseVector<WaveletBasisIn> &c =
@@ -105,11 +105,9 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
   const SparseIndices<WaveletBasisOut> &Lambda_l_out =
       l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
 
-  SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
-  if ((Pi_out.size() + Lambda_l_out.size()) > 0 &&
-      (Pi_in.size() + c.size()) > 0) {
-    auto [Pi_B_out, Pi_A_out] = ConstructPiOut(Pi_out);
-    auto [Pi_B_in, Pi_A_in] = ConstructPiIn(Pi_in, Pi_B_out);
+  if ((Pi_out.size() + Lambda_l_out.size()) > 0 && (d.size() + c.size()) > 0) {
+    auto [Pi_B_out, Pi_A_out] = ConstructPiOut(std::move(Pi_out));
+    auto Pi_B_in = ConstructPiBIn(d.Indices(), Pi_B_out);
 
     auto d_bar = Prolongate<ScalingBasisIn>().MatVec(d.Restrict(Pi_B_in));
     d_bar += WaveletToScaling<WaveletBasisIn>().MatVec(c);
@@ -117,7 +115,7 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
     auto Pi_bar_out = Prolongate<ScalingBasisOut>().Range(Pi_B_out);
     Pi_bar_out |= WaveletToScaling<WaveletBasisOut>().Range(Lambda_l_out);
 
-    auto [e_bar, f_bar] = ApplyRecur(l + 1, Pi_bar_out, d_bar);
+    auto [e_bar, f_bar] = ApplyRecur(l + 1, std::move(Pi_bar_out), d_bar);
 
     auto e = Operator<ScalingBasisIn, ScalingBasisOut>().MatVec(d, Pi_A_out);
     e += Prolongate<ScalingBasisOut>().RMatVec(e_bar, Pi_B_out);
@@ -133,7 +131,7 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
 template <template <typename, typename> class Operator, typename I_in,
           typename I_out>
 auto BilinearForm<Operator, I_in, I_out>::ApplyUppRecur(
-    size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
+    size_t l, SparseIndices<ScalingBasisOut> &&Pi_out,
     const SparseVector<ScalingBasisIn> &d)
     -> std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>> {
   const SparseVector<WaveletBasisIn> &c =
@@ -142,18 +140,17 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyUppRecur(
   const SparseIndices<WaveletBasisOut> &Lambda_l_out =
       l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
 
-  SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
-  if ((Pi_out.size() + Lambda_l_out.size()) > 0 &&
-      (Pi_in.size() + c.size()) > 0) {
+  if ((Pi_out.size() + Lambda_l_out.size()) > 0 && (d.size() + c.size()) > 0) {
     auto d_bar = WaveletToScaling<WaveletBasisIn>().MatVec(c);
+    auto e = Operator<ScalingBasisIn, ScalingBasisOut>().MatVec(d, Pi_out);
 
-    auto [Pi_B_out, Pi_A_out] = ConstructPiOut(Pi_out);
+    auto [Pi_B_out, _] =
+        ConstructPiOut(std::move(Pi_out), /* construct_Pi_A_out */ false);
     auto Pi_bar_out = Prolongate<ScalingBasisOut>().Range(Pi_B_out);
     Pi_bar_out |= WaveletToScaling<WaveletBasisOut>().Range(Lambda_l_out);
 
-    auto [e_bar, f_bar] = ApplyUppRecur(l + 1, Pi_bar_out, d_bar);
+    auto [e_bar, f_bar] = ApplyUppRecur(l + 1, std::move(Pi_bar_out), d_bar);
 
-    auto e = Operator<ScalingBasisIn, ScalingBasisOut>().MatVec(d, Pi_out);
     e += Prolongate<ScalingBasisOut>().RMatVec(e_bar, Pi_B_out);
 
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
@@ -175,9 +172,8 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyLowRecur(
   const SparseIndices<WaveletBasisOut> &Lambda_l_out =
       l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
 
-  SparseIndices<ScalingBasisIn> Pi_in = d.Indices();
-  if (Lambda_l_out.size() > 0 && (Pi_in.size() + c.size()) > 0) {
-    auto [Pi_B_in, _] = ConstructPiIn(Pi_in, {});
+  if (Lambda_l_out.size() > 0 && (d.size() + c.size()) > 0) {
+    auto Pi_B_in = ConstructPiBIn(d.Indices(), {});
     auto Pi_B_bar_out = WaveletToScaling<WaveletBasisOut>().Range(Lambda_l_out);
 
     auto d_bar = Prolongate<ScalingBasisIn>().MatVec(d.Restrict(Pi_B_in));
@@ -195,30 +191,34 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyLowRecur(
 template <template <typename, typename> class Operator, typename I_in,
           typename I_out>
 auto BilinearForm<Operator, I_in, I_out>::ConstructPiOut(
-    const SparseIndices<ScalingBasisOut> &Pi_out)
+    SparseIndices<ScalingBasisOut> &&Pi_out, bool construct_Pi_A_out)
     -> std::pair<SparseIndices<ScalingBasisOut>,
                  SparseIndices<ScalingBasisOut>> {
-  SparseIndices<ScalingBasisOut> Pi_A_out, Pi_B_out;
   if (Pi_out.empty()) return {{}, {}};
 
   int level = Pi_out[0]->level();
   if (level + 1 >= lvl_vec_in_.size() || lvl_vec_in_[level + 1].empty())
-    return {{}, Pi_out};
+    return {{}, std::move(Pi_out)};
 
   // Mark the support of wavelets psi, on one level higher.
-  auto wavelets = lvl_vec_in_.at(level + 1).Indices();
-  for (auto psi : wavelets)
+  const auto &wavelets = lvl_vec_in_.at(level + 1);
+  for (const auto &[psi, _] : wavelets)
     for (auto elem : psi->support()) elem->parent()->set_marked(true);
 
+  SparseIndices<ScalingBasisOut> Pi_B_out, Pi_A_out;
+  Pi_B_out.reserve(Pi_out.size());
+  if (construct_Pi_A_out) Pi_A_out.reserve(Pi_out.size());
+
+  // Loop over Pi_out and assign the fn to the correct output set.
   for (auto phi : Pi_out)
     if (std::any_of(phi->support().begin(), phi->support().end(),
                     [](auto elem) { return elem->marked(); }))
       Pi_B_out.emplace_back(phi);
-    else
+    else if (construct_Pi_A_out)
       Pi_A_out.emplace_back(phi);
 
   // Unmark.
-  for (auto psi : wavelets)
+  for (const auto &[psi, _] : wavelets)
     for (auto elem : psi->support()) elem->parent()->set_marked(false);
 
   return {std::move(Pi_B_out), std::move(Pi_A_out)};
@@ -226,18 +226,16 @@ auto BilinearForm<Operator, I_in, I_out>::ConstructPiOut(
 
 template <template <typename, typename> class Operator, typename I_in,
           typename I_out>
-auto BilinearForm<Operator, I_in, I_out>::ConstructPiIn(
-    const SparseIndices<ScalingBasisIn> &Pi_in,
+auto BilinearForm<Operator, I_in, I_out>::ConstructPiBIn(
+    SparseIndices<ScalingBasisIn> &&Pi_in,
     const SparseIndices<ScalingBasisOut> &Pi_B_out)
-    -> std::pair<SparseIndices<ScalingBasisIn>, SparseIndices<ScalingBasisIn>> {
-  SparseIndices<ScalingBasisIn> Pi_A_in, Pi_B_in;
-  if (Pi_in.empty()) return {{}, {}};
+    -> SparseIndices<ScalingBasisIn> {
+  if (Pi_in.empty()) return {};
   int level = Pi_in[0]->level();
 
   // Mark the support of wavelets psi, on one level higher.
   SparseIndices<WaveletBasisOut> wavelets;
   if (level + 1 < lvl_ind_out_.size()) wavelets = lvl_ind_out_.at(level + 1);
-
   for (auto psi : wavelets)
     for (auto elem : psi->support()) elem->parent()->set_marked(true);
 
@@ -245,12 +243,17 @@ auto BilinearForm<Operator, I_in, I_out>::ConstructPiIn(
   for (auto phi : Pi_B_out)
     for (auto elem : phi->support()) elem->set_marked(true);
 
-  for (auto phi : Pi_in)
-    if (std::any_of(phi->support().begin(), phi->support().end(),
-                    [](auto elem) { return elem->marked(); }))
-      Pi_B_in.emplace_back(phi);
-    else
-      Pi_A_in.emplace_back(phi);
+  // Set Pi_B_in to whole Pi_in.
+  SparseIndices<ScalingBasisIn> Pi_B_in(std::move(Pi_in));
+
+  // Now remove all fn from Pi_B_in that have no marked element.
+  Pi_B_in.erase(std::remove_if(Pi_B_in.begin(), Pi_B_in.end(),
+                               [](auto phi) {
+                                 for (auto elem : phi->support())
+                                   if (elem->marked()) return false;
+                                 return true;
+                               }),
+                Pi_B_in.end());
 
   // Unmark.
   for (auto psi : wavelets)
@@ -258,7 +261,7 @@ auto BilinearForm<Operator, I_in, I_out>::ConstructPiIn(
   for (auto phi : Pi_B_out)
     for (auto elem : phi->support()) elem->set_marked(false);
 
-  return {std::move(Pi_B_in), std::move(Pi_A_in)};
+  return Pi_B_in;
 }
 
 }  // namespace Time

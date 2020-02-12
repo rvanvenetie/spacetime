@@ -12,7 +12,6 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
       vec_out_(vec_out),
       sigma_(GenerateSigma(vec_in, *vec_out)),
       theta_(GenerateTheta(vec_in, *vec_out)),
-      vec_out_low_(vec_out->DeepCopy()),
       use_cache_(use_cache) {}
 
 template <template <typename, typename> class OperatorTime,
@@ -21,9 +20,9 @@ void BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
                   BasisTimeOut>::Apply() {
   // Reset the necessary DoubleTrees.
   vec_out_->Reset();
-  vec_out_low_.Reset();
   sigma_.Reset();
   theta_.Reset();
+  Eigen::VectorXd v;
 
   // Check whether we have to recalculate the bilinear forms.
   if (!use_cache_ || (bil_space_low_.empty() && bil_time_upp_.empty())) {
@@ -39,7 +38,7 @@ void BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
     }
 
     // Calculate R_Lambda(L_0 x Id)I_Sigma.
-    for (auto psi_out_labda : vec_out_low_.Project_1()->Bfs()) {
+    for (auto psi_out_labda : vec_out_->Project_1()->Bfs()) {
       auto fiber_in = sigma_.Fiber_0(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
@@ -48,6 +47,10 @@ void BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       bil_form.ApplyLow();
       if (use_cache_) bil_time_low_.emplace_back(std::move(bil_form));
     }
+
+    // Store the lower output.
+    v = vec_out_->ToVectorContainer();
+    vec_out_->Reset();
 
     // Calculate R_Theta(U_1 x Id)I_Lambda.
     for (auto psi_in_labda : theta_.Project_1()->Bfs()) {
@@ -71,15 +74,24 @@ void BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       if (use_cache_) bil_space_upp_.emplace_back(std::move(bil_form));
     }
   } else {
-    // We have cached the bilinear forms.
+    // Apply the lower part using cached bil forms.
     for (auto &bil_form : bil_space_low_) bil_form.Apply();
     for (auto &bil_form : bil_time_low_) bil_form.ApplyLow();
+
+    // Store the lower output.
+    v = vec_out_->ToVectorContainer();
+    vec_out_->Reset();
+
+    // Apply the upper part using cached bil forms.
     for (auto &bil_form : bil_time_upp_) bil_form.ApplyUpp();
     for (auto &bil_form : bil_space_upp_) bil_form.Apply();
   }
 
-  // Add the lower part to the output.
-  *vec_out_ += vec_out_low_;
+  // Add the upper part to the output.
+  v += vec_out_->ToVectorContainer();
+
+  // Set the output.
+  vec_out_->FromVectorContainer(v);
 }
 
 }  // namespace spacetime
