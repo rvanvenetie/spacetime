@@ -44,17 +44,31 @@ class BilinearForm {
     FinalizeOutput(f);
   }
 
+  auto Transpose() const {
+    auto transpose = BilinearForm<Operator, I_out, I_in>();
+    transpose.vec_in_ = vec_out_;
+    transpose.vec_out_ = vec_in_;
+    transpose.nodes_vec_in_ = nodes_vec_out_;
+    transpose.nodes_vec_out_ = nodes_vec_in_;
+    transpose.InitializeOutput();
+    return transpose;
+  }
+
   // Debug function, O(n^2).
   Eigen::MatrixXd ToMatrix();
 
  protected:
+  // Protected constructor, and give transpose operator access.
+  BilinearForm() : vec_in_(nullptr), vec_out_(nullptr) {}
+  friend BilinearForm<Operator, I_out, I_in>;
+
   // Roots of the treeviews we are considering.
   I_in *vec_in_;
   I_out *vec_out_;
 
   // A flattened bfs view of the vectors.
-  std::vector<I_in *> nodes_vec_in_;
-  std::vector<I_out *> nodes_vec_out_;
+  std::shared_ptr<std::vector<I_in *>> nodes_vec_in_;
+  std::shared_ptr<std::vector<I_out *>> nodes_vec_out_;
 
   // A flattened, levelwise view of the trees.
   std::vector<SparseVector<WaveletBasisIn>> lvl_vec_in_;
@@ -65,6 +79,7 @@ class BilinearForm {
   SparseIndices<WaveletBasisOut> empty_ind_out_;
 
   // Helper function to set the levelwise input/output vector.
+  void InitializeOutput();
   void InitializeInput();
   void FinalizeOutput(const SparseVector<WaveletBasisOut> &f);
 

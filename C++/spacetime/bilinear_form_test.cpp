@@ -68,7 +68,7 @@ void TestSpacetimeCache(
   for (int i = 0; i < 2; ++i) {
     // Create a bilinear form and do some caching tests.
     auto bil_form = CreateBilinearForm<OperatorTime, OperatorSpace>(
-        vec_in, &vec_out, /* use_cache */ i == 0);
+        &vec_in, &vec_out, /* use_cache */ i == 0);
 
     // Put some random values into vec_in.
     for (auto nv : vec_in.Bfs())
@@ -117,14 +117,14 @@ void TestSpacetimeLinearity(
   vec_in_comb += vec_in_2;
 
   // Apply this weighted comb. by hand
-  CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in_1, &vec_out).Apply();
+  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_1, &vec_out).Apply();
   auto vec_out_test = vec_out.DeepCopy();
   vec_out_test *= alpha;
-  CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in_2, &vec_out).Apply();
+  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_2, &vec_out).Apply();
   vec_out_test += vec_out;
 
   // Do it using the lin comb.
-  CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in_comb, &vec_out)
+  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_comb, &vec_out)
       .Apply();
   auto vec_out_comb = vec_out.DeepCopy();
 
@@ -155,7 +155,7 @@ void TestSpacetimeQuadrature(
 
   // Create a bilinear form and do some quadrature tests.
   auto bil_form =
-      CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in, &vec_out);
+      CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in, &vec_out);
 
   // Simply put some random values into vec_in.
   for (auto nv : vec_in.Bfs()) nv->set_value(((double)std::rand()) / RAND_MAX);

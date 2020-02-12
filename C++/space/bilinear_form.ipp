@@ -25,9 +25,11 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
 
   // If this applicator is symmetric, there is not a lot to do.
   if (symmetric_) {
-    triang_ = std::make_unique<TriangulationView>(nodes_vec_in);
-    nodes_vec_in_ = std::move(nodes_vec_in);
-    nodes_vec_out_ = std::move(nodes_vec_out);
+    triang_ = std::make_shared<TriangulationView>(nodes_vec_in);
+    nodes_vec_in_ =
+        std::make_shared<std::vector<I_in*>>(std::move(nodes_vec_in));
+    nodes_vec_out_ =
+        std::make_shared<std::vector<I_out*>>(std::move(nodes_vec_out));
   } else {
     // This operator is not symmetric, calculate a union.
     vec_union_ =
@@ -35,19 +37,21 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
             vec_in_->node());
     vec_union_->root()->Union(vec_in_);
     vec_union_->root()->Union(vec_out_);
-    nodes_vec_union_ = vec_union_->Bfs();
-    triang_ = std::make_unique<TriangulationView>(nodes_vec_union_);
+    nodes_vec_union_ = std::make_shared<
+        std::vector<datastructures::NodeVector<HierarchicalBasisFn>*>>(
+        vec_union_->Bfs());
+    triang_ = std::make_shared<TriangulationView>(*nodes_vec_union_);
   }
-  operator_ = std::make_unique<Operator>(*triang_, dirichlet_boundary);
+  operator_ = std::make_shared<Operator>(*triang_, dirichlet_boundary);
 }
 
 template <typename Operator, typename I_in, typename I_out>
 void BilinearForm<Operator, I_in, I_out>::Apply() {
   if (symmetric_) {
     // Apply the operator in SS.
-    auto v = ToVector(nodes_vec_in_);
+    auto v = ToVector(*nodes_vec_in_);
     v = operator_->Apply(v);
-    FromVector(nodes_vec_out_, v);
+    FromVector(*nodes_vec_out_, v);
     return;
   }
 
@@ -59,10 +63,9 @@ void BilinearForm<Operator, I_in, I_out>::Apply() {
   vec_union_->root()->Union(vec_in_, datastructures::func_false, lambda_copy);
 
   // Apply the operator in SS.
-  auto v = ToVector(nodes_vec_union_);
+  auto v = ToVector(*nodes_vec_union_);
   v = operator_->Apply(v);
-  FromVector(nodes_vec_union_, v);
-
+  FromVector(*nodes_vec_union_, v);
   // Copy the results from the union vector back to the output vector.
   vec_out_->Union(vec_union_->root(), datastructures::func_false, lambda_copy);
 }

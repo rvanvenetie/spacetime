@@ -44,7 +44,7 @@ int main() {
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
     auto bil_form =
         CreateBilinearForm<Time::TransportOperator, space::MassOperator>(
-            vec_X, &vec_Y, /* use_cache */ use_cache);
+            &vec_X, &vec_Y, /* use_cache */ use_cache);
 
     // std::cout << "----" << std::endl;
     // std::cout << "X_delta size " << X_delta.Bfs().size() << " sizeof element
