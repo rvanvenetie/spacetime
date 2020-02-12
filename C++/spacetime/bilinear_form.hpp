@@ -45,8 +45,6 @@ class BilinearForm {
   using FO = datastructures::FrozenDoubleNode<
       datastructures::DoubleNodeVector<BasisTimeOut, BasisSpace>, i>;
 
-  // Calculate th
-
   // Store bilinear forms in vectors.
   std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> bil_space_low_;
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_low_;
