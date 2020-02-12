@@ -70,12 +70,12 @@ class BilinearForm {
 
   // Recursive apply.
   std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>>
-  ApplyRecur(size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
+  ApplyRecur(size_t l, SparseIndices<ScalingBasisOut> &&Pi_out,
              const SparseVector<ScalingBasisIn> &d);
 
   // Recursive apply upper part.
   std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>>
-  ApplyUppRecur(size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
+  ApplyUppRecur(size_t l, SparseIndices<ScalingBasisOut> &&Pi_out,
                 const SparseVector<ScalingBasisIn> &d);
 
   // Recursive apply lower part.
@@ -84,11 +84,12 @@ class BilinearForm {
 
   // Index sets.
   std::pair<SparseIndices<ScalingBasisOut>, SparseIndices<ScalingBasisOut>>
-  ConstructPiOut(const SparseIndices<ScalingBasisOut> &Pi_out);
+  ConstructPiOut(SparseIndices<ScalingBasisOut> &&Pi_out,
+                 bool construct_Pi_A_out = true);
 
-  std::pair<SparseIndices<ScalingBasisIn>, SparseIndices<ScalingBasisIn>>
-  ConstructPiIn(const SparseIndices<ScalingBasisIn> &Pi_in,
-                const SparseIndices<ScalingBasisOut> &Pi_B_out);
+  SparseIndices<ScalingBasisIn> ConstructPiBIn(
+      SparseIndices<ScalingBasisIn> &&Pi_in,
+      const SparseIndices<ScalingBasisOut> &Pi_B_out);
 };
 
 // Helper functions .
