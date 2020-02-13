@@ -7,22 +7,6 @@
 #include <tuple>
 #include <unsupported/Eigen/IterativeSolvers>
 
-template <typename BilForm>
-Eigen::MatrixXd ToMatrix(BilForm &bilform) {
-  auto nodes_in = bilform.vec_in()->Bfs();
-  auto nodes_out = bilform.vec_out()->Bfs();
-  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(nodes_out.size(), nodes_in.size());
-  for (int i = 0; i < nodes_in.size(); ++i) {
-    bilform.vec_in()->Reset();
-    nodes_in[i]->set_value(1);
-    bilform.Apply();
-    for (int j = 0; j < nodes_out.size(); ++j) {
-      A(j, i) = nodes_out[j]->value();
-    }
-  }
-  return A;
-}
-
 // This class represents the adjoint of a bilinear form.
 template <typename BilForm>
 class TransposeBilinearForm {
@@ -206,9 +190,9 @@ class BlockBilinearForm
   // Create an apply that works entirely on vectors.
   Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const {
     assert(rhs.size() == cols());
-    size_t i = 0;
 
     // Fill the input vectors with the rhs.
+    size_t i = 0;
     for (auto &node : b00_->vec_in()->container()) {
       if (node.is_metaroot() || node.node_1()->on_domain_boundary())
         assert(rhs(i) == 0);

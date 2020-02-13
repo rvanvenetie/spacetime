@@ -19,6 +19,22 @@ using tools::IntegrationRule;
 
 namespace spacetime {
 
+template <typename BilForm>
+Eigen::MatrixXd ToMatrix(BilForm &bilform) {
+  auto nodes_in = bilform.vec_in()->Bfs();
+  auto nodes_out = bilform.vec_out()->Bfs();
+  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(nodes_out.size(), nodes_in.size());
+  for (int i = 0; i < nodes_in.size(); ++i) {
+    bilform.vec_in()->Reset();
+    nodes_in[i]->set_value(1);
+    bilform.Apply();
+    for (int j = 0; j < nodes_out.size(); ++j) {
+      A(j, i) = nodes_out[j]->value();
+    }
+  }
+  return A;
+}
+
 template <typename WaveletBasisIn, typename WaveletBasisOut>
 double TimeQuadrature(WaveletBasisIn *f, WaveletBasisOut *g, bool deriv_in,
                       bool deriv_out) {
