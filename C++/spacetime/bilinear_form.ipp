@@ -115,17 +115,23 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
   theta_->Reset();
   Eigen::VectorXd v;
 
+  // NOTE: We are calculating the transpose, by transposing all the time/space
+  // bilinear forms. This means that the order of evaluation changes, and that
+  // ApplyLow becomes  ApplyUpp, and vice versa. Since L is the strict lower
+  // diagonal, this only works in Sigma is larger than described in followup3.
+  // (See also the note in GenerateSigma).
+
   // Apply the lower part using cached bil forms.
-  for (auto &bil_form : bil_time_low_) bil_form.Transpose().ApplyUpp();
-  for (auto &bil_form : bil_space_low_) bil_form.Transpose().Apply();
+  for (auto &bil_form : bil_space_upp_) bil_form.Transpose().Apply();
+  for (auto &bil_form : bil_time_upp_) bil_form.Transpose().ApplyLow();
 
   // Store the lower output.
   v = vec_in_->ToVectorContainer();
   vec_in_->Reset();
 
   // Apply the upper part using cached bil forms.
-  for (auto &bil_form : bil_space_upp_) bil_form.Transpose().Apply();
-  for (auto &bil_form : bil_time_upp_) bil_form.Transpose().ApplyLow();
+  for (auto &bil_form : bil_time_low_) bil_form.Transpose().ApplyUpp();
+  for (auto &bil_form : bil_space_low_) bil_form.Transpose().Apply();
 
   // Add the upper part to the output, and store the result in the tree.
   size_t i = 0;
