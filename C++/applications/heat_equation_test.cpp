@@ -13,6 +13,15 @@ using Time::three_point_tree;
 
 namespace applications {
 
+// Function that can be used to validate whether we have a valid vector.
+template <typename DblVec>
+auto ValidateVector(const DblVec &vec) {
+  for (const auto &node : vec.container()) {
+    if (node.is_metaroot() || node.node_1()->on_domain_boundary())
+      assert(node.value() == 0);
+  }
+}
+
 TEST(HeatEquation, SparseMatVec) {
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(6);
@@ -60,7 +69,7 @@ TEST(HeatEquation, SparseMatVec) {
     ASSERT_TRUE(v_in.isApprox(v_now));
 
     // Now use Eigen to atually solve something.
-    Eigen::MINRES<HeatEquation::TypeBlockMat, Eigen::Lower | Eigen::Upper,
+    Eigen::MINRES<EigenBilinearForm, Eigen::Lower | Eigen::Upper,
                   Eigen::IdentityPreconditioner>
         minres;
     minres.compute(*heat_eq.BlockMat());
@@ -68,6 +77,7 @@ TEST(HeatEquation, SparseMatVec) {
     x = minres.solve(v_in);
     std::cout << "MINRES:   #iterations: " << minres.iterations()
               << ", estimated error: " << minres.error() << std::endl;
+    ASSERT_NEAR(minres.error(), 0, 1e-14);
 
     // Store the result, and validate wether it validates.
     size_t i = 0;

@@ -10,15 +10,6 @@ using spacetime::BilinearForm;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
-// Function that can be used to validate whether we have a valid vector.
-template <typename DblVec>
-auto ValidateVector(const DblVec &vec) {
-  for (const auto &node : vec.container()) {
-    if (node.is_metaroot() || node.node_1()->on_domain_boundary())
-      assert(node.value() == 0);
-  }
-}
-
 // Base class for constructing the operators necessary.
 class HeatEquation {
  public:
@@ -46,7 +37,8 @@ class HeatEquation {
                              ThreePointWaveletFn, ThreePointWaveletFn>;
 
   // The block matrix necessary for the solving using minres.
-  using TypeBlockMat = BlockBilinearForm<TypeA, TypeB, TypeBT, TypeG>;
+  using TypeBlockMat =
+      BlockBilinearForm<TypeA, TypeB, TypeBT, NegativeBilinearForm<TypeG>>;
 
   HeatEquation(
       const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta,

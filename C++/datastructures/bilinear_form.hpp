@@ -7,6 +7,61 @@
 #include <tuple>
 #include <unsupported/Eigen/IterativeSolvers>
 
+// This is a base class for turning a bilinear form into an Eigen matvec.
+class EigenBilinearForm;
+
+// Define a necessary Eigen trait.
+namespace Eigen {
+namespace internal {
+template <>
+struct traits<EigenBilinearForm>
+    : public Eigen::internal::traits<Eigen::SparseMatrix<double>> {};
+}  // namespace internal
+}  // namespace Eigen
+
+class EigenBilinearForm : public Eigen::EigenBase<EigenBilinearForm> {
+ public:
+  // These are the functions that must be implemented.
+  virtual Eigen::Index rows() const = 0;
+  virtual Eigen::Index cols() const = 0;
+  virtual Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const = 0;
+
+  // Eigen related stuff.
+  using Scalar = double;
+  using RealScalar = double;
+  using StorageIndex = int;
+  enum {
+    ColsAtCompileTime = Eigen::Dynamic,
+    MaxColsAtCompileTime = Eigen::Dynamic,
+    IsRowMajor = false
+  };
+  template <typename Rhs>
+  Eigen::Product<EigenBilinearForm, Rhs, Eigen::AliasFreeProduct> operator*(
+      const Eigen::MatrixBase<Rhs> &x) const {
+    return Eigen::Product<EigenBilinearForm, Rhs, Eigen::AliasFreeProduct>(
+        *this, x.derived());
+  }
+};
+
+// Define a necessary eigen product overload, simply uses matvec.
+namespace Eigen {
+namespace internal {
+template <typename Rhs>
+struct generic_product_impl<EigenBilinearForm, Rhs, SparseShape, DenseShape,
+                            GemvProduct>  // GEMV stands for matrix-vector
+    : generic_product_impl_base<EigenBilinearForm, Rhs,
+                                generic_product_impl<EigenBilinearForm, Rhs>> {
+  using Scalar = typename Product<EigenBilinearForm, Rhs>::Scalar;
+  template <typename Dest>
+  static void scaleAndAddTo(Dest &dst, const EigenBilinearForm &lhs,
+                            const Rhs &rhs, const Scalar &alpha) {
+    assert(alpha == Scalar(1));
+    dst.noalias() += lhs.MatVec(rhs);
+  }
+};
+}  // namespace internal
+}  // namespace Eigen
+
 // This class represents the adjoint of a bilinear form.
 template <typename BilForm>
 class TransposeBilinearForm {
@@ -74,7 +129,10 @@ class NegativeBilinearForm {
       : bil_form_(bil_form) {}
 
   Eigen::VectorXd Apply() {
-    auto v = -bil_form_->Apply();
+    // Calculate and negate the outpt.
+    auto v = bil_form_->Apply();
+    v = -v;
+
     bil_form_->vec_out()->FromVectorContainer(v);
     return v;
   }
@@ -105,6 +163,15 @@ class RemapBilinearForm {
     assert(vec_out != bil_form_->vec_out());
     assert(vec_out->container().size() ==
            bil_form_->vec_out()->container().size());
+
+    // Be sure that the ordering of the nodes inside the container coincides!
+    // NOTE: Expensive check, remove in a later phase.
+    for (size_t i = 0; i < vec_in->container().size(); ++i)
+      assert(vec_in->container()[i].nodes() ==
+             bil_form_->vec_in()->container()[i].nodes());
+    for (size_t i = 0; i < vec_out->container().size(); ++i)
+      assert(vec_out->container()[i].nodes() ==
+             bil_form_->vec_out()->container()[i].nodes());
   }
 
   Eigen::VectorXd Apply() {
@@ -134,23 +201,9 @@ class RemapBilinearForm {
   DblVecOut *vec_out_;
 };
 
-// Below the block bilinear form is implemented as an eigen matrix-free matrix.
-template <typename B00, typename B01, typename B10, typename B11>
-class BlockBilinearForm;
-
-namespace Eigen {
-namespace internal {
-// MatrixReplacement looks-like a SparseMatrix, so let's inherits its traits:
-template <typename... B>
-struct traits<BlockBilinearForm<B...>>
-    : public Eigen::internal::traits<Eigen::SparseMatrix<double>> {};
-}  // namespace internal
-}  // namespace Eigen
-
 // This class represents a 2x2 block diagonal bilinear form.
 template <typename B00, typename B01, typename B10, typename B11>
-class BlockBilinearForm
-    : public Eigen::EigenBase<BlockBilinearForm<B00, B01, B10, B11>> {
+class BlockBilinearForm : public EigenBilinearForm {
  public:
   // Ordered like B00, B01, B10, B11
   BlockBilinearForm(std::shared_ptr<B00> b00, std::shared_ptr<B01> b01,
@@ -188,7 +241,7 @@ class BlockBilinearForm
   }
 
   // Create an apply that works entirely on vectors.
-  Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const {
+  Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const final {
     assert(rhs.size() == cols());
 
     // Fill the input vectors with the rhs.
@@ -209,28 +262,13 @@ class BlockBilinearForm
   }
 
   // Eigen stuff
-  typedef double Scalar;
-  typedef double RealScalar;
-  typedef int StorageIndex;
-  enum {
-    ColsAtCompileTime = Eigen::Dynamic,
-    MaxColsAtCompileTime = Eigen::Dynamic,
-    IsRowMajor = false
-  };
-  Eigen::Index rows() const {
+  Eigen::Index rows() const final {
     return b00_->vec_out()->container().size() +
            b10_->vec_out()->container().size();
   }
-  Eigen::Index cols() const {
+  Eigen::Index cols() const final {
     return b00_->vec_in()->container().size() +
            b01_->vec_in()->container().size();
-  }
-  template <typename Rhs>
-  Eigen::Product<BlockBilinearForm<B00, B01, B10, B11>, Rhs,
-                 Eigen::AliasFreeProduct>
-  operator*(const Eigen::MatrixBase<Rhs> &x) const {
-    return Eigen::Product<BlockBilinearForm<B00, B01, B10, B11>, Rhs,
-                          Eigen::AliasFreeProduct>(*this, x.derived());
   }
 
  protected:
@@ -239,27 +277,3 @@ class BlockBilinearForm
   std::shared_ptr<B10> b10_;
   std::shared_ptr<B11> b11_;
 };
-
-// Implementation of MatrixReplacement * Eigen::DenseVector though a
-// specialization of internal::generic_product_impl:
-namespace Eigen {
-namespace internal {
-
-template <typename Rhs, typename... B>
-struct generic_product_impl<BlockBilinearForm<B...>, Rhs, SparseShape,
-                            DenseShape,
-                            GemvProduct>  // GEMV stands for matrix-vector
-    : generic_product_impl_base<
-          BlockBilinearForm<B...>, Rhs,
-          generic_product_impl<BlockBilinearForm<B...>, Rhs>> {
-  typedef typename Product<BlockBilinearForm<B...>, Rhs>::Scalar Scalar;
-  template <typename Dest>
-  static void scaleAndAddTo(Dest &dst, const BlockBilinearForm<B...> &lhs,
-                            const Rhs &rhs, const Scalar &alpha) {
-    assert(alpha == Scalar(1) && "scaling is not implemented");
-    EIGEN_ONLY_USED_FOR_DEBUG(alpha);
-    dst.noalias() += lhs.MatVec(rhs);
-  }
-};
-}  // namespace internal
-}  // namespace Eigen

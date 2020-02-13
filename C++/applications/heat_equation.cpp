@@ -30,8 +30,11 @@ HeatEquation::HeatEquation(
   // Create trace operator.
   G_ = std::make_shared<TypeG>(&vec_X_in_, &vec_X_out_);
 
+  // Create the negative trace operator.
+  auto minus_G = std::make_shared<NegativeBilinearForm<TypeG>>(G_);
+
   // Craete the block matrix.
-  block_mat_ = std::make_shared<TypeBlockMat>(A_, B_, BT_, G_);
+  block_mat_ = std::make_shared<TypeBlockMat>(A_, B_, BT_, minus_G);
 }
 
 HeatEquation::HeatEquation(
