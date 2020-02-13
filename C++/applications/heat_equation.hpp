@@ -36,8 +36,10 @@ class HeatEquation {
   using TypeB = SumBilinearForm<TypeB_t, TypeB_s>;
 
   // The transpose of B is the sum of the transpose of these two operators.
-  using TypeBT = SumBilinearForm<TransposeBilinearForm<TypeB_t>,
-                                 TransposeBilinearForm<TypeB_s>>;
+  // With the output/input vectors correctly remapped.
+  using TypeBT =
+      RemapBilinearForm<SumBilinearForm<TransposeBilinearForm<TypeB_t>,
+                                        TransposeBilinearForm<TypeB_s>>>;
 
   // The trace operator maps between X_delta and X_delta.
   using TypeG = BilinearForm<Time::ZeroEvalOperator, space::MassOperator,

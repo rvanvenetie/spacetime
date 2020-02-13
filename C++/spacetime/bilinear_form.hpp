@@ -22,12 +22,13 @@ class BilinearForm
   using BasisSpace = space::HierarchicalBasisFn;
 
  public:
-  BilinearForm(DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
-               DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
-               bool use_cache = true);
+  // Friendly aliases.
+  using DblVecIn = DoubleTreeVector<BasisTimeIn, BasisSpace>;
+  using DblVecOut = DoubleTreeVector<BasisTimeOut, BasisSpace>;
+
+  BilinearForm(DblVecIn *vec_in, DblVecOut *vec_out, bool use_cache = true);
   BilinearForm(
-      DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
-      DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
+      DblVecIn *vec_in, DblVecOut *vec_out,
       std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma,
       std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta,
       bool use_cache = true);
@@ -42,14 +43,14 @@ class BilinearForm
     return transpose_;
   }
 
-  auto vec_in() const { return vec_in_; }
-  auto vec_out() const { return vec_out_; }
+  DblVecIn *vec_in() const { return vec_in_; }
+  DblVecOut *vec_out() const { return vec_out_; }
   auto sigma() { return sigma_; }
   auto theta() { return theta_; }
 
  protected:
-  DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in_;
-  DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out_;
+  DblVecIn *vec_in_;
+  DblVecOut *vec_out_;
 
   std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma_;
   std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta_;

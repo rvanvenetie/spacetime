@@ -25,7 +25,7 @@ HeatEquation::HeatEquation(
   B_ = std::make_shared<TypeB>(B_t, B_s);
 
   // Create transpose of B sharing data with B.
-  BT_ = B_->Transpose();
+  BT_ = std::make_shared<TypeBT>(B_->Transpose(), &vec_Y_in_, &vec_X_out_);
 
   // Create trace operator.
   G_ = std::make_shared<TypeG>(&vec_X_in_, &vec_X_out_);

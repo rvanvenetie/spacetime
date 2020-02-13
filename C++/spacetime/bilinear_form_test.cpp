@@ -19,22 +19,6 @@ using tools::IntegrationRule;
 
 namespace spacetime {
 
-template <typename BilForm>
-Eigen::MatrixXd ToMatrix(BilForm &bilform) {
-  auto nodes_in = bilform.vec_in()->Bfs();
-  auto nodes_out = bilform.vec_out()->Bfs();
-  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(nodes_out.size(), nodes_in.size());
-  for (int i = 0; i < nodes_in.size(); ++i) {
-    bilform.vec_in()->Reset();
-    nodes_in[i]->set_value(1);
-    bilform.Apply();
-    for (int j = 0; j < nodes_out.size(); ++j) {
-      A(j, i) = nodes_out[j]->value();
-    }
-  }
-  return A;
-}
-
 template <typename WaveletBasisIn, typename WaveletBasisOut>
 double TimeQuadrature(WaveletBasisIn *f, WaveletBasisOut *g, bool deriv_in,
                       bool deriv_out) {
@@ -293,11 +277,11 @@ TEST(BilinearForm, Transpose) {
     ASSERT_TRUE(mat_B_t.transpose().isApprox(ToMatrix(*trans_B_t)));
 
     // Now check the sum.
-    auto B = A_s + B_t;
-    ASSERT_TRUE((mat_A_s + mat_B_t).isApprox(ToMatrix(*B)));
+    auto B = SumBilinearForm(A_s, B_t);
+    ASSERT_TRUE((mat_A_s + mat_B_t).isApprox(ToMatrix(B)));
 
     // Now check the transpose of the sum.
-    auto BT = B->Transpose();
+    auto BT = B.Transpose();
     ASSERT_TRUE((mat_A_s + mat_B_t).transpose().isApprox(ToMatrix(*BT)));
   }
 }

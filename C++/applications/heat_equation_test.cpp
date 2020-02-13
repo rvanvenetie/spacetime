@@ -37,10 +37,42 @@ TEST(HeatEquation, SparseMatVec) {
       nv->set_value(((double)std::rand()) / RAND_MAX);
     }
 
+    // Validate the input.
+    ValidateVector(*heat_eq.vec_X_in());
+    ValidateVector(*heat_eq.vec_Y_in());
+
+    // Turn this into an eigen-friendly vector.
+    auto v_in =
+        heat_eq.BlockMat()->ToVector({heat_eq.vec_Y_in()->ToVectorContainer(),
+                                      heat_eq.vec_X_in()->ToVectorContainer()});
+
     // Apply the block matrix :-).
     heat_eq.BlockMat()->Apply();
 
     // Validate the result.
+    ValidateVector(*heat_eq.vec_X_out());
+    ValidateVector(*heat_eq.vec_Y_out());
+
+    // Check that the input vector remained untouched.
+    auto v_now =
+        heat_eq.BlockMat()->ToVector({heat_eq.vec_Y_in()->ToVectorContainer(),
+                                      heat_eq.vec_X_in()->ToVectorContainer()});
+    ASSERT_TRUE(v_in.isApprox(v_now));
+
+    // Now use Eigen to atually solve something.
+    Eigen::MINRES<HeatEquation::TypeBlockMat, Eigen::Lower | Eigen::Upper,
+                  Eigen::IdentityPreconditioner>
+        minres;
+    minres.compute(*heat_eq.BlockMat());
+    Eigen::VectorXd x;
+    x = minres.solve(v_in);
+    std::cout << "MINRES:   #iterations: " << minres.iterations()
+              << ", estimated error: " << minres.error() << std::endl;
+
+    // Store the result, and validate wether it validates.
+    size_t i = 0;
+    for (auto &node : heat_eq.vec_Y_out()->container()) node.set_value(x(i++));
+    for (auto &node : heat_eq.vec_X_out()->container()) node.set_value(x(i++));
     ValidateVector(*heat_eq.vec_X_out());
     ValidateVector(*heat_eq.vec_Y_out());
   }
