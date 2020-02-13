@@ -275,24 +275,34 @@ TEST(BilinearForm, Transpose) {
     // Test the actual operators that we use.
     auto A_s = CreateBilinearForm<Time::MassOperator, space::StiffnessOperator>(
         &vec_X_in, &vec_Y_out);
+
+    // Reuse theta/sigma for B_t.
     auto B_t = CreateBilinearForm<Time::TransportOperator, space::MassOperator>(
-        &vec_X_in, &vec_Y_out);
+        &vec_X_in, &vec_Y_out, A_s->sigma(), A_s->theta());
 
     // Create matrices.
     auto mat_A_s = ToMatrix(*A_s);
     auto mat_B_t = ToMatrix(*B_t);
 
+    // Now check the sum.
+    auto B = Sum(A_s, B_t);
+    ASSERT_TRUE((mat_A_s + mat_B_t).isApprox(ToMatrix(*B)));
+
     // Create transpose.
-    auto trans_A_s = TransposeBilinearForm(A_s);
-    auto trans_B_t = TransposeBilinearForm(B_t);
+    auto trans_A_s =
+        CreateBilinearForm<Time::MassOperator, space::StiffnessOperator>(
+            &vec_Y_out, &vec_X_in);
+    auto trans_B_t =
+        CreateBilinearForm<Time::TransportOperator, space::MassOperator>(
+            &vec_Y_out, &vec_X_in, trans_A_s->sigma(), trans_A_s->theta());
 
     // Compare the matrices.
-    ASSERT_TRUE(mat_A_s.transpose().isApprox(ToMatrix(trans_A_s)));
-    ASSERT_TRUE(mat_B_t.transpose().isApprox(ToMatrix(trans_B_t)));
+    ASSERT_TRUE(mat_A_s.transpose().isApprox(ToMatrix(*trans_A_s)));
+    ASSERT_TRUE(mat_B_t.transpose().isApprox(ToMatrix(*trans_B_t)));
 
-    // Now check the sum.
-    auto B = SumBilinearForm(A_s, B_t);
-    ASSERT_TRUE((mat_A_s + mat_B_t).isApprox(ToMatrix(B)));
+    // Now check the transpose of the sum.
+    auto BT = Sum(trans_A_s, trans_B_t);
+    ASSERT_TRUE((mat_A_s + mat_B_t).transpose().isApprox(ToMatrix(*BT)));
   }
 }
 }  // namespace spacetime

@@ -1,4 +1,5 @@
 #include "basis.hpp"
+
 #include "../space/initial_triangulation.hpp"
 #include "../time/haar_basis.hpp"
 #include "gmock/gmock.h"
@@ -77,7 +78,7 @@ TEST(GenerateSigma, SmallSigma) {
       haar_tree.meta_root.get(), haar_tree.meta_root.get());
   Lambda.UniformRefine(2);
   auto Sigma = GenerateSigma(Lambda, Lambda);
-  auto sigma_nodes = Sigma.Bfs();
+  auto sigma_nodes = Sigma->Bfs();
 
   auto test_dbltree = DoubleTreeVector<HaarWaveletFn, HaarWaveletFn>(
       haar_tree.meta_root.get(), haar_tree.meta_root.get());
@@ -107,7 +108,7 @@ TEST(GenerateSigma, FullTensorSigma) {
     Lambda_out.UniformRefine(level);
 
     auto Sigma = GenerateSigma(Lambda_in, Lambda_out);
-    auto sigma_nodes = Sigma.Bfs();
+    auto sigma_nodes = Sigma->Bfs();
 
     auto test_dbltree =
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>(
@@ -139,7 +140,7 @@ TEST(GenerateTheta, FullTensorTheta) {
     Lambda_out.UniformRefine(level);
 
     auto Theta = GenerateTheta(Lambda_in, Lambda_out);
-    auto theta_nodes = Theta.Bfs();
+    auto theta_nodes = Theta->Bfs();
 
     auto test_dbltree =
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(

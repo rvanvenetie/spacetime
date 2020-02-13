@@ -6,6 +6,7 @@
 #include "../space/basis.hpp"
 #include "../space/bilinear_form.hpp"
 #include "../time/bilinear_form.hpp"
+#include "basis.hpp"
 
 namespace spacetime {
 
@@ -15,39 +16,35 @@ class TransposeBilinearForm;
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-class BilinearForm
-    : public std::enable_shared_from_this<BilinearForm<
-          OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>> {
+class BilinearForm {
  protected:
   template <typename T0, typename T1>
   using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
   using BasisSpace = space::HierarchicalBasisFn;
 
  public:
-  BilinearForm(DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
-               DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
-               bool use_cache = true);
+  BilinearForm(
+      DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
+      DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
+      std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma,
+      std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta,
+      bool use_cache = true);
 
   Eigen::VectorXd Apply();
-  Eigen::VectorXd ApplyTranspose();
-
-  // Returns the transpose operator.
-  auto Transpose() const { return TransposeBilinearForm(shared_from_this()); }
 
   auto vec_in() const { return vec_in_; }
   auto vec_out() const { return vec_out_; }
-  const DoubleTreeVector<BasisTimeIn, BasisSpace> &sigma() { return sigma_; }
-  const DoubleTreeVector<BasisTimeOut, BasisSpace> &theta() { return theta_; }
+  auto sigma() { return sigma_; }
+  auto theta() { return theta_; }
 
  protected:
   DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in_;
   DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out_;
 
-  DoubleTreeVector<BasisTimeIn, BasisSpace> sigma_;
-  DoubleTreeVector<BasisTimeOut, BasisSpace> theta_;
+  std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma_;
+  std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta_;
   bool use_cache_;
   bool is_cached_ = false;
-  bool is_tcached_ = false;
 
   // Define frozen templates, useful for storing the bil forms.
   template <size_t i>
@@ -62,27 +59,7 @@ class BilinearForm
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_low_;
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_upp_;
   std::vector<space::BilinearForm<OperatorSpace, FO<1>, FO<1>>> bil_space_upp_;
-
-  // Store bilinear forms of the transpose operations.
-  std::vector<Time::BilinearForm<OperatorTime, FO<0>, FI<0>>> tbil_time_low_;
-  std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> tbil_space_low_;
-  std::vector<space::BilinearForm<OperatorSpace, FO<1>, FO<1>>> tbil_space_upp_;
-  std::vector<Time::BilinearForm<OperatorTime, FO<0>, FI<0>>> tbil_time_upp_;
-};
-
-// Helper function.
-template <template <typename, typename> class OpTime, typename OpSpace,
-          typename BTimeIn, typename BTimeOut>
-std::shared_ptr<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>
-CreateBilinearForm(
-    datastructures::DoubleTreeVector<BTimeIn, space::HierarchicalBasisFn>
-        *vec_in,
-    datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>
-        *vec_out,
-    bool use_cache = true) {
-  return std::make_shared<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>(
-      vec_in, vec_out, use_cache = use_cache);
-}
+};  // namespace spacetime
 
 // This class represents the sum of two bilinear forms.
 template <typename BilFormA, typename BilFormB = BilFormA>
@@ -98,8 +75,6 @@ class SumBilinearForm {
     // Apply both operators and store the vectorized result.
     auto v = a_->Apply();
     v += b_->Apply();
-
-    a_->vec_out()->FromVectorContainer(v);
     return v;
   }
 
@@ -111,23 +86,45 @@ class SumBilinearForm {
   std::shared_ptr<BilFormB> b_;
 };
 
-// This class represents the transpose of a spacetime bilinear form.
-template <typename BilForm>
-class TransposeBilinearForm {
- public:
-  TransposeBilinearForm(std::shared_ptr<BilForm> bil_form)
-      : bil_form_(bil_form) {
-    assert(bil_form_->use_cache_);
-  }
+// Helper functions.
+template <template <typename, typename> class OpTime, typename OpSpace,
+          typename BTimeIn, typename BTimeOut>
+std::shared_ptr<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>
+CreateBilinearForm(
+    datastructures::DoubleTreeVector<BTimeIn, space::HierarchicalBasisFn>
+        *vec_in,
+    datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>
+        *vec_out,
+    bool use_cache = true) {
+  return std::make_shared<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>(
+      vec_in, vec_out, GenerateSigma(*vec_in, *vec_out),
+      GenerateTheta(*vec_in, *vec_out), use_cache);
+}
 
-  Eigen::VectorXd Apply() { return bil_form_->ApplyTranspose(); }
+template <template <typename, typename> class OpTime, typename OpSpace,
+          typename BTimeIn, typename BTimeOut>
+std::shared_ptr<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>
+CreateBilinearForm(
+    datastructures::DoubleTreeVector<BTimeIn, space::HierarchicalBasisFn>
+        *vec_in,
+    datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>
+        *vec_out,
+    std::shared_ptr<
+        datastructures::DoubleTreeVector<BTimeIn, space::HierarchicalBasisFn>>
+        sigma,
+    std::shared_ptr<
+        datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>>
+        theta,
+    bool use_cache = true) {
+  return std::make_shared<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>(
+      vec_in, vec_out, sigma, theta, use_cache);
+}
 
-  auto vec_in() const { return bil_form_->vec_in(); }
-  auto vec_out() const { return bil_form_->vec_out(); }
-
- protected:
-  std::shared_ptr<BilForm> bil_form_;
-};
+// Creates the SumBilinearForm of two shared_ptrs.
+template <typename BilFormA, typename BilFormB>
+auto Sum(std::shared_ptr<BilFormA> a, std::shared_ptr<BilFormB> b) {
+  return std::make_shared<SumBilinearForm<BilFormA, BilFormB>>(a, b);
+}
 
 }  // namespace spacetime
 
