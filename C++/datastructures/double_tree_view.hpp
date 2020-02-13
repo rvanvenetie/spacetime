@@ -129,6 +129,10 @@ class DoubleNodeBase : public Base<DoubleNodeBase<Base, T...>, T...> {
     return &std::get<i>(frozen_double_nodes_);
   }
 
+  // Some convenient helper functions.
+  T0* node_0() const { return std::get<0>(Super::nodes_); }
+  T1* node_1() const { return std::get<1>(Super::nodes_); }
+
  protected:
   std::tuple<FrozenDoubleNode<I, 0>, FrozenDoubleNode<I, 1>>
       frozen_double_nodes_;

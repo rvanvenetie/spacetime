@@ -5,6 +5,15 @@ namespace spacetime {
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
+    BilinearForm(DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
+                 DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
+                 bool use_cache)
+    : BilinearForm(vec_in, vec_out, GenerateSigma(*vec_in, *vec_out),
+                   GenerateTheta(*vec_in, *vec_out), use_cache) {}
+
+template <template <typename, typename> class OperatorTime,
+          typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
+BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
     BilinearForm(
         DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
         DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
@@ -15,7 +24,10 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
       vec_out_(vec_out),
       sigma_(sigma),
       theta_(theta),
-      use_cache_(use_cache) {}
+      use_cache_(use_cache) {
+  if constexpr (std::is_same_v<BasisTimeIn, BasisTimeOut>)
+    assert(vec_in != vec_out);
+}
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>

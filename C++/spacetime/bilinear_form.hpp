@@ -22,6 +22,9 @@ class BilinearForm
   using BasisSpace = space::HierarchicalBasisFn;
 
  public:
+  BilinearForm(DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
+               DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
+               bool use_cache = true);
   BilinearForm(
       DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
       DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
@@ -82,8 +85,7 @@ CreateBilinearForm(
         *vec_out,
     bool use_cache = true) {
   return std::make_shared<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>(
-      vec_in, vec_out, GenerateSigma(*vec_in, *vec_out),
-      GenerateTheta(*vec_in, *vec_out), use_cache);
+      vec_in, vec_out, use_cache);
 }
 
 template <template <typename, typename> class OpTime, typename OpSpace,
