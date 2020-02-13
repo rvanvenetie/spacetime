@@ -25,7 +25,7 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
   vec_out_->Reset();
   sigma_->Reset();
   theta_->Reset();
-  Eigen::VectorXd v(vec_out_->container().size());
+  Eigen::VectorXd v;
 
   // Check whether we have to recalculate the bilinear forms.
   if (!use_cache_ || !is_cached_) {
@@ -94,12 +94,47 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
   // Add the upper part to the output, and store the result in the tree.
   size_t i = 0;
   for (auto &node : vec_out_->container()) {
-    v[i] += node->value();
-    node->set_value(v[i++]);
+    v[i] += node.value();
+    node.set_value(v[i++]);
   }
 
   // Return vectorized output.
   return v;
 }
 
+template <template <typename, typename> class OperatorTime,
+          typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
+Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
+                             BasisTimeOut>::ApplyTranspose() {
+  // ApplyTranspose only works with if we have cached the bil forms.
+  assert(use_cache_ && is_cached_);
+
+  // Reset the necessary DoubleTrees.
+  vec_in_->Reset();
+  sigma_->Reset();
+  theta_->Reset();
+  Eigen::VectorXd v;
+
+  // Apply the lower part using cached bil forms.
+  for (auto &bil_form : bil_time_low_) bil_form.Transpose().ApplyUpp();
+  for (auto &bil_form : bil_space_low_) bil_form.Transpose().Apply();
+
+  // Store the lower output.
+  v = vec_in_->ToVectorContainer();
+  vec_in_->Reset();
+
+  // Apply the upper part using cached bil forms.
+  for (auto &bil_form : bil_space_upp_) bil_form.Transpose().Apply();
+  for (auto &bil_form : bil_time_upp_) bil_form.Transpose().ApplyLow();
+
+  // Add the upper part to the output, and store the result in the tree.
+  size_t i = 0;
+  for (auto &node : vec_in_->container()) {
+    v[i] += node.value();
+    node.set_value(v[i++]);
+  }
+
+  // Return vectorized output.
+  return v;
+}
 }  // namespace spacetime
