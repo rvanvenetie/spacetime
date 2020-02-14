@@ -82,7 +82,7 @@ TEST(GenerateSigma, SmallSigma) {
 
   auto test_dbltree = DoubleTreeVector<HaarWaveletFn, HaarWaveletFn>(
       haar_tree.meta_root.get(), haar_tree.meta_root.get());
-  test_dbltree.UniformRefine({1, 2});
+  test_dbltree.UniformRefine({2, 2});
   auto test_nodes = test_dbltree.Bfs();
 
   ASSERT_EQ(sigma_nodes.size(), test_nodes.size());
@@ -113,7 +113,7 @@ TEST(GenerateSigma, FullTensorSigma) {
     auto test_dbltree =
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>(
             ortho_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
-    test_dbltree.UniformRefine({level - 1, level});
+    test_dbltree.UniformRefine({level, level});
     auto test_nodes = test_dbltree.Bfs();
 
     ASSERT_EQ(sigma_nodes.size(), test_nodes.size());
