@@ -28,22 +28,27 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/google/googletest.git
   GIT_TAG        release-1.10.0
 )
-
-FetchContent_GetProperties(googletest)
-if(NOT googletest_POPULATED)
-  FetchContent_Populate(googletest)
-  add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
-endif()
+FetchContent_Populate(googletest)
+add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 
 ## Ensure that a proper version of boost is installed
-set(Boost_USE_STATIC_RUNTIME ON)
-set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost 1.69.0 REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
+FetchContent_Declare(
+    boost
+    GIT_REPOSITORY https://github.com/boostorg/boost.git
+    GIT_SUBMODULES libs/container
+    GIT_TAG boost-1.72.0
+)   
+FetchContent_Populate(boost)
+include_directories(${boost_SOURCE_DIR})
 
-# Install eigen
-find_package(Eigen3 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
+### Download Eigen
+FetchContent_Declare(
+  eigen3
+  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+  GIT_TAG        3.3.7
+)
+FetchContent_Populate(eigen3)
+include_directories(${eigen3_SOURCE_DIR})
 
 ## Enable testing.
 enable_testing()
