@@ -73,7 +73,7 @@ void CheckMatrixQuadrature(const SparseIndices<BasisIn> &indices_in,
       auto phi_i = indices_out[i];
 
       double ip = 0;
-      auto eval = [psi_j, deriv_in, phi_i, deriv_out](const double &t) {
+      auto eval = [psi_j, deriv_in, phi_i, deriv_out](double t) {
         return psi_j->Eval(t, deriv_in) * phi_i->Eval(t, deriv_out);
       };
       for (auto elem : phi_i->support())
