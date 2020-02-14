@@ -31,15 +31,19 @@ FetchContent_Declare(
 FetchContent_Populate(googletest)
 add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 
-## Ensure that a proper version of boost is installed
+## Downloads (a subset of) boost. Only works for header only parts.
 FetchContent_Declare(
     boost
     GIT_REPOSITORY https://github.com/boostorg/boost.git
-    GIT_SUBMODULES libs/container
+    GIT_SUBMODULES libs/array libs/assert libs/bind libs/concept_check libs/config libs/container
+    libs/core libs/detail libs/intrusive libs/iterator libs/move libs/mpl libs/predef
+    libs/preprocessor libs/range libs/smart_ptr libs/static_assert libs/type_traits
+    libs/throw_exception libs/utility
     GIT_TAG boost-1.72.0
 )   
 FetchContent_Populate(boost)
-include_directories(${boost_SOURCE_DIR})
+file(GLOB boost_includes ${boost_SOURCE_DIR}/libs/*/include)
+include_directories(${boost_includes})
 
 ### Download Eigen
 FetchContent_Declare(
