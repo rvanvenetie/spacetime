@@ -33,8 +33,12 @@ class BilinearForm
       std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta,
       bool use_cache = true);
 
+  // Apply takes data from vec_in and writes it to vec_out.
   Eigen::VectorXd Apply();
+
+  // ApplyTranspose takes data from *vec_out* and writes it to *vec_in*.
   Eigen::VectorXd ApplyTranspose();
+
   auto Transpose() {
     if (!transpose_)
       transpose_ =
