@@ -43,7 +43,7 @@ auto LinearForm<WaveletBasis>::ApplyRecur(
     e += Prolongate<ScalingBasis>().RMatVec(e_bar, Pi_B_out);
 
     auto f = WaveletToScaling<WaveletBasis>().RMatVec(e_bar, Lambda_l_out);
-    return std::pair{std::move(e), Union(std::move(f), std::move(f_bar))};
+    return std::pair{std::move(e), Union(std::move(f_bar), std::move(f))};
   }
   return std::pair{SparseVector<ScalingBasis>(), SparseVector<WaveletBasis>()};
 }

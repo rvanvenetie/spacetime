@@ -10,7 +10,8 @@ namespace Time {
 template <typename Basis>
 inline SparseVector<Basis> Union(SparseVector<Basis> &&a,
                                  SparseVector<Basis> &&b) {
-  if (a.empty()) return std::move(b);
+  // Ensure that a.size() <= b.size().
+  if (b.size() > a.size()) return Union(std::move(b), std::move(a));
   if (b.empty()) return std::move(a);
   a.reserve(a.size() + b.size());
   a.insert(a.end(), std::make_move_iterator(b.begin()),
@@ -117,8 +118,8 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
     auto [Pi_B_out, Pi_A_out] = ConstructPiOut(std::move(Pi_out));
     auto Pi_B_in = ConstructPiBIn(d.Indices(), Pi_B_out);
 
-    auto d_bar = Prolongate<ScalingBasisIn>().MatVec(d.Restrict(Pi_B_in));
-    d_bar += WaveletToScaling<WaveletBasisIn>().MatVec(c);
+    auto d_bar = WaveletToScaling<WaveletBasisIn>().MatVec(c);
+    d_bar += Prolongate<ScalingBasisIn>().MatVec(d.Restrict(Pi_B_in));
 
     auto Pi_bar_out = Prolongate<ScalingBasisOut>().Range(Pi_B_out);
     Pi_bar_out |= WaveletToScaling<WaveletBasisOut>().Range(Lambda_l_out);
@@ -129,7 +130,7 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
     e += Prolongate<ScalingBasisOut>().RMatVec(e_bar, Pi_B_out);
 
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    return std::pair{std::move(e), Union(std::move(f), std::move(f_bar))};
+    return std::pair{std::move(e), Union(std::move(f_bar), std::move(f))};
   } else {
     return std::pair{SparseVector<ScalingBasisOut>(),
                      SparseVector<WaveletBasisOut>()};
@@ -162,7 +163,7 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyUppRecur(
     e += Prolongate<ScalingBasisOut>().RMatVec(e_bar, Pi_B_out);
 
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    return std::pair{std::move(e), Union(std::move(f), std::move(f_bar))};
+    return std::pair{std::move(e), Union(std::move(f_bar), std::move(f))};
   } else {
     return std::pair{SparseVector<ScalingBasisOut>(),
                      SparseVector<WaveletBasisOut>()};
@@ -190,7 +191,7 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyLowRecur(
     d_bar += WaveletToScaling<WaveletBasisIn>().MatVec(c);
     auto f_bar = ApplyLowRecur(l + 1, d_bar);
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    return Union(std::move(f), std::move(f_bar));
+    return Union(std::move(f_bar), std::move(f));
   } else {
     return SparseVector<WaveletBasisOut>();
   }
