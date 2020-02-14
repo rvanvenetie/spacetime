@@ -228,6 +228,7 @@ class MultiTreeView {
   I* root() { return root_; }
   I* root() const { return root_; }
   const std::deque<I>& container() const { return multi_nodes_; }
+  std::deque<I>& container() { return multi_nodes_; }
 
   // This constructs the tree with a single meta_root.
   template <typename... T>
