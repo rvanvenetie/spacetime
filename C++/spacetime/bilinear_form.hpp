@@ -22,9 +22,13 @@ class BilinearForm
   using BasisSpace = space::HierarchicalBasisFn;
 
  public:
+  // Friendly aliases.
+  using DblVecIn = DoubleTreeVector<BasisTimeIn, BasisSpace>;
+  using DblVecOut = DoubleTreeVector<BasisTimeOut, BasisSpace>;
+
+  BilinearForm(DblVecIn *vec_in, DblVecOut *vec_out, bool use_cache = true);
   BilinearForm(
-      DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
-      DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
+      DblVecIn *vec_in, DblVecOut *vec_out,
       std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma,
       std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta,
       bool use_cache = true);
@@ -43,14 +47,14 @@ class BilinearForm
     return transpose_;
   }
 
-  auto vec_in() const { return vec_in_; }
-  auto vec_out() const { return vec_out_; }
+  DblVecIn *vec_in() const { return vec_in_; }
+  DblVecOut *vec_out() const { return vec_out_; }
   auto sigma() { return sigma_; }
   auto theta() { return theta_; }
 
  protected:
-  DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in_;
-  DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out_;
+  DblVecIn *vec_in_;
+  DblVecOut *vec_out_;
 
   std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma_;
   std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta_;
@@ -86,8 +90,7 @@ CreateBilinearForm(
         *vec_out,
     bool use_cache = true) {
   return std::make_shared<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>(
-      vec_in, vec_out, GenerateSigma(*vec_in, *vec_out),
-      GenerateTheta(*vec_in, *vec_out), use_cache);
+      vec_in, vec_out, use_cache);
 }
 
 template <template <typename, typename> class OpTime, typename OpSpace,
