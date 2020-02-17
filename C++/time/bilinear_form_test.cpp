@@ -98,7 +98,8 @@ void CheckMatrixQuadrature(const TreeVector<WaveletBasisIn>& vec_in,
   TestLinearity<Operator>(vec_in, vec_out);
   TestUppLow<Operator>(vec_in, vec_out);
 
-  auto mat = CreateBilinearForm<Operator>(vec_in, vec_out).ToMatrix();
+  auto bil_form = CreateBilinearForm<Operator>(vec_in, vec_out);
+  auto mat = bil_form.ToMatrix();
   auto nodes_in = vec_in.Bfs();
   auto nodes_out = vec_out.Bfs();
   for (int j = 0; j < nodes_in.size(); ++j)
@@ -117,6 +118,10 @@ void CheckMatrixQuadrature(const TreeVector<WaveletBasisIn>& vec_in,
 
       ASSERT_NEAR(mat(i, j), ip, 1e-10);
     }
+
+  // Check that its transpose equals the matrix transpose.
+  auto tmat = bil_form.Transpose().ToMatrix();
+  ASSERT_TRUE(mat.transpose().isApprox(tmat));
 }
 
 TEST(BilinearForm, FullTest) {

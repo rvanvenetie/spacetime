@@ -2,37 +2,63 @@
 #include <utility>
 #include <vector>
 
+#include "../datastructures/bilinear_form.hpp"
 #include "../datastructures/double_tree_view.hpp"
 #include "../space/basis.hpp"
 #include "../space/bilinear_form.hpp"
 #include "../time/bilinear_form.hpp"
+#include "basis.hpp"
 
 namespace spacetime {
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-class BilinearForm {
+class BilinearForm
+    : public std::enable_shared_from_this<BilinearForm<
+          OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>> {
  protected:
   template <typename T0, typename T1>
   using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
   using BasisSpace = space::HierarchicalBasisFn;
 
  public:
-  BilinearForm(const DoubleTreeVector<BasisTimeIn, BasisSpace> &vec_in,
-               DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
-               bool use_cache = true);
-  void Apply();
+  BilinearForm(
+      DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
+      DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
+      std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma,
+      std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta,
+      bool use_cache = true);
 
-  const DoubleTreeVector<BasisTimeIn, BasisSpace> &sigma() { return sigma_; }
-  const DoubleTreeVector<BasisTimeOut, BasisSpace> &theta() { return theta_; }
+  // Apply takes data from vec_in and writes it to vec_out.
+  Eigen::VectorXd Apply();
+
+  // ApplyTranspose takes data from *vec_out* and writes it to *vec_in*.
+  Eigen::VectorXd ApplyTranspose();
+
+  auto Transpose() {
+    if (!transpose_)
+      transpose_ =
+          std::make_shared<typename decltype(transpose_)::element_type>(
+              this->shared_from_this());
+    return transpose_;
+  }
+
+  auto vec_in() const { return vec_in_; }
+  auto vec_out() const { return vec_out_; }
+  auto sigma() { return sigma_; }
+  auto theta() { return theta_; }
 
  protected:
-  const DoubleTreeVector<BasisTimeIn, BasisSpace> &vec_in_;
+  DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in_;
   DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out_;
 
-  DoubleTreeVector<BasisTimeIn, BasisSpace> sigma_;
-  DoubleTreeVector<BasisTimeOut, BasisSpace> theta_;
+  std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma_;
+  std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta_;
   bool use_cache_;
+  bool is_cached_ = false;
+  std::shared_ptr<TransposeBilinearForm<
+      BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>>>
+      transpose_;
 
   // Define frozen templates, useful for storing the bil forms.
   template <size_t i>
@@ -49,17 +75,38 @@ class BilinearForm {
   std::vector<space::BilinearForm<OperatorSpace, FO<1>, FO<1>>> bil_space_upp_;
 };
 
-// Helper function.
+// Helper functions.
 template <template <typename, typename> class OpTime, typename OpSpace,
           typename BTimeIn, typename BTimeOut>
-BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut> CreateBilinearForm(
-    const datastructures::DoubleTreeVector<BTimeIn, space::HierarchicalBasisFn>
-        &vec_in,
+std::shared_ptr<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>
+CreateBilinearForm(
+    datastructures::DoubleTreeVector<BTimeIn, space::HierarchicalBasisFn>
+        *vec_in,
     datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>
         *vec_out,
     bool use_cache = true) {
-  return BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>(
-      vec_in, vec_out, use_cache = use_cache);
+  return std::make_shared<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>(
+      vec_in, vec_out, GenerateSigma(*vec_in, *vec_out),
+      GenerateTheta(*vec_in, *vec_out), use_cache);
+}
+
+template <template <typename, typename> class OpTime, typename OpSpace,
+          typename BTimeIn, typename BTimeOut>
+std::shared_ptr<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>
+CreateBilinearForm(
+    datastructures::DoubleTreeVector<BTimeIn, space::HierarchicalBasisFn>
+        *vec_in,
+    datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>
+        *vec_out,
+    std::shared_ptr<
+        datastructures::DoubleTreeVector<BTimeIn, space::HierarchicalBasisFn>>
+        sigma,
+    std::shared_ptr<
+        datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>>
+        theta,
+    bool use_cache = true) {
+  return std::make_shared<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>(
+      vec_in, vec_out, sigma, theta, use_cache);
 }
 
 }  // namespace spacetime

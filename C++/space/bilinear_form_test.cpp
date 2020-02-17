@@ -76,6 +76,10 @@ TEST(BilinearForm, SymmetricQuadrature) {
   auto mass_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ false);
   ASSERT_TRUE(mass_mat.isApprox(mass_quad));
 
+  // Check that the transpose is correct
+  auto mass_tmat = mass_bil_form.Transpose().ToMatrix();
+  ASSERT_TRUE(mass_mat.transpose().isApprox(mass_tmat));
+
   // Check also the apply of a random vector.
   Eigen::VectorXd v(vec_in.Bfs().size());
   v.setRandom();
@@ -87,6 +91,10 @@ TEST(BilinearForm, SymmetricQuadrature) {
   auto stiff_mat = stiff_bil_form.ToMatrix();
   auto stiff_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ true);
   ASSERT_TRUE(stiff_mat.isApprox(stiff_quad));
+
+  // Check that the transpose is correct
+  auto stiff_tmat = stiff_bil_form.Transpose().ToMatrix();
+  ASSERT_TRUE(stiff_mat.transpose().isApprox(stiff_tmat));
 
   // Check also the apply of a random vector.
   v.setRandom();
@@ -114,6 +122,10 @@ TEST(BilinearForm, UnsymmetricQuadrature) {
     auto mass_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ false);
     ASSERT_TRUE(mass_mat.isApprox(mass_quad));
 
+    // Check that the transpose is correct
+    auto mass_tmat = mass_bil_form.Transpose().ToMatrix();
+    ASSERT_TRUE(mass_mat.transpose().isApprox(mass_tmat));
+
     // Check also the apply of a random vector.
     Eigen::VectorXd v(vec_in.Bfs().size());
     v.setRandom();
@@ -126,6 +138,10 @@ TEST(BilinearForm, UnsymmetricQuadrature) {
     auto stiff_mat = stiff_bil_form.ToMatrix();
     auto stiff_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ true);
     ASSERT_TRUE(stiff_mat.isApprox(stiff_quad));
+
+    // Check that the transpose is correct
+    auto stiff_tmat = stiff_bil_form.Transpose().ToMatrix();
+    ASSERT_TRUE(stiff_mat.transpose().isApprox(stiff_tmat));
 
     // Check also the apply of a random vector.
     v.setRandom();

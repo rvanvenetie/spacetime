@@ -19,6 +19,22 @@ using tools::IntegrationRule;
 
 namespace spacetime {
 
+template <typename BilForm>
+Eigen::MatrixXd ToMatrix(BilForm &bilform) {
+  auto nodes_in = bilform.vec_in()->Bfs();
+  auto nodes_out = bilform.vec_out()->Bfs();
+  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(nodes_out.size(), nodes_in.size());
+  for (int i = 0; i < nodes_in.size(); ++i) {
+    bilform.vec_in()->Reset();
+    nodes_in[i]->set_value(1);
+    bilform.Apply();
+    for (int j = 0; j < nodes_out.size(); ++j) {
+      A(j, i) = nodes_out[j]->value();
+    }
+  }
+  return A;
+}
+
 template <typename WaveletBasisIn, typename WaveletBasisOut>
 double TimeQuadrature(WaveletBasisIn *f, WaveletBasisOut *g, bool deriv_in,
                       bool deriv_out) {
@@ -68,31 +84,31 @@ void TestSpacetimeCache(
   for (int i = 0; i < 2; ++i) {
     // Create a bilinear form and do some caching tests.
     auto bil_form = CreateBilinearForm<OperatorTime, OperatorSpace>(
-        vec_in, &vec_out, /* use_cache */ i == 0);
+        &vec_in, &vec_out, /* use_cache */ i == 0);
 
     // Put some random values into vec_in.
     for (auto nv : vec_in.Bfs())
       nv->set_value(((double)std::rand()) / RAND_MAX);
 
     // Apply the spacetime bilinear form.
-    bil_form.Apply();
+    bil_form->Apply();
 
     // Check that applying it a couple times still gives the same result.
     auto eigen_out = vec_out.ToVector();
-    bil_form.Apply();
-    bil_form.Apply();
+    bil_form->Apply();
+    bil_form->Apply();
     ASSERT_TRUE(eigen_out.isApprox(vec_out.ToVector()));
 
     // Check that applying it with a different input gives another result.
     for (auto nv : vec_in.Bfs())
       nv->set_value(((double)std::rand()) / RAND_MAX);
-    bil_form.Apply();
+    bil_form->Apply();
     ASSERT_FALSE(eigen_out.isApprox(vec_out.ToVector()));
 
     // Which stays the same if we apply it multiple times.
     eigen_out = vec_out.ToVector();
-    bil_form.Apply();
-    bil_form.Apply();
+    bil_form->Apply();
+    bil_form->Apply();
     ASSERT_TRUE(eigen_out.isApprox(vec_out.ToVector()));
   }
 }
@@ -117,15 +133,15 @@ void TestSpacetimeLinearity(
   vec_in_comb += vec_in_2;
 
   // Apply this weighted comb. by hand
-  CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in_1, &vec_out).Apply();
+  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_1, &vec_out)->Apply();
   auto vec_out_test = vec_out.DeepCopy();
   vec_out_test *= alpha;
-  CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in_2, &vec_out).Apply();
+  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_2, &vec_out)->Apply();
   vec_out_test += vec_out;
 
   // Do it using the lin comb.
-  CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in_comb, &vec_out)
-      .Apply();
+  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_comb, &vec_out)
+      ->Apply();
   auto vec_out_comb = vec_out.DeepCopy();
 
   // Now check the results!
@@ -155,13 +171,13 @@ void TestSpacetimeQuadrature(
 
   // Create a bilinear form and do some quadrature tests.
   auto bil_form =
-      CreateBilinearForm<OperatorTime, OperatorSpace>(vec_in, &vec_out);
+      CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in, &vec_out);
 
   // Simply put some random values into vec_in.
   for (auto nv : vec_in.Bfs()) nv->set_value(((double)std::rand()) / RAND_MAX);
 
   // Apply the spacetime bilinear form.
-  bil_form.Apply();
+  bil_form->Apply();
 
   // Now compare this to the matrix approach
   auto db_nodes_in = vec_in.Bfs();
@@ -232,6 +248,57 @@ TEST(BilinearForm, SparseQuadrature) {
         vec_Y_in, vec_X_out, /* deriv_space */ false,
         /* deriv_time_in */ false,
         /* deriv_time_out*/ false);
+  }
+}
+TEST(BilinearForm, Transpose) {
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(6);
+  ortho_tree.UniformRefine(6);
+  three_point_tree.UniformRefine(6);
+
+  for (int level = 1; level < 6; level++) {
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        three_point_tree.meta_root.get(),
+        T.hierarch_basis_tree.meta_root.get());
+    X_delta.SparseRefine(level);
+    auto Y_delta = GenerateYDelta(X_delta);
+
+    auto vec_X_in = X_delta.template DeepCopy<
+        DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
+    auto vec_X_out = X_delta.template DeepCopy<
+        DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
+    auto vec_Y_in = Y_delta.template DeepCopy<
+        DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    auto vec_Y_out = Y_delta.template DeepCopy<
+        DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+
+    // Test the actual operators that we use.
+    auto A_s = CreateBilinearForm<Time::MassOperator, space::StiffnessOperator>(
+        &vec_X_in, &vec_Y_out);
+
+    // Reuse theta/sigma for B_t.
+    auto B_t = CreateBilinearForm<Time::TransportOperator, space::MassOperator>(
+        &vec_X_in, &vec_Y_out, A_s->sigma(), A_s->theta());
+
+    // Create matrices.
+    auto mat_A_s = ToMatrix(*A_s);
+    auto mat_B_t = ToMatrix(*B_t);
+
+    // Create transpose.
+    auto trans_A_s = A_s->Transpose();
+    auto trans_B_t = B_t->Transpose();
+
+    // Compare the matrices.
+    ASSERT_TRUE(mat_A_s.transpose().isApprox(ToMatrix(*trans_A_s)));
+    ASSERT_TRUE(mat_B_t.transpose().isApprox(ToMatrix(*trans_B_t)));
+
+    // Now check the sum.
+    auto B = A_s + B_t;
+    ASSERT_TRUE((mat_A_s + mat_B_t).isApprox(ToMatrix(*B)));
+
+    // Now check the transpose of the sum.
+    auto BT = B->Transpose();
+    ASSERT_TRUE((mat_A_s + mat_B_t).transpose().isApprox(ToMatrix(*BT)));
   }
 }
 }  // namespace spacetime
