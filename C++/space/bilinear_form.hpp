@@ -54,7 +54,7 @@ class BilinearForm {
       nodes_vec_union_;
 };
 
-// Helper functions .
+// Helper functions.
 template <typename Operator, typename I_in, typename I_out>
 BilinearForm<Operator, I_in, I_out> CreateBilinearForm(
     I_in* root_vec_in, I_out* root_vec_out, bool dirichlet_boundary = true) {
@@ -62,7 +62,6 @@ BilinearForm<Operator, I_in, I_out> CreateBilinearForm(
                                              dirichlet_boundary);
 }
 
-// Helper function.
 template <typename Operator>
 auto CreateBilinearForm(
     const datastructures::TreeVector<HierarchicalBasisFn>& vec_in,
