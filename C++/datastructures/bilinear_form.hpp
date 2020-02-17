@@ -22,9 +22,10 @@ struct traits<EigenBilinearForm>
 class EigenBilinearForm : public Eigen::EigenBase<EigenBilinearForm> {
  public:
   // These are the functions that must be implemented.
-  virtual Eigen::Index rows() const = 0;
-  virtual Eigen::Index cols() const = 0;
-  virtual Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const = 0;
+  virtual Eigen::Index rows() const { assert(false); }
+  virtual Eigen::Index cols() const { assert(false); }
+  virtual Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const { assert(false); }
+  virtual ~EigenBilinearForm() {}
 
   // Eigen related stuff.
   using Scalar = double;
