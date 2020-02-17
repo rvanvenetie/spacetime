@@ -66,11 +66,11 @@ class BilinearForm {
   I_in *vec_in_;
   I_out *vec_out_;
 
-  // A flattened bfs view of the vectors.
-  std::shared_ptr<std::vector<I_in *>> nodes_vec_in_;
-  std::shared_ptr<std::vector<I_out *>> nodes_vec_out_;
+  // A flattened (levelwise) view of input/output vectors.
+  std::shared_ptr<std::vector<std::vector<I_in *>>> nodes_vec_in_;
+  std::shared_ptr<std::vector<std::vector<I_out *>>> nodes_vec_out_;
 
-  // A flattened, levelwise view of the trees.
+  // Another flattened (levelwise) view of the vectors, in another data format.
   std::vector<SparseVector<WaveletBasisIn>> lvl_vec_in_;
   std::vector<SparseIndices<WaveletBasisOut>> lvl_ind_out_;
 
