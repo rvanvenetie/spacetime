@@ -153,7 +153,7 @@ class MultiNodeViewInterface {
  private:
   template <size_t i, size_t j>
   I* FindBrother(const TupleNodes& nodes, bool make_conforming);
-};  // namespace datastructures
+};
 
 template <typename I, typename... T>
 class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
