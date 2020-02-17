@@ -28,22 +28,31 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/google/googletest.git
   GIT_TAG        release-1.10.0
 )
+FetchContent_Populate(googletest)
+add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 
-FetchContent_GetProperties(googletest)
-if(NOT googletest_POPULATED)
-  FetchContent_Populate(googletest)
-  add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
-endif()
+## Downloads (a subset of) boost. Only works for header only parts.
+FetchContent_Declare(
+    boost
+    GIT_REPOSITORY https://github.com/boostorg/boost.git
+    GIT_SUBMODULES libs/array libs/assert libs/bind libs/concept_check libs/config libs/container
+    libs/core libs/detail libs/intrusive libs/iterator libs/move libs/mpl libs/predef
+    libs/preprocessor libs/range libs/smart_ptr libs/static_assert libs/type_traits
+    libs/throw_exception libs/utility
+    GIT_TAG boost-1.72.0
+)   
+FetchContent_Populate(boost)
+file(GLOB boost_includes ${boost_SOURCE_DIR}/libs/*/include)
+include_directories(${boost_includes})
 
-## Ensure that a proper version of boost is installed
-set(Boost_USE_STATIC_RUNTIME ON)
-set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost 1.69.0 REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
-
-# Install eigen
-find_package(Eigen3 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
+### Download Eigen
+FetchContent_Declare(
+  eigen3
+  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+  GIT_TAG        3.3.7
+)
+FetchContent_Populate(eigen3)
+include_directories(${eigen3_SOURCE_DIR})
 
 ## Enable testing.
 enable_testing()

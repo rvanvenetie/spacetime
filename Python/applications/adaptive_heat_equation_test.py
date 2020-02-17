@@ -389,13 +389,14 @@ if __name__ == "__main__":
             results_file='smooth_solution_adaptive_3layer_single.pkl')
     elif case == 'time':
         run_adaptive_loop(
-            rhs_functional_factory=time_singular_rhs_functional_unit,
-            u_solution=time_singular_solution_function(),
-            u0_data=time_singular_u0_data_unit(),
+            rhs_functional_factory=lambda heat_eq: time_singular_rhs_functional_unit(heat_eq,
+            alpha=0.1),
+            u_solution=time_singular_solution_function(alpha=0.1),
+            u0_data=time_singular_u0_data_unit(alpha=0.1),
             initial_triangulation='unit_square',
             saturation_layers=1,
             mean_zero=True,
-            results_file='time_solution_adaptive_unit.pkl')
+            results_file='time_solution_adaptive_unit_alpha0.1.pkl')
     elif case == 'mild':
         run_adaptive_loop(
             rhs_functional_factory=mildly_singular_rhs_functional_unit,
