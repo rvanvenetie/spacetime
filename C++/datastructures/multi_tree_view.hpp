@@ -123,6 +123,21 @@ class MultiNodeViewInterface {
     return result;
   }
 
+  // This returns nodes in this multitree, sliced by levels.
+  std::vector<std::vector<I*>> NodesPerLevel() {
+    std::vector<std::vector<I*>> result;
+    for (auto node : Bfs()) {
+      size_t lvl = node->level();
+      assert(lvl >= 0 && lvl <= result.size());
+      if (lvl == result.size()) {
+        result.emplace_back();
+        if (lvl) result.reserve(result[lvl - 1].size());
+      }
+      result[node->level()].emplace_back(node);
+    }
+    return result;
+  }
+
   // Some convenient debug function.
   friend std::ostream& operator<<(std::ostream& os,
                                   const MultiNodeViewInterface<I, T...>& mnv) {
@@ -293,7 +308,6 @@ using TreeView = MultiTreeView<MultiNodeView<T0>>;
 
 template <typename T0, typename T1, typename T2>
 using TripleTreeView = MultiTreeView<MultiNodeView<T0, T1, T2>>;
-
 };  // namespace datastructures
 
 #include "multi_tree_view.ipp"

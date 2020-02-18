@@ -10,7 +10,8 @@ namespace Time {
 template <typename Basis>
 inline SparseVector<Basis> Union(SparseVector<Basis> &&a,
                                  SparseVector<Basis> &&b) {
-  if (a.empty()) return std::move(b);
+  // Ensure that a.size() <= b.size().
+  if (b.size() > a.size()) return Union(std::move(b), std::move(a));
   if (b.empty()) return std::move(a);
   a.reserve(a.size() + b.size());
   a.insert(a.end(), std::make_move_iterator(b.begin()),
@@ -24,8 +25,10 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in *root_vec_in,
                                                   I_out *root_vec_out)
     : vec_in_(root_vec_in),
       vec_out_(root_vec_out),
-      nodes_vec_in_(std::make_shared<std::vector<I_in *>>(vec_in_->Bfs())),
-      nodes_vec_out_(std::make_shared<std::vector<I_out *>>(vec_out_->Bfs())) {
+      nodes_vec_in_(std::make_shared<std::vector<std::vector<I_in *>>>(
+          vec_in_->NodesPerLevel())),
+      nodes_vec_out_(std::make_shared<std::vector<std::vector<I_out *>>>(
+          vec_out_->NodesPerLevel())) {
   InitializeOutput();
 }
 
@@ -34,12 +37,16 @@ template <template <typename, typename> class Operator, typename I_in,
 void BilinearForm<Operator, I_in, I_out>::InitializeOutput() {
   assert(vec_out_->is_root());
   assert(nodes_vec_out_);
-  // Slice the output vector into levelwise sparse indices.
-  for (const auto &node : *nodes_vec_out_) {
-    assert(node->level() >= 0 && node->level() <= lvl_ind_out_.size());
-    if (node->level() == lvl_ind_out_.size()) lvl_ind_out_.emplace_back();
-    lvl_ind_out_[node->level()].emplace_back(node->node());
+  assert(lvl_ind_out_.empty());
+
+  // Initialize lvl_ind_out using nodes_vec_out.
+  lvl_ind_out_.resize(nodes_vec_out_->size());
+  for (int lvl = 0; lvl < nodes_vec_out_->size(); ++lvl) {
+    lvl_ind_out_[lvl].reserve(nodes_vec_out_->size());
+    for (auto node : (*nodes_vec_out_)[lvl])
+      lvl_ind_out_[lvl].emplace_back(node->node());
   }
+
   assert(lvl_ind_out_.size());
   assert(lvl_ind_out_[0].size());
 }
@@ -49,15 +56,16 @@ template <template <typename, typename> class Operator, typename I_in,
 void BilinearForm<Operator, I_in, I_out>::InitializeInput() {
   assert(vec_in_->is_root());
   assert(nodes_vec_in_);
-  // Reset existing input nodes.
-  for (auto &sparse_vec : lvl_vec_in_) sparse_vec.clear();
 
-  // Slice the input vector into levelwise sparse vectors.
-  for (const auto &node : *nodes_vec_in_) {
-    assert(node->level() >= 0 && node->level() <= lvl_vec_in_.size());
-    if (node->level() == lvl_vec_in_.size()) lvl_vec_in_.emplace_back();
-    lvl_vec_in_[node->level()].emplace_back(node->node(), node->value());
+  // Initialize lvl_vec_in using nodes_vec_in.
+  lvl_vec_in_.resize(nodes_vec_in_->size());
+  for (int lvl = 0; lvl < nodes_vec_in_->size(); ++lvl) {
+    auto &nodes_lvl = (*nodes_vec_in_)[lvl];
+    lvl_vec_in_[lvl].resize(nodes_lvl.size());
+    for (int i = 0; i < nodes_lvl.size(); ++i)
+      lvl_vec_in_[lvl][i] = {nodes_lvl[i]->node(), nodes_lvl[i]->value()};
   }
+
   assert(lvl_vec_in_.size());
   assert(lvl_vec_in_[0].size());
 }
@@ -70,13 +78,14 @@ void BilinearForm<Operator, I_in, I_out>::FinalizeOutput(
   f.StoreInTree();
 
   // Copy the values in the underlying tree to the output vector.
-  for (const auto &nv : *nodes_vec_out_) {
-    auto node = nv->node();
-    if (node->has_data())
-      nv->set_value(*node->template data<double>());
-    else
-      nv->set_value(0);
-  }
+  for (const auto &nodes_lvl : *nodes_vec_out_)
+    for (const auto nv : nodes_lvl) {
+      auto node = nv->node();
+      if (node->has_data())
+        nv->set_value(*node->template data<double>());
+      else
+        nv->set_value(0);
+    }
 
   // Remove the data in the underlying tree.
   f.RemoveFromTree();
@@ -117,8 +126,8 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
     auto [Pi_B_out, Pi_A_out] = ConstructPiOut(std::move(Pi_out));
     auto Pi_B_in = ConstructPiBIn(d.Indices(), Pi_B_out);
 
-    auto d_bar = Prolongate<ScalingBasisIn>().MatVec(d.Restrict(Pi_B_in));
-    d_bar += WaveletToScaling<WaveletBasisIn>().MatVec(c);
+    auto d_bar = WaveletToScaling<WaveletBasisIn>().MatVec(c);
+    d_bar += Prolongate<ScalingBasisIn>().MatVec(d.Restrict(Pi_B_in));
 
     auto Pi_bar_out = Prolongate<ScalingBasisOut>().Range(Pi_B_out);
     Pi_bar_out |= WaveletToScaling<WaveletBasisOut>().Range(Lambda_l_out);
@@ -129,7 +138,7 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
     e += Prolongate<ScalingBasisOut>().RMatVec(e_bar, Pi_B_out);
 
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    return std::pair{std::move(e), Union(std::move(f), std::move(f_bar))};
+    return std::pair{std::move(e), Union(std::move(f_bar), std::move(f))};
   } else {
     return std::pair{SparseVector<ScalingBasisOut>(),
                      SparseVector<WaveletBasisOut>()};
@@ -162,7 +171,7 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyUppRecur(
     e += Prolongate<ScalingBasisOut>().RMatVec(e_bar, Pi_B_out);
 
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    return std::pair{std::move(e), Union(std::move(f), std::move(f_bar))};
+    return std::pair{std::move(e), Union(std::move(f_bar), std::move(f))};
   } else {
     return std::pair{SparseVector<ScalingBasisOut>(),
                      SparseVector<WaveletBasisOut>()};
@@ -190,7 +199,7 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyLowRecur(
     d_bar += WaveletToScaling<WaveletBasisIn>().MatVec(c);
     auto f_bar = ApplyLowRecur(l + 1, d_bar);
     auto f = WaveletToScaling<WaveletBasisOut>().RMatVec(e_bar, Lambda_l_out);
-    return Union(std::move(f), std::move(f_bar));
+    return Union(std::move(f_bar), std::move(f));
   } else {
     return SparseVector<WaveletBasisOut>();
   }

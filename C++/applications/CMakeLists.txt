@@ -1,6 +1,9 @@
 add_library(applications SHARED heat_equation.cpp)
 target_link_libraries(applications spacetime)
 
+add_executable(heat_equation_performance heat_equation_performance.cpp)
+target_link_libraries(heat_equation_performance applications)
+
 # Create tests
 package_add_test(heat_equation_test heat_equation_test.cpp)
 target_link_libraries(heat_equation_test applications)
