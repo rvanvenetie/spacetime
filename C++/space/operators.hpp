@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen/Sparse>
+#include <Eigen/SparseLU>
 
 #include "basis.hpp"
 #include "triangulation_view.hpp"
@@ -44,6 +45,7 @@ class BackwardOperator : public Operator {
  public:
   using Operator::Operator;
   virtual Eigen::VectorXd Apply(Eigen::VectorXd vec_in) const final;
+  virtual Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const = 0;
 
  protected:
   // Inverse Hierarhical Basis Transformations.
@@ -70,6 +72,32 @@ class StiffnessOperator : public ForwardOperator {
 
  protected:
   using ForwardOperator::matrix_;
+};
+
+template <size_t level>
+class MassPlusScaledStiffnessOperator : public ForwardOperator {
+ public:
+  MassPlusScaledStiffnessOperator(const TriangulationView &triang,
+                                  bool dirichlet_boundary = true);
+
+ protected:
+  using ForwardOperator::matrix_;
+  MassOperator mass_;
+  StiffnessOperator stiff_;
+};
+
+template <class ForwardOp>
+class DirectInverse : public BackwardOperator {
+ public:
+  DirectInverse(const TriangulationView &triang,
+                bool dirichlet_boundary = true);
+
+  Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const final;
+
+ protected:
+  ForwardOp forward_op_;
+  Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> >
+      solver_;
 };
 
 }  // namespace space

@@ -35,6 +35,29 @@ void ForwardOperator::ApplyTransposeHierarchToSingle(VectorXd &w) const {
     for (auto gp : T->RefinementEdge()) w[gp] = w[gp] + 0.5 * w[vi];
 }
 
+void BackwardOperator::ApplyInverseHierarchToSingle(VectorXd &w) const {
+  for (auto [vi, T] : boost::adaptors::reverse(triang_.history()))
+    for (auto gp : T->RefinementEdge()) w[vi] = w[vi] - 0.5 * w[gp];
+}
+
+void BackwardOperator::ApplyTransposeInverseHierarchToSingle(
+    VectorXd &w) const {
+  for (auto [vi, T] : triang_.history())
+    for (auto gp : T->RefinementEdge()) w[gp] = w[gp] - 0.5 * w[vi];
+}
+
+Eigen::VectorXd BackwardOperator::Apply(Eigen::VectorXd v) const {
+  if (dirichlet_boundary_) ApplyBoundaryConditions(v);
+
+  ApplyTransposeInverseHierarchToSingle(v);
+  ApplySinglescale(v);
+  ApplyInverseHierarchToSingle(v);
+
+  if (dirichlet_boundary_) ApplyBoundaryConditions(v);
+
+  return v;
+}
+
 MassOperator::MassOperator(const TriangulationView &triang,
                            bool dirichlet_boundary)
     : ForwardOperator(triang, dirichlet_boundary) {
@@ -86,6 +109,31 @@ StiffnessOperator::StiffnessOperator(const TriangulationView &triang,
         triplets.emplace_back(Vids[i], Vids[j], elem_stiff(i, j));
   }
   matrix_.setFromTriplets(triplets.begin(), triplets.end());
+}
+
+template <size_t level>
+MassPlusScaledStiffnessOperator<level>::MassPlusScaledStiffnessOperator(
+    const TriangulationView &triang, bool dirichlet_boundary)
+    : ForwardOperator(triang, dirichlet_boundary),
+      mass_(triang, dirichlet_boundary),
+      stiff_(triang, dirichlet_boundary) {
+  matrix_ =
+      stiff_.MatrixSingleScale() + pow(2, level) * mass_.MatrixSingleScale();
+}
+
+template <class ForwardOp>
+DirectInverse<ForwardOp>::DirectInverse(const TriangulationView &triang,
+                                        bool dirichlet_boundary)
+    : BackwardOperator(triang, dirichlet_boundary),
+      forward_op_(triang, dirichlet_boundary) {
+  solver_.analyzePattern(forward_op_.MatrixSingleScale());
+  solver_.factorize(forward_op_.MatrixSingleScale());
+}
+
+template <class ForwardOp>
+Eigen::VectorXd DirectInverse<ForwardOp>::ApplySinglescale(
+    Eigen::VectorXd vec_SS) const {
+  return solver_.solve(vec_SS);
 }
 
 }  // namespace space
