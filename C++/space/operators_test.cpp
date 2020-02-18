@@ -9,7 +9,7 @@ using namespace space;
 
 constexpr int max_level = 6;
 
-TEST(BilinearForm, SymmetricQuadrature) {
+TEST(Operator, InverseTimesForwardOpIsIdentity) {
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
   for (int level = 0; level <= max_level; ++level) {
