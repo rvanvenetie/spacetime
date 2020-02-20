@@ -12,14 +12,23 @@ constexpr int max_level = 6;
 TEST(Operator, InverseTimesForwardOpIsIdentity) {
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
-  for (int level = 0; level <= max_level; ++level) {
+  for (int level = 2; level <= max_level; ++level) {
     auto vertex_view = datastructures::TreeView<Vertex>(T.vertex_meta_root);
     vertex_view.UniformRefine(level);
 
     // Now create the corresponding element tree
     TriangulationView triang(vertex_view);
-    auto forward_op = MassPlusScaledStiffnessOperator</*level*/ 2>(triang);
-    auto backward_op =
-        DirectInverse<MassPlusScaledStiffnessOperator<2>>(triang);
+    auto forward_op = StiffnessOperator(triang);
+    auto backward_op = DirectInverse<StiffnessOperator>(triang);
+    for (int i = 0; i < 10; i++) {
+      Eigen::VectorXd vec(triang.vertices().size());
+      vec.setRandom();
+      for (int v = 0; v < triang.vertices().size(); v++)
+        if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+
+      ASSERT_TRUE(forward_op.Apply(backward_op.Apply(vec))
+                      .isApprox(backward_op.Apply(forward_op.Apply(vec))));
+      ASSERT_TRUE(backward_op.Apply(forward_op.Apply(vec)).isApprox(vec));
+    }
   }
 }

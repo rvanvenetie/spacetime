@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Sparse>
 #include <Eigen/SparseLU>
+#include <boost/range/adaptor/reversed.hpp>
 
 #include "basis.hpp"
 #include "triangulation_view.hpp"
@@ -43,12 +44,15 @@ class ForwardOperator : public Operator {
 
 class BackwardOperator : public Operator {
  public:
-  using Operator::Operator;
+  BackwardOperator(const TriangulationView &triang,
+                   bool dirichlet_boundary = true);
   virtual Eigen::VectorXd Apply(Eigen::VectorXd vec_in) const final;
   virtual Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const = 0;
 
  protected:
   // Inverse Hierarhical Basis Transformations.
+  Eigen::SparseMatrix<double> transform_;
+  Eigen::SparseMatrix<double> transformT_;
   void ApplyInverseHierarchToSingle(Eigen::VectorXd &vec_SS) const;
   void ApplyTransposeInverseHierarchToSingle(Eigen::VectorXd &vec_HB) const;
 };
@@ -86,7 +90,7 @@ class MassPlusScaledStiffnessOperator : public ForwardOperator {
   StiffnessOperator stiff_;
 };
 
-template <class ForwardOp>
+template <typename ForwardOp>
 class DirectInverse : public BackwardOperator {
  public:
   DirectInverse(const TriangulationView &triang,
@@ -100,4 +104,20 @@ class DirectInverse : public BackwardOperator {
       solver_;
 };
 
+template <typename ForwardOp>
+class CGInverse : public BackwardOperator {
+ public:
+  CGInverse(const TriangulationView &triang, bool dirichlet_boundary = true);
+
+  Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const final;
+
+ protected:
+  ForwardOp forward_op_;
+  Eigen::ConjugateGradient<Eigen::SparseMatrix<double>,
+                           Eigen::Lower | Eigen::Upper>
+      solver_;
+};
+
 }  // namespace space
+
+#include "operators.ipp"
