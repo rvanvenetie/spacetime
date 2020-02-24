@@ -40,6 +40,7 @@ class HeatEquation {
   using TypeBlockMat =
       BlockBilinearForm<TypeA, TypeB, TypeBT, NegativeBilinearForm<TypeG>>;
 
+  // Types necessary for the Schur complement matrix.
   using TypeAinv = spacetime::BlockDiagonalBilinearForm<
       space::DirectInverse<space::StiffnessOperator>, OrthonormalWaveletFn,
       OrthonormalWaveletFn>;
@@ -72,6 +73,8 @@ class HeatEquation {
   std::shared_ptr<TypeBT> BT_;
   std::shared_ptr<TypeG> G_;
   std::shared_ptr<TypeBlockMat> block_mat_;
+
+  // Schur complement stuff.
   std::shared_ptr<TypeAinv> A_inv_;
   std::shared_ptr<TypeSchurMat> schur_mat_;
 

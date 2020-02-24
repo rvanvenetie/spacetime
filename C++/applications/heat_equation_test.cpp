@@ -136,8 +136,7 @@ TEST(HeatEquation, SchurCG) {
     ASSERT_NEAR(cg.error(), 0, 1e-14);
 
     // Store the result, and validate wether it validates.
-    size_t i = 0;
-    for (auto &node : heat_eq.vec_X_out()->container()) node.set_value(x(i++));
+    heat_eq.vec_X_out()->FromVector(x);
     ValidateVector(*heat_eq.vec_X_out());
   }
 }
