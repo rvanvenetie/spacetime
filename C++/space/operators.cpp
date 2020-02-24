@@ -36,13 +36,14 @@ void ForwardOperator::ApplyTransposeHierarchToSingle(VectorXd &w) const {
 }
 
 BackwardOperator::BackwardOperator(const TriangulationView &triang,
-                                   bool dirichlet_boundary)
-    : Operator(triang, dirichlet_boundary) {
+                                   bool dirichlet_boundary, size_t time_level)
+    : Operator(triang, dirichlet_boundary, time_level) {
   assert(dirichlet_boundary);
   std::vector<int> dof_mapping;
   auto vertices = triang.vertices();
   for (int i = 0; i < vertices.size(); i++)
     if (!vertices[i]->on_domain_boundary) dof_mapping.push_back(i);
+  if (dof_mapping.size() == 0) return;
 
   std::vector<Eigen::Triplet<double>> triplets, tripletsT;
   triplets.reserve(dof_mapping.size());
@@ -82,8 +83,8 @@ Eigen::VectorXd BackwardOperator::Apply(Eigen::VectorXd v) const {
 }
 
 MassOperator::MassOperator(const TriangulationView &triang,
-                           bool dirichlet_boundary)
-    : ForwardOperator(triang, dirichlet_boundary) {
+                           bool dirichlet_boundary, size_t time_level)
+    : ForwardOperator(triang, dirichlet_boundary, time_level) {
   matrix_ = Eigen::SparseMatrix<double>(triang_.vertices().size(),
                                         triang_.vertices().size());
   static const Eigen::Matrix3d element_mass =
@@ -105,8 +106,8 @@ MassOperator::MassOperator(const TriangulationView &triang,
 }
 
 StiffnessOperator::StiffnessOperator(const TriangulationView &triang,
-                                     bool dirichlet_boundary)
-    : ForwardOperator(triang, dirichlet_boundary) {
+                                     bool dirichlet_boundary, size_t time_level)
+    : ForwardOperator(triang, dirichlet_boundary, time_level) {
   matrix_ = Eigen::SparseMatrix<double>(triang_.vertices().size(),
                                         triang_.vertices().size());
 
@@ -132,6 +133,16 @@ StiffnessOperator::StiffnessOperator(const TriangulationView &triang,
         triplets.emplace_back(Vids[i], Vids[j], elem_stiff(i, j));
   }
   matrix_.setFromTriplets(triplets.begin(), triplets.end());
+}
+
+MassPlusScaledStiffnessOperator::MassPlusScaledStiffnessOperator(
+    const TriangulationView &triang, bool dirichlet_boundary, size_t time_level)
+    : ForwardOperator(triang, dirichlet_boundary, time_level) {
+  auto stiff = StiffnessOperator(triang, dirichlet_boundary, time_level)
+                   .MatrixSingleScale();
+  auto mass =
+      MassOperator(triang, dirichlet_boundary, time_level).MatrixSingleScale();
+  matrix_ = stiff + pow(2, time_level) * mass;
 }
 
 }  // namespace space

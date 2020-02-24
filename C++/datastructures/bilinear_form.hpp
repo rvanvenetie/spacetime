@@ -24,7 +24,9 @@ class EigenBilinearForm : public Eigen::EigenBase<EigenBilinearForm> {
   // These are the functions that must be implemented.
   virtual Eigen::Index rows() const { assert(false); }
   virtual Eigen::Index cols() const { assert(false); }
-  virtual Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const { assert(false); }
+  virtual Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const {
+    assert(false);
+  }
   virtual ~EigenBilinearForm() {}
 
   // Eigen related stuff.
@@ -151,10 +153,12 @@ class NegativeBilinearForm {
 };
 
 // This operator remaps the intput/output vectors of a given bilinear form.
-template <typename BilForm, typename DblVecIn = typename BilForm::DblVecIn,
-          typename DblVecOut = typename BilForm::DblVecOut>
+template <typename BilForm, typename DblVecInType = typename BilForm::DblVecIn,
+          typename DblVecOutType = typename BilForm::DblVecOut>
 class RemapBilinearForm {
  public:
+  using DblVecIn = DblVecInType;
+  using DblVecOut = DblVecOutType;
   RemapBilinearForm(std::shared_ptr<BilForm> bil_form, DblVecIn *vec_in,
                     DblVecOut *vec_out)
       : bil_form_(bil_form), vec_in_(vec_in), vec_out_(vec_out) {
@@ -277,4 +281,33 @@ class BlockBilinearForm : public EigenBilinearForm {
   std::shared_ptr<B01> b01_;
   std::shared_ptr<B10> b10_;
   std::shared_ptr<B11> b11_;
+};
+
+template <typename Ainv, typename B, typename BT, typename G>
+class SchurBilinearForm : public EigenBilinearForm {
+ public:
+  SchurBilinearForm(std::shared_ptr<Ainv> a_inv, std::shared_ptr<B> b,
+                    std::shared_ptr<BT> bt, std::shared_ptr<G> g)
+      : a_inv_(a_inv), b_(b), bt_(bt), g_(g) {}
+
+  Eigen::VectorXd Apply() const {
+    a_inv_->vec_in()->FromVectorContainer(b_->Apply());
+    bt_->vec_in()->FromVectorContainer(a_inv_->Apply());
+    return bt_->Apply() + g_->Apply();
+  }
+
+  Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const final {
+    g_->vec_in()->FromVectorContainer(rhs);
+    b_->vec_in()->FromVectorContainer(rhs);
+    return Apply();
+  }
+
+  Eigen::Index rows() const final { return g_->vec_out()->container().size(); }
+  Eigen::Index cols() const final { return g_->vec_in()->container().size(); }
+
+ protected:
+  std::shared_ptr<Ainv> a_inv_;
+  std::shared_ptr<B> b_;
+  std::shared_ptr<BT> bt_;
+  std::shared_ptr<G> g_;
 };

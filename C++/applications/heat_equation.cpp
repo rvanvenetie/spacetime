@@ -35,6 +35,9 @@ HeatEquation::HeatEquation(
 
   // Craete the block matrix.
   block_mat_ = std::make_shared<TypeBlockMat>(A_, B_, BT_, minus_G);
+
+  A_inv_ = std::make_shared<TypeAinv>(&vec_Y_in_, &vec_Y_out_);
+  schur_mat_ = std::make_shared<TypeSchurMat>(A_inv_, B_, BT_, G_);
 }
 
 HeatEquation::HeatEquation(

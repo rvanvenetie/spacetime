@@ -87,4 +87,58 @@ TEST(HeatEquation, SparseMatVec) {
     ValidateVector(*heat_eq.vec_Y_out());
   }
 }
+
+TEST(HeatEquation, SchurCG) {
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(6);
+  ortho_tree.UniformRefine(6);
+  three_point_tree.UniformRefine(6);
+
+  for (int level = 1; level < 6; level++) {
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        three_point_tree.meta_root.get(),
+        T.hierarch_basis_tree.meta_root.get());
+    X_delta.SparseRefine(level);
+
+    HeatEquation heat_eq(X_delta);
+
+    // Generate some random rhs.
+    for (auto nv : heat_eq.vec_X_in()->Bfs()) {
+      if (nv->node_1()->on_domain_boundary()) continue;
+      nv->set_value(((double)std::rand()) / RAND_MAX);
+    }
+
+    // Validate the input.
+    ValidateVector(*heat_eq.vec_X_in());
+
+    // Turn this into an eigen-friendly vector.
+    auto v_in = heat_eq.vec_X_in()->ToVectorContainer();
+
+    // Apply the block matrix :-).
+    heat_eq.SchurMat()->Apply();
+
+    // Validate the result.
+    ValidateVector(*heat_eq.vec_X_out());
+
+    // Check that the input vector remained untouched.
+    auto v_now = heat_eq.vec_X_in()->ToVectorContainer();
+    ASSERT_TRUE(v_in.isApprox(v_now));
+
+    // Now use Eigen to atually solve something.
+    Eigen::ConjugateGradient<EigenBilinearForm, Eigen::Lower | Eigen::Upper,
+                             Eigen::IdentityPreconditioner>
+        cg;
+    cg.compute(*heat_eq.SchurMat());
+    Eigen::VectorXd x;
+    x = cg.solve(v_in);
+    std::cout << "CG:   #iterations: " << cg.iterations()
+              << ", estimated error: " << cg.error() << std::endl;
+    ASSERT_NEAR(cg.error(), 0, 1e-14);
+
+    // Store the result, and validate wether it validates.
+    size_t i = 0;
+    for (auto &node : heat_eq.vec_X_out()->container()) node.set_value(x(i++));
+    ValidateVector(*heat_eq.vec_X_out());
+  }
+}
 }  // namespace applications

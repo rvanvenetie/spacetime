@@ -112,6 +112,49 @@ CreateBilinearForm(
       vec_in, vec_out, sigma, theta, use_cache);
 }
 
+template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
+class BlockDiagonalBilinearForm {
+ protected:
+  template <typename T0, typename T1>
+  using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
+  using BasisSpace = space::HierarchicalBasisFn;
+
+ public:
+  // Friendly aliases.
+  using DblVecIn = DoubleTreeVector<BasisTimeIn, BasisSpace>;
+  using DblVecOut = DoubleTreeVector<BasisTimeOut, BasisSpace>;
+
+  BlockDiagonalBilinearForm(DblVecIn *vec_in, DblVecOut *vec_out)
+      : vec_in_(vec_in), vec_out_(vec_out) {}
+
+  // Apply takes data from vec_in and writes it to vec_out.
+  Eigen::VectorXd Apply();
+
+  DblVecIn *vec_in() const { return vec_in_; }
+  DblVecOut *vec_out() const { return vec_out_; }
+
+ protected:
+  bool is_cached_ = false;
+  DblVecIn *vec_in_;
+  DblVecOut *vec_out_;
+
+  template <size_t i>
+  using FI = datastructures::FrozenDoubleNode<
+      datastructures::DoubleNodeVector<BasisTimeIn, BasisSpace>, i>;
+  std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> space_bilforms_;
+};
+
+template <typename OpSpace, typename BTimeIn, typename BTimeOut>
+std::shared_ptr<BlockDiagonalBilinearForm<OpSpace, BTimeIn, BTimeOut>>
+CreateBlockDiagonalBilinearForm(
+    datastructures::DoubleTreeVector<BTimeIn, space::HierarchicalBasisFn>
+        *vec_in,
+    datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>
+        *vec_out) {
+  return std::make_shared<
+      BlockDiagonalBilinearForm<OpSpace, BTimeIn, BTimeOut>>(vec_in, vec_out);
+}
+
 }  // namespace spacetime
 
 #include "bilinear_form.ipp"
