@@ -3,10 +3,17 @@
 #include "../spacetime/bilinear_form.hpp"
 
 namespace applications {
+using datastructures::BlockBilinearForm;
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
+using datastructures::NegativeBilinearForm;
+using datastructures::RemapBilinearForm;
+using datastructures::SchurBilinearForm;
+using datastructures::SumBilinearForm;
+using datastructures::TransposeBilinearForm;
 using space::HierarchicalBasisFn;
 using spacetime::BilinearForm;
+using spacetime::BlockDiagonalBilinearForm;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 

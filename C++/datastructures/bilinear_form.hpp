@@ -65,6 +65,7 @@ struct generic_product_impl<EigenBilinearForm, Rhs, SparseShape, DenseShape,
 }  // namespace internal
 }  // namespace Eigen
 
+namespace datastructures {
 // This class represents the adjoint of a bilinear form.
 template <typename BilForm>
 class TransposeBilinearForm {
@@ -75,7 +76,7 @@ class TransposeBilinearForm {
   TransposeBilinearForm(std::shared_ptr<BilForm> bil_form)
       : bil_form_(bil_form) {}
 
-  Eigen::VectorXd Apply() { return bil_form_->ApplyTranspose(); }
+  ::Eigen::VectorXd Apply() { return bil_form_->ApplyTranspose(); }
   auto Transpose() { return bil_form_; }
 
   DblVecIn *vec_in() const { return bil_form_->vec_out(); }
@@ -98,7 +99,7 @@ class SumBilinearForm {
     assert(a->vec_out() == b->vec_out());
   }
 
-  Eigen::VectorXd Apply() {
+  ::Eigen::VectorXd Apply() {
     // Apply both operators and store the vectorized result.
     auto v = a_->Apply();
     v += b_->Apply();
@@ -131,7 +132,7 @@ class NegativeBilinearForm {
   NegativeBilinearForm(std::shared_ptr<BilForm> bil_form)
       : bil_form_(bil_form) {}
 
-  Eigen::VectorXd Apply() {
+  ::Eigen::VectorXd Apply() {
     // Calculate and negate the outpt.
     auto v = bil_form_->Apply();
     v = -v;
@@ -179,7 +180,7 @@ class RemapBilinearForm {
              bil_form_->vec_out()->container()[i].nodes());
   }
 
-  Eigen::VectorXd Apply() {
+  ::Eigen::VectorXd Apply() {
     // Backup the original input/output of the bilinear form.
     auto v_in = bil_form_->vec_in()->ToVectorContainer();
     auto v_out = bil_form_->vec_out()->ToVectorContainer();
@@ -220,8 +221,8 @@ class BlockBilinearForm : public EigenBilinearForm {
     assert(b10_->vec_out() == b11_->vec_out());
   }
 
-  std::array<Eigen::VectorXd, 2> Apply() const {
-    Eigen::VectorXd v0, v1;
+  std::array<::Eigen::VectorXd, 2> Apply() const {
+    ::Eigen::VectorXd v0, v1;
 
     // Apply bil forms in the top row.
     v0 = b00_->Apply();
@@ -237,16 +238,17 @@ class BlockBilinearForm : public EigenBilinearForm {
   }
 
   // Little helper functions for getting the vectorized output/intput
-  Eigen::VectorXd ToVector(const std::array<Eigen::VectorXd, 2> &vecs) const {
+  ::Eigen::VectorXd ToVector(
+      const std::array<::Eigen::VectorXd, 2> &vecs) const {
     assert(vecs[0].size() == b00_->vec_in()->container().size());
     assert(vecs[1].size() == b01_->vec_in()->container().size());
-    Eigen::VectorXd result(vecs[0].size() + vecs[1].size());
+    ::Eigen::VectorXd result(vecs[0].size() + vecs[1].size());
     result << vecs[0], vecs[1];
     return result;
   }
 
   // Create an apply that works entirely on vectors.
-  Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const final {
+  ::Eigen::VectorXd MatVec(const ::Eigen::VectorXd &rhs) const final {
     assert(rhs.size() == cols());
 
     // Fill the input vectors with the rhs.
@@ -267,11 +269,11 @@ class BlockBilinearForm : public EigenBilinearForm {
   }
 
   // Eigen stuff
-  Eigen::Index rows() const final {
+  ::Eigen::Index rows() const final {
     return b00_->vec_out()->container().size() +
            b10_->vec_out()->container().size();
   }
-  Eigen::Index cols() const final {
+  ::Eigen::Index cols() const final {
     return b00_->vec_in()->container().size() +
            b01_->vec_in()->container().size();
   }
@@ -283,27 +285,44 @@ class BlockBilinearForm : public EigenBilinearForm {
   std::shared_ptr<B11> b11_;
 };
 
+/**
+ * A class that represents the Schur complement operator
+ * x \mapsto (B.T A^{-1} B + gamma_0' gamma_0) x.
+ */
 template <typename Ainv, typename B, typename BT, typename G>
 class SchurBilinearForm : public EigenBilinearForm {
  public:
+  using DblVecIn = typename B::DblVecIn;
+  using DblVecOut = typename BT::DblVecOut;
   SchurBilinearForm(std::shared_ptr<Ainv> a_inv, std::shared_ptr<B> b,
                     std::shared_ptr<BT> bt, std::shared_ptr<G> g)
-      : a_inv_(a_inv), b_(b), bt_(bt), g_(g) {}
-
-  Eigen::VectorXd Apply() const {
-    a_inv_->vec_in()->FromVectorContainer(b_->Apply());
-    bt_->vec_in()->FromVectorContainer(a_inv_->Apply());
-    return bt_->Apply() + g_->Apply();
+      : a_inv_(a_inv), b_(b), bt_(bt), g_(g) {
+    assert(b_->vec_in() == g_->vec_in());
+    assert(bt_->vec_out() == g_->vec_out());
   }
 
-  Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const final {
+  ::Eigen::VectorXd Apply() const {
+    a_inv_->vec_in()->FromVectorContainer(b_->Apply());
+    bt_->vec_in()->FromVectorContainer(a_inv_->Apply());
+    auto v = bt_->Apply();
+    v += g_->Apply();
+    bt_->vec_out()->FromVectorContainer(v);
+    return v;
+  }
+
+  ::Eigen::VectorXd MatVec(const ::Eigen::VectorXd &rhs) const final {
     g_->vec_in()->FromVectorContainer(rhs);
     b_->vec_in()->FromVectorContainer(rhs);
     return Apply();
   }
 
-  Eigen::Index rows() const final { return g_->vec_out()->container().size(); }
-  Eigen::Index cols() const final { return g_->vec_in()->container().size(); }
+  DblVecIn *vec_in() const { return b_->vec_in(); }
+  DblVecOut *vec_out() const { return bt_->vec_out(); }
+
+  ::Eigen::Index rows() const final {
+    return g_->vec_out()->container().size();
+  }
+  ::Eigen::Index cols() const final { return g_->vec_in()->container().size(); }
 
  protected:
   std::shared_ptr<Ainv> a_inv_;
@@ -311,3 +330,4 @@ class SchurBilinearForm : public EigenBilinearForm {
   std::shared_ptr<BT> bt_;
   std::shared_ptr<G> g_;
 };
+}  // namespace datastructures

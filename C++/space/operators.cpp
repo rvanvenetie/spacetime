@@ -41,6 +41,7 @@ BackwardOperator::BackwardOperator(const TriangulationView &triang,
   assert(dirichlet_boundary);
   std::vector<int> dof_mapping;
   auto vertices = triang.vertices();
+  dof_mapping.reserve(vertices.size());
   for (int i = 0; i < vertices.size(); i++)
     if (!vertices[i]->on_domain_boundary) dof_mapping.push_back(i);
   if (dof_mapping.size() == 0) return;
@@ -138,10 +139,9 @@ StiffnessOperator::StiffnessOperator(const TriangulationView &triang,
 MassPlusScaledStiffnessOperator::MassPlusScaledStiffnessOperator(
     const TriangulationView &triang, bool dirichlet_boundary, size_t time_level)
     : ForwardOperator(triang, dirichlet_boundary, time_level) {
-  auto stiff = StiffnessOperator(triang, dirichlet_boundary, time_level)
-                   .MatrixSingleScale();
-  auto mass =
-      MassOperator(triang, dirichlet_boundary, time_level).MatrixSingleScale();
+  auto stiff =
+      StiffnessOperator(triang, dirichlet_boundary).MatrixSingleScale();
+  auto mass = MassOperator(triang, dirichlet_boundary).MatrixSingleScale();
   matrix_ = stiff + pow(2, time_level) * mass;
 }
 

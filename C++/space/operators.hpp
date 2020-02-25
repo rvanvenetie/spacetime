@@ -21,8 +21,8 @@ class Operator {
 
  protected:
   const TriangulationView &triang_;
-  size_t time_level_;
   bool dirichlet_boundary_;
+  size_t time_level_;
 
   // Apply the dirichlet boundary conditions.
   void ApplyBoundaryConditions(Eigen::VectorXd &vec) const;

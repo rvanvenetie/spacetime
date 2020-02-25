@@ -46,9 +46,8 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
       auto fiber_in = vec_in_->Fiber_1(psi_in_labda->node());
       auto fiber_out = psi_in_labda->FrozenOtherAxis();
       if (fiber_out->children().empty()) continue;
-      auto bil_form = space::CreateBilinearForm<OperatorSpace>(
-          fiber_in, fiber_out, /*dirichlet_boundary*/ true,
-          /*time_level*/ std::get<0>(psi_in_labda->nodes())->level());
+      auto bil_form =
+          space::CreateBilinearForm<OperatorSpace>(fiber_in, fiber_out);
       bil_form.Apply();
       if (use_cache_) bil_space_low_.emplace_back(std::move(bil_form));
     }
@@ -84,9 +83,8 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
       auto fiber_in = theta_->Fiber_1(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
-      auto bil_form = space::CreateBilinearForm<OperatorSpace>(
-          fiber_in, fiber_out, /*dirichlet_boundary*/ true,
-          /*time_level*/ std::get<0>(psi_out_labda->nodes())->level());
+      auto bil_form =
+          space::CreateBilinearForm<OperatorSpace>(fiber_in, fiber_out);
       bil_form.Apply();
       if (use_cache_) bil_space_upp_.emplace_back(std::move(bil_form));
     }
@@ -163,7 +161,7 @@ Eigen::VectorXd
 BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
   vec_out_->Reset();
 
-  if (!is_cached_) {
+  if (!use_cache_ || !is_cached_) {
     for (auto psi_out_labda : vec_out_->Project_0()->Bfs()) {
       auto fiber_in = vec_in_->Fiber_1(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
@@ -172,7 +170,7 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
           fiber_in, fiber_out, /*dirichlet_boundary*/ true,
           /*time_level*/ std::get<0>(psi_out_labda->nodes())->level());
       bil_form.Apply();
-      space_bilforms_.emplace_back(std::move(bil_form));
+      if (use_cache_) space_bilforms_.emplace_back(std::move(bil_form));
     }
     is_cached_ = true;
   } else {

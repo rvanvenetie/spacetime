@@ -22,7 +22,7 @@ Eigen::VectorXd DirectInverse<ForwardOp>::ApplySinglescale(
     Eigen::VectorXd result = solver_.solve(transform_ * vec_SS);
     return transformT_ * result;
   } else {
-    return Eigen::VectorXd(vec_SS.rows());
+    return Eigen::VectorXd::Zero(vec_SS.rows());
   }
 }
 

@@ -60,7 +60,7 @@ class BilinearForm
   std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta_;
   bool use_cache_;
   bool is_cached_ = false;
-  std::shared_ptr<TransposeBilinearForm<
+  std::shared_ptr<datastructures::TransposeBilinearForm<
       BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>>>
       transpose_;
 
@@ -124,8 +124,9 @@ class BlockDiagonalBilinearForm {
   using DblVecIn = DoubleTreeVector<BasisTimeIn, BasisSpace>;
   using DblVecOut = DoubleTreeVector<BasisTimeOut, BasisSpace>;
 
-  BlockDiagonalBilinearForm(DblVecIn *vec_in, DblVecOut *vec_out)
-      : vec_in_(vec_in), vec_out_(vec_out) {}
+  BlockDiagonalBilinearForm(DblVecIn *vec_in, DblVecOut *vec_out,
+                            bool use_cache = true)
+      : vec_in_(vec_in), vec_out_(vec_out), use_cache_(use_cache) {}
 
   // Apply takes data from vec_in and writes it to vec_out.
   Eigen::VectorXd Apply();
@@ -134,6 +135,7 @@ class BlockDiagonalBilinearForm {
   DblVecOut *vec_out() const { return vec_out_; }
 
  protected:
+  bool use_cache_;
   bool is_cached_ = false;
   DblVecIn *vec_in_;
   DblVecOut *vec_out_;
