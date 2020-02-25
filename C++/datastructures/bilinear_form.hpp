@@ -299,6 +299,8 @@ class SchurBilinearForm : public EigenBilinearForm {
       : a_inv_(a_inv), b_(b), bt_(bt), g_(g) {
     assert(b_->vec_in() == g_->vec_in());
     assert(bt_->vec_out() == g_->vec_out());
+    assert(g_->vec_in() != bt_->vec_out());
+    assert(b_->vec_in() != g_->vec_out());
   }
 
   ::Eigen::VectorXd Apply() const {
