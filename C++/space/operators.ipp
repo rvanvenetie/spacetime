@@ -41,18 +41,18 @@ Eigen::VectorXd CGInverse<ForwardOp>::ApplySinglescale(
   return transformT_ * result;
 }
 
-template <typename InverseOp>
+template <template <typename> class InverseOp>
 XPreconditionerOperator<InverseOp>::XPreconditionerOperator(
     const TriangulationView &triang, bool dirichlet_boundary, size_t time_level)
     : BackwardOperator(triang, dirichlet_boundary, time_level),
       stiff_op_(triang, dirichlet_boundary, time_level),
       inverse_op_(triang, dirichlet_boundary, time_level) {}
 
-template <typename InverseOp>
+template <template <typename> class InverseOp>
 Eigen::VectorXd XPreconditionerOperator<InverseOp>::ApplySinglescale(
     Eigen::VectorXd vec_SS) const {
-  return stiff_op_.MatrixSingleScale() *
-         inverse_op_.ApplySinglescale(stiff_op_.MatrixSingleScale() * vec_SS);
+  return inverse_op_.ApplySinglescale(stiff_op_.MatrixSingleScale() *
+                                      inverse_op_.ApplySinglescale(vec_SS));
 }
 
 }  // namespace space

@@ -84,11 +84,11 @@ class StiffnessOperator : public ForwardOperator {
   using ForwardOperator::matrix_;
 };
 
-class MassPlusScaledStiffnessOperator : public ForwardOperator {
+class StiffPlusScaledMassOperator : public ForwardOperator {
  public:
-  MassPlusScaledStiffnessOperator(const TriangulationView &triang,
-                                  bool dirichlet_boundary = true,
-                                  size_t time_level = 0);
+  StiffPlusScaledMassOperator(const TriangulationView &triang,
+                              bool dirichlet_boundary = true,
+                              size_t time_level = 0);
 
  protected:
   using ForwardOperator::matrix_;
@@ -123,7 +123,7 @@ class CGInverse : public BackwardOperator {
       solver_;
 };
 
-template <typename InverseOp>
+template <template <typename> class InverseOp>
 class XPreconditionerOperator : public BackwardOperator {
  public:
   XPreconditionerOperator(const TriangulationView &triang,
@@ -134,7 +134,7 @@ class XPreconditionerOperator : public BackwardOperator {
 
  protected:
   StiffnessOperator stiff_op_;
-  InverseOp inverse_op_;
+  InverseOp<StiffPlusScaledMassOperator> inverse_op_;
 };
 
 }  // namespace space

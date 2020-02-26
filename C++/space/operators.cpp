@@ -136,13 +136,13 @@ StiffnessOperator::StiffnessOperator(const TriangulationView &triang,
   matrix_.setFromTriplets(triplets.begin(), triplets.end());
 }
 
-MassPlusScaledStiffnessOperator::MassPlusScaledStiffnessOperator(
+StiffPlusScaledMassOperator::StiffPlusScaledMassOperator(
     const TriangulationView &triang, bool dirichlet_boundary, size_t time_level)
     : ForwardOperator(triang, dirichlet_boundary, time_level) {
   auto stiff =
       StiffnessOperator(triang, dirichlet_boundary).MatrixSingleScale();
   auto mass = MassOperator(triang, dirichlet_boundary).MatrixSingleScale();
-  matrix_ = stiff + pow(2, time_level) * mass;
+  matrix_ = stiff + pow(2.0, time_level) * mass;
 }
 
 }  // namespace space

@@ -113,7 +113,7 @@ CreateBilinearForm(
 }
 
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-class BlockDiagonalBilinearForm {
+class BlockDiagonalBilinearForm : public EigenBilinearForm {
  protected:
   template <typename T0, typename T1>
   using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
@@ -129,21 +129,30 @@ class BlockDiagonalBilinearForm {
       : vec_in_(vec_in), vec_out_(vec_out), use_cache_(use_cache) {}
 
   // Apply takes data from vec_in and writes it to vec_out.
-  Eigen::VectorXd Apply();
+  Eigen::VectorXd Apply() const;
 
   DblVecIn *vec_in() const { return vec_in_; }
   DblVecOut *vec_out() const { return vec_out_; }
 
+  Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const final {
+    vec_in()->FromVectorContainer(rhs);
+    return Apply();
+  }
+
+  Eigen::Index rows() const final { return vec_out()->container().size(); }
+  Eigen::Index cols() const final { return vec_in()->container().size(); }
+
  protected:
   bool use_cache_;
-  bool is_cached_ = false;
+  mutable bool is_cached_ = false;
   DblVecIn *vec_in_;
   DblVecOut *vec_out_;
 
   template <size_t i>
   using FI = datastructures::FrozenDoubleNode<
       datastructures::DoubleNodeVector<BasisTimeIn, BasisSpace>, i>;
-  std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> space_bilforms_;
+  mutable std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>>
+      space_bilforms_;
 };
 
 template <typename OpSpace, typename BTimeIn, typename BTimeOut>

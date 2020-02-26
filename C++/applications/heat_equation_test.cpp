@@ -2,6 +2,7 @@
 
 #include "../space/initial_triangulation.hpp"
 #include "../time/basis.hpp"
+#include "../tools/linalg.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -89,12 +90,13 @@ TEST(HeatEquation, SparseMatVec) {
 }
 
 TEST(HeatEquation, SchurCG) {
+  int max_level = 7;
   auto T = space::InitialTriangulation::UnitSquare();
-  T.hierarch_basis_tree.UniformRefine(6);
-  ortho_tree.UniformRefine(6);
-  three_point_tree.UniformRefine(6);
+  T.hierarch_basis_tree.UniformRefine(max_level);
+  ortho_tree.UniformRefine(max_level);
+  three_point_tree.UniformRefine(max_level);
 
-  for (int level = 1; level < 6; level++) {
+  for (int level = 1; level < max_level; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
         three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
@@ -174,6 +176,40 @@ TEST(HeatEquation, SchurCG) {
       for (int i = 0; i < dblnodes.size(); i++)
         ASSERT_NEAR(dblnodes[i]->value(), python_output[i], 1e-5);
     }
+  }
+}
+
+TEST(HeatEquation, SchurPCG) {
+  int max_level = 8;
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(max_level);
+  ortho_tree.UniformRefine(max_level);
+  three_point_tree.UniformRefine(max_level);
+
+  for (int level = 1; level < max_level; level++) {
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        three_point_tree.meta_root.get(),
+        T.hierarch_basis_tree.meta_root.get());
+    X_delta.UniformRefine(level);
+    HeatEquation heat_eq(X_delta);
+
+    // Generate some rhs.
+    for (auto nv : heat_eq.vec_X_in()->Bfs()) {
+      if (nv->node_1()->on_domain_boundary()) continue;
+      nv->set_value(1.0);
+    }
+
+    // Turn this into an eigen-friendly vector.
+    auto v_in = heat_eq.vec_X_in()->ToVectorContainer();
+
+    // auto precond = Eigen::SparseMatrix<double>(v_in.rows(), v_in.rows());
+    // precond.setIdentity();
+    auto [result, data] = tools::linalg::PCG(
+        *heat_eq.SchurMat(), v_in, *heat_eq.PrecondX(),
+        Eigen::VectorXd::Zero(v_in.rows()), 1000, DBL_EPSILON);
+    auto [residual, iter] = data;
+    std::cout << "PCG:   #iterations: " << iter
+              << ", estimated error: " << residual << std::endl;
   }
 }
 }  // namespace applications
