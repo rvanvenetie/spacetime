@@ -19,7 +19,7 @@ void ApplyQuadrature(const F &f, I *root, bool dirichlet_boundary) {
   assert(root->is_root());
   auto triang = TriangulationView(root->Bfs());
   const auto &vertices = triang.vertices();
-  Eigen::VectorXd vec(vertices.size());
+  Eigen::VectorXd vec = Eigen::VectorXd::Zero(vertices.size());
   for (const auto &elem : triang.elements()) {
     if (!elem->is_leaf()) continue;
     auto &Vids = elem->vertices_view_idx_;

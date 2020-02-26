@@ -293,12 +293,42 @@ TEST(BilinearForm, Transpose) {
     ASSERT_TRUE(mat_B_t.transpose().isApprox(ToMatrix(*trans_B_t)));
 
     // Now check the sum.
-    auto B = SumBilinearForm(A_s, B_t);
+    auto B = datastructures::SumBilinearForm(A_s, B_t);
     ASSERT_TRUE((mat_A_s + mat_B_t).isApprox(ToMatrix(B)));
 
     // Now check the transpose of the sum.
     auto BT = B.Transpose();
     ASSERT_TRUE((mat_A_s + mat_B_t).transpose().isApprox(ToMatrix(*BT)));
+  }
+}
+
+TEST(BlockDiagonalBilinearForm, CanBeConstructed) {
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(6);
+  ortho_tree.UniformRefine(6);
+  three_point_tree.UniformRefine(6);
+
+  for (int level = 1; level < 6; level++) {
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        three_point_tree.meta_root.get(),
+        T.hierarch_basis_tree.meta_root.get());
+    X_delta.SparseRefine(level);
+    auto Y_delta = GenerateYDelta(X_delta);
+
+    auto vec_Y_in = Y_delta.template DeepCopy<
+        DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    auto vec_Y_out = Y_delta.template DeepCopy<
+        DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+
+    auto A_s = CreateBlockDiagonalBilinearForm<space::StiffnessOperator>(
+        &vec_Y_in, &vec_Y_out);
+    auto mat_A_s = ToMatrix(*A_s);
+
+    auto P_Y = CreateBlockDiagonalBilinearForm<
+        space::DirectInverse<space::StiffnessOperator>>(&vec_Y_out, &vec_Y_in);
+    auto mat_P_Y = ToMatrix(*P_Y);
+
+    ASSERT_TRUE((mat_A_s * mat_P_Y).isApprox(mat_P_Y * mat_A_s));
   }
 }
 }  // namespace spacetime

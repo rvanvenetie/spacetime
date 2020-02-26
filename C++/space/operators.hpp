@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen/Sparse>
+#include <Eigen/SparseLU>
 
 #include "basis.hpp"
 #include "triangulation_view.hpp"
@@ -8,8 +9,11 @@ namespace space {
 
 class Operator {
  public:
-  Operator(const TriangulationView &triang, bool dirichlet_boundary = true)
-      : triang_(triang), dirichlet_boundary_(dirichlet_boundary) {}
+  Operator(const TriangulationView &triang, bool dirichlet_boundary = true,
+           size_t time_level = 0)
+      : triang_(triang),
+        dirichlet_boundary_(dirichlet_boundary),
+        time_level_(time_level) {}
 
   virtual ~Operator() {}
 
@@ -18,6 +22,7 @@ class Operator {
  protected:
   const TriangulationView &triang_;
   bool dirichlet_boundary_;
+  size_t time_level_;
 
   // Apply the dirichlet boundary conditions.
   void ApplyBoundaryConditions(Eigen::VectorXd &vec) const;
@@ -42,13 +47,19 @@ class ForwardOperator : public Operator {
 
 class BackwardOperator : public Operator {
  public:
-  using Operator::Operator;
+  BackwardOperator(const TriangulationView &triang,
+                   bool dirichlet_boundary = true, size_t time_level = 0);
   virtual Eigen::VectorXd Apply(Eigen::VectorXd vec_in) const final;
+  virtual Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const = 0;
 
  protected:
   // Inverse Hierarhical Basis Transformations.
   void ApplyInverseHierarchToSingle(Eigen::VectorXd &vec_SS) const;
   void ApplyTransposeInverseHierarchToSingle(Eigen::VectorXd &vec_HB) const;
+
+  // Vertex-to-DoF transformation matrices.
+  Eigen::SparseMatrix<double> transform_;
+  Eigen::SparseMatrix<double> transformT_;
 };
 
 /**
@@ -57,7 +68,8 @@ class BackwardOperator : public Operator {
 
 class MassOperator : public ForwardOperator {
  public:
-  MassOperator(const TriangulationView &triang, bool dirichlet_boundary = true);
+  MassOperator(const TriangulationView &triang, bool dirichlet_boundary = true,
+               size_t time_level = 0);
 
  protected:
   using ForwardOperator::matrix_;
@@ -66,10 +78,65 @@ class MassOperator : public ForwardOperator {
 class StiffnessOperator : public ForwardOperator {
  public:
   StiffnessOperator(const TriangulationView &triang,
-                    bool dirichlet_boundary = true);
+                    bool dirichlet_boundary = true, size_t time_level = 0);
 
  protected:
   using ForwardOperator::matrix_;
 };
 
+class MassPlusScaledStiffnessOperator : public ForwardOperator {
+ public:
+  MassPlusScaledStiffnessOperator(const TriangulationView &triang,
+                                  bool dirichlet_boundary = true,
+                                  size_t time_level = 0);
+
+ protected:
+  using ForwardOperator::matrix_;
+};
+
+template <typename ForwardOp>
+class DirectInverse : public BackwardOperator {
+ public:
+  DirectInverse(const TriangulationView &triang, bool dirichlet_boundary = true,
+                size_t time_level = 0);
+
+  Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const final;
+
+ protected:
+  ForwardOp forward_op_;
+  Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> >
+      solver_;
+};
+
+template <typename ForwardOp>
+class CGInverse : public BackwardOperator {
+ public:
+  CGInverse(const TriangulationView &triang, bool dirichlet_boundary = true,
+            size_t time_level = 0);
+
+  Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const final;
+
+ protected:
+  ForwardOp forward_op_;
+  Eigen::ConjugateGradient<Eigen::SparseMatrix<double>,
+                           Eigen::Lower | Eigen::Upper>
+      solver_;
+};
+
+template <typename InverseOp>
+class XPreconditionerOperator : public BackwardOperator {
+ public:
+  XPreconditionerOperator(const TriangulationView &triang,
+                          bool dirichlet_boundary = true,
+                          size_t time_level = 0);
+
+  Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const final;
+
+ protected:
+  StiffnessOperator stiff_op_;
+  InverseOp inverse_op_;
+};
+
 }  // namespace space
+
+#include "operators.ipp"

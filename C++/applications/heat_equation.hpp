@@ -3,10 +3,17 @@
 #include "../spacetime/bilinear_form.hpp"
 
 namespace applications {
+using datastructures::BlockBilinearForm;
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
+using datastructures::NegativeBilinearForm;
+using datastructures::RemapBilinearForm;
+using datastructures::SchurBilinearForm;
+using datastructures::SumBilinearForm;
+using datastructures::TransposeBilinearForm;
 using space::HierarchicalBasisFn;
 using spacetime::BilinearForm;
+using spacetime::BlockDiagonalBilinearForm;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
@@ -40,6 +47,12 @@ class HeatEquation {
   using TypeBlockMat =
       BlockBilinearForm<TypeA, TypeB, TypeBT, NegativeBilinearForm<TypeG>>;
 
+  // Types necessary for the Schur complement matrix.
+  using TypeAinv = spacetime::BlockDiagonalBilinearForm<
+      space::DirectInverse<space::StiffnessOperator>, OrthonormalWaveletFn,
+      OrthonormalWaveletFn>;
+  using TypeSchurMat = SchurBilinearForm<TypeAinv, TypeB, TypeBT, TypeG>;
+
   HeatEquation(
       const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta,
       const DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn> &Y_delta);
@@ -53,6 +66,9 @@ class HeatEquation {
   auto G() { return G_; }
   auto BlockMat() { return block_mat_; }
 
+  auto Ainv() { return A_inv_; }
+  auto SchurMat() { return schur_mat_; }
+
   auto vec_X_in() { return &vec_X_in_; }
   auto vec_X_out() { return &vec_X_out_; }
   auto vec_Y_in() { return &vec_Y_in_; }
@@ -64,6 +80,10 @@ class HeatEquation {
   std::shared_ptr<TypeBT> BT_;
   std::shared_ptr<TypeG> G_;
   std::shared_ptr<TypeBlockMat> block_mat_;
+
+  // Schur complement stuff.
+  std::shared_ptr<TypeAinv> A_inv_;
+  std::shared_ptr<TypeSchurMat> schur_mat_;
 
   // Store doubletree vectors for X_delta input and output.
   DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> vec_X_in_,

@@ -10,7 +10,7 @@ template <typename Operator, typename I_in, typename I_out = I_in>
 class BilinearForm {
  public:
   BilinearForm(I_in* root_vec_in, I_out* root_vec_out,
-               bool dirichlet_boundary = true);
+               bool dirichlet_boundary = true, size_t time_level = 0);
 
   void Apply();
 
@@ -57,19 +57,20 @@ class BilinearForm {
 // Helper functions.
 template <typename Operator, typename I_in, typename I_out>
 BilinearForm<Operator, I_in, I_out> CreateBilinearForm(
-    I_in* root_vec_in, I_out* root_vec_out, bool dirichlet_boundary = true) {
+    I_in* root_vec_in, I_out* root_vec_out, bool dirichlet_boundary = true,
+    size_t time_level = 0) {
   return BilinearForm<Operator, I_in, I_out>(root_vec_in, root_vec_out,
-                                             dirichlet_boundary);
+                                             dirichlet_boundary, time_level);
 }
 
 template <typename Operator>
 auto CreateBilinearForm(
     const datastructures::TreeVector<HierarchicalBasisFn>& vec_in,
     const datastructures::TreeVector<HierarchicalBasisFn>& vec_out,
-    bool dirichlet_boundary = true) {
+    bool dirichlet_boundary = true, size_t time_level = 0) {
   return BilinearForm<Operator,
                       datastructures::NodeVector<HierarchicalBasisFn>>(
-      vec_in.root(), vec_out.root(), dirichlet_boundary);
+      vec_in.root(), vec_out.root(), dirichlet_boundary, time_level);
 }
 
 }  // namespace space

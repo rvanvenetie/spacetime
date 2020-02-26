@@ -5,7 +5,8 @@ namespace space {
 template <typename Operator, typename I_in, typename I_out>
 BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
                                                   I_out* root_vec_out,
-                                                  bool dirichlet_boundary)
+                                                  bool dirichlet_boundary,
+                                                  size_t time_level)
     : vec_in_(root_vec_in), vec_out_(root_vec_out) {
   assert(root_vec_in->is_root());
   assert(root_vec_out->is_root());
@@ -42,7 +43,8 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
         vec_union_->Bfs());
     triang_ = std::make_shared<TriangulationView>(*nodes_vec_union_);
   }
-  operator_ = std::make_shared<Operator>(*triang_, dirichlet_boundary);
+  operator_ =
+      std::make_shared<Operator>(*triang_, dirichlet_boundary, time_level);
 }
 
 template <typename Operator, typename I_in, typename I_out>

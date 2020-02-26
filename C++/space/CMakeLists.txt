@@ -15,3 +15,6 @@ target_link_libraries(space_bilinear_form_test space)
 
 package_add_test(space_linear_form_test linear_form_test.cpp)
 target_link_libraries(space_linear_form_test space)
+
+package_add_test(space_operators_test operators_test.cpp)
+target_link_libraries(space_operators_test space)

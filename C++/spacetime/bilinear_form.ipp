@@ -155,4 +155,28 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
   // Return vectorized output.
   return v;
 }
+
+template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
+Eigen::VectorXd
+BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
+  vec_out_->Reset();
+
+  if (!use_cache_ || !is_cached_) {
+    for (auto psi_out_labda : vec_out_->Project_0()->Bfs()) {
+      auto fiber_in = vec_in_->Fiber_1(psi_out_labda->node());
+      if (fiber_in->children().empty()) continue;
+      auto fiber_out = psi_out_labda->FrozenOtherAxis();
+      auto bil_form = space::CreateBilinearForm<OperatorSpace>(
+          fiber_in, fiber_out, /*dirichlet_boundary*/ true,
+          /*time_level*/ std::get<0>(psi_out_labda->nodes())->level());
+      bil_form.Apply();
+      if (use_cache_) space_bilforms_.emplace_back(std::move(bil_form));
+    }
+    is_cached_ = true;
+  } else {
+    // Apply the space bilforms.
+    for (auto &bil_form : space_bilforms_) bil_form.Apply();
+  }
+  return vec_out_->ToVectorContainer();
+}
 }  // namespace spacetime
