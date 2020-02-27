@@ -174,6 +174,18 @@ inline bool MultiNodeViewInterface<I, T...>::Refine(const container& children_i,
     }
     refined = true;
   }
+
+  // static_for<dim>([this](auto j) {
+  //   if (std::get<j>(self().nodes())->is_metaroot()) {
+  //     std::cout << self().children(j).size() << " "
+  //               << std::get<j>(self().nodes())->children().size() <<
+  //               std::endl;
+  //     assert(self().children(j).size() == 0 ||
+  //            self().children(j).size() ==
+  //                std::get<j>(self().nodes())->children().size());
+  //   }
+  // });
+
   return refined;
 }
 
