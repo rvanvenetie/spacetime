@@ -49,7 +49,7 @@ GenerateXDeltaUnderscore(
   auto X_delta_underscore = X_delta.DeepCopy();
   std::vector<DoubleNodeView<ThreePointWaveletFn, HierarchicalBasisFn> *>
       time_leaves, space_leaves;
-  for (auto dblnode : X_delta_underscore.Bfs()) {
+  for (auto dblnode : X_delta_underscore.container()) {
     auto [time_node, space_node] = dblnode->nodes();
     if (!time_node->is_full()) time_node->Refine();
     if (!space_node->is_full())  // This is DIFFERENT from python.
@@ -59,21 +59,14 @@ GenerateXDeltaUnderscore(
     if (!dblnode->is_full<1>()) space_leaves.push_back(dblnode);
   }
 
-  for (auto dblnode : time_leaves) {
-    std::cout << "time refine" << std::endl;
+  for (auto dblnode : time_leaves)
     dblnode->Refine<0>(datastructures::func_true, /*make_conforming*/ true);
-    std::cout << "end time refine" << std::endl;
-  }
 
   for (auto dblnode : space_leaves) {
-    std::cout << "space refine" << std::endl;
     dblnode->Refine<1>(datastructures::func_true, /*make_conforming*/ true);
-    std::cout << "end space refine" << std::endl;
     for (auto child : dblnode->children(1)) {
       child->node_1()->Refine();
-      std::cout << "child refine" << std::endl;
       child->Refine<1>(datastructures::func_true, /*make_conforming*/ true);
-      std::cout << "end child refine" << std::endl;
     }
   }
 
