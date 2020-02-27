@@ -180,15 +180,15 @@ TEST(HeatEquation, SchurCG) {
 }
 
 TEST(HeatEquation, SchurPCG) {
-  int max_level = 10;
+  int max_level = 7;
   auto T = space::InitialTriangulation::UnitSquare();
-  T.hierarch_basis_tree.UniformRefine(max_level);
-  ortho_tree.UniformRefine(2 * max_level);
-  three_point_tree.UniformRefine(2 * max_level);
-
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
       three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
-  for (int level = 1; level < 18; level++) {
+
+  for (int level = 1; level < max_level; level++) {
+    T.hierarch_basis_tree.UniformRefine(level);
+    ortho_tree.UniformRefine(level);
+    three_point_tree.UniformRefine(level);
     X_delta.SparseRefine(level, {2, 1});
     HeatEquation heat_eq(X_delta);
 

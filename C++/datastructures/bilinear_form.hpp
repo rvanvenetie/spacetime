@@ -59,7 +59,8 @@ struct generic_product_impl<EigenBilinearForm, Rhs, SparseShape, DenseShape,
   static void scaleAndAddTo(Dest &dst, const EigenBilinearForm &lhs,
                             const Rhs &rhs, const Scalar &alpha) {
     assert(alpha == Scalar(1));
-    dst.noalias() += const_cast<EigenBilinearForm &>(lhs).MatVec(rhs);
+    // dst.noalias() += const_cast<EigenBilinearForm &>(lhs).MatVec(rhs);
+    dst.noalias() += lhs.MatVec(rhs);
   }
 };
 }  // namespace internal
