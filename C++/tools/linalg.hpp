@@ -1,8 +1,7 @@
 #include <Eigen/Dense>
 #include <vector>
 
-namespace tools {
-namespace linalg {
+namespace tools::linalg {
 
 template <typename MatType, typename PrecondType>
 std::pair<Eigen::VectorXd, std::pair<double, int>> PCG(
@@ -48,39 +47,4 @@ std::pair<Eigen::VectorXd, std::pair<double, int>> PCG(
   return {x, {sqrt(sq_res_norm / sq_rhs_norm), i}};
 }
 
-template <typename MatType, typename PrecondType>
-std::pair<Eigen::VectorXd, std::vector<double>> PCG2(
-    const MatType &A, const Eigen::VectorXd &b, const PrecondType &M,
-    const Eigen::VectorXd &x0, const int jmax, const double rtol) {
-  assert(A.rows() == A.cols());
-  const int n = A.rows();
-  Eigen::VectorXd r1(b);
-  Eigen::VectorXd r0(b);
-  Eigen::VectorXd p(Eigen::VectorXd::Zero(n));
-  Eigen::VectorXd x(x0);
-  Eigen::VectorXd z0 = M * r0;
-  std::vector<double> res;
-  res.reserve(jmax);
-  double errInit = b.norm();
-
-  for (size_t i = 0; i < jmax; i++) {
-    Eigen::VectorXd z1 = M * r1;
-    double r1z1 = r1.dot(z1);
-    double mu = r1z1 / r0.dot(z0);
-    z0 = z1;
-    p = mu * p + z1;
-    Eigen::VectorXd ap = A * p;
-    double sigma = r1z1 / p.dot(ap);
-    x = x + sigma * p;
-    r0 = r1;
-    r1 -= sigma * ap;
-    double err = r1.norm();
-    res.push_back(err);
-    if (err <= rtol * errInit) break;
-  }
-
-  return {x, res};
-}
-
-};  // namespace linalg
-};  // namespace tools
+};  // namespace tools::linalg

@@ -51,8 +51,10 @@ XPreconditionerOperator<InverseOp>::XPreconditionerOperator(
 template <template <typename> class InverseOp>
 Eigen::VectorXd XPreconditionerOperator<InverseOp>::ApplySinglescale(
     Eigen::VectorXd vec_SS) const {
-  return inverse_op_.ApplySinglescale(stiff_op_.MatrixSingleScale() *
-                                      inverse_op_.ApplySinglescale(vec_SS));
+  Eigen::VectorXd Cx = inverse_op_.ApplySinglescale(vec_SS);
+  Eigen::VectorXd ACx = stiff_op_.MatrixSingleScale() * Cx;
+  Eigen::VectorXd CACx = inverse_op_.ApplySinglescale(ACx);
+  return CACx;
 }
 
 }  // namespace space

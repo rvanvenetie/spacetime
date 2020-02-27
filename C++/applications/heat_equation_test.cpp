@@ -180,23 +180,24 @@ TEST(HeatEquation, SchurCG) {
 }
 
 TEST(HeatEquation, SchurPCG) {
-  int max_level = 8;
+  int max_level = 10;
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
-  ortho_tree.UniformRefine(max_level);
-  three_point_tree.UniformRefine(max_level);
+  ortho_tree.UniformRefine(2 * max_level);
+  three_point_tree.UniformRefine(2 * max_level);
 
-  for (int level = 1; level < max_level; level++) {
-    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        three_point_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
-    X_delta.UniformRefine(level);
+  auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+  for (int level = 1; level < 18; level++) {
+    X_delta.SparseRefine(level, {2, 1});
     HeatEquation heat_eq(X_delta);
 
     // Generate some rhs.
     for (auto nv : heat_eq.vec_X_in()->Bfs()) {
-      if (nv->node_1()->on_domain_boundary()) continue;
-      nv->set_value(1.0);
+      if (nv->node_1()->on_domain_boundary())
+        nv->set_value(0.0);
+      else
+        nv->set_value(1.0);
     }
 
     // Turn this into an eigen-friendly vector.
@@ -204,11 +205,13 @@ TEST(HeatEquation, SchurPCG) {
 
     // auto precond = Eigen::SparseMatrix<double>(v_in.rows(), v_in.rows());
     // precond.setIdentity();
-    auto [result, data] = tools::linalg::PCG(
-        *heat_eq.SchurMat(), v_in, *heat_eq.PrecondX(),
-        Eigen::VectorXd::Zero(v_in.rows()), 1000, DBL_EPSILON);
+    auto [result, data] =
+        tools::linalg::PCG(*heat_eq.SchurMat(), v_in, *heat_eq.PrecondX(),
+                           Eigen::VectorXd::Zero(v_in.rows()), 1000, 1e-5);
     auto [residual, iter] = data;
-    std::cout << "PCG:   #iterations: " << iter
+    std::cout << ortho_tree.Bfs().size() << " " << three_point_tree.Bfs().size()
+              << " " << T.hierarch_basis_tree.Bfs().size() << " "
+              << X_delta.Bfs().size() << " PCG:   #iterations: " << iter
               << ", estimated error: " << residual << std::endl;
   }
 }
