@@ -73,7 +73,7 @@ TEST(GenerateYDelta, SparseTensor) {
 }
 
 TEST(GenerateXDeltaUnderscore, EqualsSparseGrid) {
-  size_t max_level = 3;
+  size_t max_level = 6;
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
       three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
