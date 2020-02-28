@@ -16,8 +16,8 @@ DirectInverse<ForwardOp>::DirectInverse(const TriangulationView &triang,
 }
 
 template <typename ForwardOp>
-Eigen::VectorXd DirectInverse<ForwardOp>::ApplySinglescale(
-    Eigen::VectorXd vec_SS) const {
+Eigen::VectorXd DirectInverse<ForwardOp>::ApplySingleScale(
+    const Eigen::VectorXd &vec_SS) const {
   if (transform_.cols() > 0) {
     Eigen::VectorXd result = solver_.solve(transform_ * vec_SS);
     return transformT_ * result;
@@ -35,8 +35,8 @@ CGInverse<ForwardOp>::CGInverse(const TriangulationView &triang,
 }
 
 template <typename ForwardOp>
-Eigen::VectorXd CGInverse<ForwardOp>::ApplySinglescale(
-    Eigen::VectorXd vec_SS) const {
+Eigen::VectorXd CGInverse<ForwardOp>::ApplySingleScale(
+    const Eigen::VectorXd &vec_SS) const {
   Eigen::VectorXd result = solver_.solve(transform_ * vec_SS);
   return transformT_ * result;
 }
@@ -49,11 +49,11 @@ XPreconditionerOperator<InverseOp>::XPreconditionerOperator(
       inverse_op_(triang, dirichlet_boundary, time_level) {}
 
 template <template <typename> class InverseOp>
-Eigen::VectorXd XPreconditionerOperator<InverseOp>::ApplySinglescale(
-    Eigen::VectorXd vec_SS) const {
-  Eigen::VectorXd Cx = inverse_op_.ApplySinglescale(vec_SS);
+Eigen::VectorXd XPreconditionerOperator<InverseOp>::ApplySingleScale(
+    const Eigen::VectorXd &vec_SS) const {
+  Eigen::VectorXd Cx = inverse_op_.ApplySingleScale(vec_SS);
   Eigen::VectorXd ACx = stiff_op_.MatrixSingleScale() * Cx;
-  Eigen::VectorXd CACx = inverse_op_.ApplySinglescale(ACx);
+  Eigen::VectorXd CACx = inverse_op_.ApplySingleScale(ACx);
   return CACx;
 }
 
