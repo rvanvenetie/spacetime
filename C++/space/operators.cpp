@@ -13,7 +13,7 @@ void Operator::ApplyBoundaryConditions(VectorXd &vec) const {
     if (vertices[i]->on_domain_boundary) vec[i] = 0;
 }
 
-Eigen::VectorXd ForwardOperator::Apply(Eigen::VectorXd v) const {
+void ForwardOperator::Apply(Eigen::VectorXd &v) const {
   if (dirichlet_boundary_) ApplyBoundaryConditions(v);
 
   ApplyHierarchToSingle(v);
@@ -21,8 +21,6 @@ Eigen::VectorXd ForwardOperator::Apply(Eigen::VectorXd v) const {
   ApplyTransposeHierarchToSingle(v);
 
   if (dirichlet_boundary_) ApplyBoundaryConditions(v);
-
-  return v;
 }
 
 void ForwardOperator::ApplyHierarchToSingle(VectorXd &w) const {
@@ -71,16 +69,14 @@ void BackwardOperator::ApplyTransposeInverseHierarchToSingle(
     for (auto gp : T->RefinementEdge()) w[gp] = w[gp] - 0.5 * w[vi];
 }
 
-Eigen::VectorXd BackwardOperator::Apply(Eigen::VectorXd v) const {
+void BackwardOperator::Apply(Eigen::VectorXd &v) const {
   if (dirichlet_boundary_) ApplyBoundaryConditions(v);
 
   ApplyTransposeInverseHierarchToSingle(v);
-  v = ApplySinglescale(v);
+  ApplySingleScale(v);
   ApplyInverseHierarchToSingle(v);
 
   if (dirichlet_boundary_) ApplyBoundaryConditions(v);
-
-  return v;
 }
 
 MassOperator::MassOperator(const TriangulationView &triang,
@@ -136,13 +132,13 @@ StiffnessOperator::StiffnessOperator(const TriangulationView &triang,
   matrix_.setFromTriplets(triplets.begin(), triplets.end());
 }
 
-MassPlusScaledStiffnessOperator::MassPlusScaledStiffnessOperator(
+StiffPlusScaledMassOperator::StiffPlusScaledMassOperator(
     const TriangulationView &triang, bool dirichlet_boundary, size_t time_level)
     : ForwardOperator(triang, dirichlet_boundary, time_level) {
   auto stiff =
       StiffnessOperator(triang, dirichlet_boundary).MatrixSingleScale();
   auto mass = MassOperator(triang, dirichlet_boundary).MatrixSingleScale();
-  matrix_ = stiff + pow(2, time_level) * mass;
+  matrix_ = stiff + pow(2.0, time_level) * mass;
 }
 
 }  // namespace space

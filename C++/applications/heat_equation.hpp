@@ -52,6 +52,9 @@ class HeatEquation {
       space::DirectInverse<space::StiffnessOperator>, OrthonormalWaveletFn,
       OrthonormalWaveletFn>;
   using TypeSchurMat = SchurBilinearForm<TypeAinv, TypeB, TypeBT, TypeG>;
+  using TypePrecondX = spacetime::BlockDiagonalBilinearForm<
+      space::XPreconditionerOperator<space::DirectInverse>, ThreePointWaveletFn,
+      ThreePointWaveletFn>;
 
   HeatEquation(
       const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta,
@@ -68,6 +71,7 @@ class HeatEquation {
 
   auto Ainv() { return A_inv_; }
   auto SchurMat() { return schur_mat_; }
+  auto PrecondX() { return precond_X_; }
 
   auto vec_X_in() { return &vec_X_in_; }
   auto vec_X_out() { return &vec_X_out_; }
@@ -84,6 +88,7 @@ class HeatEquation {
   // Schur complement stuff.
   std::shared_ptr<TypeAinv> A_inv_;
   std::shared_ptr<TypeSchurMat> schur_mat_;
+  std::shared_ptr<TypePrecondX> precond_X_;
 
   // Store doubletree vectors for X_delta input and output.
   DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> vec_X_in_,

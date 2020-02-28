@@ -16,14 +16,11 @@ DirectInverse<ForwardOp>::DirectInverse(const TriangulationView &triang,
 }
 
 template <typename ForwardOp>
-Eigen::VectorXd DirectInverse<ForwardOp>::ApplySinglescale(
-    Eigen::VectorXd vec_SS) const {
-  if (transform_.cols() > 0) {
-    Eigen::VectorXd result = solver_.solve(transform_ * vec_SS);
-    return transformT_ * result;
-  } else {
-    return Eigen::VectorXd::Zero(vec_SS.rows());
-  }
+void DirectInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
+  if (transform_.cols() > 0)
+    vec_SS = transformT_ * solver_.solve(transform_ * vec_SS);
+  else
+    vec_SS.setZero();
 }
 
 template <typename ForwardOp>
@@ -35,24 +32,23 @@ CGInverse<ForwardOp>::CGInverse(const TriangulationView &triang,
 }
 
 template <typename ForwardOp>
-Eigen::VectorXd CGInverse<ForwardOp>::ApplySinglescale(
-    Eigen::VectorXd vec_SS) const {
-  Eigen::VectorXd result = solver_.solve(transform_ * vec_SS);
-  return transformT_ * result;
+void CGInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
+  vec_SS = transformT_ * solver_.solve(transform_ * vec_SS);
 }
 
-template <typename InverseOp>
+template <template <typename> class InverseOp>
 XPreconditionerOperator<InverseOp>::XPreconditionerOperator(
     const TriangulationView &triang, bool dirichlet_boundary, size_t time_level)
     : BackwardOperator(triang, dirichlet_boundary, time_level),
       stiff_op_(triang, dirichlet_boundary, time_level),
       inverse_op_(triang, dirichlet_boundary, time_level) {}
 
-template <typename InverseOp>
-Eigen::VectorXd XPreconditionerOperator<InverseOp>::ApplySinglescale(
-    Eigen::VectorXd vec_SS) const {
-  return stiff_op_.MatrixSingleScale() *
-         inverse_op_.ApplySinglescale(stiff_op_.MatrixSingleScale() * vec_SS);
+template <template <typename> class InverseOp>
+void XPreconditionerOperator<InverseOp>::ApplySingleScale(
+    Eigen::VectorXd &vec_SS) const {
+  inverse_op_.ApplySingleScale(vec_SS);
+  vec_SS = stiff_op_.MatrixSingleScale() * vec_SS;
+  inverse_op_.ApplySingleScale(vec_SS);
 }
 
 }  // namespace space

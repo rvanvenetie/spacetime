@@ -157,10 +157,9 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
 }
 
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-Eigen::VectorXd
-BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
+Eigen::VectorXd BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn,
+                                          BasisTimeOut>::Apply() const {
   vec_out_->Reset();
-
   if (!use_cache_ || !is_cached_) {
     for (auto psi_out_labda : vec_out_->Project_0()->Bfs()) {
       auto fiber_in = vec_in_->Fiber_1(psi_out_labda->node());

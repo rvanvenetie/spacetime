@@ -39,6 +39,7 @@ HeatEquation::HeatEquation(
   // Create the Schur matrix.
   A_inv_ = std::make_shared<TypeAinv>(&vec_Y_in_, &vec_Y_out_);
   schur_mat_ = std::make_shared<TypeSchurMat>(A_inv_, B_, BT_, G_);
+  precond_X_ = std::make_shared<TypePrecondX>(&vec_X_in_, &vec_X_out_);
 }
 
 HeatEquation::HeatEquation(

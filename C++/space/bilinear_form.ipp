@@ -52,7 +52,7 @@ void BilinearForm<Operator, I_in, I_out>::Apply() {
   if (symmetric_) {
     // Apply the operator in SS.
     auto v = ToVector(*nodes_vec_in_);
-    v = operator_->Apply(v);
+    operator_->Apply(v);
     FromVector(*nodes_vec_out_, v);
     return;
   }
@@ -66,7 +66,7 @@ void BilinearForm<Operator, I_in, I_out>::Apply() {
 
   // Apply the operator in SS.
   auto v = ToVector(*nodes_vec_union_);
-  v = operator_->Apply(v);
+  operator_->Apply(v);
   FromVector(*nodes_vec_union_, v);
   // Copy the results from the union vector back to the output vector.
   vec_out_->Union(vec_union_->root(), datastructures::func_false, lambda_copy);
