@@ -45,7 +45,7 @@ TEST(TriangulationView, VertexSubTree) {
   // Create a subtree with only vertices lying below the diagonal.
   auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
   vertex_subtree.DeepRefine(/* call_filter */ [](const auto &vertex) {
-    return vertex->x + vertex->y <= 1.0;
+    return vertex->level() == 0 || (vertex->x + vertex->y <= 1.0);
   });
   ASSERT_TRUE(vertex_subtree.Bfs().size() < T.vertex_meta_root->Bfs().size());
 
@@ -56,7 +56,7 @@ TEST(TriangulationView, VertexSubTree) {
   ASSERT_EQ(T_view.history().size(), vertex_subtree.Bfs().size() -
                                          T.vertex_meta_root->children().size());
 
-  // Check there are no duplicats.
+  // Check there are no duplicates.
   std::set<Vertex *> vertices_subtree;
   for (auto vertex : T_view.vertices()) {
     vertices_subtree.insert(vertex);

@@ -2,6 +2,7 @@
 
 #include <vector>
 
+using datastructures::DoubleNodeView;
 using datastructures::DoubleTreeView;
 using space::HierarchicalBasisFn;
 using Time::ortho_tree;
@@ -40,5 +41,35 @@ DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn> GenerateYDelta(
   }
 
   return Y_delta;
+}
+
+DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>
+GenerateXDeltaUnderscore(
+    const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta) {
+  auto X_delta_underscore = X_delta.DeepCopy();
+  std::vector<DoubleNodeView<ThreePointWaveletFn, HierarchicalBasisFn> *>
+      time_leaves, space_leaves;
+  for (auto &dblnode : X_delta_underscore.container()) {
+    auto [time_node, space_node] = dblnode.nodes();
+    if (!time_node->is_full()) time_node->Refine();
+    if (!space_node->is_full())  // This is DIFFERENT from python.
+      space_node->Refine();
+
+    if (!dblnode.is_full<0>()) time_leaves.push_back(&dblnode);
+    if (!dblnode.is_full<1>()) space_leaves.push_back(&dblnode);
+  }
+
+  for (auto dblnode : time_leaves)
+    dblnode->Refine<0>(datastructures::func_true, /*make_conforming*/ true);
+
+  for (auto dblnode : space_leaves) {
+    dblnode->Refine<1>(datastructures::func_true, /*make_conforming*/ true);
+    for (auto child : dblnode->children(1)) {
+      child->node_1()->Refine();
+      child->Refine<1>(datastructures::func_true, /*make_conforming*/ true);
+    }
+  }
+
+  return X_delta_underscore;
 }
 };  // namespace spacetime

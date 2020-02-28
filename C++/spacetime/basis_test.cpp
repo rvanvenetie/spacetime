@@ -1,4 +1,5 @@
 #include "basis.hpp"
+#include <set>
 
 #include "../space/initial_triangulation.hpp"
 #include "../time/haar_basis.hpp"
@@ -68,6 +69,23 @@ TEST(GenerateYDelta, SparseTensor) {
     ASSERT_EQ(found_nodes.size(), fulltensor_nodes.size());
     for (int i = 0; i < found_nodes.size(); ++i)
       ASSERT_EQ(found_nodes[i]->nodes(), fulltensor_nodes[i]->nodes());
+  }
+}
+
+TEST(GenerateXDeltaUnderscore, EqualsSparseGrid) {
+  size_t max_level = 6;
+  auto T = space::InitialTriangulation::UnitSquare();
+  auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+  auto X_delta_next = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+  for (size_t level = 0; level < max_level; level++) {
+    X_delta.SparseRefine(2 * level, {2, 1});
+    auto X_delta_underscore = GenerateXDeltaUnderscore(X_delta);
+    X_delta_next.SparseRefine(2 * (level + 1), {2, 1});
+    auto Xdu_vertices = X_delta_underscore.Bfs();
+    auto Xdn_vertices = X_delta_next.Bfs();
+    ASSERT_EQ(Xdu_vertices.size(), Xdn_vertices.size());
   }
 }
 

@@ -9,6 +9,12 @@ datastructures::DoubleTreeView<Time::OrthonormalWaveletFn,
 GenerateYDelta(const datastructures::DoubleTreeView<
                Time::ThreePointWaveletFn, space::HierarchicalBasisFn> &X_delta);
 
+datastructures::DoubleTreeView<Time::ThreePointWaveletFn,
+                               space::HierarchicalBasisFn>
+GenerateXDeltaUnderscore(
+    const datastructures::DoubleTreeView<Time::ThreePointWaveletFn,
+                                         space::HierarchicalBasisFn> &X_delta);
+
 template <class DblTreeIn, class DblTreeOut>
 auto GenerateSigma(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out);
 
