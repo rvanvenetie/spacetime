@@ -25,10 +25,14 @@ TEST(Operator, InverseTimesForwardOpIsIdentity) {
       vec.setRandom();
       for (int v = 0; v < triang.vertices().size(); v++)
         if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+      Eigen::VectorXd vec2 = vec;
+      forward_op.Apply(vec2);
+      backward_op.Apply(vec2);
+      ASSERT_TRUE(vec2.isApprox(vec));
 
-      ASSERT_TRUE(forward_op.Apply(backward_op.Apply(vec))
-                      .isApprox(backward_op.Apply(forward_op.Apply(vec))));
-      ASSERT_TRUE(backward_op.Apply(forward_op.Apply(vec)).isApprox(vec));
+      backward_op.Apply(vec);
+      forward_op.Apply(vec);
+      ASSERT_TRUE(vec.isApprox(vec2));
     }
   }
 }
