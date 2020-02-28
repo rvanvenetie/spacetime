@@ -75,7 +75,7 @@ Eigen::VectorXd BackwardOperator::Apply(Eigen::VectorXd v) const {
   if (dirichlet_boundary_) ApplyBoundaryConditions(v);
 
   ApplyTransposeInverseHierarchToSingle(v);
-  v = ApplySinglescale(v);
+  v = ApplySingleScale(v);
   ApplyInverseHierarchToSingle(v);
 
   if (dirichlet_boundary_) ApplyBoundaryConditions(v);

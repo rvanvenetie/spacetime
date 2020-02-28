@@ -49,7 +49,7 @@ class BackwardOperator : public Operator {
  public:
   BackwardOperator(const TriangulationView &triang,
                    bool dirichlet_boundary = true, size_t time_level = 0);
-  virtual Eigen::VectorXd Apply(const Eigen::VectorXd &vec_in) const final;
+  virtual Eigen::VectorXd Apply(Eigen::VectorXd vec_in) const final;
   virtual Eigen::VectorXd ApplySingleScale(
       const Eigen::VectorXd &vec_SS) const = 0;
 
