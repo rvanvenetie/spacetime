@@ -49,14 +49,14 @@ GenerateXDeltaUnderscore(
   auto X_delta_underscore = X_delta.DeepCopy();
   std::vector<DoubleNodeView<ThreePointWaveletFn, HierarchicalBasisFn> *>
       time_leaves, space_leaves;
-  for (auto dblnode : X_delta_underscore.container()) {
-    auto [time_node, space_node] = dblnode->nodes();
+  for (auto &dblnode : X_delta_underscore.container()) {
+    auto [time_node, space_node] = dblnode.nodes();
     if (!time_node->is_full()) time_node->Refine();
     if (!space_node->is_full())  // This is DIFFERENT from python.
       space_node->Refine();
 
-    if (!dblnode->is_full<0>()) time_leaves.push_back(dblnode);
-    if (!dblnode->is_full<1>()) space_leaves.push_back(dblnode);
+    if (!dblnode.is_full<0>()) time_leaves.push_back(&dblnode);
+    if (!dblnode.is_full<1>()) space_leaves.push_back(&dblnode);
   }
 
   for (auto dblnode : time_leaves)

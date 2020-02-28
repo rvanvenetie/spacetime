@@ -164,7 +164,7 @@ inline bool MultiNodeViewInterface<I, T...>::Refine(const container& children_i,
     // Now finally, lets create an actual child!
     auto child = self().make_child(
         /*nodes*/ std::move(child_nodes),
-        /*parents*/ std::move(brothers));
+        /*parents*/ brothers);
 
     // Add this child to all brothers.
     for (size_t j = 0; j < dim; ++j) {
@@ -172,19 +172,29 @@ inline bool MultiNodeViewInterface<I, T...>::Refine(const container& children_i,
         brother->children(j).push_back(child);
       }
     }
+
+    if (make_conforming) {
+      static_for<dim>([this, &brothers](auto j) {
+        for (auto brother : brothers[j]) {
+          if (brother == this) continue;
+          if (std::get<j>(brother->nodes())->is_metaroot()) {
+            brother->Refine();
+          }
+        }
+      });
+    }
     refined = true;
   }
 
-  // static_for<dim>([this](auto j) {
-  //   if (std::get<j>(self().nodes())->is_metaroot()) {
-  //     std::cout << self().children(j).size() << " "
-  //               << std::get<j>(self().nodes())->children().size() <<
-  //               std::endl;
-  //     assert(self().children(j).size() == 0 ||
-  //            self().children(j).size() ==
-  //                std::get<j>(self().nodes())->children().size());
-  //   }
-  // });
+  static_for<dim>([this](auto j) {
+    if (std::get<j>(self().nodes())->is_metaroot()) {
+      std::cout << self().children(j).size() << " "
+                << std::get<j>(self().nodes())->children().size() << std::endl;
+      assert(self().children(j).size() == 0 ||
+             self().children(j).size() ==
+                 std::get<j>(self().nodes())->children().size());
+    }
+  });
 
   return refined;
 }
