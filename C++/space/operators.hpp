@@ -17,7 +17,7 @@ class Operator {
 
   virtual ~Operator() {}
 
-  virtual Eigen::VectorXd Apply(Eigen::VectorXd vec_in) const = 0;
+  virtual void Apply(Eigen::VectorXd &vec_in) const = 0;
 
  protected:
   const TriangulationView &triang_;
@@ -31,7 +31,7 @@ class Operator {
 class ForwardOperator : public Operator {
  public:
   using Operator::Operator;
-  virtual Eigen::VectorXd Apply(Eigen::VectorXd vec_in) const final;
+  virtual void Apply(Eigen::VectorXd &vec_in) const final;
 
   const Eigen::SparseMatrix<double> &MatrixSingleScale() const {
     return matrix_;
@@ -49,8 +49,8 @@ class BackwardOperator : public Operator {
  public:
   BackwardOperator(const TriangulationView &triang,
                    bool dirichlet_boundary = true, size_t time_level = 0);
-  virtual Eigen::VectorXd Apply(Eigen::VectorXd vec_in) const final;
-  virtual Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const = 0;
+  virtual void Apply(Eigen::VectorXd &vec_in) const final;
+  virtual void ApplySingleScale(Eigen::VectorXd &vec_SS) const = 0;
 
  protected:
   // Inverse Hierarhical Basis Transformations.
@@ -100,7 +100,7 @@ class DirectInverse : public BackwardOperator {
   DirectInverse(const TriangulationView &triang, bool dirichlet_boundary = true,
                 size_t time_level = 0);
 
-  Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const final;
+  void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
  protected:
   ForwardOp forward_op_;
@@ -114,7 +114,7 @@ class CGInverse : public BackwardOperator {
   CGInverse(const TriangulationView &triang, bool dirichlet_boundary = true,
             size_t time_level = 0);
 
-  Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const final;
+  void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
  protected:
   ForwardOp forward_op_;
@@ -130,7 +130,7 @@ class XPreconditionerOperator : public BackwardOperator {
                           bool dirichlet_boundary = true,
                           size_t time_level = 0);
 
-  Eigen::VectorXd ApplySinglescale(Eigen::VectorXd vec_SS) const final;
+  void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
  protected:
   StiffnessOperator stiff_op_;
