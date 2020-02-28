@@ -178,7 +178,7 @@ inline bool MultiNodeViewInterface<I, T...>::Refine(const container& children_i,
         for (auto brother : brothers[j]) {
           if (brother == this) continue;
           if (std::get<j>(brother->nodes())->is_metaroot()) {
-            brother->Refine();
+            brother->template Refine<j>();
           }
         }
       });
@@ -188,8 +188,6 @@ inline bool MultiNodeViewInterface<I, T...>::Refine(const container& children_i,
 
   static_for<dim>([this](auto j) {
     if (std::get<j>(self().nodes())->is_metaroot()) {
-      std::cout << self().children(j).size() << " "
-                << std::get<j>(self().nodes())->children().size() << std::endl;
       assert(self().children(j).size() == 0 ||
              self().children(j).size() ==
                  std::get<j>(self().nodes())->children().size());
