@@ -45,7 +45,12 @@ DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn> GenerateYDelta(
 
 DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>
 GenerateXDeltaUnderscore(
-    const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta) {
+    const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta,
+    size_t num_repeats) {
+  assert(num_repeats > 0);
+  if (num_repeats > 1)
+    return GenerateXDeltaUnderscore(GenerateXDeltaUnderscore(X_delta),
+                                    num_repeats - 1);
   auto X_delta_underscore = X_delta.DeepCopy();
   std::vector<DoubleNodeView<ThreePointWaveletFn, HierarchicalBasisFn> *>
       time_leaves, space_leaves;

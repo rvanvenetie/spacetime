@@ -13,6 +13,7 @@ class LinearForm {
 
   template <typename SpaceBasis>
   void Apply(datastructures::DoubleTreeVector<TimeBasis, SpaceBasis> *vec) {
+    vec->Reset();
     auto project_0 = vec->Project_0();
     auto project_1 = vec->Project_1();
     time_linform_.Apply(project_0);
@@ -34,14 +35,20 @@ class LinearForm {
                         *std::get<1>(dblnode.nodes())->template data<double>());
     }
 
-    for (auto phi : project_0_nodes) phi->node()->reset_data();
-    for (auto phi : project_1_nodes) phi->node()->reset_data();
+    for (auto phi : project_0_nodes) {
+      phi->node()->reset_data();
+      phi->set_value(0.0);
+    }
+    for (auto phi : project_1_nodes) {
+      phi->node()->reset_data();
+      phi->set_value(0.0);
+    }
   }
 
  protected:
   Time::LinearForm<TimeBasis> time_linform_;
   SpaceF space_f_;
-};
+};  // namespace spacetime
 
 template <typename TimeBasis, size_t time_order, size_t space_order,
           class TimeF, class SpaceF>
