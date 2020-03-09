@@ -58,7 +58,11 @@ class MultiNodeVectorBase : public MultiNodeViewBase<I, T...>,
   using MultiNodeViewBase<I, T...>::MultiNodeViewBase;
 
   inline const double &value() const { return value_; }
-  inline void set_value(double val) { value_ = val; }
+  inline void set_value(double val) {
+    assert(val == val);
+    assert(val == 0.0 || (1e-100 < std::abs(val) && std::abs(val) < 1e100));
+    value_ = val;
+  }
 
  protected:
   double value_ = 0.0;

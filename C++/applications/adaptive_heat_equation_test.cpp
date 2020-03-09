@@ -55,14 +55,16 @@ TEST(AdaptiveHeatEquation, SparseMatVec) {
     ASSERT_NEAR(nodes[i]->value(), python_result[i], 1e-5);
 
   auto residual = heat_eq.Estimate(/*mean_zero*/ false);
-  std::cout << residual << " " << residual.size() << std::endl;
+  auto residual_nodes = residual.Bfs();
 
-  Eigen::VectorXd python_residual(residual.size());
+  Eigen::VectorXd python_residual(residual_nodes.size());
   python_residual << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       5.551115123125783e-17, 5.551115123125783e-17, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, -0.01628850213423607, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, -0.004904405566708146, -0.004904405566708167,
       -0.004904405566708146, -0.004904405566708146, -0.006462116191632044,
       -0.006462116191632037, -0.006462116191632044, -0.006462116191632016;
+  for (size_t i = 0; i < residual_nodes.size(); i++)
+    ASSERT_NEAR(residual_nodes[i]->value(), python_residual[i], 1e-5);
 }
 }  // namespace applications

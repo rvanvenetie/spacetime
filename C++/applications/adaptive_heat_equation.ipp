@@ -21,30 +21,33 @@ Eigen::VectorXd AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::RHS(
   heat.B()->Apply();  // This is actually only needed to initialize BT()
   g_lin_form_.Apply(heat.vec_Y_out());
   heat.Ainv()->Apply();
-  auto rhs = heat.BT()->Apply() + u0_lin_form_.Apply(heat.vec_X_in());
+  auto rhs = heat.BT()->Apply();
+  rhs += u0_lin_form_.Apply(heat.vec_X_in());
   return rhs;
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
 Eigen::VectorXd AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Solve(
     const Eigen::VectorXd &x0, double rtol, size_t maxit) {
-  auto [result, data] =
-      tools::linalg::PCG(*heat_d_dd_.SchurMat(), RHS(heat_d_dd_),
-                         *heat_d_dd_.PrecondX(), x0, maxit, rtol);
+  auto rhs = RHS(heat_d_dd_);
+  auto [result, data] = tools::linalg::PCG(
+      *heat_d_dd_.SchurMat(), rhs, *heat_d_dd_.PrecondX(), x0, maxit, rtol);
   heat_d_dd_.vec_X_out()->FromVectorContainer(result);
   return result;
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
-Eigen::VectorXd AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(
-    bool mean_zero) {
+DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
+AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
   HeatEquation heat_dd_dd(X_dd_, Y_dd_);
   auto u_dd_dd = heat_dd_dd.vec_X_in();
   u_dd_dd->Reset();
   *u_dd_dd += *heat_d_dd_.vec_X_out();
+  auto Su_dd_dd = heat_dd_dd.SchurMat()->Apply();
 
   Eigen::VectorXd residual = RHS(heat_dd_dd);
-  residual -= heat_dd_dd.SchurMat()->Apply();
+  residual -= Su_dd_dd;
+
   // Reuse u_dd_dd.
   u_dd_dd->FromVectorContainer(residual);
   if (mean_zero) ApplyMeanZero(u_dd_dd);
@@ -65,7 +68,7 @@ Eigen::VectorXd AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(
 
   for (auto dblnode : X_d_nodes) dblnode->set_marked(false);
 
-  return u_dd_dd->ToVectorContainer();
+  return u_dd_dd->DeepCopy();
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>

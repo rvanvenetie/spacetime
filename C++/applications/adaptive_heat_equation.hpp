@@ -30,7 +30,8 @@ class AdaptiveHeatEquation {
     return Solve(x0, rtol, maxit);
   }
 
-  Eigen::VectorXd Estimate(bool mean_zero = true);
+  DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> Estimate(
+      bool mean_zero = true);
 
   TypeXDelta &X_delta() { return X_d_; }
   TypeXDelta &X_delta_underscore() { return X_dd_; }
