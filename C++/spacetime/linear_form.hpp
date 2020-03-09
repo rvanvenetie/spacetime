@@ -63,7 +63,7 @@ class SumLinearForm {
           *vec) {
     auto vec_in = vec->ToVectorContainer();
     auto result = left_lf_.Apply(vec);
-    vec->FromVectorContainer(result);
+    vec->FromVectorContainer(vec_in);
     result += right_lf_.Apply(vec);
     vec->FromVectorContainer(result);
     return result;
