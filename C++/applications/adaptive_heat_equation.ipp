@@ -69,6 +69,37 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
+void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Mark() {
+  auto nodes = vec_Xdd_in().Bfs();
+  std::sort(nodes.begin(), nodes.end(), [](auto n1, auto n2) {
+    return std::abs(n1->value()) > std::abs(n2->value());
+  });
+  double sq_norm = 0.0;
+  for (auto node : nodes) sq_norm += node->value() * node->value();
+  double cur_sq_norm = 0.0;
+  for (size_t i = 0; i < nodes.size(); i++) {
+    cur_sq_norm += nodes[i]->value() * nodes[i]->value();
+    nodes[i]->set_marked(true);
+    if (cur_sq_norm < theta_ * theta_ * sq_norm) return;
+  }
+  auto X_d_nodes =
+      vec_Xdd_in().Union(vec_Xd_in(),
+                         /*call_filter*/ datastructures::func_false);
+  for (auto node : X_d_nodes) node->set_marked(true);
+  return;
+}
+
+template <typename TypeGLinForm, typename TypeU0LinForm>
+void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Refine() {
+  X_d_ = std::move(vec_Xdd_in().template MakeConforming<TypeXDelta>());
+  X_dd_ = std::move(GenerateXDeltaUnderscore(X_d_, saturation_layers_));
+  Y_dd_ = std::move(GenerateYDelta(X_dd_));
+  heat_d_dd_ = std::move(HeatEquation(X_d_, Y_dd_));
+  heat_dd_dd_ = std::move(
+      HeatEquation(X_dd_, Y_dd_));  // TODO: re-use heat_d_dd_.vec_Y_{in,out}.
+}
+
+template <typename TypeGLinForm, typename TypeU0LinForm>
 void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::ApplyMeanZero(
     DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> &vec) {
   for (auto &dblnode : boost::adaptors::reverse(vec.container())) {
@@ -83,6 +114,6 @@ void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::ApplyMeanZero(
                                               space_parent->Volume() *
                                               parent->value());
     }
-  }
+  }  // namespace applications
 }
 };  // namespace applications

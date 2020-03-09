@@ -34,6 +34,9 @@ class AdaptiveHeatEquation {
 
   TypeXVector &Estimate(bool mean_zero = true);
 
+  void Mark();
+  void Refine();
+
   TypeXDelta &X_delta() { return X_d_; }
   TypeXDelta &X_delta_underscore() { return X_dd_; }
   TypeXVector &vec_Xd_in() { return *heat_d_dd_.vec_X_in(); }

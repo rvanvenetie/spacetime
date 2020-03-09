@@ -280,6 +280,10 @@ class MultiTreeView {
             typename FuncPost = T_func_noop>
   MT_other DeepCopy(const FuncPost& call_postprocess = func_noop) const;
 
+  template <typename MT_other = MultiTreeView<I>,
+            typename FuncPost = T_func_noop>
+  MT_other MakeConforming(const FuncPost& call_postprocess = func_noop) const;
+
   // Simple helpers.
   std::vector<I*> Bfs(bool include_metaroot = false) const {
     return root_->Bfs(include_metaroot);

@@ -64,5 +64,8 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
       -0.006462116191632037, -0.006462116191632044, -0.006462116191632016;
   for (size_t i = 0; i < residual_nodes.size(); i++)
     ASSERT_NEAR(residual_nodes[i]->value(), python_residual[i], 1e-5);
+
+  heat_eq.Mark();
+  heat_eq.Refine();
 }
 }  // namespace applications
