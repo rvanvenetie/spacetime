@@ -20,7 +20,7 @@ using Time::ThreePointWaveletFn;
 
 namespace applications {
 
-TEST(AdaptiveHeatEquation, SparseMatVec) {
+TEST(AdaptiveHeatEquation, CompareToPython) {
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(1);
   ortho_tree.UniformRefine(1);
@@ -45,18 +45,16 @@ TEST(AdaptiveHeatEquation, SparseMatVec) {
                                                                  space_g2)),
       CreateZeroEvalLinearForm<ThreePointWaveletFn, 4>(u0));
 
-  auto result = heat_eq.Solve();
-  auto nodes = heat_eq.vec_Xd_out().Bfs();
-  Eigen::VectorXd python_result(nodes.size());
+  auto &result = heat_eq.Solve();
+  auto result_nodes = result.Bfs();
+  Eigen::VectorXd python_result(result_nodes.size());
   python_result << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.056793956002164525, 0.12413158640093236;
-  heat_eq.vec_Xd_out().FromVectorContainer(result);
-  for (size_t i = 0; i < nodes.size(); i++)
-    ASSERT_NEAR(nodes[i]->value(), python_result[i], 1e-5);
+  for (size_t i = 0; i < result_nodes.size(); i++)
+    ASSERT_NEAR(result_nodes[i]->value(), python_result[i], 1e-5);
 
-  auto residual = heat_eq.Estimate(/*mean_zero*/ false);
+  auto &residual = heat_eq.Estimate(/*mean_zero*/ false);
   auto residual_nodes = residual.Bfs();
-
   Eigen::VectorXd python_residual(residual_nodes.size());
   python_residual << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       5.551115123125783e-17, 5.551115123125783e-17, 0.0, 0.0, 0.0, 0.0, 0.0,

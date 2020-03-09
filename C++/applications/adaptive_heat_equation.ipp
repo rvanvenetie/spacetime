@@ -10,6 +10,7 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::AdaptiveHeatEquation(
       X_dd_(GenerateXDeltaUnderscore(X_d_, saturation_layers)),
       Y_dd_(GenerateYDelta(X_dd_)),
       heat_d_dd_(X_d_, Y_dd_),
+      heat_dd_dd_(X_dd_, Y_dd_),  // TODO: re-use heat_d_dd_.vec_Y_{in,out}.
       g_lin_form_(std::move(g_lin_form)),
       u0_lin_form_(std::move(u0_lin_form)),
       theta_(theta),
@@ -27,38 +28,34 @@ Eigen::VectorXd AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::RHS(
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
-Eigen::VectorXd AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Solve(
-    const Eigen::VectorXd &x0, double rtol, size_t maxit) {
+DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
+    &AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Solve(
+        const Eigen::VectorXd &x0, double rtol, size_t maxit) {
   auto rhs = RHS(heat_d_dd_);
   auto [result, data] = tools::linalg::PCG(
       *heat_d_dd_.SchurMat(), rhs, *heat_d_dd_.PrecondX(), x0, maxit, rtol);
-  heat_d_dd_.vec_X_out()->FromVectorContainer(result);
-  return result;
+  vec_Xd_out().FromVectorContainer(result);
+  return vec_Xd_out();
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
-DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
+DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> &
 AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
-  HeatEquation heat_dd_dd(X_dd_, Y_dd_);
-  auto u_dd_dd = heat_dd_dd.vec_X_in();
-  u_dd_dd->Reset();
-  *u_dd_dd += *heat_d_dd_.vec_X_out();
-  auto Su_dd_dd = heat_dd_dd.SchurMat()->Apply();
-
-  Eigen::VectorXd residual = RHS(heat_dd_dd);
-  residual -= Su_dd_dd;
+  auto &u_dd_dd = vec_Xdd_in();
+  u_dd_dd.Reset();
+  u_dd_dd += vec_Xd_out();
+  auto Su_dd_dd = heat_dd_dd_.SchurMat()->Apply();
 
   // Reuse u_dd_dd.
-  u_dd_dd->FromVectorContainer(residual);
+  u_dd_dd.FromVectorContainer(RHS(heat_dd_dd_) - Su_dd_dd);
   if (mean_zero) ApplyMeanZero(u_dd_dd);
 
-  std::vector<DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn> *>
-      X_d_nodes = u_dd_dd->Union(*heat_d_dd_.vec_X_in(),
+  auto X_d_nodes = u_dd_dd.Union(vec_Xd_in(),
                                  /*call_filter*/ datastructures::func_false);
   assert(X_d_nodes.size() == X_d_.container().size());
 
   for (auto dblnode : X_d_nodes) dblnode->set_marked(true);
-  for (auto &dblnode : u_dd_dd->container()) {
+  for (auto &dblnode : u_dd_dd.container()) {
     if (dblnode.is_metaroot()) continue;
     if (dblnode.marked()) continue;
     int lvl_diff = std::get<0>(dblnode.nodes())->level() -
@@ -68,13 +65,13 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
 
   for (auto dblnode : X_d_nodes) dblnode->set_marked(false);
 
-  return u_dd_dd->DeepCopy();
+  return u_dd_dd;
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
 void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::ApplyMeanZero(
-    DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *vec) {
-  for (auto &dblnode : boost::adaptors::reverse(vec->container())) {
+    DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> &vec) {
+  for (auto &dblnode : boost::adaptors::reverse(vec.container())) {
     auto [_, space_node] = dblnode.nodes();
     if (space_node->level() == 0 || space_node->on_domain_boundary()) continue;
     if (std::any_of(space_node->parents().begin(), space_node->parents().end(),
