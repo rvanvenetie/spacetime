@@ -10,7 +10,7 @@ namespace datastructures {
 // Helper functions for converting between (flattened) trees and vectors.
 template <typename Iterable>
 Eigen::VectorXd ToVector(const Iterable &nodes) {
-  Eigen::VectorXd result(nodes.size());
+  Eigen::VectorXd result = Eigen::VectorXd::Zero(nodes.size());
   size_t i = 0;
   for (const auto &node : nodes) {
     if constexpr (std::is_pointer_v<typename Iterable::value_type>)

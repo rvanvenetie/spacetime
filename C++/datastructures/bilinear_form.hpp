@@ -304,17 +304,16 @@ class SchurBilinearForm : public EigenBilinearForm {
   }
 
   ::Eigen::VectorXd Apply() const {
-    a_inv_->vec_in()->FromVectorContainer(b_->Apply());
-    bt_->vec_in()->FromVectorContainer(a_inv_->Apply());
-    auto v = bt_->Apply();
-    v += g_->Apply();
+    b_->Apply();            // from X_in to Y_out
+    a_inv_->Apply();        // from Y_out to Y_in
+    auto v = bt_->Apply();  // from Y_in to X_out
+    v += g_->Apply();       // from X_in to X_out
     bt_->vec_out()->FromVectorContainer(v);
     return v;
   }
 
   ::Eigen::VectorXd MatVec(const ::Eigen::VectorXd &rhs) const final {
     g_->vec_in()->FromVectorContainer(rhs);
-    b_->vec_in()->FromVectorContainer(rhs);
     return Apply();
   }
 

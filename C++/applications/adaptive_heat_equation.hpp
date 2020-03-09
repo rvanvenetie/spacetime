@@ -1,5 +1,4 @@
 #pragma once
-#include <boost/range/adaptor/reversed.hpp>
 #include "../datastructures/double_tree_view.hpp"
 #include "../spacetime/basis.hpp"
 #include "../tools/linalg.hpp"
@@ -24,21 +23,32 @@ class AdaptiveHeatEquation {
                        TypeU0LinForm &&u0_lin_form, double theta = 0.7,
                        size_t saturation_layers = 1);
 
-  Eigen::VectorXd Solve(const Eigen::VectorXd &x0);
-  Eigen::VectorXd Solve() {
-    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(X_delta_.container().size());
-    return Solve(x0);
+  Eigen::VectorXd Solve(const Eigen::VectorXd &x0, double rtol = 1e-5,
+                        size_t maxit = 100);
+  Eigen::VectorXd Solve(double rtol = 1e-5, size_t maxit = 100) {
+    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(X_d_.container().size());
+    return Solve(x0, rtol, maxit);
   }
 
   Eigen::VectorXd Estimate(bool mean_zero = true);
 
+  TypeXDelta &X_delta() { return X_d_; }
+  TypeXDelta &X_delta_underscore() { return X_dd_; }
+  DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> &vec_Xd_in() {
+    return *heat_d_dd_.vec_X_in();
+  }
+  DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> &vec_Xd_out() {
+    return *heat_d_dd_.vec_X_out();
+  }
+
  protected:
+  Eigen::VectorXd RHS(HeatEquation &heat);
   void ApplyMeanZero(
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *vec);
 
-  TypeXDelta X_delta_, X_delta_underscore_;
-  TypeYDelta Y_delta_underscore_;
-  HeatEquation heat_eq_;
+  TypeXDelta X_d_, X_dd_;
+  TypeYDelta Y_dd_;
+  HeatEquation heat_d_dd_;
 
   TypeGLinForm g_lin_form_;
   TypeU0LinForm u0_lin_form_;
