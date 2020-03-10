@@ -25,28 +25,28 @@ class AdaptiveHeatEquation {
                        TypeU0LinForm &&u0_lin_form, double theta = 0.7,
                        size_t saturation_layers = 1);
 
-  TypeXVector &Solve(const Eigen::VectorXd &x0, double rtol = 1e-5,
+  TypeXVector *Solve(const Eigen::VectorXd &x0, double rtol = 1e-5,
                      size_t maxit = 100);
-  TypeXVector &Solve(double rtol = 1e-5, size_t maxit = 100) {
+  TypeXVector *Solve(double rtol = 1e-5, size_t maxit = 100) {
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(X_d_.container().size());
     return Solve(x0, rtol, maxit);
   }
 
-  TypeXVector &Estimate(bool mean_zero = true);
+  TypeXVector *Estimate(bool mean_zero = true);
 
   void Mark();
   void Refine();
 
   TypeXDelta &X_delta() { return X_d_; }
   TypeXDelta &X_delta_underscore() { return X_dd_; }
-  TypeXVector &vec_Xd_in() { return *heat_d_dd_.vec_X_in(); }
-  TypeXVector &vec_Xd_out() { return *heat_d_dd_.vec_X_out(); }
-  TypeXVector &vec_Xdd_in() { return *heat_dd_dd_.vec_X_in(); }
-  TypeXVector &vec_Xdd_out() { return *heat_dd_dd_.vec_X_out(); }
+  TypeXVector *vec_Xd_in() { return heat_d_dd_.vec_X_in(); }
+  TypeXVector *vec_Xd_out() { return heat_d_dd_.vec_X_out(); }
+  TypeXVector *vec_Xdd_in() { return heat_dd_dd_.vec_X_in(); }
+  TypeXVector *vec_Xdd_out() { return heat_dd_dd_.vec_X_out(); }
 
  protected:
   Eigen::VectorXd RHS(HeatEquation &heat);
-  void ApplyMeanZero(TypeXVector &vec);
+  void ApplyMeanZero(TypeXVector *vec);
 
   TypeXDelta X_d_, X_dd_;
   TypeYDelta Y_dd_;
