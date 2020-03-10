@@ -11,8 +11,10 @@ class LinearForm {
   LinearForm(Time::LinearForm<TimeBasis> &&time_linform, SpaceF space_f)
       : time_linform_(std::move(time_linform)), space_f_(space_f) {}
 
-  template <typename SpaceBasis>
-  void Apply(datastructures::DoubleTreeVector<TimeBasis, SpaceBasis> *vec) {
+  Eigen::VectorXd Apply(
+      datastructures::DoubleTreeVector<TimeBasis, space::HierarchicalBasisFn>
+          *vec) {
+    vec->Reset();
     auto project_0 = vec->Project_0();
     auto project_1 = vec->Project_1();
     time_linform_.Apply(project_0);
@@ -30,18 +32,54 @@ class LinearForm {
 
     for (auto &dblnode : vec->container()) {
       if (dblnode.is_metaroot()) continue;
-      dblnode.set_value(*std::get<0>(dblnode.nodes())->template data<double>() *
-                        *std::get<1>(dblnode.nodes())->template data<double>());
+      auto [time_node, space_node] = dblnode.nodes();
+      dblnode.set_value(*time_node->template data<double>() *
+                        *space_node->template data<double>());
     }
 
-    for (auto phi : project_0_nodes) phi->node()->reset_data();
-    for (auto phi : project_1_nodes) phi->node()->reset_data();
+    for (auto phi : project_0_nodes) {
+      phi->node()->reset_data();
+      phi->set_value(0.0);
+    }
+    for (auto phi : project_1_nodes) {
+      phi->node()->reset_data();
+      phi->set_value(0.0);
+    }
+    return vec->ToVectorContainer();
   }
 
  protected:
   Time::LinearForm<TimeBasis> time_linform_;
   SpaceF space_f_;
 };
+
+template <typename TimeBasis, typename LeftLinForm, typename RightLinForm>
+class SumLinearForm {
+ public:
+  SumLinearForm(LeftLinForm &&left_lf, RightLinForm &&right_lf)
+      : left_lf_(std::move(left_lf)), right_lf_(std::move(right_lf)) {}
+  Eigen::VectorXd Apply(
+      datastructures::DoubleTreeVector<TimeBasis, space::HierarchicalBasisFn>
+          *vec) {
+    auto vec_in = vec->ToVectorContainer();
+    auto result = left_lf_.Apply(vec);
+    vec->FromVectorContainer(vec_in);
+    result += right_lf_.Apply(vec);
+    vec->FromVectorContainer(result);
+    return result;
+  }
+
+ protected:
+  LeftLinForm left_lf_;
+  RightLinForm right_lf_;
+};
+
+template <typename TimeBasis, typename LeftLinForm, typename RightLinForm>
+SumLinearForm<TimeBasis, LeftLinForm, RightLinForm> CreateSumLinearForm(
+    LeftLinForm &&left_lf, RightLinForm &&right_lf) {
+  return SumLinearForm<TimeBasis, LeftLinForm, RightLinForm>(
+      std::move(left_lf), std::move(right_lf));
+}
 
 template <typename TimeBasis, size_t time_order, size_t space_order,
           class TimeF, class SpaceF>

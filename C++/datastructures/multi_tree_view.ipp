@@ -62,9 +62,9 @@ inline void MultiNodeViewInterface<I, T...>::DeepRefine(
 
 template <typename I, typename... T>
 template <typename I_other, typename FuncFilt, typename FuncPost>
-void MultiNodeViewInterface<I, T...>::Union(I_other* other,
-                                            const FuncFilt& call_filter,
-                                            const FuncPost& call_postprocess) {
+std::vector<I*> MultiNodeViewInterface<I, T...>::Union(
+    I_other* other, const FuncFilt& call_filter,
+    const FuncPost& call_postprocess) {
   assert(is_root() && other->is_root());
   assert(self().nodes() == other->nodes());
   std::queue<std::pair<I*, I_other*>> queue;
@@ -111,6 +111,7 @@ void MultiNodeViewInterface<I, T...>::Union(I_other* other,
   for (const auto& my_node : my_nodes) {
     my_node->set_marked(false);
   }
+  return my_nodes;
 }
 
 template <typename I, typename... T>

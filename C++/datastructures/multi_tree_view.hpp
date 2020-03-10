@@ -96,8 +96,8 @@ class MultiNodeViewInterface {
 
   template <typename I_other = I, typename FuncFilt = T_func_true,
             typename FuncPost = T_func_noop>
-  void Union(I_other* other, const FuncFilt& call_filter = func_true,
-             const FuncPost& call_postprocess = func_noop);
+  std::vector<I*> Union(I_other* other, const FuncFilt& call_filter = func_true,
+                        const FuncPost& call_postprocess = func_noop);
 
   template <
       size_t i,
@@ -291,9 +291,10 @@ class MultiTreeView {
   }
   template <typename T_other = I, typename FuncFilt = T_func_true,
             typename FuncPost = T_func_noop>
-  void Union(const T_other& other, const FuncFilt& call_filter = func_true,
-             const FuncPost& call_postprocess = func_noop) {
-    root_->Union(other.root(), call_filter, call_postprocess);
+  std::vector<I*> Union(const T_other& other,
+                        const FuncFilt& call_filter = func_true,
+                        const FuncPost& call_postprocess = func_noop) {
+    return root_->Union(other.root(), call_filter, call_postprocess);
   }
 
  protected:

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Eigen/Dense>
 #include <vector>
 
@@ -12,16 +14,13 @@ std::pair<Eigen::VectorXd, std::pair<double, int>> PCG(
   const int n = A.rows();
   Eigen::VectorXd x = Eigen::VectorXd::Zero(n);
 
-  Eigen::VectorXd residual = b - A * x0;
   double sq_rhs_norm = b.squaredNorm();
   if (sq_rhs_norm == 0) return {x, {0.0, 1}};
 
   double threshold = rtol * rtol * sq_rhs_norm;
+  Eigen::VectorXd residual = b - A * x0;
   double sq_res_norm = residual.squaredNorm();
-  if (sq_rhs_norm == 0) {
-    x += x0;
-    return {x, {0.0, 1}};
-  }
+  if (sq_rhs_norm == 0) return {x0, {0.0, 1}};
 
   Eigen::VectorXd p = M * residual;
   Eigen::VectorXd z(n), tmp(n);
@@ -44,6 +43,7 @@ std::pair<Eigen::VectorXd, std::pair<double, int>> PCG(
 
     i++;
   }
+  if (sq_res_norm > threshold) std::cout << "DID NOT CONVERGE" << std::endl;
 
   return {x, {sqrt(sq_res_norm / sq_rhs_norm), i}};
 }

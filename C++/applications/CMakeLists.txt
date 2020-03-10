@@ -7,3 +7,6 @@ target_link_libraries(heat_equation_performance applications)
 # Create tests
 package_add_test(heat_equation_test heat_equation_test.cpp)
 target_link_libraries(heat_equation_test applications)
+
+package_add_test(adaptive_heat_equation_test adaptive_heat_equation_test.cpp)
+target_link_libraries(adaptive_heat_equation_test applications)

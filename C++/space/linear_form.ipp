@@ -39,6 +39,7 @@ void ApplyQuadrature(const F &f, I *root, bool dirichlet_boundary) {
     for (int i = 0; i < vertices.size(); ++i)
       if (vertices[i]->on_domain_boundary) vec[i] = 0;
 
+  assert(root->Bfs().size() == vec.size());
   root->FromVector(vec);
 }
 }  // namespace space

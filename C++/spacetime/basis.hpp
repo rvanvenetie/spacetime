@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../datastructures/double_tree_view.hpp"
 #include "../space/basis.hpp"
 #include "../time/orthonormal_basis.hpp"
@@ -13,7 +15,8 @@ datastructures::DoubleTreeView<Time::ThreePointWaveletFn,
                                space::HierarchicalBasisFn>
 GenerateXDeltaUnderscore(
     const datastructures::DoubleTreeView<Time::ThreePointWaveletFn,
-                                         space::HierarchicalBasisFn> &X_delta);
+                                         space::HierarchicalBasisFn> &X_delta,
+    size_t num_repeats = 1);
 
 template <class DblTreeIn, class DblTreeOut>
 auto GenerateSigma(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out);
