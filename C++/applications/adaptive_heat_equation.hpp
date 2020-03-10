@@ -13,12 +13,15 @@ using spacetime::GenerateXDeltaUnderscore;
 using spacetime::GenerateYDelta;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
+
 template <typename TypeGLinForm, typename TypeU0LinForm>
 class AdaptiveHeatEquation {
   using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeYDelta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>;
   using TypeXVector =
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>;
+  using TypeYVector =
+      DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>;
 
  public:
   AdaptiveHeatEquation(TypeXDelta &&X_delta, TypeGLinForm &&g_lin_form,
@@ -49,7 +52,11 @@ class AdaptiveHeatEquation {
   void ApplyMeanZero(TypeXVector *vec);
 
   TypeXDelta X_d_, X_dd_;
+  std::shared_ptr<TypeXVector> vec_Xd_in_, vec_Xd_out_, vec_Xdd_in_,
+      vec_Xdd_out_;
   TypeYDelta Y_dd_;
+  std::shared_ptr<TypeYVector> vec_Ydd_in_, vec_Ydd_out_;
+
   HeatEquation heat_d_dd_;
   HeatEquation heat_dd_dd_;
 

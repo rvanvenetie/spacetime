@@ -307,10 +307,11 @@ inline MT_other MultiTreeView<I>::MakeConforming(
   }
 
   MT_other new_tree(the_root->nodes());
-  new_tree.root()->Union(
-      root(),
-      /*call_filter*/ [](auto& child_nodes) { return mltnode.marked(); },
-      call_postprocess);
+  // TODO
+  // new_tree.root()->Union(
+  //     root(),
+  //     /*call_filter*/ [](auto& child_nodes) { return mltnode.marked(); },
+  //     call_postprocess);
 
   for (auto mltnode : total_marked) mltnode->set_marked(false);
   return new_tree;

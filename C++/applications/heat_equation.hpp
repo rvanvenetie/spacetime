@@ -56,11 +56,19 @@ class HeatEquation {
       space::XPreconditionerOperator<space::DirectInverse>, ThreePointWaveletFn,
       ThreePointWaveletFn>;
 
-  HeatEquation(
-      const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta,
-      const DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn> &Y_delta);
-  HeatEquation(
-      const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta);
+  using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
+  using TypeYDelta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>;
+  using TypeXVector =
+      DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>;
+  using TypeYVector =
+      DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>;
+
+  HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
+               std::shared_ptr<TypeXVector> vec_X_out,
+               std::shared_ptr<TypeYVector> vec_Y_in,
+               std::shared_ptr<TypeYVector> vec_Y_out);
+  HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta);
+  HeatEquation(const TypeXDelta &X_delta);
 
   // This returns *shared_ptrs* to the respective operators.
   auto A() { return A_; }
@@ -73,10 +81,10 @@ class HeatEquation {
   auto SchurMat() { return schur_mat_; }
   auto PrecondX() { return precond_X_; }
 
-  auto vec_X_in() { return &vec_X_in_; }
-  auto vec_X_out() { return &vec_X_out_; }
-  auto vec_Y_in() { return &vec_Y_in_; }
-  auto vec_Y_out() { return &vec_Y_out_; }
+  auto vec_X_in() { return vec_X_in_.get(); }
+  auto vec_X_out() { return vec_X_out_.get(); }
+  auto vec_Y_in() { return vec_Y_in_.get(); }
+  auto vec_Y_out() { return vec_Y_out_.get(); }
 
  protected:
   std::shared_ptr<TypeA> A_;
@@ -91,12 +99,10 @@ class HeatEquation {
   std::shared_ptr<TypePrecondX> precond_X_;
 
   // Store doubletree vectors for X_delta input and output.
-  DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> vec_X_in_,
-      vec_X_out_;
+  std::shared_ptr<TypeXVector> vec_X_in_, vec_X_out_;
 
   // Store doubletree vectors for Y_delta input and output.
-  DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn> vec_Y_in_,
-      vec_Y_out_;
+  std::shared_ptr<TypeYVector> vec_Y_in_, vec_Y_out_;
 };
 
 }  // namespace applications
