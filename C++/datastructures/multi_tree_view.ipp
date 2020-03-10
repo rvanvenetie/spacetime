@@ -274,20 +274,20 @@ inline MT_other MultiTreeView<I>::MakeConforming(
   std::queue<I*> queue;
   std::vector<I*> total_marked;
   I* the_root;
-  for (auto node : Bfs()) {
-    if (node->marked()) {
-      queue.emplace(node);
-      total_marked.push_back(node);
+  for (auto mltnode : Bfs()) {
+    if (mltnode->marked()) {
+      queue.emplace(mltnode);
+      total_marked.push_back(mltnode);
     }
-    if (node->is_root()) the_root = node;
+    if (mltnode->is_root()) the_root = mltnode;
   }
   while (!queue.empty()) {
-    auto node = queue.front();
+    auto mltnode = queue.front();
     queue.pop();
 
-    total_marked.push_back(node);
-    static_for<dim>([&queue, &node, &total_marked](auto i) {
-      for (const auto& parent : node->parents(i)) {
+    total_marked.push_back(mltnode);
+    static_for<dim>([&queue, &mltnode, &total_marked](auto i) {
+      for (const auto& parent : mltnode->parents(i)) {
         if (!parent->marked()) {
           if (parent->is_metaroot()) {
             for (const auto& child : parent->children(i)) {
@@ -308,10 +308,11 @@ inline MT_other MultiTreeView<I>::MakeConforming(
 
   MT_other new_tree(the_root->nodes());
   new_tree.root()->Union(
-      root(), /*call_filter*/ [](auto node) { return node->marked(); },
+      root(),
+      /*call_filter*/ [](auto& child_nodes) { return mltnode.marked(); },
       call_postprocess);
 
-  for (auto node : total_marked) node->set_marked(false);
+  for (auto mltnode : total_marked) mltnode->set_marked(false);
   return new_tree;
 }
 };  // namespace datastructures
