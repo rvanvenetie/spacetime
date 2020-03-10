@@ -70,7 +70,7 @@ auto GenerateTheta(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out) {
 
     psi_in_labda_1->FrozenOtherAxis()->Union(
         Lambda_out.Project_0(), [](const auto &psi_out_labda_0) {
-          for (auto elem : std::get<0>(psi_out_labda_0)->support())
+          for (auto elem : psi_out_labda_0->node()->support())
             if (elem->marked()) return true;
           return false;
         });

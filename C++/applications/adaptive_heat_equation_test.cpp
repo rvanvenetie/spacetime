@@ -65,7 +65,15 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   for (size_t i = 0; i < residual_nodes.size(); i++)
     ASSERT_NEAR(residual_nodes[i]->value(), python_residual[i], 1e-5);
 
-  heat_eq.Mark();
-  heat_eq.Refine();
+  auto marked_nodes = heat_eq.Mark();
+  heat_eq.Refine(marked_nodes);
+
+  for (size_t iter = 1; iter <= 5; iter++) {
+    Eigen::VectorXd previous = heat_eq.vec_Xd_out()->ToVectorContainer();
+    heat_eq.Solve();
+    heat_eq.Estimate();
+    auto marked_nodes = heat_eq.Mark();
+    heat_eq.Refine(marked_nodes);
+  }
 }
 }  // namespace applications

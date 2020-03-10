@@ -62,11 +62,11 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
   u_dd_dd->FromVectorContainer(RHS(heat_dd_dd_) - Su_dd_dd);
   if (mean_zero) ApplyMeanZero(u_dd_dd);
 
-  auto X_d_nodes = u_dd_dd->Union(*vec_Xd_in(),
-                                  /*call_filter*/ datastructures::func_false);
-  assert(X_d_nodes.size() == X_d_.container().size());
+  auto Xd_nodes = u_dd_dd->Union(*vec_Xd_in(),
+                                 /*call_filter*/ datastructures::func_false);
+  assert(Xd_nodes.size() == vec_Xd_in()->container().size());
 
-  for (auto dblnode : X_d_nodes) dblnode->set_marked(true);
+  for (auto dblnode : Xd_nodes) dblnode->set_marked(true);
   for (auto &dblnode : u_dd_dd->container()) {
     if (dblnode.is_metaroot()) continue;
     if (dblnode.marked()) continue;
@@ -75,13 +75,14 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
     dblnode.set_value(dblnode.value() / sqrt(1.0 + pow(4.0, lvl_diff)));
   }
 
-  for (auto dblnode : X_d_nodes) dblnode->set_marked(false);
+  for (auto dblnode : Xd_nodes) dblnode->set_marked(false);
 
   return u_dd_dd;
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
-void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Mark() {
+std::vector<DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn> *>
+AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Mark() {
   auto nodes = vec_Xdd_in()->Bfs();
   std::sort(nodes.begin(), nodes.end(), [](auto n1, auto n2) {
     return std::abs(n1->value()) > std::abs(n2->value());
@@ -89,27 +90,38 @@ void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Mark() {
   double sq_norm = 0.0;
   for (auto node : nodes) sq_norm += node->value() * node->value();
   double cur_sq_norm = 0.0;
-  for (size_t i = 0; i < nodes.size(); i++) {
-    cur_sq_norm += nodes[i]->value() * nodes[i]->value();
-    nodes[i]->set_marked(true);
-    if (cur_sq_norm < theta_ * theta_ * sq_norm) return;
+  size_t size = 0;
+  for (; size < nodes.size(); size++) {
+    cur_sq_norm += nodes[size]->value() * nodes[size]->value();
+    if (cur_sq_norm >= theta_ * theta_ * sq_norm) break;
   }
-  auto X_d_nodes =
-      vec_Xdd_in()->Union(*vec_Xd_in(),
-                          /*call_filter*/ datastructures::func_false);
-  for (auto node : X_d_nodes) node->set_marked(true);
-  return;
+  nodes.resize(size + 1);
+  for (auto node : nodes)
+    std::cout << "node " << *node << " " << node->value() << std::endl;
+  return nodes;
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
-void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Refine() {
-  // X_d_ = std::move(vec_Xdd_in().template MakeConforming<TypeXDelta>());
-  // X_dd_ = std::move(GenerateXDeltaUnderscore(X_d_, saturation_layers_));
-  // Y_dd_ = std::move(GenerateYDelta(X_dd_));
-  // heat_d_dd_ = std::move(HeatEquation(X_d_, Y_dd_));
-  // heat_dd_dd_ = std::move(
-  //     HeatEquation(X_dd_, Y_dd_));  // TODO: re-use
-  //     heat_d_dd_.vec_Y_{in,out}.
+void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Refine(
+    const std::vector<DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn>
+                          *> &nodes_to_add) {
+  size_t previous_size = X_d_.Bfs().size();
+  X_d_.ConformingRefinement(*vec_Xdd_in(), nodes_to_add);
+  size_t new_size = X_d_.Bfs().size();
+  assert(new_size > previous_size);
+  // TODO: maybe make the two methods below in-place?
+  //
+  //
+  X_dd_ = GenerateXDeltaUnderscore(X_d_, saturation_layers_);
+  Y_dd_ = GenerateYDelta(X_dd_);
+
+  assert(false);
+  // vec_Xd_in_->Union(X_d_);
+  // vec_Xd_out_->Union(X_d_);
+  // vec_Xdd_in_->Union(X_dd_);
+  // vec_Xdd_out_->Union(X_dd_);
+  // vec_Ydd_in_->Union(Y_dd_);
+  // vec_Ydd_out_->Union(Y_dd_);
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
@@ -127,6 +139,6 @@ void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::ApplyMeanZero(
                                               space_parent->Volume() *
                                               parent->value());
     }
-  }  // namespace applications
+  }
 }
 };  // namespace applications

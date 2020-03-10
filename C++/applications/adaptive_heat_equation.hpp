@@ -18,6 +18,7 @@ template <typename TypeGLinForm, typename TypeU0LinForm>
 class AdaptiveHeatEquation {
   using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeYDelta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>;
+  using TypeXNode = DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeXVector =
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeYVector =
@@ -31,21 +32,21 @@ class AdaptiveHeatEquation {
   TypeXVector *Solve(const Eigen::VectorXd &x0, double rtol = 1e-5,
                      size_t maxit = 100);
   TypeXVector *Solve(double rtol = 1e-5, size_t maxit = 100) {
-    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(X_d_.container().size());
+    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd_in()->container().size());
     return Solve(x0, rtol, maxit);
   }
 
   TypeXVector *Estimate(bool mean_zero = true);
 
-  void Mark();
-  void Refine();
+  std::vector<TypeXNode *> Mark();
+  void Refine(const std::vector<TypeXNode *> &nodes_to_add);
 
   TypeXDelta &X_delta() { return X_d_; }
   TypeXDelta &X_delta_underscore() { return X_dd_; }
-  TypeXVector *vec_Xd_in() { return heat_d_dd_.vec_X_in(); }
-  TypeXVector *vec_Xd_out() { return heat_d_dd_.vec_X_out(); }
-  TypeXVector *vec_Xdd_in() { return heat_dd_dd_.vec_X_in(); }
-  TypeXVector *vec_Xdd_out() { return heat_dd_dd_.vec_X_out(); }
+  TypeXVector *vec_Xd_in() { return vec_Xd_in_.get(); }
+  TypeXVector *vec_Xd_out() { return vec_Xd_out_.get(); }
+  TypeXVector *vec_Xdd_in() { return vec_Xdd_in_.get(); }
+  TypeXVector *vec_Xdd_out() { return vec_Xdd_out_.get(); }
 
  protected:
   Eigen::VectorXd RHS(HeatEquation &heat);
