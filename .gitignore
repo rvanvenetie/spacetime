@@ -6,7 +6,8 @@
 *.fls
 *.log
 *.fdb_latexmk
-*.pdf,*.png
+*.pdf
+*.png
 
 *.pkl
 *.df
