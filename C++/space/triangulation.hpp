@@ -73,12 +73,16 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   bool Refine();
 
   friend std::ostream &operator<<(std::ostream &os, const Element2D &elem) {
-    os << "Element2D(" << elem.level() << ", (";
-    for (const auto &vertex : elem.vertices()) {
-      if (vertex != *elem.vertices().begin()) os << ", ";
-      os << *vertex;
+    if (elem.is_metaroot()) {
+      os << "Element2D(MR)";
+    } else {
+      os << "Element2D(" << elem.level() << ", (";
+      for (const auto &vertex : elem.vertices()) {
+        if (vertex != *elem.vertices().begin()) os << ", ";
+        os << *vertex;
+      }
+      os << "))";
     }
-    os << "))";
     return os;
   }
 
