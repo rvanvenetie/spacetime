@@ -92,7 +92,7 @@ void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Mark() {
   for (size_t i = 0; i < nodes.size(); i++) {
     cur_sq_norm += nodes[i]->value() * nodes[i]->value();
     nodes[i]->set_marked(true);
-    if (cur_sq_norm < theta_ * theta_ * sq_norm) return;
+    if (cur_sq_norm < theta_ * theta_ * sq_norm) break;
   }
   auto X_d_nodes =
       vec_Xdd_in()->Union(*vec_Xd_in(),
@@ -127,6 +127,6 @@ void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::ApplyMeanZero(
                                               space_parent->Volume() *
                                               parent->value());
     }
-  }  // namespace applications
+  }
 }
 };  // namespace applications
