@@ -36,7 +36,7 @@ class AdaptiveHeatEquation {
     return Solve(x0, rtol, maxit);
   }
 
-  TypeXVector *Estimate(bool mean_zero = true);
+  std::pair<TypeXVector *, double> Estimate(bool mean_zero = true);
 
   std::vector<TypeXNode *> Mark();
   void Refine(const std::vector<TypeXNode *> &nodes_to_add);

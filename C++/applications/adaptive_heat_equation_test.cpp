@@ -53,7 +53,7 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   for (size_t i = 0; i < result_nodes.size(); i++)
     ASSERT_NEAR(result_nodes[i]->value(), python_result[i], 1e-5);
 
-  auto residual = heat_eq.Estimate(/*mean_zero*/ false);
+  auto [residual, residual_norm] = heat_eq.Estimate(/*mean_zero*/ false);
   auto residual_nodes = residual->Bfs();
   Eigen::VectorXd python_residual(residual_nodes.size());
   python_residual << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -65,14 +65,23 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   for (size_t i = 0; i < residual_nodes.size(); i++)
     ASSERT_NEAR(residual_nodes[i]->value(), python_residual[i], 1e-5);
 
+  std::vector<std::pair<int, double>> python_data{{{1, 0.022990516747664815},
+                                                   {4, 0.016706324583205395},
+                                                   {10, 0.08984241341963645},
+                                                   {13, 0.07019458968270276},
+                                                   {26, 0.050368099941736744}}};
+
   auto marked_nodes = heat_eq.Mark();
+  ASSERT_EQ(marked_nodes.size(), python_data[0].first);
+  ASSERT_NEAR(residual_norm, python_data[0].second, 1e-10);
   heat_eq.Refine(marked_nodes);
 
-  for (size_t iter = 1; iter <= 5; iter++) {
-    Eigen::VectorXd previous = heat_eq.vec_Xd_out()->ToVectorContainer();
-    heat_eq.Solve();
-    heat_eq.Estimate();
+  for (size_t iter = 1; iter < 5; iter++) {
+    heat_eq.Solve(heat_eq.vec_Xd_out()->ToVectorContainer());
+    auto [errors, norm] = heat_eq.Estimate(/*mean_zero*/ false);
     auto marked_nodes = heat_eq.Mark();
+    ASSERT_EQ(marked_nodes.size(), python_data[iter].first);
+    ASSERT_NEAR(norm, python_data[iter].second, 1e-5);
     heat_eq.Refine(marked_nodes);
   }
 }

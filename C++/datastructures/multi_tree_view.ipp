@@ -283,7 +283,6 @@ void MultiTreeView<I>::ConformingRefinement(
   marked.reserve(nodes_to_add.size() + container().size());
 
   for (auto super_mltnode : nodes_to_add) {
-    std::cout << *super_mltnode << std::endl;
     queue.emplace(super_mltnode);
     super_mltnode->set_marked(true);
     marked.push_back(super_mltnode);
