@@ -87,13 +87,19 @@ std::vector<I*> MultiNodeViewInterface<I, T...>::Union(
     // Now do the union magic in all dimensions.
     static_for<dim>([&queue, &my_node, &other_node, &call_filter](auto i) {
       // Get a list of all children of the other_node in axis `i`.
+      static std::vector<I_other*> filtered_children;
+      filtered_children.clear();
+      for (const auto& other_child_i : other_node->children(i))
+        if (call_filter(other_child_i))
+          filtered_children.emplace_back(other_child_i);
+
       static std::vector<std::tuple_element_t<i, TupleNodes>> other_children_i;
       other_children_i.clear();
-      for (const auto& other_child_i : other_node->children(i))
+      for (const auto& other_child_i : filtered_children)
         other_children_i.emplace_back(std::get<i>(other_child_i->nodes()));
 
       // Refine my_node using this list of children.
-      my_node->template Refine<i>(other_children_i, call_filter,
+      my_node->template Refine<i>(other_children_i, /*call_filter*/ func_true,
                                   /*make_conforming*/ false);
 
       // Now only put children on the queue that other_node has as well.
@@ -267,53 +273,49 @@ inline MT_other MultiTreeView<I>::DeepCopy(
 }
 
 template <typename I>
-template <typename MT_other, typename FuncPost>
-inline MT_other MultiTreeView<I>::MakeConforming(
-    const FuncPost& call_postprocess) const {
-  assert(root_->is_root());
-  std::queue<I*> queue;
-  std::vector<I*> total_marked;
-  I* the_root;
-  for (auto mltnode : Bfs()) {
-    if (mltnode->marked()) {
-      queue.emplace(mltnode);
-      total_marked.push_back(mltnode);
-    }
-    if (mltnode->is_root()) the_root = mltnode;
+template <typename I_other, typename MT_other>
+void MultiTreeView<I>::ConformingRefinement(
+    const MT_other& supertree,
+    const std::vector<I_other*>& nodes_to_add) const {
+  assert(root_->is_root() && supertree.root()->is_root());
+  std::queue<I_other*> queue;
+  std::vector<I_other*> marked;
+  marked.reserve(nodes_to_add.size() + container().size());
+
+  for (auto super_mltnode : nodes_to_add) {
+    queue.emplace(super_mltnode);
+    super_mltnode->set_marked(true);
+    marked.push_back(super_mltnode);
   }
+
   while (!queue.empty()) {
-    auto mltnode = queue.front();
+    auto super_mltnode = queue.front();
     queue.pop();
 
-    total_marked.push_back(mltnode);
-    static_for<dim>([&queue, &mltnode, &total_marked](auto i) {
-      for (const auto& parent : mltnode->parents(i)) {
-        if (!parent->marked()) {
-          if (parent->is_metaroot()) {
-            for (const auto& child : parent->children(i)) {
-              if (!child->marked()) {
-                queue.emplace(child);
-                child->set_marked(true);
-                total_marked.push_back(child);
+    static_for<dim>([&supertree, &queue, &super_mltnode, &marked](auto i) {
+      for (const auto& super_parent : super_mltnode->parents(i)) {
+        if (!super_parent->marked()) {
+          if (super_parent->is_root()) assert(super_parent == supertree.root());
+          if (super_parent->is_metaroot())
+            for (const auto& super_child : super_parent->children(i))
+              if (!super_child->marked()) {
+                queue.emplace(super_child);
+                super_child->set_marked(true);
+                marked.push_back(super_child);
               }
-            }
-          }
-          queue.emplace(parent);
-          parent->set_marked(true);
-          total_marked.push_back(parent);
+          queue.emplace(super_parent);
+          super_parent->set_marked(true);
+          marked.push_back(super_parent);
         }
       }
     });
   }
 
-  MT_other new_tree(the_root->nodes());
-  // TODO
-  // new_tree.root()->Union(
-  //     root(),
-  //     /*call_filter*/ [](auto& child_nodes) { return mltnode.marked(); },
-  //     call_postprocess);
+  root()->Union(supertree.root(),
+                /*call_filter*/ [](auto& super_mltnode) {
+                  return super_mltnode->marked();
+                });
 
-  for (auto mltnode : total_marked) mltnode->set_marked(false);
-  return new_tree;
+  for (auto super_mltnode : marked) super_mltnode->set_marked(false);
 }
 };  // namespace datastructures
