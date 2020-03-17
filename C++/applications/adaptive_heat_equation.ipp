@@ -44,14 +44,15 @@ DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
     *AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Solve(
         const Eigen::VectorXd &x0, double rtol, size_t maxit) {
   auto rhs = RHS(heat_d_dd_);
-  auto [result, data] = tools::linalg::PCG(
-      *heat_d_dd_.SchurMat(), rhs, *heat_d_dd_.PrecondX(), x0, maxit, rtol);
+  auto precond = *heat_d_dd_.PrecondX();
+  auto [result, data] =
+      tools::linalg::PCG(*heat_d_dd_.SchurMat(), rhs, precond, x0, maxit, rtol);
   vec_Xd_out()->FromVectorContainer(result);
   return vec_Xd_out();
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
-DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *
+std::pair<DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *, double>
 AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
   auto u_dd_dd = vec_Xdd_in();
   u_dd_dd->Reset();
@@ -62,26 +63,29 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
   u_dd_dd->FromVectorContainer(RHS(heat_dd_dd_) - Su_dd_dd);
   if (mean_zero) ApplyMeanZero(u_dd_dd);
 
-  auto X_d_nodes = u_dd_dd->Union(*vec_Xd_in(),
-                                  /*call_filter*/ datastructures::func_false);
-  assert(X_d_nodes.size() == X_d_.container().size());
+  auto Xd_nodes = u_dd_dd->Union(*vec_Xd_in(),
+                                 /*call_filter*/ datastructures::func_false);
+  assert(Xd_nodes.size() == vec_Xd_in()->container().size());
 
-  for (auto dblnode : X_d_nodes) dblnode->set_marked(true);
+  for (auto dblnode : Xd_nodes) dblnode->set_marked(true);
+  double sq_norm = 0.0;
   for (auto &dblnode : u_dd_dd->container()) {
     if (dblnode.is_metaroot()) continue;
     if (dblnode.marked()) continue;
     int lvl_diff = std::get<0>(dblnode.nodes())->level() -
                    std::get<1>(dblnode.nodes())->level();
     dblnode.set_value(dblnode.value() / sqrt(1.0 + pow(4.0, lvl_diff)));
+    sq_norm += dblnode.value() * dblnode.value();
   }
 
-  for (auto dblnode : X_d_nodes) dblnode->set_marked(false);
+  for (auto dblnode : Xd_nodes) dblnode->set_marked(false);
 
-  return u_dd_dd;
+  return {u_dd_dd, sqrt(sq_norm)};
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
-void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Mark() {
+std::vector<DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn> *>
+AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Mark() {
   auto nodes = vec_Xdd_in()->Bfs();
   std::sort(nodes.begin(), nodes.end(), [](auto n1, auto n2) {
     return std::abs(n1->value()) > std::abs(n2->value());
@@ -89,27 +93,42 @@ void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Mark() {
   double sq_norm = 0.0;
   for (auto node : nodes) sq_norm += node->value() * node->value();
   double cur_sq_norm = 0.0;
-  for (size_t i = 0; i < nodes.size(); i++) {
-    cur_sq_norm += nodes[i]->value() * nodes[i]->value();
-    nodes[i]->set_marked(true);
-    if (cur_sq_norm < theta_ * theta_ * sq_norm) break;
+  size_t last_idx = 0;
+  for (; last_idx < nodes.size(); last_idx++) {
+    cur_sq_norm += nodes[last_idx]->value() * nodes[last_idx]->value();
+    if (cur_sq_norm >= theta_ * theta_ * sq_norm) break;
   }
-  auto X_d_nodes =
-      vec_Xdd_in()->Union(*vec_Xd_in(),
-                          /*call_filter*/ datastructures::func_false);
-  for (auto node : X_d_nodes) node->set_marked(true);
-  return;
+  nodes.resize(last_idx + 1);
+  return nodes;
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
-void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Refine() {
-  // X_d_ = std::move(vec_Xdd_in().template MakeConforming<TypeXDelta>());
-  // X_dd_ = std::move(GenerateXDeltaUnderscore(X_d_, saturation_layers_));
-  // Y_dd_ = std::move(GenerateYDelta(X_dd_));
-  // heat_d_dd_ = std::move(HeatEquation(X_d_, Y_dd_));
-  // heat_dd_dd_ = std::move(
-  //     HeatEquation(X_dd_, Y_dd_));  // TODO: re-use
-  //     heat_d_dd_.vec_Y_{in,out}.
+void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Refine(
+    const std::vector<DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn>
+                          *> &nodes_to_add) {
+  X_d_.ConformingRefinement(*vec_Xdd_in(), nodes_to_add);
+  X_dd_ = GenerateXDeltaUnderscore(X_d_, saturation_layers_);
+  Y_dd_ = GenerateYDelta(X_dd_);
+
+  vec_Xd_in_ =
+      std::make_shared<TypeXVector>(X_d_.template DeepCopy<TypeXVector>());
+  TypeXVector vec_Xd_out_tmp = X_d_.template DeepCopy<TypeXVector>();
+  vec_Xd_out_tmp += *vec_Xd_out_;
+  *vec_Xd_out_ = std::move(vec_Xd_out_tmp);
+
+  vec_Xdd_in_ =
+      std::make_shared<TypeXVector>(X_dd_.template DeepCopy<TypeXVector>());
+  vec_Xdd_out_ =
+      std::make_shared<TypeXVector>(X_dd_.template DeepCopy<TypeXVector>());
+
+  vec_Ydd_in_ =
+      std::make_shared<TypeYVector>(Y_dd_.template DeepCopy<TypeYVector>());
+  vec_Ydd_out_ =
+      std::make_shared<TypeYVector>(Y_dd_.template DeepCopy<TypeYVector>());
+
+  heat_d_dd_ = HeatEquation(vec_Xd_in_, vec_Xd_out_, vec_Ydd_in_, vec_Ydd_out_);
+  heat_dd_dd_ =
+      HeatEquation(vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_, vec_Ydd_out_);
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>

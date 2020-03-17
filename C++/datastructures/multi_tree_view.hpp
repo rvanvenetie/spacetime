@@ -259,6 +259,7 @@ class MultiTreeView {
 
   MultiTreeView(const MultiTreeView<I>&) = delete;
   MultiTreeView(MultiTreeView<I>&&) = default;
+  MultiTreeView<I>& operator=(MultiTreeView<I>&&) = default;
 
   // Uniform refine, nodes->level() <= max_levels.
   void UniformRefine(std::array<int, dim> max_levels);
@@ -280,9 +281,9 @@ class MultiTreeView {
             typename FuncPost = T_func_noop>
   MT_other DeepCopy(const FuncPost& call_postprocess = func_noop) const;
 
-  template <typename MT_other = MultiTreeView<I>,
-            typename FuncPost = T_func_noop>
-  MT_other MakeConforming(const FuncPost& call_postprocess = func_noop) const;
+  template <typename I_other = I, typename MT_other = MultiTreeView<I_other>>
+  void ConformingRefinement(const MT_other& supertree,
+                            const std::vector<I_other*>& nodes_to_add) const;
 
   // Simple helpers.
   std::vector<I*> Bfs(bool include_metaroot = false) const {
@@ -293,9 +294,9 @@ class MultiTreeView {
                   const FuncPost& call_postprocess = func_noop) {
     return root_->DeepRefine(call_filter, call_postprocess);
   }
-  template <typename T_other = I, typename FuncFilt = T_func_true,
+  template <typename I_other = I, typename FuncFilt = T_func_true,
             typename FuncPost = T_func_noop>
-  std::vector<I*> Union(const T_other& other,
+  std::vector<I*> Union(const I_other& other,
                         const FuncFilt& call_filter = func_true,
                         const FuncPost& call_postprocess = func_noop) {
     return root_->Union(other.root(), call_filter, call_postprocess);

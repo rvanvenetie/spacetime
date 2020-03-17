@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <iostream>
 #include <vector>
 
 namespace tools::linalg {
@@ -21,6 +22,7 @@ std::pair<Eigen::VectorXd, std::pair<double, int>> PCG(
   Eigen::VectorXd residual = b - A * x0;
   double sq_res_norm = residual.squaredNorm();
   if (sq_rhs_norm == 0) return {x0, {0.0, 1}};
+  x = x0;
 
   Eigen::VectorXd p = M * residual;
   Eigen::VectorXd z(n), tmp(n);
