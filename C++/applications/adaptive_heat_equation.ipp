@@ -106,9 +106,9 @@ template <typename TypeGLinForm, typename TypeU0LinForm>
 void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Refine(
     const std::vector<DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn>
                           *> &nodes_to_add) {
-  size_t previous_size = X_d_.container().size();
   X_d_.ConformingRefinement(*vec_Xdd_in(), nodes_to_add);
-  // assert(X_d_.container().size() > previous_size);
+  X_dd_ = GenerateXDeltaUnderscore(X_d_, saturation_layers_);
+  Y_dd_ = GenerateYDelta(X_dd_);
 
   vec_Xd_in_ =
       std::make_shared<TypeXVector>(X_d_.template DeepCopy<TypeXVector>());
@@ -116,13 +116,11 @@ void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Refine(
   vec_Xd_out_tmp += *vec_Xd_out_;
   *vec_Xd_out_ = std::move(vec_Xd_out_tmp);
 
-  X_dd_ = GenerateXDeltaUnderscore(X_d_, saturation_layers_);
   vec_Xdd_in_ =
       std::make_shared<TypeXVector>(X_dd_.template DeepCopy<TypeXVector>());
   vec_Xdd_out_ =
       std::make_shared<TypeXVector>(X_dd_.template DeepCopy<TypeXVector>());
 
-  Y_dd_ = GenerateYDelta(X_dd_);
   vec_Ydd_in_ =
       std::make_shared<TypeYVector>(Y_dd_.template DeepCopy<TypeYVector>());
   vec_Ydd_out_ =
