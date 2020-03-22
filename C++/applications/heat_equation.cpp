@@ -21,17 +21,25 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
       vec_Y_in_(vec_Y_in),
       vec_Y_out_(vec_Y_out) {
   // Create A_s mapping from Y_delta to Y_delta.
-  A_ = std::make_shared<TypeA>(vec_Y_in_.get(), vec_Y_out_.get());
+  A_ = std::make_shared<TypeA>(vec_Y_in_.get(), vec_Y_out_.get(),
+                               /*use_cache*/ false);
 
   // Create two parts of B sharing sigma and theta.
-  auto B_t = std::make_shared<TypeB_t>(vec_X_in_.get(), vec_Y_out_.get());
+  auto B_t = std::make_shared<TypeB_t>(vec_X_in_.get(), vec_Y_out_.get(),
+                                       /*use_cache*/ false);
   auto B_s = std::make_shared<TypeB_s>(vec_X_in_.get(), vec_Y_out_.get(),
-                                       B_t->sigma(), B_t->theta());
+                                       B_t->sigma(), B_t->theta(),
+                                       /*use_cache*/ false);
   B_ = std::make_shared<TypeB>(B_t, B_s);
 
   // Create transpose of B sharing data with B.
-  BT_ = std::make_shared<TypeBT>(B_->Transpose(), vec_Y_in_.get(),
-                                 vec_X_out_.get());
+  auto BT_t = std::make_shared<TypeBT_t>(vec_Y_in_.get(), vec_X_out_.get(),
+                                         B_t->theta(), B_t->sigma(),
+                                         /*use_cache*/ false);
+  auto BT_s = std::make_shared<TypeBT_s>(vec_Y_in_.get(), vec_X_out_.get(),
+                                         B_t->theta(), B_t->sigma(),
+                                         /*use_cache*/ false);
+  BT_ = std::make_shared<TypeBT>(BT_t, BT_s);
 
   // Create trace operator.
   G_ = std::make_shared<TypeG>(vec_X_in_.get(), vec_X_out_.get());
