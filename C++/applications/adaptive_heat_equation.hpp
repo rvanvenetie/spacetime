@@ -41,23 +41,6 @@ class AdaptiveHeatEquation {
   std::vector<TypeXNode *> Mark();
   void Refine(const std::vector<TypeXNode *> &nodes_to_add);
 
-  unsigned long long TotalSize() const {
-    return X_d_.container().capacity() * sizeof(X_d_.container()[0]) +
-           X_dd_.container().capacity() * sizeof(X_dd_.container()[0]) +
-           vec_Xd_in_->container().capacity() *
-               sizeof(vec_Xd_in_->container()[0]) +
-           vec_Xd_out_->container().capacity() *
-               sizeof(vec_Xd_out_->container()[0]) +
-           vec_Xdd_in_->container().capacity() *
-               sizeof(vec_Xdd_in_->container()[0]) +
-           vec_Xdd_out_->container().capacity() *
-               sizeof(vec_Xdd_out_->container()[0]) +
-           vec_Ydd_in_->container().capacity() *
-               sizeof(vec_Ydd_in_->container()[0]) +
-           vec_Ydd_out_->container().capacity() *
-               sizeof(vec_Ydd_out_->container()[0]);
-  }
-
   TypeXDelta &X_delta() { return X_d_; }
   TypeXDelta &X_delta_underscore() { return X_dd_; }
   TypeXVector *vec_Xd_in() { return vec_Xd_in_.get(); }

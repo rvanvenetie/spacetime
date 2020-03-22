@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "../space/initial_triangulation.hpp"
 #include "../spacetime/linear_form.hpp"
 #include "../time/basis.hpp"
@@ -63,11 +65,13 @@ int main() {
                                std::move(u0_lf));
 
   while (true) {
+    auto start = std::chrono::steady_clock::now();
     auto solution = heat_eq.Solve(heat_eq.vec_Xd_out()->ToVectorContainer());
     auto [residual, residual_norm] = heat_eq.Estimate(/*mean_zero*/ false);
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
     std::cout << solution->container().size() << " " << residual_norm << " "
-              << (float)getmem().first / solution->container().size()
-              << std::endl;
+              << getmem().first << " " << elapsed_seconds.count() << std::endl;
     auto marked_nodes = heat_eq.Mark();
     heat_eq.Refine(marked_nodes);
     // if (solution->container().size() > 1e5) break;
