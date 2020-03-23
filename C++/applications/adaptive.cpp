@@ -22,7 +22,6 @@ using Time::ThreePointWaveletFn;
 #ifdef __APPLE__
 #include <mach/mach.h>
 #include <mach/task.h>
-
 unsigned long long getmem() {
   task_t task = MACH_PORT_NULL;
   struct task_basic_info t_info;
@@ -33,24 +32,12 @@ unsigned long long getmem() {
   return t_info.resident_size / 1024;
 }
 #else
-/*
- * Measures the current (and peak) resident and virtual memories
- * usage of your linux C process, in kB
- */
 int getmem() {
   int peakRealMem;
-  // stores each word in status file
   char buffer[1024] = "";
-
-  // linux file contains this-process info
   FILE* file = fopen("/proc/self/status", "r");
-
-  // read the entire file
-  while (fscanf(file, " %1023s", buffer) == 1) {
-    if (strcmp(buffer, "VmHWM:") == 0) {
-      fscanf(file, " %d", peakRealMem);
-    }
-  }
+  while (fscanf(file, " %1023s", buffer) == 1)
+    if (strcmp(buffer, "VmHWM:") == 0) fscanf(file, " %d", peakRealMem);
   fclose(file);
   return peakRealMem;
 }
