@@ -19,18 +19,42 @@ using Time::OrthonormalWaveletFn;
 using Time::three_point_tree;
 using Time::ThreePointWaveletFn;
 
+#ifdef __APPLE__
 #include <mach/mach.h>
 #include <mach/task.h>
 
-std::pair<unsigned long long, unsigned long long> getmem() {
+unsigned long long getmem() {
   task_t task = MACH_PORT_NULL;
   struct task_basic_info t_info;
   mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
 
   assert(KERN_SUCCESS == task_info(mach_task_self(), TASK_BASIC_INFO,
                                    (task_info_t)&t_info, &t_info_count));
-  return {t_info.resident_size, t_info.virtual_size};
+  return t_info.resident_size / 1024;
 }
+#else
+/*
+ * Measures the current (and peak) resident and virtual memories
+ * usage of your linux C process, in kB
+ */
+int getmem() {
+  int peakRealMem;
+  // stores each word in status file
+  char buffer[1024] = "";
+
+  // linux file contains this-process info
+  FILE* file = fopen("/proc/self/status", "r");
+
+  // read the entire file
+  while (fscanf(file, " %1023s", buffer) == 1) {
+    if (strcmp(buffer, "VmHWM:") == 0) {
+      fscanf(file, " %d", peakRealMem);
+    }
+  }
+  fclose(file);
+  return peakRealMem;
+}
+#endif
 
 auto SmoothProblem() {
   // Solution u = (1 + t^2) x (1-x) y (1-y).
@@ -72,7 +96,7 @@ int main() {
     std::chrono::duration<double> elapsed_seconds = end - start;
     std::cout << "XDelta-size: " << solution->container().size()
               << " residual-norm: " << residual_norm
-              << " total-memory: " << getmem().first
+              << " total-memory-kB: " << getmem()
               << " solve-estimate-time: " << elapsed_seconds.count()
               << std::endl;
     auto marked_nodes = heat_eq.Mark();
