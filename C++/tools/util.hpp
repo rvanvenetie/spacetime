@@ -12,12 +12,13 @@ unsigned long long getmem() {
   return t_info.resident_size / 1024;
 }
 #else
+#include <stdio.h>
 int getmem() {
   int peakRealMem;
   char buffer[1024] = "";
   FILE* file = fopen("/proc/self/status", "r");
   while (fscanf(file, " %1023s", buffer) == 1)
-    if (strcmp(buffer, "VmHWM:") == 0) fscanf(file, " %d", peakRealMem);
+    if (strcmp(buffer, "VmHWM:") == 0) fscanf(file, " %d", &peakRealMem);
   fclose(file);
   return peakRealMem;
 }
