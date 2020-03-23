@@ -12,7 +12,7 @@ unsigned long long getmem() {
   return t_info.resident_size / 1024;
 }
 #else
-#include <stdio.h>
+#include <cstring>
 int getmem() {
   int peakRealMem;
   char buffer[1024] = "";
