@@ -40,7 +40,7 @@ FetchContent_Declare(
     libs/preprocessor libs/range libs/smart_ptr libs/static_assert libs/type_traits
     libs/throw_exception libs/utility
     GIT_TAG boost-1.72.0
-)   
+)
 FetchContent_Populate(boost)
 file(GLOB boost_includes ${boost_SOURCE_DIR}/libs/*/include)
 include_directories(${boost_includes})
