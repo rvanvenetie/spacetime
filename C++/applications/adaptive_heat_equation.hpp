@@ -42,7 +42,6 @@ class AdaptiveHeatEquation {
   void Refine(const std::vector<TypeXNode *> &nodes_to_add);
 
   TypeXDelta &X_delta() { return X_d_; }
-  TypeXDelta &X_delta_underscore() { return X_dd_; }
   TypeXVector *vec_Xd_in() { return vec_Xd_in_.get(); }
   TypeXVector *vec_Xd_out() { return vec_Xd_out_.get(); }
   TypeXVector *vec_Xdd_in() { return vec_Xdd_in_.get(); }
@@ -52,10 +51,9 @@ class AdaptiveHeatEquation {
   Eigen::VectorXd RHS(HeatEquation &heat);
   void ApplyMeanZero(TypeXVector *vec);
 
-  TypeXDelta X_d_, X_dd_;
+  TypeXDelta X_d_;
   std::shared_ptr<TypeXVector> vec_Xd_in_, vec_Xd_out_, vec_Xdd_in_,
       vec_Xdd_out_;
-  TypeYDelta Y_dd_;
   std::shared_ptr<TypeYVector> vec_Ydd_in_, vec_Ydd_out_;
 
   HeatEquation heat_d_dd_;

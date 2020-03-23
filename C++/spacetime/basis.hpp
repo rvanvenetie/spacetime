@@ -6,17 +6,15 @@
 #include "../time/three_point_basis.hpp"
 
 namespace spacetime {
+template <typename DblTreeIn>
 datastructures::DoubleTreeView<Time::OrthonormalWaveletFn,
                                space::HierarchicalBasisFn>
-GenerateYDelta(const datastructures::DoubleTreeView<
-               Time::ThreePointWaveletFn, space::HierarchicalBasisFn> &X_delta);
+GenerateYDelta(const DblTreeIn &X_delta);
 
+template <typename DblTreeIn>
 datastructures::DoubleTreeView<Time::ThreePointWaveletFn,
                                space::HierarchicalBasisFn>
-GenerateXDeltaUnderscore(
-    const datastructures::DoubleTreeView<Time::ThreePointWaveletFn,
-                                         space::HierarchicalBasisFn> &X_delta,
-    size_t num_repeats = 1);
+GenerateXDeltaUnderscore(const DblTreeIn &X_delta, size_t num_repeats = 1);
 
 template <class DblTreeIn, class DblTreeOut>
 auto GenerateSigma(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out);

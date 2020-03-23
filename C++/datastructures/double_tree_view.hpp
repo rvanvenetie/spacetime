@@ -148,6 +148,8 @@ class DoubleTreeBase : public MT_Base<I> {
   using MT_Base<I>::MT_Base;
   using T0 = typename I::T0;
   using T1 = typename I::T1;
+  using FrozenDN0Type = FrozenDoubleNode<I, 0>;
+  using FrozenDN1Type = FrozenDoubleNode<I, 1>;
 
   FrozenDoubleNode<I, 0>* Fiber_0(T1* mu) const {
     if (!std::get<0>(fibers_).count(mu)) compute_fibers();
