@@ -31,6 +31,7 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::AdaptiveHeatEquation(
 template <typename TypeGLinForm, typename TypeU0LinForm>
 Eigen::VectorXd AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::RHS(
     HeatEquation &heat) {
+  heat.B()->Apply();  // This is actually only needed to initialize BT()
   g_lin_form_.Apply(heat.vec_Y_out());
   heat.Ainv()->Apply();
   auto rhs = heat.BT()->Apply();

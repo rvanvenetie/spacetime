@@ -70,11 +70,13 @@ int main() {
     auto [residual, residual_norm] = heat_eq.Estimate(/*mean_zero*/ false);
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
-    std::cout << solution->container().size() << " " << residual_norm << " "
-              << getmem().first << " " << elapsed_seconds.count() << std::endl;
+    std::cout << "XDelta-size: " << solution->container().size()
+              << " residual-norm: " << residual_norm
+              << " total-memory: " << getmem().first
+              << " solve-estimate-time: " << elapsed_seconds.count()
+              << std::endl;
     auto marked_nodes = heat_eq.Mark();
     heat_eq.Refine(marked_nodes);
-    // if (solution->container().size() > 1e5) break;
   }
 
   return 0;

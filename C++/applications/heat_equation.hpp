@@ -10,6 +10,7 @@ using datastructures::NegativeBilinearForm;
 using datastructures::RemapBilinearForm;
 using datastructures::SchurBilinearForm;
 using datastructures::SumBilinearForm;
+using datastructures::TransposeBilinearForm;
 using space::HierarchicalBasisFn;
 using spacetime::BilinearForm;
 using spacetime::BlockDiagonalBilinearForm;
@@ -32,11 +33,11 @@ class HeatEquation {
   // The operator B is the sum of these two operators.
   using TypeB = SumBilinearForm<TypeB_t, TypeB_s>;
 
-  using TypeBT_t = BilinearForm<Time::TransportOperator, space::MassOperator,
-                                OrthonormalWaveletFn, ThreePointWaveletFn>;
-  using TypeBT_s = BilinearForm<Time::MassOperator, space::StiffnessOperator,
-                                OrthonormalWaveletFn, ThreePointWaveletFn>;
-  using TypeBT = SumBilinearForm<TypeBT_t, TypeBT_s>;
+  // The transpose of B is the sum of the transpose of these two operators.
+  // With the output/input vectors correctly remapped.
+  using TypeBT =
+      RemapBilinearForm<SumBilinearForm<TransposeBilinearForm<TypeB_t>,
+                                        TransposeBilinearForm<TypeB_s>>>;
 
   // The trace operator maps between X_delta and X_delta.
   using TypeG = BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
