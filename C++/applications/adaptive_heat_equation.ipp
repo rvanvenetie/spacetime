@@ -42,6 +42,7 @@ template <typename TypeGLinForm, typename TypeU0LinForm>
 DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
     *AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Solve(
         const Eigen::VectorXd &x0, double rtol, size_t maxit) {
+  assert(heat_d_dd_);
   auto [result, data] =
       tools::linalg::PCG(*heat_d_dd_->SchurMat(), RHS(*heat_d_dd_),
                          *heat_d_dd_->PrecondX(), x0, maxit, rtol);
@@ -52,18 +53,19 @@ DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
 template <typename TypeGLinForm, typename TypeU0LinForm>
 std::pair<DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *, double>
 AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
+  assert(heat_d_dd_);
   auto A = heat_d_dd_->A();
   auto Ainv = heat_d_dd_->Ainv();
   heat_d_dd_.reset();
-  heat_dd_dd_ = std::make_unique<HeatEquation>(
-      vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_, vec_Ydd_out_, A, Ainv);
+  auto heat_dd_dd = HeatEquation(vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_,
+                                 vec_Ydd_out_, A, Ainv);
   auto u_dd_dd = vec_Xdd_in();
   u_dd_dd->Reset();
   *u_dd_dd += *vec_Xd_out();
-  auto Su_dd_dd = heat_dd_dd_->SchurMat()->Apply();
+  auto Su_dd_dd = heat_dd_dd.SchurMat()->Apply();
 
   // Reuse u_dd_dd.
-  u_dd_dd->FromVectorContainer(RHS(*heat_dd_dd_) - Su_dd_dd);
+  u_dd_dd->FromVectorContainer(RHS(heat_dd_dd) - Su_dd_dd);
   if (mean_zero) ApplyMeanZero(u_dd_dd);
 
   auto Xd_nodes = u_dd_dd->Union(*vec_Xd_in(),

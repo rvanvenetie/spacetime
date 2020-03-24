@@ -55,7 +55,6 @@ class AdaptiveHeatEquation {
       vec_Xdd_out_;
   std::shared_ptr<TypeYVector> vec_Ydd_in_, vec_Ydd_out_;
   std::unique_ptr<HeatEquation> heat_d_dd_;
-  std::unique_ptr<HeatEquation> heat_dd_dd_;
   TypeGLinForm g_lin_form_;
   TypeU0LinForm u0_lin_form_;
 
