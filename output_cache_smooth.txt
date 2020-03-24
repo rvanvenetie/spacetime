@@ -16,3 +16,5 @@ XDelta-size: 53310 residual-norm: 0.00270787 total-memory-kB: 3873232 solve-esti
 XDelta-size: 70548 residual-norm: 0.00205618 total-memory-kB: 6753944 solve-estimate-time: 36.6664
 XDelta-size: 166738 residual-norm: 0.00158126 total-memory-kB: 11394780 solve-estimate-time: 82.9929
 XDelta-size: 232444 residual-norm: 0.00121192 total-memory-kB: 18574276 solve-estimate-time: 130.175
+XDelta-size: 306104 residual-norm: 0.000932653 total-memory-kB: 31821768 solve-estimate-time: 247.307
+XDelta-size: 779026 residual-norm: 0.000698481 total-memory-kB: 56736372 solve-estimate-time: 497.948
