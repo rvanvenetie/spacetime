@@ -6,10 +6,10 @@
 #include "../time/three_point_basis.hpp"
 
 namespace spacetime {
-template <typename DblTreeIn>
-datastructures::DoubleTreeView<Time::OrthonormalWaveletFn,
-                               space::HierarchicalBasisFn>
-GenerateYDelta(const DblTreeIn &X_delta);
+template <typename DblTreeIn,
+          typename DblTreeOut = datastructures::DoubleTreeView<
+              Time::OrthonormalWaveletFn, space::HierarchicalBasisFn>>
+DblTreeOut GenerateYDelta(const DblTreeIn &X_delta);
 
 template <typename DblTreeIn, typename DblTreeOut = DblTreeIn>
 DblTreeOut GenerateXDeltaUnderscore(const DblTreeIn &X_delta,

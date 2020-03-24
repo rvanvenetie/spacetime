@@ -4,14 +4,11 @@
 #include "basis.hpp"
 
 namespace spacetime {
-template <typename DblTreeIn>
-datastructures::DoubleTreeView<Time::OrthonormalWaveletFn,
-                               space::HierarchicalBasisFn>
-GenerateYDelta(const DblTreeIn &X_delta) {
+template <typename DblTreeIn, typename DblTreeOut>
+DblTreeOut GenerateYDelta(const DblTreeIn &X_delta) {
   using SpaceTreeVector = std::vector<typename DblTreeIn::FrozenDN1Type *>;
-  auto Y_delta = datastructures::DoubleTreeView<Time::OrthonormalWaveletFn,
-                                                space::HierarchicalBasisFn>(
-      Time::ortho_tree.meta_root.get(), std::get<1>(X_delta.root()->nodes()));
+  auto Y_delta = DblTreeOut(Time::ortho_tree.meta_root.get(),
+                            std::get<1>(X_delta.root()->nodes()));
 
   Y_delta.Project_1()->Union(X_delta.Project_1());
 
@@ -42,8 +39,9 @@ DblTreeOut GenerateXDeltaUnderscore(const DblTreeIn &X_delta,
                                     size_t num_repeats) {
   assert(num_repeats > 0);
   if (num_repeats > 1)
-    return GenerateXDeltaUnderscore(GenerateXDeltaUnderscore(X_delta),
-                                    num_repeats - 1);
+    return GenerateXDeltaUnderscore<DblTreeOut, DblTreeOut>(
+        GenerateXDeltaUnderscore<DblTreeIn, DblTreeOut>(X_delta),
+        num_repeats - 1);
   auto X_delta_underscore = X_delta.template DeepCopy<DblTreeOut>();
   std::vector<typename DblTreeOut::DNType *> time_leaves, space_leaves;
   for (auto &dblnode : X_delta_underscore.container()) {

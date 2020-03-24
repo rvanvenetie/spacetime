@@ -56,8 +56,8 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
   auto A = heat_d_dd_->A();
   auto Ainv = heat_d_dd_->Ainv();
   heat_d_dd_.reset();
-  heat_dd_dd_ = std::make_unique<HeatEquation>(HeatEquation(
-      vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_, vec_Ydd_out_, A, Ainv));
+  heat_dd_dd_ = std::make_unique<HeatEquation>(
+      vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_, vec_Ydd_out_, A, Ainv);
   auto u_dd_dd = vec_Xdd_in();
   u_dd_dd->Reset();
   *u_dd_dd += *vec_Xd_out();
