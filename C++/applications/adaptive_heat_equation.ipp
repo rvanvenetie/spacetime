@@ -42,10 +42,9 @@ template <typename TypeGLinForm, typename TypeU0LinForm>
 DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
     *AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Solve(
         const Eigen::VectorXd &x0, double rtol, size_t maxit) {
-  auto rhs = RHS(*heat_d_dd_);
-  auto precond = *heat_d_dd_->PrecondX();
-  auto [result, data] = tools::linalg::PCG(*heat_d_dd_->SchurMat(), rhs,
-                                           precond, x0, maxit, rtol);
+  auto [result, data] =
+      tools::linalg::PCG(*heat_d_dd_->SchurMat(), RHS(*heat_d_dd_),
+                         *heat_d_dd_->PrecondX(), x0, maxit, rtol);
   vec_Xd_out()->FromVectorContainer(result);
   return vec_Xd_out();
 }
