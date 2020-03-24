@@ -66,6 +66,11 @@ class HeatEquation {
   HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
                std::shared_ptr<TypeXVector> vec_X_out,
                std::shared_ptr<TypeYVector> vec_Y_in,
+               std::shared_ptr<TypeYVector> vec_Y_out, std::shared_ptr<TypeA> A,
+               std::shared_ptr<TypeAinv> Ainv);
+  HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
+               std::shared_ptr<TypeXVector> vec_X_out,
+               std::shared_ptr<TypeYVector> vec_Y_in,
                std::shared_ptr<TypeYVector> vec_Y_out);
   HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta);
   HeatEquation(const TypeXDelta &X_delta);

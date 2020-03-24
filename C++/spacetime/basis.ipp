@@ -37,20 +37,15 @@ GenerateYDelta(const DblTreeIn &X_delta) {
   return Y_delta;
 }
 
-template <typename DblTreeIn>
-datastructures::DoubleTreeView<Time::ThreePointWaveletFn,
-                               space::HierarchicalBasisFn>
-GenerateXDeltaUnderscore(const DblTreeIn &X_delta, size_t num_repeats) {
+template <typename DblTreeIn, typename DblTreeOut>
+DblTreeOut GenerateXDeltaUnderscore(const DblTreeIn &X_delta,
+                                    size_t num_repeats) {
   assert(num_repeats > 0);
   if (num_repeats > 1)
     return GenerateXDeltaUnderscore(GenerateXDeltaUnderscore(X_delta),
                                     num_repeats - 1);
-  auto X_delta_underscore =
-      X_delta.template DeepCopy<datastructures::DoubleTreeView<
-          Time::ThreePointWaveletFn, space::HierarchicalBasisFn>>();
-  std::vector<datastructures::DoubleNodeView<Time::ThreePointWaveletFn,
-                                             space::HierarchicalBasisFn> *>
-      time_leaves, space_leaves;
+  auto X_delta_underscore = X_delta.template DeepCopy<DblTreeOut>();
+  std::vector<typename DblTreeOut::DNType *> time_leaves, space_leaves;
   for (auto &dblnode : X_delta_underscore.container()) {
     auto [time_node, space_node] = dblnode.nodes();
     if (!time_node->is_full()) time_node->Refine();
@@ -62,13 +57,16 @@ GenerateXDeltaUnderscore(const DblTreeIn &X_delta, size_t num_repeats) {
   }
 
   for (auto dblnode : time_leaves)
-    dblnode->Refine<0>(datastructures::func_true, /*make_conforming*/ true);
+    dblnode->template Refine<0>(datastructures::func_true,
+                                /*make_conforming*/ true);
 
   for (auto dblnode : space_leaves) {
-    dblnode->Refine<1>(datastructures::func_true, /*make_conforming*/ true);
+    dblnode->template Refine<1>(datastructures::func_true,
+                                /*make_conforming*/ true);
     for (auto child : dblnode->children(1)) {
       child->node_1()->Refine();
-      child->Refine<1>(datastructures::func_true, /*make_conforming*/ true);
+      child->template Refine<1>(datastructures::func_true,
+                                /*make_conforming*/ true);
     }
   }
 
