@@ -15,14 +15,15 @@ namespace applications {
 HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
                            std::shared_ptr<TypeXVector> vec_X_out,
                            std::shared_ptr<TypeYVector> vec_Y_in,
-                           std::shared_ptr<TypeYVector> vec_Y_out)
+                           std::shared_ptr<TypeYVector> vec_Y_out,
+                           std::shared_ptr<TypeA> A,
+                           std::shared_ptr<TypeAinv> Ainv)
     : vec_X_in_(vec_X_in),
       vec_X_out_(vec_X_out),
       vec_Y_in_(vec_Y_in),
-      vec_Y_out_(vec_Y_out) {
-  // Create A_s mapping from Y_delta to Y_delta.
-  A_ = std::make_shared<TypeA>(vec_Y_in_.get(), vec_Y_out_.get());
-
+      vec_Y_out_(vec_Y_out),
+      A_(A),
+      A_inv_(Ainv) {
   // Create two parts of B sharing sigma and theta.
   auto B_t = std::make_shared<TypeB_t>(vec_X_in_.get(), vec_Y_out_.get());
   auto B_s = std::make_shared<TypeB_s>(vec_X_in_.get(), vec_Y_out_.get(),
@@ -41,13 +42,19 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
 
   // Create the block matrix.
   block_mat_ = std::make_shared<TypeBlockMat>(A_, B_, BT_, minus_G);
-
   // Create the Schur matrix.
-  A_inv_ = std::make_shared<TypeAinv>(vec_Y_out_.get(), vec_Y_in_.get());
   schur_mat_ = std::make_shared<TypeSchurMat>(A_inv_, B_, BT_, G_);
   precond_X_ =
       std::make_shared<TypePrecondX>(vec_X_in_.get(), vec_X_out_.get());
 }
+HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
+                           std::shared_ptr<TypeXVector> vec_X_out,
+                           std::shared_ptr<TypeYVector> vec_Y_in,
+                           std::shared_ptr<TypeYVector> vec_Y_out)
+    : HeatEquation(
+          vec_X_in, vec_X_out, vec_Y_in, vec_Y_out,
+          std::make_shared<TypeA>(vec_Y_in.get(), vec_Y_out.get()),
+          std::make_shared<TypeAinv>(vec_Y_out.get(), vec_Y_in.get())) {}
 
 HeatEquation::HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta)
     : HeatEquation(std::make_shared<TypeXVector>(
