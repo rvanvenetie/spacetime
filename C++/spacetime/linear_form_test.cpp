@@ -15,9 +15,8 @@ TEST(LinearForm, Quadrature) {
   T.hierarch_basis_tree.UniformRefine(max_level);
   Time::ortho_tree.UniformRefine(max_level);
 
-  std::function<double(double)> time_f([](double t) { return t * t * t; });
-  std::function<double(double, double)> space_f(
-      [](double x, double y) { return x * y; });
+  auto time_f = [](double t) { return t * t * t; };
+  auto space_f = [](double x, double y) { return x * y; };
 
   auto linform = CreateQuadratureLinearForm<Time::OrthonormalWaveletFn, 3, 2>(
       time_f, space_f);
@@ -39,8 +38,7 @@ TEST(LinearForm, ZeroEval) {
   T.hierarch_basis_tree.UniformRefine(max_level);
   Time::ortho_tree.UniformRefine(max_level);
 
-  std::function<double(double, double)> space_f(
-      [](double x, double y) { return x * y; });
+  auto space_f = [](double x, double y) { return x * y; };
 
   auto linform =
       CreateZeroEvalLinearForm<Time::OrthonormalWaveletFn, 2>(space_f);

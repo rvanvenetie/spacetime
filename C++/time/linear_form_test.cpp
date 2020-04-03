@@ -14,7 +14,7 @@ TEST(LinearForm, ThreePointQuadratureTest) {
   // Now we check what happens when we also refine near the end points.
   three_point_tree.UniformRefine(ml);
 
-  std::function<double(double)> f([](double t) { return t * t; });
+  auto f = [](double t) { return t * t; };
   auto linear_form = LinearForm<ThreePointWaveletFn>(
       std::make_unique<QuadratureFunctional<ContLinearScalingFn, 2>>(f));
   auto vec_out = TreeVector<ThreePointWaveletFn>(three_point_tree.meta_root);
@@ -58,7 +58,7 @@ TEST(LinearForm, OrthoQuadratureTest) {
   // Now we check what happens when we also refine near the end points.
   ortho_tree.UniformRefine(ml);
 
-  std::function<double(double)> f([](double t) { return t * t * t; });
+  auto f = [](double t) { return t * t * t; };
   auto linear_form = LinearForm<OrthonormalWaveletFn>(
       std::make_unique<QuadratureFunctional<DiscLinearScalingFn, 3>>(f));
   auto vec_out = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
