@@ -1,4 +1,5 @@
 #include "linear_form.hpp"
+
 #include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"

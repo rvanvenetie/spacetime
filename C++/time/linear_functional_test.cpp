@@ -1,4 +1,7 @@
 #include "linear_functional.hpp"
+
+#include <functional>
+
 #include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -34,9 +37,8 @@ TEST(LinearFunctional, QuadratureFunctional) {
   // Now we check what happens when we also refine near the end points.
   three_point_tree.UniformRefine(ml);
 
-  auto f = [](double t) { return t * t; };
-  auto quad_func =
-      QuadratureFunctional<ContLinearScalingFn, /*order*/ 2, decltype(f)>(f);
+  std::function<double(double)> f([](double t) { return t * t; });
+  auto quad_func = QuadratureFunctional<ContLinearScalingFn, /*order*/ 2>(f);
   auto phis = cont_lin_tree.Bfs();
   for (auto phi : phis) {
     double ip = 0.0;

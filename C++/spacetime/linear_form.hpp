@@ -5,10 +5,11 @@
 #include "../time/linear_form.hpp"
 
 namespace spacetime {
-template <typename TimeBasis, size_t space_order, class SpaceF>
+template <typename TimeBasis, size_t space_order>
 class LinearForm {
  public:
-  LinearForm(Time::LinearForm<TimeBasis> &&time_linform, SpaceF space_f)
+  LinearForm(Time::LinearForm<TimeBasis> &&time_linform,
+             std::function<double(double, double)> space_f)
       : time_linform_(std::move(time_linform)), space_f_(space_f) {}
 
   Eigen::VectorXd Apply(
@@ -50,7 +51,7 @@ class LinearForm {
 
  protected:
   Time::LinearForm<TimeBasis> time_linform_;
-  SpaceF space_f_;
+  std::function<double(double, double)> space_f_;
 };
 
 template <typename TimeBasis, typename LeftLinForm, typename RightLinForm>
@@ -58,6 +59,7 @@ class SumLinearForm {
  public:
   SumLinearForm(LeftLinForm &&left_lf, RightLinForm &&right_lf)
       : left_lf_(std::move(left_lf)), right_lf_(std::move(right_lf)) {}
+
   Eigen::VectorXd Apply(
       datastructures::DoubleTreeVector<TimeBasis, space::HierarchicalBasisFn>
           *vec) {
@@ -81,24 +83,24 @@ SumLinearForm<TimeBasis, LeftLinForm, RightLinForm> CreateSumLinearForm(
       std::move(left_lf), std::move(right_lf));
 }
 
-template <typename TimeBasis, size_t time_order, size_t space_order,
-          class TimeF, class SpaceF>
-LinearForm<TimeBasis, space_order, SpaceF> CreateQuadratureLinearForm(
-    const TimeF &time_f, const SpaceF &space_f) {
+template <typename TimeBasis, size_t time_order, size_t space_order>
+LinearForm<TimeBasis, space_order> CreateQuadratureLinearForm(
+    std::function<double(double)> time_f,
+    std::function<double(double, double)> space_f) {
   using TimeScalingBasis = typename Time::FunctionTrait<TimeBasis>::Scaling;
-  return LinearForm<TimeBasis, space_order, SpaceF>(
+  return LinearForm<TimeBasis, space_order>(
       Time::LinearForm<TimeBasis>(
           std::make_unique<
-              Time::QuadratureFunctional<TimeScalingBasis, time_order, TimeF>>(
+              Time::QuadratureFunctional<TimeScalingBasis, time_order>>(
               time_f)),
       space_f);
 }
 
-template <typename TimeBasis, size_t space_order, class SpaceF>
-LinearForm<TimeBasis, space_order, SpaceF> CreateZeroEvalLinearForm(
-    const SpaceF &space_f) {
+template <typename TimeBasis, size_t space_order>
+LinearForm<TimeBasis, space_order> CreateZeroEvalLinearForm(
+    std::function<double(double, double)> space_f) {
   using TimeScalingBasis = typename Time::FunctionTrait<TimeBasis>::Scaling;
-  return LinearForm<TimeBasis, space_order, SpaceF>(
+  return LinearForm<TimeBasis, space_order>(
       Time::LinearForm<TimeBasis>(
           std::make_unique<Time::ZeroEvalFunctional<TimeScalingBasis>>()),
       space_f);

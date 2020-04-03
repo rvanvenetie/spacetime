@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "../tools/integration.hpp"
 #include "sparse_vector.hpp"
 namespace Time {
@@ -17,12 +19,12 @@ class LinearFunctional {
   virtual ~LinearFunctional<Basis>() {}
 };
 
-template <typename Basis, size_t order, class F>
+template <typename Basis, size_t order>
 class QuadratureFunctional : public LinearFunctional<Basis> {
  public:
   using LinearFunctional<Basis>::Eval;
 
-  QuadratureFunctional(F f) : f_(f) {}
+  QuadratureFunctional(std::function<double(double)> f) : f_(f) {}
 
   double Eval(Basis *phi) const {
     double cell = 0.0;
@@ -33,7 +35,7 @@ class QuadratureFunctional : public LinearFunctional<Basis> {
   }
 
  protected:
-  F f_;
+  std::function<double(double)> f_;
 };
 
 template <typename Basis>
