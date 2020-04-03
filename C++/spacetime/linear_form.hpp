@@ -5,16 +5,16 @@
 #include "../time/linear_form.hpp"
 
 namespace spacetime {
-template <typename TimeBasis>
+template <typename TimeBasis, size_t space_order>
 class LinearForm {
  public:
   LinearForm(Time::LinearForm<TimeBasis> &&time_linform,
-             const std::function<double(double, double)> &space_f)
+             std::function<double(double, double)> space_f)
       : time_linform_(std::move(time_linform)), space_f_(space_f) {}
 
-  virtual Eigen::VectorXd Apply(
+  Eigen::VectorXd Apply(
       datastructures::DoubleTreeVector<TimeBasis, space::HierarchicalBasisFn>
-          *vec) override {
+          *vec) {
     vec->Reset();
     auto project_0 = vec->Project_0();
     auto project_1 = vec->Project_1();
@@ -51,18 +51,18 @@ class LinearForm {
 
  protected:
   Time::LinearForm<TimeBasis> time_linform_;
-  const std::function<double(double, double)> &space_f_;
+  std::function<double(double, double)> space_f_;
 };
 
-template <typename TimeBasis>
-class SumLinearForm : public LinearFormInterface<TimeBasis> {
+template <typename TimeBasis, typename LeftLinForm, typename RightLinForm>
+class SumLinearForm {
  public:
-  SumLinearForm(LinearFormInterface &&left_lf, LinearFormInterface &&right_lf)
+  SumLinearForm(LeftLinForm &&left_lf, RightLinForm &&right_lf)
       : left_lf_(std::move(left_lf)), right_lf_(std::move(right_lf)) {}
 
-  virtual Eigen::VectorXd Apply(
+  Eigen::VectorXd Apply(
       datastructures::DoubleTreeVector<TimeBasis, space::HierarchicalBasisFn>
-          *vec) override {
+          *vec) {
     auto vec_in = vec->ToVectorContainer();
     auto result = left_lf_.Apply(vec);
     vec->FromVectorContainer(vec_in);
@@ -72,25 +72,33 @@ class SumLinearForm : public LinearFormInterface<TimeBasis> {
   }
 
  protected:
-  LinearFormInterface left_lf_, right_lf_;
+  LeftLinForm left_lf_;
+  RightLinForm right_lf_;
 };
+
+template <typename TimeBasis, typename LeftLinForm, typename RightLinForm>
+SumLinearForm<TimeBasis, LeftLinForm, RightLinForm> CreateSumLinearForm(
+    LeftLinForm &&left_lf, RightLinForm &&right_lf) {
+  return SumLinearForm<TimeBasis, LeftLinForm, RightLinForm>(
+      std::move(left_lf), std::move(right_lf));
+}
 
 template <typename TimeBasis, size_t time_order, size_t space_order>
 LinearForm<TimeBasis, space_order> CreateQuadratureLinearForm(
-    const std::function<double(double)> &time_f,
-    const std::function<double(double, double)> &space_f) {
+    std::function<double(double)> time_f,
+    std::function<double(double, double)> space_f) {
   using TimeScalingBasis = typename Time::FunctionTrait<TimeBasis>::Scaling;
   return LinearForm<TimeBasis, space_order>(
       Time::LinearForm<TimeBasis>(
           std::make_unique<
-              Time::QuadratureFunctional<TimeScalingBasis, time_order, TimeF>>(
+              Time::QuadratureFunctional<TimeScalingBasis, time_order>>(
               time_f)),
       space_f);
 }
 
 template <typename TimeBasis, size_t space_order>
 LinearForm<TimeBasis, space_order> CreateZeroEvalLinearForm(
-    const std::function<double(double, double)> &space_f) {
+    std::function<double(double, double)> space_f) {
   using TimeScalingBasis = typename Time::FunctionTrait<TimeBasis>::Scaling;
   return LinearForm<TimeBasis, space_order>(
       Time::LinearForm<TimeBasis>(

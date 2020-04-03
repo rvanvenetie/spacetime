@@ -24,7 +24,7 @@ class QuadratureFunctional : public LinearFunctional<Basis> {
  public:
   using LinearFunctional<Basis>::Eval;
 
-  QuadratureFunctional(const std::function<double(double)> &f) : f_(f) {}
+  QuadratureFunctional(std::function<double(double)> f) : f_(f) {}
 
   double Eval(Basis *phi) const {
     double cell = 0.0;
@@ -35,7 +35,7 @@ class QuadratureFunctional : public LinearFunctional<Basis> {
   }
 
  protected:
-  const std::function<double(double)> &f_;
+  std::function<double(double)> f_;
 };
 
 template <typename Basis>

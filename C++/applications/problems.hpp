@@ -8,11 +8,15 @@ using spacetime::CreateZeroEvalLinearForm;
 
 // Solution u = (1 + t^2) x (1-x) y (1-y) on unit square.
 auto SmoothProblem() {
-  auto time_g1 = [](double t) { return -2 * (1 + t * t); };
-  auto space_g1 = [](double x, double y) { return (x - 1) * x + (y - 1) * y; };
-  auto time_g2 = [](double t) { return 2 * t; };
-  auto space_g2 = [](double x, double y) { return (x - 1) * x * (y - 1) * y; };
-  auto u0 = [](double x, double y) { return (1 - x) * x * (1 - y) * y; };
+  std::function<double(double)> time_g1(
+      [](double t) { return -2 * (1 + t * t); });
+  std::function<double(double, double)> space_g1(
+      [](double x, double y) { return (x - 1) * x + (y - 1) * y; });
+  std::function<double(double)> time_g2([](double t) { return 2 * t; });
+  std::function<double(double, double)> space_g2(
+      [](double x, double y) { return (x - 1) * x * (y - 1) * y; });
+  std::function<double(double, double)> u0(
+      [](double x, double y) { return (1 - x) * x * (1 - y) * y; });
 
   return std::make_pair(
       CreateSumLinearForm<Time::OrthonormalWaveletFn>(
@@ -25,9 +29,11 @@ auto SmoothProblem() {
 
 // Singular problem on unit square.
 auto SingularProblem() {
-  auto time_g = [](double t) { return 0; };
-  auto space_g = [](double x, double y) { return 0; };
-  auto u0 = [](double x, double y) { return 1.0; };
+  std::function<double(double)> time_g([](double t) { return 0; });
+  std::function<double(double, double)> space_g(
+      [](double x, double y) { return 0; });
+  std::function<double(double, double)> u0(
+      [](double x, double y) { return 1.0; });
 
   return std::make_pair(
       CreateQuadratureLinearForm<Time::OrthonormalWaveletFn, 0, 0>(time_g,
