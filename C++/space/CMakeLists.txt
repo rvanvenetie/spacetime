@@ -1,4 +1,4 @@
-add_library(space SHARED triangulation.cpp initial_triangulation.cpp basis.cpp operators.cpp triangulation_view.cpp)
+add_library(space SHARED triangulation.cpp initial_triangulation.cpp basis.cpp operators.cpp triangulation_view.cpp multilevel_patches.cpp)
 
 add_executable(triangulation_view_performance triangulation_view_performance.cpp)
 target_link_libraries(triangulation_view_performance space)
@@ -9,6 +9,9 @@ target_link_libraries(triangulation_test space)
 
 package_add_test(triangulation_view_test triangulation_view_test.cpp)
 target_link_libraries(triangulation_view_test space)
+
+package_add_test(multilevel_patches_test multilevel_patches_test.cpp)
+target_link_libraries(multilevel_patches_test space)
 
 package_add_test(space_bilinear_form_test bilinear_form_test.cpp)
 target_link_libraries(space_bilinear_form_test space)
