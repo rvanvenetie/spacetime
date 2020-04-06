@@ -127,8 +127,8 @@ template <typename ForwardOp>
 class MultigridPreconditioner : public BackwardOperator {
  public:
   MultigridPreconditioner(const TriangulationView &triang,
-                          bool dirichlet_boundary = true, size_t time_level = 0,
-                          size_t cycles = 4);
+                          bool dirichlet_boundary = true,
+                          size_t time_level = 0);
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
@@ -136,7 +136,6 @@ class MultigridPreconditioner : public BackwardOperator {
   ForwardOp forward_op_;
   Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> >
       coarsest_solver_;
-  size_t cycles_;
 };
 
 template <template <typename> class InverseOp>

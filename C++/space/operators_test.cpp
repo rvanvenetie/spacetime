@@ -35,18 +35,6 @@ TEST(Operator, InverseTimesForwardOpIsIdentity) {
       backward_op.Apply(vec);
       forward_op.Apply(vec);
       ASSERT_TRUE(vec.isApprox(vec2));
-
-      for (auto [vi, T] : boost::adaptors::reverse(triang.history()))
-        for (auto gp : T->RefinementEdge()) vec[gp] += 0.5 * vec[vi];
-      for (auto [vi, T] : triang.history())
-        for (auto gp : T->RefinementEdge()) vec[gp] -= 0.5 * vec[vi];
-      ASSERT_TRUE(vec.isApprox(vec2));
-
-      for (auto [vi, T] : triang.history())
-        for (auto gp : T->RefinementEdge()) vec[gp] -= 0.5 * vec[vi];
-      for (auto [vi, T] : boost::adaptors::reverse(triang.history()))
-        for (auto gp : T->RefinementEdge()) vec[gp] += 0.5 * vec[vi];
-      ASSERT_TRUE(vec.isApprox(vec2));
     }
   }
 }

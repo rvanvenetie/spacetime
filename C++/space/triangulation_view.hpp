@@ -38,16 +38,17 @@ class TriangulationView {
 
   TriangulationView InitialTriangulationView() const {
     return TriangulationView(std::vector<Vertex *>(
-        vertices_.begin(),
-        vertices_.begin() + (vertices_.size() - history_.size())));
+        vertices_.begin(), vertices_.begin() + InitialVertices()));
   };
+
+  size_t InitialVertices() const { return initial_vertices_; }
 
   const std::vector<Vertex *> &vertices() const { return vertices_; }
   const std::vector<Element2DView *> &elements() const { return elements_; }
-
-  const std::vector<std::pair<size_t, Element2DView *>> &history() const {
-    return history_;
+  const StaticVector<Element2DView *, 2> &history(int i) const {
+    return history_.at(i);
   }
+
   const datastructures::MultiTreeView<Element2DView> &element_view() const {
     return element_view_;
   }
@@ -56,7 +57,8 @@ class TriangulationView {
   datastructures::MultiTreeView<Element2DView> element_view_;
   std::vector<Vertex *> vertices_;
   std::vector<Element2DView *> elements_;
-  std::vector<std::pair<size_t, Element2DView *>> history_;
+  std::vector<StaticVector<Element2DView *, 2>> history_;
+  size_t initial_vertices_;
 
   // A convenient helper function for the constructor.
   inline static Vertex *ToVertex(Vertex *v) { return v; }
