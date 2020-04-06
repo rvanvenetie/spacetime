@@ -34,13 +34,14 @@ TEST(MultilevelPatches, CoarseToFine) {
 
     auto triang = TriangulationView(tree_view.Bfs());
     auto coarse = MultilevelPatches::FromCoarsestTriangulation(triang);
-    // test a single refine and corasen
+
+    // test a single Refine and Coarsen.
     coarse.Refine();
     coarse.Coarsen();
     assert(coarse.patches() ==
            MultilevelPatches::FromCoarsestTriangulation(triang).patches());
 
-    // Now refine all
+    // Now refine all.
     while (coarse.CanRefine()) coarse.Refine();
     auto fine = MultilevelPatches::FromFinestTriangulation(triang);
     assert(fine.patches() == coarse.patches());
@@ -59,6 +60,13 @@ TEST(MultilevelPatches, FineToCoarse) {
 
     auto triang = TriangulationView(tree_view.Bfs());
     auto fine = MultilevelPatches::FromFinestTriangulation(triang);
+    // test a single Coarsen and Refine.
+    fine.Coarsen();
+    fine.Refine();
+    assert(fine.patches() ==
+           MultilevelPatches::FromFinestTriangulation(triang).patches());
+
+    // Coarsen all.
     while (fine.CanCoarsen()) fine.Coarsen();
     auto coarse = MultilevelPatches::FromCoarsestTriangulation(triang);
     assert(fine.patches() == coarse.patches());
