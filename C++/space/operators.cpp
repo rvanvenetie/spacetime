@@ -32,7 +32,7 @@ void ForwardOperator::ApplyHierarchToSingle(VectorXd &w) const {
 }
 
 void ForwardOperator::ApplyTransposeHierarchToSingle(VectorXd &w) const {
-  for (int vi = triang_.vertices().size(); vi >= 0; --vi) {
+  for (int vi = triang_.vertices().size() - 1; vi >= 0; --vi) {
     const auto &hist = triang_.history(vi);
     if (hist.empty()) continue;  // Vertex on initial mesh.
     for (auto gp : hist.at(0)->RefinementEdge()) w[gp] = w[gp] + 0.5 * w[vi];
@@ -65,7 +65,7 @@ BackwardOperator::BackwardOperator(const TriangulationView &triang,
 }
 
 void BackwardOperator::ApplyInverseHierarchToSingle(VectorXd &w) const {
-  for (int vi = triang_.vertices().size(); vi >= 0; --vi) {
+  for (int vi = triang_.vertices().size() - 1; vi >= 0; --vi) {
     const auto &hist = triang_.history(vi);
     if (hist.empty()) continue;  // Vertex on initial mesh.
     for (auto gp : hist.at(0)->RefinementEdge()) w[vi] = w[vi] - 0.5 * w[gp];

@@ -31,16 +31,10 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
   // the refinement edge.
   history_.resize(vertices_.size());
 
-  // Store the history inside the underlying vertex tree.
-  for (size_t i = 0; i < vertices_.size(); ++i) {
-    vertices_[i]->reset_data();
-    vertices_[i]->set_data(&history_[i]);
-  }
-
   // Create and fill in the history object.
   elements_ = element_view_.Bfs();
   history_.reserve(elements_.size());
-  for (auto &&elem : elements_) {
+  for (auto elem : elements_) {
     if (elem->children(0).size() == 0) continue;
     assert(elem->children(0).size() == 2);
     // Get the index of the created vertex by checking a child.
