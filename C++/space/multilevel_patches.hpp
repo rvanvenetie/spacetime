@@ -11,7 +11,7 @@ class MultilevelPatches {
   void Refine();
   void Coarsen();
 
-  // What vertex is the last vertex that was added?
+  // Index of the vertex that is to be added by a refine.
   int CurrentVertex() const { return vi_; }
 
   bool CanRefine() const { return vi_ < triang_.vertices().size(); }
