@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/range/adaptor/reversed.hpp>
 #include "../tools/integration.hpp"
 #include "linear_form.hpp"
 #include "triangulation_view.hpp"
@@ -32,8 +31,10 @@ void ApplyQuadrature(const F &f, I *root, bool dirichlet_boundary) {
               *elem->node());
   }
 
-  for (auto [vi, T] : boost::adaptors::reverse(triang.history()))
-    for (auto gp : T->RefinementEdge()) vec[gp] = vec[gp] + 0.5 * vec[vi];
+  int vi = triang.vertices().size() - 1;
+  for (; vi >= triang.InitialVertices(); --vi)
+    for (auto gp : triang.history(vi)[0]->RefinementEdge())
+      vec[gp] = vec[gp] + 0.5 * vec[vi];
 
   if (dirichlet_boundary)
     for (int i = 0; i < vertices.size(); ++i)
