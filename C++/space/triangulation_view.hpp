@@ -38,7 +38,10 @@ class TriangulationView {
 
   const std::vector<Vertex *> &vertices() const { return vertices_; }
   const std::vector<Element2DView *> &elements() const { return elements_; }
-  const auto &history(int i) const { return history_.at(i); }
+  const StaticVector<Element2DView *, 2> &history(int i) const {
+    return history_[i];
+  }
+
   const datastructures::MultiTreeView<Element2DView> &element_view() const {
     return element_view_;
   }

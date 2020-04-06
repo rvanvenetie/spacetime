@@ -36,8 +36,7 @@ void ApplyQuadrature(const F &f, I *root, bool dirichlet_boundary) {
   for (int vi = triang.vertices().size() - 1; vi >= 0; --vi) {
     const auto &hist = triang.history(vi);
     if (hist.empty()) continue;  // Vertex on initial mesh.
-    for (auto gp : hist.at(0)->RefinementEdge())
-      vec[gp] = vec[gp] + 0.5 * vec[vi];
+    for (auto gp : hist[0]->RefinementEdge()) vec[gp] = vec[gp] + 0.5 * vec[vi];
   }
 
   if (dirichlet_boundary)

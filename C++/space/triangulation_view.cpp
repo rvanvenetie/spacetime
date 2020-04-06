@@ -39,9 +39,9 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
     assert(elem->children(0).size() == 2);
     // Get the index of the created vertex by checking a child.
     size_t newest_vertex = elem->children(0)[0]->NewestVertex();
-    auto &vertex = vertices_.at(newest_vertex);
+    auto &vertex = vertices_[newest_vertex];
     assert(vertex->level() == elem->level() + 1);
-    auto &hist = history_.at(newest_vertex);
+    auto &hist = history_[newest_vertex];
     assert(hist.size() < 2);
     hist.push_back(elem);
   }
