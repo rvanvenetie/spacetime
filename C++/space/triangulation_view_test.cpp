@@ -50,11 +50,6 @@ TEST(TriangulationView, VertexSubTree) {
   ASSERT_TRUE(vertex_subtree.Bfs().size() < T.vertex_meta_root->Bfs().size());
 
   auto T_view = TriangulationView(vertex_subtree);
-  ASSERT_TRUE(T_view.history().size() < T.elem_meta_root->Bfs().size());
-
-  // Check that the history object contains exactly non-root vertices
-  ASSERT_EQ(T_view.history().size(), vertex_subtree.Bfs().size() -
-                                         T.vertex_meta_root->children().size());
 
   // Check there are no duplicates.
   std::set<Vertex *> vertices_subtree;

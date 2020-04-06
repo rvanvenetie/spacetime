@@ -24,13 +24,19 @@ void ForwardOperator::Apply(Eigen::VectorXd &v) const {
 }
 
 void ForwardOperator::ApplyHierarchToSingle(VectorXd &w) const {
-  for (auto [vi, T] : triang_.history())
-    for (auto gp : T->RefinementEdge()) w[vi] = w[vi] + 0.5 * w[gp];
+  for (int vi = 0; vi < triang_.vertices().size(); ++vi) {
+    const auto &hist = triang_.history(vi);
+    if (hist.empty()) continue;  // Vertex on initial mesh.
+    for (auto gp : hist.at(0)->RefinementEdge()) w[vi] = w[vi] + 0.5 * w[gp];
+  }
 }
 
 void ForwardOperator::ApplyTransposeHierarchToSingle(VectorXd &w) const {
-  for (auto [vi, T] : boost::adaptors::reverse(triang_.history()))
-    for (auto gp : T->RefinementEdge()) w[gp] = w[gp] + 0.5 * w[vi];
+  for (int vi = triang_.vertices().size(); vi >= 0; --vi) {
+    const auto &hist = triang_.history(vi);
+    if (hist.empty()) continue;  // Vertex on initial mesh.
+    for (auto gp : hist.at(0)->RefinementEdge()) w[gp] = w[gp] + 0.5 * w[vi];
+  }
 }
 
 BackwardOperator::BackwardOperator(const TriangulationView &triang,
@@ -59,14 +65,20 @@ BackwardOperator::BackwardOperator(const TriangulationView &triang,
 }
 
 void BackwardOperator::ApplyInverseHierarchToSingle(VectorXd &w) const {
-  for (auto [vi, T] : boost::adaptors::reverse(triang_.history()))
-    for (auto gp : T->RefinementEdge()) w[vi] = w[vi] - 0.5 * w[gp];
+  for (int vi = triang_.vertices().size(); vi >= 0; --vi) {
+    const auto &hist = triang_.history(vi);
+    if (hist.empty()) continue;  // Vertex on initial mesh.
+    for (auto gp : hist.at(0)->RefinementEdge()) w[vi] = w[vi] - 0.5 * w[gp];
+  }
 }
 
 void BackwardOperator::ApplyTransposeInverseHierarchToSingle(
     VectorXd &w) const {
-  for (auto [vi, T] : triang_.history())
-    for (auto gp : T->RefinementEdge()) w[gp] = w[gp] - 0.5 * w[vi];
+  for (int vi = 0; vi < triang_.vertices().size(); ++vi) {
+    const auto &hist = triang_.history(vi);
+    if (hist.empty()) continue;  // Vertex on initial mesh.
+    for (auto gp : hist.at(0)->RefinementEdge()) w[gp] = w[gp] - 0.5 * w[vi];
+  }
 }
 
 void BackwardOperator::Apply(Eigen::VectorXd &v) const {

@@ -27,22 +27,33 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
               *nv->node()->vertices()[i]->template data<size_t>();
       });
 
-  // Create a history object -- used somehow.
+  // For every new vertex introduced, we store the elements touching
+  // the refinement edge.
+  history_.resize(vertices_.size());
+
+  // Store the history inside the underlying vertex tree.
+  for (size_t i = 0; i < vertices_.size(); ++i) {
+    vertices_[i]->reset_data();
+    vertices_[i]->set_data(&history_[i]);
+  }
+
+  // Create and fill in the history object.
   elements_ = element_view_.Bfs();
   history_.reserve(elements_.size());
   for (auto &&elem : elements_) {
-    auto &vertex = vertices_[elem->NewestVertex()];
-    if (elem->level() <= 0 || vertex->marked()) continue;
-    vertex->set_marked(true);
-    assert(!elem->parents().empty());
-    history_.emplace_back(elem->NewestVertex(), elem->parents()[0]);
+    if (elem->children(0).size() == 0) continue;
+    assert(elem->children(0).size() == 2);
+    // Get the index of the created vertex by checking a child.
+    size_t newest_vertex = elem->children(0)[0]->NewestVertex();
+    auto &vertex = vertices_.at(newest_vertex);
+    assert(vertex->level() == elem->level() + 1);
+    auto &hist = history_.at(newest_vertex);
+    assert(hist.size() < 2);
+    hist.push_back(elem);
   }
 
-  // Unset all the data!
-  for (auto &nv : vertices_) {
-    nv->set_marked(false);
-    nv->reset_data();
-  }
+  // Unset the data stored in the vertices.
+  for (auto &nv : vertices_) nv->reset_data();
 }
 
 }  // namespace space
