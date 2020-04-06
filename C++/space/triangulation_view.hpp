@@ -36,10 +36,11 @@ class TriangulationView {
       const datastructures::TreeVector<HierarchicalBasisFn> &basis_vector)
       : TriangulationView(basis_vector.Bfs()) {}
 
+  size_t InitialVertices() const { return initial_vertices_; }
   const std::vector<Vertex *> &vertices() const { return vertices_; }
   const std::vector<Element2DView *> &elements() const { return elements_; }
   const StaticVector<Element2DView *, 2> &history(int i) const {
-    return history_[i];
+    return history_.at(i);
   }
 
   const datastructures::MultiTreeView<Element2DView> &element_view() const {
@@ -47,6 +48,7 @@ class TriangulationView {
   }
 
  protected:
+  size_t initial_vertices_ = 0;
   datastructures::MultiTreeView<Element2DView> element_view_;
   std::vector<Vertex *> vertices_;
   std::vector<Element2DView *> elements_;

@@ -13,6 +13,10 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
   for (size_t i = 0; i < vertices_.size(); ++i) {
     indices[i] = i;
     vertices_[i]->set_data(&indices[i]);
+
+    if (vertices_[i]->level() > 0 && initial_vertices_ == 0)
+      initial_vertices_ = i;
+    assert((vertices_[i]->level() > 0) == (initial_vertices_ > 0));
   }
 
   // Now create the associated element tree
