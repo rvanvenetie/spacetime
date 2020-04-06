@@ -34,6 +34,13 @@ TEST(MultilevelPatches, CoarseToFine) {
 
     auto triang = TriangulationView(tree_view.Bfs());
     auto coarse = MultilevelPatches::FromCoarsestTriangulation(triang);
+    // test a single refine and corasen
+    coarse.Refine();
+    coarse.Coarsen();
+    assert(coarse.patches() ==
+           MultilevelPatches::FromCoarsestTriangulation(triang).patches());
+
+    // Now refine all
     while (coarse.CanRefine()) coarse.Refine();
     auto fine = MultilevelPatches::FromFinestTriangulation(triang);
     assert(fine.patches() == coarse.patches());
