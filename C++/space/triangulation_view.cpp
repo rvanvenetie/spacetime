@@ -10,14 +10,19 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
       element_view_(vertices[0]->patch[0]->parents()[0]) {
   // First, we store a reference to this object in the underlying tree.
   std::vector<size_t> indices(vertices_.size());
+  initial_vertices_ = 0;
   for (size_t i = 0; i < vertices_.size(); ++i) {
     indices[i] = i;
     vertices_[i]->set_data(&indices[i]);
 
+    // Find the first vertex that is not of level 0.
     if (vertices_[i]->level() > 0 && initial_vertices_ == 0)
       initial_vertices_ = i;
     assert((vertices_[i]->level() > 0) == (initial_vertices_ > 0));
   }
+
+  // If we only have initial vertices, set the total.
+  if (initial_vertices_ == 0) initial_vertices_ = vertices_.size();
 
   // Now create the associated element tree
   element_view_.DeepRefine(

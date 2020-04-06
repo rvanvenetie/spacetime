@@ -48,11 +48,11 @@ class TriangulationView {
   }
 
  protected:
-  size_t initial_vertices_ = 0;
   datastructures::MultiTreeView<Element2DView> element_view_;
   std::vector<Vertex *> vertices_;
   std::vector<Element2DView *> elements_;
   std::vector<StaticVector<Element2DView *, 2>> history_;
+  size_t initial_vertices_;
 
   // A convenient helper function for the constructor.
   inline static Vertex *ToVertex(Vertex *v) { return v; }
