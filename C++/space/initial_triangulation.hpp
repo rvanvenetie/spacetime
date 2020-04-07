@@ -17,6 +17,14 @@ class InitialTriangulation {
 
   InitialTriangulation(const std::vector<std::array<double, 2>> &vertices,
                        const std::vector<std::array<int, 3>> &elements);
-  static InitialTriangulation UnitSquare();
+
+  // Static constructor in case you want the initial triangulation to be
+  // refined.
+  static InitialTriangulation CreateInitialTriangulation(
+      const std::vector<std::array<double, 2>> &vertices,
+      const std::vector<std::array<int, 3>> &elements,
+      size_t initial_refinement = 0);
+
+  static InitialTriangulation UnitSquare(size_t initial_refinement = 0);
 };
 }  // namespace space
