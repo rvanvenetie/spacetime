@@ -45,7 +45,7 @@ class ForwardOperator : public Operator {
   void ApplyTransposeHierarchToSingle(Eigen::VectorXd &vec_SS) const;
 };
 
-// ForwardOperator where aply is done using a sparse matrix.
+// ForwardOperator where apply is done using a sparse matrix.
 template <typename ForwardOp>
 class ForwardMatrix : public ForwardOperator {
  public:
