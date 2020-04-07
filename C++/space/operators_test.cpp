@@ -144,29 +144,32 @@ TEST(MultiGridOperator, CoarsestMesh) {
 
 TEST(MultiGridOperator, MultilevelMesh) {
   auto T = InitialTriangulation::UnitSquare();
-  T.hierarch_basis_tree.UniformRefine(max_level);
+  T.hierarch_basis_tree.UniformRefine(5);
 
   // Create a subtree with only vertices lying below the diagonal.
   auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
   vertex_subtree.DeepRefine(/* call_filter */ [](const auto &vertex) {
     return vertex->level() == 0 || (vertex->x + vertex->y <= 1.0);
   });
+  // vertex_subtree.UniformRefine(2);
 
   TriangulationView triang(vertex_subtree);
-  auto mg_op = MultigridPreconditioner<MassOperator>(triang);
-  auto mass_op = MassOperator(triang);
+
+  bool dirichlet_boundary = true;
+  auto mg_op =
+      MultigridPreconditioner<MassOperator>(triang, dirichlet_boundary);
+  auto mass_op = MassOperator(triang, dirichlet_boundary);
   size_t V = triang.vertices().size();
 
   for (int i = 0; i < 10; i++) {
-    Eigen::VectorXd vec(V);
-    vec.setRandom();
-    for (int v = 0; v < triang.vertices().size(); v++)
-      if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+    Eigen::VectorXd vec = Eigen::VectorXd::Ones(V);
+    if (dirichlet_boundary)
+      for (int v = 0; v < triang.vertices().size(); v++)
+        if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
     Eigen::VectorXd vec_copy = vec;
-    mass_op.Apply(vec);
-    mg_op.Apply(vec);
-    std::cerr << "vec" << std::endl << vec << std::endl;
-    std::cerr << "vec_copy" << std::endl << vec_copy << std::endl;
+    mass_op.ApplySingleScale(vec);
+    mg_op.ApplySingleScale(vec);
+    std::cout << "vec - vec_copy " << vec - vec_copy << std::endl;
     ASSERT_TRUE(vec.isApprox(vec_copy));
   }
 }

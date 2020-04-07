@@ -166,6 +166,10 @@ class MultigridPreconditioner : public BackwardOperator {
   inline std::vector<std::pair<size_t, double>> RowMatrix(
       const MultilevelPatches &mg_triang, size_t vertex) const;
 
+  // Matrix on the finest level.
+  Eigen::SparseMatrix<double> triang_mat_;
+
+  // Solver on the coarsest level.
   DirectInverse<ForwardOp> initial_triang_solver_;
 };
 

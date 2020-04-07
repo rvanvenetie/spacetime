@@ -11,15 +11,21 @@ ForwardMatrix<ForwardOp>::ForwardMatrix(const TriangulationView &triang,
   std::vector<Eigen::Triplet<double>> triplets;
   triplets.reserve(triang_.elements().size() * 3);
 
+  auto &vertices = triang_.vertices();
   for (const auto &elem : triang_.elements()) {
     if (!elem->is_leaf()) continue;
     auto &Vids = elem->vertices_view_idx_;
     auto element_mat = ForwardOp::ElementMatrix(elem, time_level);
 
-    for (size_t i = 0; i < 3; ++i)
+    for (size_t i = 0; i < 3; ++i) {
+      if (dirichlet_boundary_ && vertices[Vids[i]]->on_domain_boundary)
+        continue;
       for (size_t j = 0; j < 3; ++j) {
+        if (dirichlet_boundary_ && vertices[Vids[j]]->on_domain_boundary)
+          continue;
         triplets.emplace_back(Vids[i], Vids[j], element_mat(i, j));
       }
+    }
   }
   matrix_.setFromTriplets(triplets.begin(), triplets.end());
 }
@@ -67,6 +73,8 @@ template <typename ForwardOp>
 MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
     const TriangulationView &triang, bool dirichlet_boundary, size_t time_level)
     : BackwardOperator(triang, dirichlet_boundary, time_level),
+      triang_mat_(ForwardOp(triang, dirichlet_boundary, time_level)
+                      .MatrixSingleScale()),
       // Note that this will leave initial_triang_solver_ with dangling
       // reference, but it doesn't matter for our purpose..
       initial_triang_solver_(triang.InitialTriangulationView(),
@@ -101,6 +109,9 @@ std::vector<std::pair<size_t, double>>
 MultigridPreconditioner<ForwardOp>::RowMatrix(
     const MultilevelPatches &mg_triang, size_t vertex) const {
   assert(mg_triang.ContainsVertex(vertex));
+  auto &vertices = triang_.vertices();
+  if (dirichlet_boundary_) assert(!vertices[vertex]->on_domain_boundary);
+
   auto &patch = mg_triang.patches()[vertex];
   std::vector<std::pair<size_t, double>> result;
   result.reserve(patch.size() * 3);
@@ -110,6 +121,9 @@ MultigridPreconditioner<ForwardOp>::RowMatrix(
     for (size_t i = 0; i < 3; ++i) {
       if (Vids[i] != vertex) continue;
       for (size_t j = 0; j < 3; ++j) {
+        // If this is the inner product with a boundary dof, skip.
+        if (dirichlet_boundary_ && vertices[Vids[j]]->on_domain_boundary)
+          continue;
         result.emplace_back(Vids[j], elem_mat(i, j));
       }
     }
@@ -120,71 +134,134 @@ MultigridPreconditioner<ForwardOp>::RowMatrix(
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     Eigen::VectorXd &rhs) const {
+  Eigen::SparseMatrix<double> mat_coarse =
+      ForwardOp(triang_.InitialTriangulationView(), dirichlet_boundary_)
+          .MatrixSingleScale();
+
+  std::cout << mat_coarse << std::endl;
   // TODO: multiple cycles.
   // TODO: V-cycle.
-  size_t V = triang_.vertices().size();
+  auto &vertices = triang_.vertices();
+  size_t V = vertices.size();
+  Eigen::VectorXd rhs_copy = rhs;
 
-  // Step 1: Restrict rhs down to the initial mesh.
-  for (int vi = V - 1; vi >= triang_.InitialVertices(); --vi) Restrict(vi, rhs);
+  // Take the rhs as initial guess.
+  Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
 
-  // Step 2: Perform an exact solve on this coarsest mesh.
-  Eigen::VectorXd rhs_0 = rhs.head(triang_.InitialVertices());
-  Eigen::VectorXd u = rhs_0;
-  initial_triang_solver_.ApplySingleScale(u);
-  u.resize(V);
-  for (int vi = triang_.InitialVertices(); vi < V; ++vi) u[vi] = 0;
-  std::cout << u << std::endl;
+  std::cout << "\nEvaluating MultiGridPreconditioner for rhs given by\n";
+  for (int vi = 0; vi < V; vi++)
+    std::cout << "\trhs[" << vi << "] = " << rhs[vi] << " for vertex "
+              << vertices[vi]->x << ", " << vertices[vi]->y << std::endl;
+  std::cout << std::endl;
 
-  // Step 3: Walk back up.
-  auto mg_triang = MultilevelPatches::FromCoarsestTriangulation(triang_);
-  for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
-    assert(mg_triang.CanRefine());
-    mg_triang.Refine();
+  // Do a cycle.
+  for (size_t cycle = 0; cycle < 10; cycle++) {
+    std::cout << " --- Cycle " << cycle + 1 << " --- " << std::endl;
 
-    // Prolongate the current solution to the next level.
-    Prolongate(vertex, u);
+    // alculate the inner products of the current approximation.
+    Eigen::VectorXd u_ip = triang_mat_ * u;
 
-    // Calculate the RHS inner products on the next level.
-    RestrictInverse(vertex, rhs);
+    std::cout << "\nCurrent estimated solution  \n";
+    for (int vi = 0; vi < V; vi++)
+      std::cout << "\tu[" << vi << "] = " << u[vi] << "\tu_ip[" << vi
+                << "] = " << u_ip[vi] << std::endl;
+    std::cout << std::endl;
 
-    // Find vertex + its grandparents.
-    auto grandparents = triang_.history(vertex)[0]->RefinementEdge();
-    std::array<size_t, 3> verts{vertex, grandparents[0], grandparents[1]};
+    // Create the corrections obtained in this cycle.
+    Eigen::VectorXd e = Eigen::VectorXd::Zero(V);
 
-    // Step 4: Calculate corrections for these three vertices.
-    for (size_t vi : verts) {
-      // If this vertex is on the boundary, we can simply skip the correction.
-      if (dirichlet_boundary_ && triang_.vertices()[vi]->on_domain_boundary)
-        continue;
+    // Copy back the original rhs.
+    rhs = rhs_copy;
 
-      // Get the row of the matrix associated vi on this level.
-      auto row_mat = RowMatrix(mg_triang, vi);
-
-      // Calculate a(phi_vi, phi_vi) and a(u, phi_vi).
-      double a_phi_vi_phi_vi = 0;
-      double a_u_phi_vi = 0;
-      for (auto [vj, val] : row_mat) {
-        // If this is the inner product with a boundary dof, skip.
-        if (dirichlet_boundary_ && triang_.vertices()[vj]->on_domain_boundary)
-          continue;
-
-        // Calculate the inner product with itself.
-        if (vj == vi) a_phi_vi_phi_vi += 1 * val;
-
-        // Calculate the inner product between u and phi_vi.
-        a_u_phi_vi += u[vj] * val;
-      }
-
-      // Calculate the correction in phi_vi.
-      double e_i = (rhs[vi] - a_u_phi_vi) / a_phi_vi_phi_vi;
-      std::cout << "Correction " << vi << " which is " << u[vi] << " with "
-                << e_i << " we have a(vi, vi) = " << a_phi_vi_phi_vi
-                << " and a(u, phi_vi) = " << a_u_phi_vi << std::endl;
-      u[vi] += e_i;
-
-      if (dirichlet_boundary_ && triang_.vertices()[vi]->on_domain_boundary)
-        assert(u[vi] == 0);
+    // Step 1: Restrict rhs/u down to the initial mesh.
+    for (int vi = V - 1; vi >= triang_.InitialVertices(); --vi) {
+      Restrict(vi, rhs);
+      Restrict(vi, u_ip);
     }
+
+    // Step 2: Perform an exact solve on this coarsest mesh.
+    Eigen::VectorXd e_0 = rhs.head(triang_.InitialVertices()) -
+                          u_ip.head(triang_.InitialVertices());
+    std::cout << "e_0 before solve" << e_0 << std::endl;
+    initial_triang_solver_.ApplySingleScale(e_0);
+    std::cout << "e_0 after solve" << e_0 << std::endl;
+
+    // Add this correction.
+    e.head(triang_.InitialVertices()) = e_0;
+
+    std::cout << "\nEstimated solution after solving on initial mesh \n";
+    for (int vi = 0; vi < V; vi++)
+      std::cout << "\tu[" << vi << "]  + e[" << vi << "] = " << u[vi] + e[vi]
+                << "\tu_ip[" << vi << "] = " << u_ip[vi] << std::endl;
+    std::cout << std::endl;
+
+    // Step 3: Walk back up and do 1-dimensional corrections.
+    auto mg_triang = MultilevelPatches::FromCoarsestTriangulation(triang_);
+    for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
+      assert(mg_triang.CanRefine());
+      mg_triang.Refine();
+
+      // Prolongate the current correction to the next level.
+      Prolongate(vertex, e);
+
+      // Calculate the RHS/u inner products on the next level.
+      RestrictInverse(vertex, rhs);
+      RestrictInverse(vertex, u_ip);
+
+      // Find vertex + its grandparents.
+      auto grandparents = triang_.history(vertex)[0]->RefinementEdge();
+      std::array<size_t, 3> verts{vertex, grandparents[0], grandparents[1]};
+      std::cout
+          << "\nCalculating corrections for mesh generated by adding vertex "
+          << vertex << std::endl;
+      std::cout << "\nCurrent estimated solution  \n";
+      for (int vi = 0; vi < V; vi++)
+        std::cout << "\tu[" << vi << "]  + e[" << vi << "] = " << u[vi] + e[vi]
+                  << "\tu_ip[" << vi << "] = " << u_ip[vi] << std::endl;
+      std::cout << std::endl;
+      // Step 4: Calculate corrections for these three vertices.
+      for (size_t vi : verts) {
+        // If this vertex is on the boundary, we can simply skip the correction.
+        if (dirichlet_boundary_ && vertices[vi]->on_domain_boundary) continue;
+
+        // Get the row of the matrix associated vi on this level.
+        auto row_mat = RowMatrix(mg_triang, vi);
+
+        // Calculate a(phi_vi, phi_vi) and a(e, phi_vi).
+        double a_phi_vi_phi_vi = 0;
+        double a_e_phi_vi = 0;
+        for (auto [vj, val] : row_mat) {
+          if (dirichlet_boundary_) assert(!vertices[vj]->on_domain_boundary);
+
+          // Calculate the inner product with itself.
+          if (vj == vi) a_phi_vi_phi_vi += 1 * val;
+
+          // Calculate the inner product between e and phi_vi.
+          a_e_phi_vi += e[vj] * val;
+        }
+
+        // Calculate the correction in phi_vi.
+        double e_i = (rhs[vi] - u_ip[vi] - a_e_phi_vi) / a_phi_vi_phi_vi;
+        std::cout << "Correction at " << vertices[vi]->x << ", "
+                  << vertices[vi]->y << "\n\tu_ip[vi] = " << u_ip[vi]
+                  << "\n\ta(phi_vi, phi_vi) = " << a_phi_vi_phi_vi
+                  << "\n\trhs[vi] = " << rhs[vi]
+                  << "\n\ta(e, phi_vi) = " << a_e_phi_vi << std::endl
+                  << "\n\te_i = " << e_i << std::endl;
+
+        // Add this correction
+        e[vi] += e_i;
+
+        if (dirichlet_boundary_ && vertices[vi]->on_domain_boundary)
+          assert(e[vi] == 0 && u[vi] == 0 && u_ip[vi]);
+      }
+    }
+
+    // Sanity check.
+    assert(rhs.isApprox(rhs_copy));
+
+    // Set a new best guess.
+    u += e;
   }
 
   rhs = u;
