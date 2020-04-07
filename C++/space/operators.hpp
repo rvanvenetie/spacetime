@@ -133,7 +133,6 @@ class MultigridPreconditioner : public BackwardOperator {
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
  protected:
-  ForwardOp forward_op_;
   Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> >
       coarsest_solver_;
 };

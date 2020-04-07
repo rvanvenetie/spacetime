@@ -1,7 +1,5 @@
 #include "operators.hpp"
 
-#include <boost/range/adaptor/reversed.hpp>
-
 #include "datastructures/multi_tree_view.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"

@@ -42,8 +42,7 @@ void CGInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 template <typename ForwardOp>
 MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
     const TriangulationView &triang, bool dirichlet_boundary, size_t time_level)
-    : BackwardOperator(triang, dirichlet_boundary, time_level),
-      forward_op_(triang, dirichlet_boundary, time_level) {
+    : BackwardOperator(triang, dirichlet_boundary, time_level) {
   auto coarsest_matrix = ForwardOp(triang.InitialTriangulationView(),
                                    dirichlet_boundary, time_level)
                              .MatrixSingleScale();
