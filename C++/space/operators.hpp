@@ -166,8 +166,7 @@ class MultigridPreconditioner : public BackwardOperator {
   inline std::vector<std::pair<size_t, double>> RowMatrix(
       const MultilevelPatches &mg_triang, size_t vertex) const;
 
-  Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>>
-      coarsest_solver_;
+  DirectInverse<ForwardOp> initial_triang_solver_;
 };
 
 template <template <typename> class InverseOp>

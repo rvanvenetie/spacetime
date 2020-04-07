@@ -66,17 +66,16 @@ void CGInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 template <typename ForwardOp>
 MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
     const TriangulationView &triang, bool dirichlet_boundary, size_t time_level)
-    : BackwardOperator(triang, dirichlet_boundary, time_level) {
-  auto coarsest_matrix = ForwardOp(triang.InitialTriangulationView(),
-                                   dirichlet_boundary, time_level)
-                             .MatrixSingleScale();
-  coarsest_solver_.analyzePattern(coarsest_matrix);
-  coarsest_solver_.factorize(coarsest_matrix);
-}
+    : BackwardOperator(triang, dirichlet_boundary, time_level),
+      // Note that this will leave initial_triang_solver_ with dangling
+      // reference, but it doesn't matter for our purpose..
+      initial_triang_solver_(triang.InitialTriangulationView(),
+                             dirichlet_boundary, time_level) {}
 
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::Prolongate(
     size_t vertex, Eigen::VectorXd &vec_SS) const {
+  assert(!triang_.history(vertex).empty());
   for (auto gp : triang_.history(vertex)[0]->RefinementEdge())
     vec_SS[vertex] += 0.5 * vec_SS[gp];
 }
@@ -84,6 +83,7 @@ void MultigridPreconditioner<ForwardOp>::Prolongate(
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::Restrict(
     size_t vertex, Eigen::VectorXd &vec_SS) const {
+  assert(!triang_.history(vertex).empty());
   for (auto gp : triang_.history(vertex)[0]->RefinementEdge())
     vec_SS[gp] += 0.5 * vec_SS[vertex];
 }
@@ -91,6 +91,7 @@ void MultigridPreconditioner<ForwardOp>::Restrict(
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::RestrictInverse(
     size_t vertex, Eigen::VectorXd &vec_SS) const {
+  assert(!triang_.history(vertex).empty());
   for (auto gp : triang_.history(vertex)[0]->RefinementEdge())
     vec_SS[gp] -= 0.5 * vec_SS[vertex];
 }
@@ -100,7 +101,6 @@ std::vector<std::pair<size_t, double>>
 MultigridPreconditioner<ForwardOp>::RowMatrix(
     const MultilevelPatches &mg_triang, size_t vertex) const {
   assert(mg_triang.ContainsVertex(vertex));
-
   auto &patch = mg_triang.patches()[vertex];
   std::vector<std::pair<size_t, double>> result;
   result.reserve(patch.size() * 3);
@@ -125,13 +125,15 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
   size_t V = triang_.vertices().size();
 
   // Step 1: Restrict rhs down to the initial mesh.
-  int vi = V - 1;
-  for (; vi >= triang_.InitialVertices(); --vi) Restrict(vi, rhs);
+  for (int vi = V - 1; vi >= triang_.InitialVertices(); --vi) Restrict(vi, rhs);
 
   // Step 2: Perform an exact solve on this coarsest mesh.
   Eigen::VectorXd rhs_0 = rhs.head(triang_.InitialVertices());
-  Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
-  u.head(triang_.InitialVertices()) = coarsest_solver_.solve(rhs_0);
+  Eigen::VectorXd u = rhs_0;
+  initial_triang_solver_.ApplySingleScale(u);
+  u.resize(V);
+  for (int vi = triang_.InitialVertices(); vi < V; ++vi) u[vi] = 0;
+  std::cout << u << std::endl;
 
   // Step 3: Walk back up.
   auto mg_triang = MultilevelPatches::FromCoarsestTriangulation(triang_);
@@ -139,12 +141,22 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     assert(mg_triang.CanRefine());
     mg_triang.Refine();
 
+    // Prolongate the current solution to the next level.
+    Prolongate(vertex, u);
+
+    // Calculate the RHS inner products on the next level.
+    RestrictInverse(vertex, rhs);
+
     // Find vertex + its grandparents.
     auto grandparents = triang_.history(vertex)[0]->RefinementEdge();
     std::array<size_t, 3> verts{vertex, grandparents[0], grandparents[1]};
 
     // Step 4: Calculate corrections for these three vertices.
     for (size_t vi : verts) {
+      // If this vertex is on the boundary, we can simply skip the correction.
+      if (dirichlet_boundary_ && triang_.vertices()[vi]->on_domain_boundary)
+        continue;
+
       // Get the row of the matrix associated vi on this level.
       auto row_mat = RowMatrix(mg_triang, vi);
 
@@ -152,6 +164,10 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       double a_phi_vi_phi_vi = 0;
       double a_u_phi_vi = 0;
       for (auto [vj, val] : row_mat) {
+        // If this is the inner product with a boundary dof, skip.
+        if (dirichlet_boundary_ && triang_.vertices()[vj]->on_domain_boundary)
+          continue;
+
         // Calculate the inner product with itself.
         if (vj == vi) a_phi_vi_phi_vi += 1 * val;
 
@@ -161,14 +177,14 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
       // Calculate the correction in phi_vi.
       double e_i = (rhs[vi] - a_u_phi_vi) / a_phi_vi_phi_vi;
+      std::cout << "Correction " << vi << " which is " << u[vi] << " with "
+                << e_i << " we have a(vi, vi) = " << a_phi_vi_phi_vi
+                << " and a(u, phi_vi) = " << a_u_phi_vi << std::endl;
       u[vi] += e_i;
+
+      if (dirichlet_boundary_ && triang_.vertices()[vi]->on_domain_boundary)
+        assert(u[vi] == 0);
     }
-
-    // Porlongate the current solution to the next level.
-    Prolongate(vi, u);
-
-    // Calculate the RHS inner products on the next level.
-    RestrictInverse(vi, rhs);
   }
 
   rhs = u;

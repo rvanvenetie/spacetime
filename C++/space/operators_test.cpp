@@ -116,27 +116,29 @@ TEST(MultiGridOperator, RestrictProlongate) {
 }
 
 TEST(MultiGridOperator, CoarsestMesh) {
-  auto T = InitialTriangulation::UnitSquare(2);
-  T.hierarch_basis_tree.UniformRefine(1);
+  for (size_t initial_ref = 0; initial_ref < 4; initial_ref++) {
+    auto T = InitialTriangulation::UnitSquare(initial_ref);
+    T.hierarch_basis_tree.UniformRefine(1);
 
-  // Create a subtree with only vertices on coarset mesh.
-  auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
-  vertex_subtree.UniformRefine(0);
+    // Create a subtree with only vertices on coarset mesh.
+    auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
+    vertex_subtree.UniformRefine(0);
 
-  TriangulationView triang(vertex_subtree);
-  auto mg_op = MultigridPreconditioner<MassOperator>(triang);
-  auto mass_op = MassOperator(triang);
-  size_t V = triang.vertices().size();
+    TriangulationView triang(vertex_subtree);
+    auto mg_op = MultigridPreconditioner<MassOperator>(triang);
+    auto mass_op = MassOperator(triang);
+    size_t V = triang.vertices().size();
 
-  for (int i = 0; i < 10; i++) {
-    Eigen::VectorXd vec(V);
-    vec.setRandom();
-    for (int v = 0; v < triang.vertices().size(); v++)
-      if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
-    Eigen::VectorXd vec_copy = vec;
-    mass_op.Apply(vec);
-    mg_op.Apply(vec);
-    ASSERT_TRUE(vec.isApprox(vec_copy));
+    for (int i = 0; i < 10; i++) {
+      Eigen::VectorXd vec(V);
+      vec.setRandom();
+      for (int v = 0; v < triang.vertices().size(); v++)
+        if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+      Eigen::VectorXd vec_copy = vec;
+      mass_op.Apply(vec);
+      mg_op.Apply(vec);
+      ASSERT_TRUE(vec.isApprox(vec_copy));
+    }
   }
 }
 
@@ -158,11 +160,13 @@ TEST(MultiGridOperator, MultilevelMesh) {
   for (int i = 0; i < 10; i++) {
     Eigen::VectorXd vec(V);
     vec.setRandom();
-    // for (int v = 0; v < triang.vertices().size(); v++)
-    //  if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+    for (int v = 0; v < triang.vertices().size(); v++)
+      if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
     Eigen::VectorXd vec_copy = vec;
     mass_op.Apply(vec);
     mg_op.Apply(vec);
+    std::cerr << "vec" << std::endl << vec << std::endl;
+    std::cerr << "vec_copy" << std::endl << vec_copy << std::endl;
     ASSERT_TRUE(vec.isApprox(vec_copy));
   }
 }
