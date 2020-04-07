@@ -1,8 +1,10 @@
 #pragma once
 #include <Eigen/Sparse>
 #include <Eigen/SparseLU>
+#include <vector>
 
 #include "basis.hpp"
+#include "multilevel_patches.hpp"
 #include "triangulation_view.hpp"
 
 namespace space {
@@ -154,8 +156,17 @@ class MultigridPreconditioner : public BackwardOperator {
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
+  inline void Prolongate(size_t vertex, Eigen::VectorXd &vec_SS) const;
+  inline void Restrict(size_t vertex, Eigen::VectorXd &vec_SS) const;
+  inline void RestrictInverse(size_t vertex, Eigen::VectorXd &vec_SS) const;
+
  protected:
-  Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> >
+  // Returns a row of the _forward_ matrix on the given multilevel triang.
+  // NOTE: The result is not compressed.
+  inline std::vector<std::pair<size_t, double>> RowMatrix(
+      const MultilevelPatches &mg_triang, size_t vertex) const;
+
+  Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>>
       coarsest_solver_;
 };
 

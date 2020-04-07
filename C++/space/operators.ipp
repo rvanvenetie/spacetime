@@ -14,11 +14,11 @@ ForwardMatrix<ForwardOp>::ForwardMatrix(const TriangulationView &triang,
   for (const auto &elem : triang_.elements()) {
     if (!elem->is_leaf()) continue;
     auto &Vids = elem->vertices_view_idx_;
-    auto element_mass = ForwardOp::ElementMatrix(elem, time_level);
+    auto element_mat = ForwardOp::ElementMatrix(elem, time_level);
 
     for (size_t i = 0; i < 3; ++i)
       for (size_t j = 0; j < 3; ++j) {
-        triplets.emplace_back(Vids[i], Vids[j], element_mass(i, j));
+        triplets.emplace_back(Vids[i], Vids[j], element_mat(i, j));
       }
   }
   matrix_.setFromTriplets(triplets.begin(), triplets.end());
@@ -75,37 +75,103 @@ MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
 }
 
 template <typename ForwardOp>
+void MultigridPreconditioner<ForwardOp>::Prolongate(
+    size_t vertex, Eigen::VectorXd &vec_SS) const {
+  for (auto gp : triang_.history(vertex)[0]->RefinementEdge())
+    vec_SS[vertex] += 0.5 * vec_SS[gp];
+}
+
+template <typename ForwardOp>
+void MultigridPreconditioner<ForwardOp>::Restrict(
+    size_t vertex, Eigen::VectorXd &vec_SS) const {
+  for (auto gp : triang_.history(vertex)[0]->RefinementEdge())
+    vec_SS[gp] += 0.5 * vec_SS[vertex];
+}
+
+template <typename ForwardOp>
+void MultigridPreconditioner<ForwardOp>::RestrictInverse(
+    size_t vertex, Eigen::VectorXd &vec_SS) const {
+  for (auto gp : triang_.history(vertex)[0]->RefinementEdge())
+    vec_SS[gp] -= 0.5 * vec_SS[vertex];
+}
+
+template <typename ForwardOp>
+std::vector<std::pair<size_t, double>>
+MultigridPreconditioner<ForwardOp>::RowMatrix(
+    const MultilevelPatches &mg_triang, size_t vertex) const {
+  assert(mg_triang.ContainsVertex(vertex));
+
+  auto &patch = mg_triang.patches()[vertex];
+  std::vector<std::pair<size_t, double>> result;
+  result.reserve(patch.size() * 3);
+  for (auto elem : patch) {
+    auto &Vids = elem->vertices_view_idx_;
+    auto elem_mat = ForwardOp::ElementMatrix(elem, time_level_);
+    for (size_t i = 0; i < 3; ++i) {
+      if (Vids[i] != vertex) continue;
+      for (size_t j = 0; j < 3; ++j) {
+        result.emplace_back(Vids[j], elem_mat(i, j));
+      }
+    }
+  }
+  return result;
+}
+
+template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
-    Eigen::VectorXd &vec_SS) const {
+    Eigen::VectorXd &rhs) const {
   // TODO: multiple cycles.
   // TODO: V-cycle.
   size_t V = triang_.vertices().size();
 
-  // Step 1: restrict vec_SS down to the initial mesh.
+  // Step 1: Restrict rhs down to the initial mesh.
   int vi = V - 1;
-  for (; vi >= triang_.InitialVertices(); --vi)
-    for (auto gp : triang_.history(vi)[0]->RefinementEdge())
-      vec_SS[gp] += 0.5 * vec_SS[vi];
+  for (; vi >= triang_.InitialVertices(); --vi) Restrict(vi, rhs);
 
-  // Perform an exact solve on this coarsest mesh.
-  Eigen::VectorXd v0 = vec_SS.head(triang_.InitialVertices());
-  Eigen::VectorXd u = coarsest_solver_.solve(v0);
-  u.resize(V);
+  // Step 2: Perform an exact solve on this coarsest mesh.
+  Eigen::VectorXd rhs_0 = rhs.head(triang_.InitialVertices());
+  Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
+  u.head(triang_.InitialVertices()) = coarsest_solver_.solve(rhs_0);
 
-  // Now walk back up.
-  for (int vi = triang_.InitialVertices(); vi < V; ++vi) {
-    // Perform Chinese magic on this level.
-    double a_u_phi_i = 1.0;      // TODO
-    double a_phi_i_phi_i = 1.0;  // TODO
-    double c_i = (vec_SS[vi] - a_u_phi_i) / a_phi_i_phi_i;
-    u[vi] += c_i;
+  // Step 3: Walk back up.
+  auto mg_triang = MultilevelPatches::FromCoarsestTriangulation(triang_);
+  for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
+    assert(mg_triang.CanRefine());
+    mg_triang.Refine();
 
-    for (auto gp : triang_.history(vi)[0]->RefinementEdge()) {
-      // Prolongate RHS and current solution to next level.
-      vec_SS[gp] -= 0.5 * vec_SS[vi];
-      u[gp] -= 0.5 * u[vi];
+    // Find vertex + its grandparents.
+    auto grandparents = triang_.history(vertex)[0]->RefinementEdge();
+    std::array<size_t, 3> verts{vertex, grandparents[0], grandparents[1]};
+
+    // Step 4: Calculate corrections for these three vertices.
+    for (size_t vi : verts) {
+      // Get the row of the matrix associated vi on this level.
+      auto row_mat = RowMatrix(mg_triang, vi);
+
+      // Calculate a(phi_vi, phi_vi) and a(u, phi_vi).
+      double a_phi_vi_phi_vi = 0;
+      double a_u_phi_vi = 0;
+      for (auto [vj, val] : row_mat) {
+        // Calculate the inner product with itself.
+        if (vj == vi) a_phi_vi_phi_vi += 1 * val;
+
+        // Calculate the inner product between u and phi_vi.
+        a_u_phi_vi += u[vj] * val;
+      }
+
+      // Calculate the correction in phi_vi.
+      double e_i = (rhs[vi] - a_u_phi_vi) / a_phi_vi_phi_vi;
+      u[vi] += e_i;
     }
+
+    // Porlongate the current solution to the next level.
+    Prolongate(vi, u);
+
+    // Calculate the RHS inner products on the next level.
+    RestrictInverse(vi, rhs);
   }
+
+  rhs = u;
 }
 
 template <template <typename> class InverseOp>

@@ -17,6 +17,8 @@ class MultilevelPatches {
   bool CanRefine() const { return vi_ < triang_.vertices().size(); }
   bool CanCoarsen() const { return vi_ > triang_.InitialVertices(); }
 
+  bool ContainsVertex(size_t vertex) const { return vertex < vi_; }
+
   // Return the patches as currently stored inside this object.
   const std::vector<std::set<Element2DView *>> &patches() const {
     return patches_;
