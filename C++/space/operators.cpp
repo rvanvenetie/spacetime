@@ -16,7 +16,7 @@ void ForwardOperator::Apply(Eigen::VectorXd &v) const {
   if (dirichlet_boundary_) ApplyBoundaryConditions(v);
 
   ApplyHierarchToSingle(v);
-  v = MatrixSingleScale() * v;
+  ApplySingleScale(v);
   ApplyTransposeHierarchToSingle(v);
 
   if (dirichlet_boundary_) ApplyBoundaryConditions(v);
@@ -84,66 +84,29 @@ void BackwardOperator::Apply(Eigen::VectorXd &v) const {
   if (dirichlet_boundary_) ApplyBoundaryConditions(v);
 }
 
-MassOperator::MassOperator(const TriangulationView &triang,
-                           bool dirichlet_boundary, size_t time_level)
-    : ForwardOperator(triang, dirichlet_boundary, time_level) {
-  matrix_ = Eigen::SparseMatrix<double>(triang_.vertices().size(),
-                                        triang_.vertices().size());
-  static const Eigen::Matrix3d element_mass =
-      1.0 / 12.0 * (Eigen::Matrix3d() << 2, 1, 1, 1, 2, 1, 1, 1, 2).finished();
-
-  std::vector<Eigen::Triplet<double>> triplets;
-  triplets.reserve(triang_.elements().size() * 3);
-
-  for (const auto &elem : triang_.elements()) {
-    if (!elem->is_leaf()) continue;
-    auto &Vids = elem->vertices_view_idx_;
-    for (size_t i = 0; i < 3; ++i)
-      for (size_t j = 0; j < 3; ++j) {
-        triplets.emplace_back(Vids[i], Vids[j],
-                              element_mass(i, j) * elem->node()->area());
-      }
-  }
-  matrix_.setFromTriplets(triplets.begin(), triplets.end());
+Eigen::Matrix3d MassOperator::ElementMatrix(const Element2DView *elem,
+                                            size_t time_level) {
+  return elem->node()->area() / 12.0 *
+         (Eigen::Matrix3d() << 2, 1, 1, 1, 2, 1, 1, 1, 2).finished();
 }
 
-StiffnessOperator::StiffnessOperator(const TriangulationView &triang,
-                                     bool dirichlet_boundary, size_t time_level)
-    : ForwardOperator(triang, dirichlet_boundary, time_level) {
-  matrix_ = Eigen::SparseMatrix<double>(triang_.vertices().size(),
-                                        triang_.vertices().size());
+Eigen::Matrix3d StiffnessOperator::ElementMatrix(const Element2DView *elem,
+                                                 size_t time_level) {
+  Eigen::Vector2d v0, v1, v2;
 
-  std::vector<Eigen::Triplet<double>> triplets;
-  triplets.reserve(triang_.elements().size() * 3);
-
-  for (const auto &elem : triang_.elements()) {
-    if (!elem->is_leaf()) continue;
-    auto &Vids = elem->vertices_view_idx_;
-    Eigen::Vector2d v0, v1, v2;
-
-    v0 << elem->node()->vertices()[0]->x, elem->node()->vertices()[0]->y;
-    v1 << elem->node()->vertices()[1]->x, elem->node()->vertices()[1]->y;
-    v2 << elem->node()->vertices()[2]->x, elem->node()->vertices()[2]->y;
-    Eigen::Matrix<double, 3, 2> D;
-    D << v2[0] - v1[0], v2[1] - v1[1], v0[0] - v2[0], v0[1] - v2[1],
-        v1[0] - v0[0], v1[1] - v0[1];
-    Eigen::Matrix3d elem_stiff =
-        D * D.transpose() / (4.0 * elem->node()->area());
-
-    for (size_t i = 0; i < 3; ++i)
-      for (size_t j = 0; j < 3; ++j)
-        triplets.emplace_back(Vids[i], Vids[j], elem_stiff(i, j));
-  }
-  matrix_.setFromTriplets(triplets.begin(), triplets.end());
+  v0 << elem->node()->vertices()[0]->x, elem->node()->vertices()[0]->y;
+  v1 << elem->node()->vertices()[1]->x, elem->node()->vertices()[1]->y;
+  v2 << elem->node()->vertices()[2]->x, elem->node()->vertices()[2]->y;
+  Eigen::Matrix<double, 3, 2> D;
+  D << v2[0] - v1[0], v2[1] - v1[1], v0[0] - v2[0], v0[1] - v2[1],
+      v1[0] - v0[0], v1[1] - v0[1];
+  return D * D.transpose() / (4.0 * elem->node()->area());
 }
 
-StiffPlusScaledMassOperator::StiffPlusScaledMassOperator(
-    const TriangulationView &triang, bool dirichlet_boundary, size_t time_level)
-    : ForwardOperator(triang, dirichlet_boundary, time_level) {
-  auto stiff =
-      StiffnessOperator(triang, dirichlet_boundary).MatrixSingleScale();
-  auto mass = MassOperator(triang, dirichlet_boundary).MatrixSingleScale();
-  matrix_ = stiff + pow(2.0, time_level) * mass;
+Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
+    const Element2DView *elem, size_t time_level) {
+  return MassOperator::ElementMatrix(elem) +
+         pow(2.0, time_level) * StiffnessOperator::ElementMatrix(elem);
 }
 
 }  // namespace space
