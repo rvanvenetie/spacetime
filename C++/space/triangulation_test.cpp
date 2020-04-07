@@ -202,4 +202,27 @@ TEST(Triangulation, BarycentricCoordinates) {
   }
 }
 
+TEST(Triangulation, InitialRefinement) {
+  auto T_0 = InitialTriangulation::UnitSquare();
+  auto T_2 = InitialTriangulation::UnitSquare();
+  T_2.elem_tree.UniformRefine(2);
+  auto T_4 = InitialTriangulation::UnitSquare();
+  T_4.elem_tree.UniformRefine(4);
+
+  auto T_init_2 = InitialTriangulation::UnitSquare(2);
+  size_t T_2_leaf_count = 0;
+  for (auto elem : T_2.elem_tree.Bfs())
+    if (elem->is_leaf()) T_2_leaf_count++;
+  ASSERT_EQ(T_init_2.elem_tree.Bfs().size(), T_2_leaf_count);
+
+  T_init_2.elem_tree.UniformRefine(2);
+  size_t T_4_leaf_count = 0;
+  for (auto elem : T_4.elem_tree.Bfs())
+    if (elem->is_leaf()) T_4_leaf_count++;
+  size_t bla_count = 0;
+  for (auto elem : T_init_2.elem_tree.Bfs())
+    if (elem->is_leaf()) bla_count++;
+  ASSERT_EQ(bla_count, T_4_leaf_count);
+}
+
 }  // namespace space
