@@ -17,6 +17,7 @@ class Operator {
 
   virtual ~Operator() {}
 
+  // Apply the operator in the hierarchical basis.
   virtual void Apply(Eigen::VectorXd &vec_in) const = 0;
 
  protected:
@@ -31,25 +32,46 @@ class Operator {
 class ForwardOperator : public Operator {
  public:
   using Operator::Operator;
+
+  // Apply the operator in the hierarchical basis.
   virtual void Apply(Eigen::VectorXd &vec_in) const final;
 
+  // Apply the operator in single scale, to be implemented by derived.
+  virtual void ApplySingleScale(Eigen::VectorXd &vec_SS) const = 0;
+
+ protected:
+  // Hierarhical Basis Transformations from HB to SS, and its transpose.
+  void ApplyHierarchToSingle(Eigen::VectorXd &vec_HB) const;
+  void ApplyTransposeHierarchToSingle(Eigen::VectorXd &vec_SS) const;
+};
+
+// ForwardOperator where aply is done using a sparse matrix.
+template <typename ForwardOp>
+class ForwardMatrix : public ForwardOperator {
+ public:
+  ForwardMatrix(const TriangulationView &triang, bool dirichlet_boundary = true,
+                size_t time_level = 0);
+
+  virtual void ApplySingleScale(Eigen::VectorXd &vec_SS) const final {
+    vec_SS = matrix_ * vec_SS;
+  }
   const Eigen::SparseMatrix<double> &MatrixSingleScale() const {
     return matrix_;
   }
 
  protected:
   Eigen::SparseMatrix<double> matrix_;
-
-  // Hierarhical Basis Transformations from HB to SS, and its transpose.
-  void ApplyHierarchToSingle(Eigen::VectorXd &vec_HB) const;
-  void ApplyTransposeHierarchToSingle(Eigen::VectorXd &vec_SS) const;
 };
 
 class BackwardOperator : public Operator {
  public:
   BackwardOperator(const TriangulationView &triang,
                    bool dirichlet_boundary = true, size_t time_level = 0);
+
+  // Apply the operator in the hierarchical basis.
   virtual void Apply(Eigen::VectorXd &vec_in) const final;
+
+  // Apply the operator in single scale, to be implemented by derived.
   virtual void ApplySingleScale(Eigen::VectorXd &vec_SS) const = 0;
 
  protected:
@@ -65,33 +87,35 @@ class BackwardOperator : public Operator {
 /**
  *  Implementation of the actual operators.
  */
-
-class MassOperator : public ForwardOperator {
+class MassOperator : public ForwardMatrix<MassOperator> {
  public:
-  MassOperator(const TriangulationView &triang, bool dirichlet_boundary = true,
-               size_t time_level = 0);
+  // Inherit constructor.
+  using ForwardMatrix<MassOperator>::ForwardMatrix;
 
- protected:
-  using ForwardOperator::matrix_;
+  // Returns the element matrix for the given element.
+  static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+                                       size_t time_level = 0);
 };
 
-class StiffnessOperator : public ForwardOperator {
+class StiffnessOperator : public ForwardMatrix<StiffnessOperator> {
  public:
-  StiffnessOperator(const TriangulationView &triang,
-                    bool dirichlet_boundary = true, size_t time_level = 0);
+  // Inherit constructor.
+  using ForwardMatrix<StiffnessOperator>::ForwardMatrix;
 
- protected:
-  using ForwardOperator::matrix_;
+  // Returns the element matrix for the given element.
+  static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+                                       size_t time_level = 0);
 };
 
-class StiffPlusScaledMassOperator : public ForwardOperator {
+class StiffPlusScaledMassOperator
+    : public ForwardMatrix<StiffPlusScaledMassOperator> {
  public:
-  StiffPlusScaledMassOperator(const TriangulationView &triang,
-                              bool dirichlet_boundary = true,
-                              size_t time_level = 0);
+  // Inherit constructor.
+  using ForwardMatrix<StiffPlusScaledMassOperator>::ForwardMatrix;
 
- protected:
-  using ForwardOperator::matrix_;
+  // Returns the element matrix for the given element.
+  static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+                                       size_t time_level);
 };
 
 template <typename ForwardOp>
@@ -103,8 +127,7 @@ class DirectInverse : public BackwardOperator {
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
  protected:
-  ForwardOp forward_op_;
-  Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> >
+  Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>>
       solver_;
 };
 
@@ -117,7 +140,6 @@ class CGInverse : public BackwardOperator {
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
  protected:
-  ForwardOp forward_op_;
   Eigen::ConjugateGradient<Eigen::SparseMatrix<double>,
                            Eigen::Lower | Eigen::Upper>
       solver_;

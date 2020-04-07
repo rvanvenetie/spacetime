@@ -3,13 +3,36 @@
 namespace space {
 
 template <typename ForwardOp>
+ForwardMatrix<ForwardOp>::ForwardMatrix(const TriangulationView &triang,
+                                        bool dirichlet_boundary,
+                                        size_t time_level)
+    : ForwardOperator(triang, dirichlet_boundary, time_level),
+      matrix_(triang_.vertices().size(), triang_.vertices().size()) {
+  std::vector<Eigen::Triplet<double>> triplets;
+  triplets.reserve(triang_.elements().size() * 3);
+
+  for (const auto &elem : triang_.elements()) {
+    if (!elem->is_leaf()) continue;
+    auto &Vids = elem->vertices_view_idx_;
+    auto element_mass = ForwardOp::ElementMatrix(elem, time_level);
+
+    for (size_t i = 0; i < 3; ++i)
+      for (size_t j = 0; j < 3; ++j) {
+        triplets.emplace_back(Vids[i], Vids[j], element_mass(i, j));
+      }
+  }
+  matrix_.setFromTriplets(triplets.begin(), triplets.end());
+}
+
+template <typename ForwardOp>
 DirectInverse<ForwardOp>::DirectInverse(const TriangulationView &triang,
                                         bool dirichlet_boundary,
                                         size_t time_level)
-    : BackwardOperator(triang, dirichlet_boundary, time_level),
-      forward_op_(triang, dirichlet_boundary, time_level) {
+    : BackwardOperator(triang, dirichlet_boundary, time_level) {
   if (transform_.cols() > 0) {
-    auto matrix = transform_ * forward_op_.MatrixSingleScale() * transformT_;
+    auto matrix =
+        ForwardOp(triang, dirichlet_boundary, time_level).MatrixSingleScale();
+    matrix = transform_ * matrix * transformT_;
     solver_.analyzePattern(matrix);
     solver_.factorize(matrix);
   }
@@ -26,9 +49,10 @@ void DirectInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 template <typename ForwardOp>
 CGInverse<ForwardOp>::CGInverse(const TriangulationView &triang,
                                 bool dirichlet_boundary, size_t time_level)
-    : BackwardOperator(triang, dirichlet_boundary, time_level),
-      forward_op_(triang, dirichlet_boundary, time_level) {
-  solver_.compute(transform_ * forward_op_.MatrixSingleScale() * transformT_);
+    : BackwardOperator(triang, dirichlet_boundary, time_level) {
+  auto matrix =
+      ForwardOp(triang, dirichlet_boundary, time_level).MatrixSingleScale();
+  solver_.compute(transform_ * matrix * transformT_);
 }
 
 template <typename ForwardOp>
@@ -47,7 +71,7 @@ template <template <typename> class InverseOp>
 void XPreconditionerOperator<InverseOp>::ApplySingleScale(
     Eigen::VectorXd &vec_SS) const {
   inverse_op_.ApplySingleScale(vec_SS);
-  vec_SS = stiff_op_.MatrixSingleScale() * vec_SS;
+  stiff_op_.ApplySingleScale(vec_SS);
   inverse_op_.ApplySingleScale(vec_SS);
 }
 
