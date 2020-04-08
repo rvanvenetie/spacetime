@@ -104,6 +104,7 @@ TEST(Lanczos, PreconditionedRandom) {
     Eigen::MatrixXd PA = P * A;
     Eigen::VectorXd PA_eig = PA.eigenvalues().real();
 
+    linalg::Lanczos lanczos_A_P(A, P);
     ASSERT_NEAR(lanczos_A_P.min(), PA_eig.minCoeff(), 1e-3);
     ASSERT_NEAR(lanczos_A_P.max(), PA_eig.maxCoeff(), 1e-3);
   }
