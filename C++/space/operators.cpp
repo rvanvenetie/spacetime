@@ -38,12 +38,12 @@ void ForwardOperator::ApplyTransposeHierarchToSingle(VectorXd &w) const {
 BackwardOperator::BackwardOperator(const TriangulationView &triang,
                                    bool dirichlet_boundary, size_t time_level)
     : Operator(triang, dirichlet_boundary, time_level) {
-  assert(dirichlet_boundary);
   std::vector<int> dof_mapping;
   auto vertices = triang.vertices();
   dof_mapping.reserve(vertices.size());
   for (int i = 0; i < vertices.size(); i++)
-    if (!vertices[i]->on_domain_boundary) dof_mapping.push_back(i);
+    if (!dirichlet_boundary || !vertices[i]->on_domain_boundary)
+      dof_mapping.push_back(i);
   if (dof_mapping.size() == 0) return;
 
   std::vector<Eigen::Triplet<double>> triplets, tripletsT;

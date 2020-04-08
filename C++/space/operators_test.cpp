@@ -19,21 +19,25 @@ TEST(Operator, InverseTimesForwardOpIsIdentity) {
 
     // Now create the corresponding element tree
     TriangulationView triang(vertex_view);
-    auto forward_op = StiffnessOperator(triang);
-    auto backward_op = DirectInverse<StiffnessOperator>(triang);
-    for (int i = 0; i < 10; i++) {
-      Eigen::VectorXd vec(triang.vertices().size());
-      vec.setRandom();
-      for (int v = 0; v < triang.vertices().size(); v++)
-        if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
-      Eigen::VectorXd vec2 = vec;
-      forward_op.Apply(vec2);
-      backward_op.Apply(vec2);
-      ASSERT_TRUE(vec2.isApprox(vec));
+    for (bool dirichlet_boundary : {true, false}) {
+      auto forward_op = MassOperator(triang, dirichlet_boundary);
+      auto backward_op =
+          DirectInverse<MassOperator>(triang, dirichlet_boundary);
+      for (int i = 0; i < 10; i++) {
+        Eigen::VectorXd vec(triang.vertices().size());
+        vec.setRandom();
+        if (dirichlet_boundary)
+          for (int v = 0; v < triang.vertices().size(); v++)
+            if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+        Eigen::VectorXd vec2 = vec;
+        forward_op.Apply(vec2);
+        backward_op.Apply(vec2);
+        ASSERT_TRUE(vec2.isApprox(vec));
 
-      backward_op.Apply(vec);
-      forward_op.Apply(vec);
-      ASSERT_TRUE(vec.isApprox(vec2));
+        backward_op.Apply(vec);
+        forward_op.Apply(vec);
+        ASSERT_TRUE(vec.isApprox(vec2));
+      }
     }
   }
 }

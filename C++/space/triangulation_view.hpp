@@ -41,6 +41,9 @@ class TriangulationView {
         vertices_.begin(), vertices_.begin() + InitialVertices()));
   };
 
+  // Total number of vertices.
+  const size_t V;
+
   size_t InitialVertices() const { return initial_vertices_; }
 
   const std::vector<Vertex *> &vertices() const { return vertices_; }
