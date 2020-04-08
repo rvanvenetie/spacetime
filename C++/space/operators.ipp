@@ -148,7 +148,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     // Copy rhs to avoid rounding error accumulation.
     Eigen::VectorXd rhs_ip = rhs;
 
-    // Part 1: Down-cycle calculates corrections while coarsening.
+    // Part 1: Down-cycle, calculates corrections while coarsening.
     {
       // Calculate the inner products of the previous approx + corrections.
       Eigen::VectorXd u_e_ip = triang_mat_ * u;
@@ -156,9 +156,6 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       // Keep track of the corrections found in this downward cycle.
       std::vector<double> e;
       e.reserve(V * 3);
-
-      // Keep track of the inner products between e and the hat functions.
-      Eigen::VectorXd e_ip = Eigen::VectorXd::Zero(V);
 
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
       for (size_t vertex = V - 1; vertex >= triang_.InitialVertices();
@@ -196,7 +193,6 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         // Coarsen mesh, and restrict the inner products calculated thus far.
         mg_triang.Coarsen();
         Restrict(vertex, rhs_ip);
-        Restrict(vertex, u_e_ip);
         Restrict(vertex, e_ip);
       }
       assert(!mg_triang.CanCoarsen());
@@ -223,7 +219,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       u += e_SS;
     }
 
-    // Part 2:  Do exact solve on coarest level and walk back up
+    // Part 2:  Do exact solve on coarest level and do an up cycle.
     {
       // Step 1: Do a downward-cycle to calculate u_ip on coarsest mesh.
       Eigen::VectorXd u_ip = triang_mat_ * u;
