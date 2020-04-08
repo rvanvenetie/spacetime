@@ -146,7 +146,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
     // Part 1: Down-cycle, calculates corrections while coarsening.
     {
-      // Calculate the inner products of the previous approx + corrections.
+      // Initialize the vector a(u + e, \Phi) with a(u, \Phi).
       Eigen::VectorXd u_e_ip = triang_mat_ * u;
 
       // Keep track of the corrections found in this downward cycle.
@@ -193,9 +193,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       }
       assert(!mg_triang.CanCoarsen());
 
-      // Step 3: Do an upward cycle to calculate the correction on finest
-      // mesh.
-      size_t cnt = 0;
+      // Step 3: Do an upward cycle to calculate the correction on finest mesh.
+      int rev_vi = e.size() - 1;
       Eigen::VectorXd e_SS = Eigen::VectorXd::Zero(V);
       for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
         // Prolongate the current correction to the next level.
@@ -204,10 +203,10 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         auto grandparents = triang_.history(vertex)[0]->RefinementEdge();
         std::array<size_t, 3> verts{vertex, grandparents[0], grandparents[1]};
         for (size_t vi : verts) {
-          // Add the the correction we have calculated in the above loop,
-          // in reversed order of course.
-          e_SS[vi] += *(e.rbegin() + cnt);
-          cnt++;
+          // Add the the correction we have calculated in the above loop, in
+          // reversed order of course.
+          e_SS[vi] += e[rev_vi];
+          rev_vi--;
         }
       }
 

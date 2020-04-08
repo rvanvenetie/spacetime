@@ -26,6 +26,15 @@ int bsd_rnd() {
   return (seed = (a * seed + c) % m);
 }
 
+Eigen::VectorXd RandomVector(const TreeVector<HierarchicalBasisFn>& vec) {
+  auto nodes = vec.Bfs();
+  Eigen::VectorXd result(nodes.size());
+  result.setRandom();
+  for (int v = 0; v < nodes.size(); v++)
+    if (nodes[v]->node()->on_domain_boundary()) result[v] = 0;
+  return result;
+}
+
 Eigen::MatrixXd MatrixQuad(const TreeVector<HierarchicalBasisFn>& tree_in,
                            const TreeVector<HierarchicalBasisFn>& tree_out,
                            bool deriv) {
@@ -81,8 +90,7 @@ TEST(BilinearForm, SymmetricQuadrature) {
   ASSERT_TRUE(mass_mat.transpose().isApprox(mass_tmat));
 
   // Check also the apply of a random vector.
-  Eigen::VectorXd v(vec_in.Bfs().size());
-  v.setRandom();
+  Eigen::VectorXd v = RandomVector(vec_in);
   vec_in.FromVector(v);
   mass_bil_form.Apply();
   ASSERT_TRUE(vec_out.ToVector().isApprox(mass_quad * v));
@@ -97,7 +105,7 @@ TEST(BilinearForm, SymmetricQuadrature) {
   ASSERT_TRUE(stiff_mat.transpose().isApprox(stiff_tmat));
 
   // Check also the apply of a random vector.
-  v.setRandom();
+  v = RandomVector(vec_in);
   vec_in.FromVector(v);
   stiff_bil_form.Apply();
   ASSERT_TRUE(vec_out.ToVector().isApprox(stiff_quad * v));
@@ -127,8 +135,7 @@ TEST(BilinearForm, UnsymmetricQuadrature) {
     ASSERT_TRUE(mass_mat.transpose().isApprox(mass_tmat));
 
     // Check also the apply of a random vector.
-    Eigen::VectorXd v(vec_in.Bfs().size());
-    v.setRandom();
+    Eigen::VectorXd v = RandomVector(vec_in);
     vec_in.FromVector(v);
     mass_bil_form.Apply();
     ASSERT_TRUE(vec_out.ToVector().isApprox(mass_quad * v));
@@ -144,7 +151,7 @@ TEST(BilinearForm, UnsymmetricQuadrature) {
     ASSERT_TRUE(stiff_mat.transpose().isApprox(stiff_tmat));
 
     // Check also the apply of a random vector.
-    v.setRandom();
+    v = RandomVector(vec_in);
     vec_in.FromVector(v);
     stiff_bil_form.Apply();
     ASSERT_TRUE(vec_out.ToVector().isApprox(stiff_quad * v));

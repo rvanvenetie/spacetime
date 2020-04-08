@@ -24,6 +24,7 @@ class Operator {
 
   // Verify that the given vector satisfy the boundary conditions.
   bool FeasibleVector(const Eigen::VectorXd &vec) const;
+  bool DirichletBoundary() const { return dirichlet_boundary_; }
 
   // Overloads required to for Eigen.
   Eigen::VectorXd operator*(const Eigen::VectorXd &vec_in) const {
