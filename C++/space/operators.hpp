@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "basis.hpp"
-#include "multilevel_patches.hpp"
+#include "multigrid_triangulation_view.hpp"
 #include "triangulation_view.hpp"
 
 namespace space {
@@ -22,13 +22,22 @@ class Operator {
   // Apply the operator in the hierarchical basis.
   virtual void Apply(Eigen::VectorXd &vec_in) const = 0;
 
+  // Verify that the given vector satisfy the boundary conditions.
+  bool FeasibleVector(const Eigen::VectorXd &vec) const;
+
+  // Overloads required to for Eigen.
+  Eigen::VectorXd operator*(const Eigen::VectorXd &vec_in) const {
+    Eigen::VectorXd result = vec_in;
+    Apply(result);
+    return result;
+  }
+  size_t rows() const { return triang_.V; }
+  size_t cols() const { return triang_.V; }
+
  protected:
   const TriangulationView &triang_;
   bool dirichlet_boundary_;
   size_t time_level_;
-
-  // Apply the dirichlet boundary conditions.
-  void ApplyBoundaryConditions(Eigen::VectorXd &vec) const;
 };
 
 class ForwardOperator : public Operator {
@@ -150,7 +159,7 @@ class CGInverse : public BackwardOperator {
 template <typename ForwardOp>
 class MultigridPreconditioner : public BackwardOperator {
  public:
-  MultigridPreconditioner(const TriangulationView &triang,
+  MultigridPreconditioner(const TriangulationView &triang, size_t cycles = 5,
                           bool dirichlet_boundary = true,
                           size_t time_level = 0);
 
@@ -164,7 +173,10 @@ class MultigridPreconditioner : public BackwardOperator {
   // Returns a row of the _forward_ matrix on the given multilevel triang.
   // NOTE: The result is not compressed.
   inline std::vector<std::pair<size_t, double>> RowMatrix(
-      const MultilevelPatches &mg_triang, size_t vertex) const;
+      const MultigridTriangulationView &mg_triang, size_t vertex) const;
+
+  // Number of cycles to do.
+  size_t cycles_;
 
   // Matrix on the finest level.
   Eigen::SparseMatrix<double> triang_mat_;

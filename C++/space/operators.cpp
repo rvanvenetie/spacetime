@@ -6,40 +6,50 @@ using Eigen::VectorXd;
 
 namespace space {
 
-void Operator::ApplyBoundaryConditions(VectorXd &vec) const {
-  const auto &vertices = triang_.vertices();
-  for (int i = 0; i < vertices.size(); ++i)
-    if (vertices[i]->on_domain_boundary) vec[i] = 0;
+bool Operator::FeasibleVector(const Eigen::VectorXd &vec) const {
+  if (dirichlet_boundary_)
+    for (int i = 0; i < triang_.V; ++i)
+      if (triang_.OnBoundary(i) && vec[i] != 0) return false;
+
+  return true;
 }
 
 void ForwardOperator::Apply(Eigen::VectorXd &v) const {
-  if (dirichlet_boundary_) ApplyBoundaryConditions(v);
+  assert(FeasibleVector(v));
 
+  // Hierarhical basis to single scale basis.
   ApplyHierarchToSingle(v);
-  ApplySingleScale(v);
-  ApplyTransposeHierarchToSingle(v);
+  assert(FeasibleVector(v));
 
-  if (dirichlet_boundary_) ApplyBoundaryConditions(v);
+  // Apply the operator in single scale.
+  ApplySingleScale(v);
+  assert(FeasibleVector(v));
+
+  // Return back to hierarhical basis.
+  ApplyTransposeHierarchToSingle(v);
+  assert(FeasibleVector(v));
 }
 
 void ForwardOperator::ApplyHierarchToSingle(VectorXd &w) const {
-  for (int vi = triang_.InitialVertices(); vi < triang_.vertices().size(); ++vi)
+  for (int vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
     for (auto gp : triang_.history(vi)[0]->RefinementEdge())
       w[vi] = w[vi] + 0.5 * w[gp];
 }
 
 void ForwardOperator::ApplyTransposeHierarchToSingle(VectorXd &w) const {
-  int vi = triang_.vertices().size() - 1;
+  int vi = triang_.V - 1;
   for (; vi >= triang_.InitialVertices(); --vi)
-    for (auto gp : triang_.history(vi)[0]->RefinementEdge())
+    for (auto gp : triang_.history(vi)[0]->RefinementEdge()) {
+      if (dirichlet_boundary_ && triang_.OnBoundary(gp)) continue;
       w[gp] = w[gp] + 0.5 * w[vi];
+    }
 }
 
 BackwardOperator::BackwardOperator(const TriangulationView &triang,
                                    bool dirichlet_boundary, size_t time_level)
     : Operator(triang, dirichlet_boundary, time_level) {
   std::vector<int> dof_mapping;
-  auto vertices = triang.vertices();
+  auto &vertices = triang.vertices();
   dof_mapping.reserve(vertices.size());
   for (int i = 0; i < vertices.size(); i++)
     if (!dirichlet_boundary || !vertices[i]->on_domain_boundary)
@@ -61,7 +71,7 @@ BackwardOperator::BackwardOperator(const TriangulationView &triang,
 }
 
 void BackwardOperator::ApplyInverseHierarchToSingle(VectorXd &w) const {
-  int vi = triang_.vertices().size() - 1;
+  int vi = triang_.V - 1;
   for (; vi >= triang_.InitialVertices(); --vi)
     for (auto gp : triang_.history(vi)[0]->RefinementEdge())
       w[vi] = w[vi] - 0.5 * w[gp];
@@ -69,19 +79,27 @@ void BackwardOperator::ApplyInverseHierarchToSingle(VectorXd &w) const {
 
 void BackwardOperator::ApplyTransposeInverseHierarchToSingle(
     VectorXd &w) const {
-  for (int vi = triang_.InitialVertices(); vi < triang_.vertices().size(); ++vi)
-    for (auto gp : triang_.history(vi)[0]->RefinementEdge())
+  for (int vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
+    for (auto gp : triang_.history(vi)[0]->RefinementEdge()) {
+      if (dirichlet_boundary_ && triang_.OnBoundary(gp)) continue;
       w[gp] = w[gp] - 0.5 * w[vi];
+    }
 }
 
 void BackwardOperator::Apply(Eigen::VectorXd &v) const {
-  if (dirichlet_boundary_) ApplyBoundaryConditions(v);
+  assert(FeasibleVector(v));
 
+  // Hierarchical basis to single scale.
   ApplyTransposeInverseHierarchToSingle(v);
-  ApplySingleScale(v);
-  ApplyInverseHierarchToSingle(v);
+  assert(FeasibleVector(v));
 
-  if (dirichlet_boundary_) ApplyBoundaryConditions(v);
+  // Apply in single sale.
+  ApplySingleScale(v);
+  assert(FeasibleVector(v));
+
+  // Single scale to hierarchical basis.
+  ApplyInverseHierarchToSingle(v);
+  assert(FeasibleVector(v));
 }
 
 Eigen::Matrix3d MassOperator::ElementMatrix(const Element2DView *elem,

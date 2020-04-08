@@ -1,8 +1,8 @@
-#include "multilevel_patches.hpp"
+#include "multigrid_triangulation_view.hpp"
 
 namespace space {
 
-void MultilevelPatches::Refine() {
+void MultigridTriangulationView::Refine() {
   assert(vi_ < triang_.vertices().size());
   assert(patches_[vi_].empty());
 
@@ -23,7 +23,7 @@ void MultilevelPatches::Refine() {
   vi_++;
 }
 
-void MultilevelPatches::Coarsen() {
+void MultigridTriangulationView::Coarsen() {
   assert(vi_ > triang_.InitialVertices());
   vi_--;
   assert(!patches_[vi_].empty());
@@ -44,14 +44,16 @@ void MultilevelPatches::Coarsen() {
     for (auto v : elem->vertices_view_idx_) patches_[v].insert(elem);
 }
 
-MultilevelPatches::MultilevelPatches(const TriangulationView &triang)
+MultigridTriangulationView::MultigridTriangulationView(
+    const TriangulationView &triang)
     : triang_(triang) {
   patches_.resize(triang.vertices().size());
 }
 
-MultilevelPatches MultilevelPatches::FromCoarsestTriangulation(
+MultigridTriangulationView
+MultigridTriangulationView::FromCoarsestTriangulation(
     const TriangulationView &triang) {
-  MultilevelPatches result(triang);
+  MultigridTriangulationView result(triang);
   for (const auto &elem : triang.elements()) {
     if (elem->level()) continue;
     for (int vi : elem->vertices_view_idx_) result.patches_.at(vi).insert(elem);
@@ -60,9 +62,9 @@ MultilevelPatches MultilevelPatches::FromCoarsestTriangulation(
   return result;
 }
 
-MultilevelPatches MultilevelPatches::FromFinestTriangulation(
+MultigridTriangulationView MultigridTriangulationView::FromFinestTriangulation(
     const TriangulationView &triang) {
-  MultilevelPatches result(triang);
+  MultigridTriangulationView result(triang);
   for (const auto &elem : triang.elements()) {
     if (!elem->is_leaf()) continue;
     for (int vi : elem->vertices_view_idx_) result.patches_.at(vi).insert(elem);

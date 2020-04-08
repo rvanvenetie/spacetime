@@ -6,7 +6,7 @@
 
 namespace space {
 
-class MultilevelPatches {
+class MultigridTriangulationView {
  public:
   void Refine();
   void Coarsen();
@@ -25,11 +25,11 @@ class MultilevelPatches {
   }
 
   // Named constructor for initializing object with coarsest mesh patches.
-  static MultilevelPatches FromCoarsestTriangulation(
+  static MultigridTriangulationView FromCoarsestTriangulation(
       const TriangulationView &triang);
 
   // Named constructor for initializing object with finest mesh patches.
-  static MultilevelPatches FromFinestTriangulation(
+  static MultigridTriangulationView FromFinestTriangulation(
       const TriangulationView &triang);
 
  protected:
@@ -38,7 +38,7 @@ class MultilevelPatches {
   int vi_;
 
   // Protected constructor.
-  MultilevelPatches(const TriangulationView &triang);
+  MultigridTriangulationView(const TriangulationView &triang);
 };
 
 }  // namespace space

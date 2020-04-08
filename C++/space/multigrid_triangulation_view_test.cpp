@@ -1,4 +1,4 @@
-#include "space/multilevel_patches.hpp"
+#include "space/multigrid_triangulation_view.hpp"
 
 #include <cmath>
 #include <map>
@@ -22,7 +22,7 @@ int bsd_rnd() {
   return (seed = (a * seed + c) % m);
 }
 
-TEST(MultilevelPatches, CoarseToFine) {
+TEST(MultigridTriangulationView, CoarseToFine) {
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
   for (size_t j = 0; j < 5; ++j) {
@@ -33,22 +33,23 @@ TEST(MultilevelPatches, CoarseToFine) {
         });
 
     auto triang = TriangulationView(tree_view.Bfs());
-    auto coarse = MultilevelPatches::FromCoarsestTriangulation(triang);
+    auto coarse = MultigridTriangulationView::FromCoarsestTriangulation(triang);
 
     // test a single Refine and Coarsen.
     coarse.Refine();
     coarse.Coarsen();
     assert(coarse.patches() ==
-           MultilevelPatches::FromCoarsestTriangulation(triang).patches());
+           MultigridTriangulationView::FromCoarsestTriangulation(triang)
+               .patches());
 
     // Now refine all.
     while (coarse.CanRefine()) coarse.Refine();
-    auto fine = MultilevelPatches::FromFinestTriangulation(triang);
+    auto fine = MultigridTriangulationView::FromFinestTriangulation(triang);
     assert(fine.patches() == coarse.patches());
   }
 }
 
-TEST(MultilevelPatches, FineToCoarse) {
+TEST(MultigridTriangulationView, FineToCoarse) {
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
   for (size_t j = 0; j < 5; ++j) {
@@ -59,16 +60,17 @@ TEST(MultilevelPatches, FineToCoarse) {
         });
 
     auto triang = TriangulationView(tree_view.Bfs());
-    auto fine = MultilevelPatches::FromFinestTriangulation(triang);
+    auto fine = MultigridTriangulationView::FromFinestTriangulation(triang);
     // test a single Coarsen and Refine.
     fine.Coarsen();
     fine.Refine();
-    assert(fine.patches() ==
-           MultilevelPatches::FromFinestTriangulation(triang).patches());
+    assert(
+        fine.patches() ==
+        MultigridTriangulationView::FromFinestTriangulation(triang).patches());
 
     // Coarsen all.
     while (fine.CanCoarsen()) fine.Coarsen();
-    auto coarse = MultilevelPatches::FromCoarsestTriangulation(triang);
+    auto coarse = MultigridTriangulationView::FromCoarsestTriangulation(triang);
     assert(fine.patches() == coarse.patches());
   }
 }

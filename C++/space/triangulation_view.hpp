@@ -17,7 +17,7 @@ class Element2DView
                                           Element2D>::MultiNodeViewBase;
 
   size_t NewestVertex() const { return vertices_view_idx_[0]; }
-  std::array<size_t, 2> RefinementEdge() const {
+  inline std::array<size_t, 2> RefinementEdge() const {
     return {vertices_view_idx_[1], vertices_view_idx_[2]};
   }
 
@@ -44,9 +44,16 @@ class TriangulationView {
   // Total number of vertices.
   const size_t V;
 
+  // Number of initial vertices.
   size_t InitialVertices() const { return initial_vertices_; }
 
+  // Does the given vertex lie on the domain boundary?
+  bool OnBoundary(size_t v) const {
+    return vertices_.at(v)->on_domain_boundary;
+  }
+
   const std::vector<Vertex *> &vertices() const { return vertices_; }
+
   const std::vector<Element2DView *> &elements() const { return elements_; }
   const StaticVector<Element2DView *, 2> &history(int i) const {
     return history_.at(i);

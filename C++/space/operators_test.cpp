@@ -4,11 +4,22 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "space/initial_triangulation.hpp"
+#include "tools/linalg.hpp"
 
 using namespace space;
 using namespace datastructures;
 
 constexpr int max_level = 6;
+
+Eigen::VectorXd RandomVector(const TriangulationView &triang,
+                             bool dirichlet_boundary = true) {
+  Eigen::VectorXd vec(triang.vertices().size());
+  vec.setRandom();
+  if (dirichlet_boundary)
+    for (int v = 0; v < triang.vertices().size(); v++)
+      if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+  return vec;
+}
 
 TEST(Operator, InverseTimesForwardOpIsIdentity) {
   auto T = InitialTriangulation::UnitSquare();
@@ -24,11 +35,7 @@ TEST(Operator, InverseTimesForwardOpIsIdentity) {
       auto backward_op =
           DirectInverse<MassOperator>(triang, dirichlet_boundary);
       for (int i = 0; i < 10; i++) {
-        Eigen::VectorXd vec(triang.vertices().size());
-        vec.setRandom();
-        if (dirichlet_boundary)
-          for (int v = 0; v < triang.vertices().size(); v++)
-            if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+        Eigen::VectorXd vec = RandomVector(triang, dirichlet_boundary);
         Eigen::VectorXd vec2 = vec;
         forward_op.Apply(vec2);
         backward_op.Apply(vec2);
@@ -134,10 +141,7 @@ TEST(MultiGridOperator, CoarsestMesh) {
     size_t V = triang.vertices().size();
 
     for (int i = 0; i < 10; i++) {
-      Eigen::VectorXd vec(V);
-      vec.setRandom();
-      for (int v = 0; v < triang.vertices().size(); v++)
-        if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+      Eigen::VectorXd vec = RandomVector(triang);
       Eigen::VectorXd vec_copy = vec;
       mass_op.Apply(vec);
       mg_op.Apply(vec);
@@ -148,32 +152,33 @@ TEST(MultiGridOperator, CoarsestMesh) {
 
 TEST(MultiGridOperator, MultilevelMesh) {
   auto T = InitialTriangulation::UnitSquare();
-  T.hierarch_basis_tree.UniformRefine(5);
-
-  // Create a subtree with only vertices lying below the diagonal.
-  auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
-  vertex_subtree.DeepRefine(/* call_filter */ [](const auto &vertex) {
-    return vertex->level() == 0 || (vertex->x + vertex->y <= 1.0);
+  // Create a mesh refined along the line x==y.
+  size_t ml = 12;
+  T.elem_tree.DeepRefine([ml](auto elem) {
+    if (elem->level() >= ml) return false;
+    for (auto vertex : elem->vertices())
+      if (vertex->x == vertex->y) return true;
+    return false;
   });
-  // vertex_subtree.UniformRefine(2);
 
+  auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
+  vertex_subtree.DeepRefine();
   TriangulationView triang(vertex_subtree);
 
-  bool dirichlet_boundary = true;
-  auto mg_op =
-      MultigridPreconditioner<MassOperator>(triang, dirichlet_boundary);
-  auto mass_op = MassOperator(triang, dirichlet_boundary);
-  size_t V = triang.vertices().size();
+  for (bool dirichlet_boundary : {true, false}) {
+    auto mass_op = MassOperator(triang, dirichlet_boundary);
+    double prev_cond = 99999999;
+    for (size_t cycles = 1; cycles < 5; cycles++) {
+      auto mg_op = MultigridPreconditioner<MassOperator>(triang, cycles,
+                                                         dirichlet_boundary);
 
-  for (int i = 0; i < 10; i++) {
-    Eigen::VectorXd vec = Eigen::VectorXd::Ones(V);
-    if (dirichlet_boundary)
-      for (int v = 0; v < triang.vertices().size(); v++)
-        if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
-    Eigen::VectorXd vec_copy = vec;
-    mass_op.ApplySingleScale(vec);
-    mg_op.ApplySingleScale(vec);
-    std::cout << "vec - vec_copy " << vec - vec_copy << std::endl;
-    ASSERT_TRUE(vec.isApprox(vec_copy));
+      // Evaluate condition number.
+      tools::linalg::Lanczos lanczos(mass_op, mg_op,
+                                     RandomVector(triang, dirichlet_boundary));
+
+      ASSERT_LE(lanczos.cond(), 1.5);
+      ASSERT_LE(lanczos.cond(), prev_cond);
+      prev_cond = lanczos.cond();
+    }
   }
 }
