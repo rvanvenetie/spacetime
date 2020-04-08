@@ -52,8 +52,7 @@ BackwardOperator::BackwardOperator(const TriangulationView &triang,
   auto &vertices = triang.vertices();
   dof_mapping.reserve(vertices.size());
   for (int i = 0; i < vertices.size(); i++)
-    if (!dirichlet_boundary || !vertices[i]->on_domain_boundary)
-      dof_mapping.push_back(i);
+    if (!dirichlet_boundary || !triang.OnBoundary(i)) dof_mapping.push_back(i);
   if (dof_mapping.size() == 0) return;
 
   std::vector<Eigen::Triplet<double>> triplets, tripletsT;

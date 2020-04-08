@@ -18,11 +18,9 @@ ForwardMatrix<ForwardOp>::ForwardMatrix(const TriangulationView &triang,
     auto element_mat = ForwardOp::ElementMatrix(elem, time_level);
 
     for (size_t i = 0; i < 3; ++i) {
-      if (dirichlet_boundary_ && vertices[Vids[i]]->on_domain_boundary)
-        continue;
+      if (dirichlet_boundary_ && triang.OnBoundary(Vids[i])) continue;
       for (size_t j = 0; j < 3; ++j) {
-        if (dirichlet_boundary_ && vertices[Vids[j]]->on_domain_boundary)
-          continue;
+        if (dirichlet_boundary_ && triang.OnBoundary(Vids[j])) continue;
         triplets.emplace_back(Vids[i], Vids[j], element_mat(i, j));
       }
     }
@@ -111,8 +109,7 @@ std::vector<std::pair<size_t, double>>
 MultigridPreconditioner<ForwardOp>::RowMatrix(
     const MultigridTriangulationView &mg_triang, size_t vertex) const {
   assert(mg_triang.ContainsVertex(vertex));
-  auto &vertices = triang_.vertices();
-  if (dirichlet_boundary_) assert(!vertices[vertex]->on_domain_boundary);
+  if (dirichlet_boundary_) assert(!triang_.OnBoundary(vertex));
 
   auto &patch = mg_triang.patches()[vertex];
   std::vector<std::pair<size_t, double>> result;
@@ -124,8 +121,7 @@ MultigridPreconditioner<ForwardOp>::RowMatrix(
       if (Vids[i] != vertex) continue;
       for (size_t j = 0; j < 3; ++j) {
         // If this is the inner product with a boundary dof, skip.
-        if (dirichlet_boundary_ && vertices[Vids[j]]->on_domain_boundary)
-          continue;
+        if (dirichlet_boundary_ && triang_.OnBoundary(Vids[j])) continue;
         result.emplace_back(Vids[j], elem_mat(i, j));
       }
     }
@@ -193,7 +189,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         // Coarsen mesh, and restrict the inner products calculated thus far.
         mg_triang.Coarsen();
         Restrict(vertex, rhs_ip);
-        Restrict(vertex, e_ip);
+        Restrict(vertex, u_e_ip);
       }
       assert(!mg_triang.CanCoarsen());
 
