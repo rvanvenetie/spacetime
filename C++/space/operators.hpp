@@ -35,6 +35,9 @@ class Operator {
   size_t rows() const { return triang_.V; }
   size_t cols() const { return triang_.V; }
 
+  // Debug function for turning this operator into a mtrix.
+  Eigen::MatrixXd ToMatrix() const;
+
  protected:
   const TriangulationView &triang_;
   bool dirichlet_boundary_;

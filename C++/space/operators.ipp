@@ -141,15 +141,12 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
   // Do a V-cycle.
   for (size_t cycle = 0; cycle < cycles_; cycle++) {
-    // Copy rhs to avoid rounding error accumulation.
-    Eigen::VectorXd rhs_ip = rhs;
-
     // Part 1: Down-cycle, calculates corrections while coarsening.
     {
-      // Initialize the vector a(u + e, \Phi) with a(u, \Phi).
-      Eigen::VectorXd u_e_ip = triang_mat_ * u;
+      // Initialize the residual vector with  a(f, \Phi) - a(u, \Phi).
+      Eigen::VectorXd residual = rhs - triang_mat_ * u;
 
-      // Keep track of the corrections found in this downward cycle.
+      // Store all the corrections found in this downward cycle in a vector.
       std::vector<double> e;
       e.reserve(V * 3);
 
@@ -177,19 +174,18 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
             if (vj == vi) a_phi_vi_phi_vi += val;
 
           // Calculate the correction in phi_vi.
-          double e_i = (rhs_ip[vi] - u_e_ip[vi]) / a_phi_vi_phi_vi;
+          double e_vi = residual[vi] / a_phi_vi_phi_vi;
 
           // Add this correction to our estimate.
-          e.emplace_back(e_i);
+          e.emplace_back(e_vi);
 
-          // Update the inner product with this new correction  <e_k, \cdot>.
-          for (auto [vj, val] : row_mat) u_e_ip[vj] += e_i * val;
+          // Update the residual with this new correction  <e_vi, \cdot>.
+          for (auto [vj, val] : row_mat) residual[vj] -= e_vi * val;
         }
 
-        // Coarsen mesh, and restrict the inner products calculated thus far.
+        // Coarsen mesh, and restrict the residual calculated thus far.
         mg_triang.Coarsen();
-        Restrict(vertex, rhs_ip);
-        Restrict(vertex, u_e_ip);
+        Restrict(vertex, residual);
       }
       assert(!mg_triang.CanCoarsen());
 
@@ -216,20 +212,21 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
     // Part 2:  Do exact solve on coarest level and do an up cycle.
     {
-      // Step 1: Do a downward-cycle to calculate u_ip on coarsest mesh.
-      Eigen::VectorXd u_ip = triang_mat_ * u;
+      // Initialize the residual vector with  a(f, \Phi) - a(u, \Phi).
+      Eigen::VectorXd residual = rhs - triang_mat_ * u;
+
+      // Step 1: Do a downward-cycle restrict the residual on the coarsest mesh.
       for (int vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex)
-        Restrict(vertex, u_ip);
+        Restrict(vertex, residual);
 
       // Step 2: Solve on coarsest level.
       assert(!mg_triang.CanCoarsen());
-      Eigen::VectorXd e_0 = rhs_ip.head(triang_.InitialVertices()) -
-                            u_ip.head(triang_.InitialVertices());
+      Eigen::VectorXd e_0 = residual.head(triang_.InitialVertices());
       initial_triang_solver_.ApplySingleScale(e_0);
 
       // Create vector that will contain corrections in single scale basis.
-      Eigen::VectorXd e = Eigen::VectorXd::Zero(V);
-      e.head(triang_.InitialVertices()) = e_0;
+      Eigen::VectorXd e_SS = Eigen::VectorXd::Zero(V);
+      e_SS.head(triang_.InitialVertices()) = e_0;
 
       // Step 3: Walk back up and do 1-dimensional corrections.
       for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
@@ -237,11 +234,10 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         mg_triang.Refine();
 
         // Prolongate the current correction to the next level.
-        Prolongate(vertex, e);
+        Prolongate(vertex, e_SS);
 
-        // Calculate the RHS/u inner products on the next level.
-        RestrictInverse(vertex, rhs_ip);
-        RestrictInverse(vertex, u_ip);
+        // Calculate the residual on the next level.
+        RestrictInverse(vertex, residual);
 
         // Find vertex + its grandparents.
         auto grandparents = triang_.history(vertex)[0]->RefinementEdge();
@@ -255,7 +251,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           // Get the row of the matrix associated vi on this level.
           auto row_mat = RowMatrix(mg_triang, vi);
 
-          // Calculate a(phi_vi, phi_vi) and a(e, phi_vi).
+          // Calculate a(phi_vi, phi_vi) and a(e_SS, phi_vi).
           double a_phi_vi_phi_vi = 0;
           double a_e_phi_vi = 0;
           for (auto [vj, val] : row_mat) {
@@ -263,22 +259,19 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
             if (vj == vi) a_phi_vi_phi_vi += 1 * val;
 
             // Calculate the inner product between e and phi_vi.
-            a_e_phi_vi += e[vj] * val;
+            a_e_phi_vi += e_SS[vj] * val;
           }
 
           // Calculate the correction in phi_vi.
-          double e_i = (rhs_ip[vi] - u_ip[vi] - a_e_phi_vi) / a_phi_vi_phi_vi;
+          double e_i = (residual[vi] - a_e_phi_vi) / a_phi_vi_phi_vi;
 
           // Add this correction
-          e[vi] += e_i;
+          e_SS[vi] += e_i;
         }
       }
 
-      // Sanity check.
-      assert(rhs_ip.isApprox(rhs));
-
       // Step 5: Update approximation.
-      u += e;
+      u += e_SS;
     }
   }
 

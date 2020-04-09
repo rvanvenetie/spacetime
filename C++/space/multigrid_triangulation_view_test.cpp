@@ -45,6 +45,9 @@ TEST(MultigridTriangulationView, CoarseToFine) {
     // Now refine all.
     while (coarse.CanRefine()) coarse.Refine();
     auto fine = MultigridTriangulationView::FromFinestTriangulation(triang);
+
+    fine.Sort();
+    coarse.Sort();
     assert(fine.patches() == coarse.patches());
   }
 }
@@ -64,9 +67,12 @@ TEST(MultigridTriangulationView, FineToCoarse) {
     // test a single Coarsen and Refine.
     fine.Coarsen();
     fine.Refine();
-    assert(
-        fine.patches() ==
-        MultigridTriangulationView::FromFinestTriangulation(triang).patches());
+
+    auto fine_copy =
+        MultigridTriangulationView::FromFinestTriangulation(triang);
+    fine.Sort();
+    fine_copy.Sort();
+    assert(fine.patches() == fine_copy.patches());
 
     // Coarsen all.
     while (fine.CanCoarsen()) fine.Coarsen();

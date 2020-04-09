@@ -14,6 +14,17 @@ bool Operator::FeasibleVector(const Eigen::VectorXd &vec) const {
   return true;
 }
 
+Eigen::MatrixXd Operator::ToMatrix() const {
+  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(triang_.V, triang_.V);
+  for (int i = 0; i < triang_.V; ++i) {
+    Eigen::VectorXd v = Eigen::VectorXd::Zero(triang_.V);
+    if (!dirichlet_boundary_ || !triang_.OnBoundary(i)) v[i] = 1;
+    Apply(v);
+    A.col(i) = v;
+  }
+  return A;
+}
+
 void ForwardOperator::Apply(Eigen::VectorXd &v) const {
   assert(FeasibleVector(v));
 

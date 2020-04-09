@@ -11,15 +11,12 @@ void MultigridTriangulationView::Refine() {
 
   // We must remove the elements from the existing patches.
   for (auto elem : hist)
-    for (auto v : elem->vertices_view_idx_) {
-      assert(patches_[v].count(elem));
-      patches_[v].erase(elem);
-    }
+    for (auto v : elem->vertices_view_idx_) assert(Erase(v, elem));
 
   // Now we must update the new elements.
   for (auto elem : hist)
     for (auto child : elem->children(0))
-      for (auto v : child->vertices_view_idx_) patches_[v].insert(child);
+      for (auto v : child->vertices_view_idx_) Insert(v, child);
   vi_++;
 }
 
@@ -34,14 +31,11 @@ void MultigridTriangulationView::Coarsen() {
   // We must remove the elements from the existing patches.
   for (auto elem : hist)
     for (auto child : elem->children(0))
-      for (auto v : child->vertices_view_idx_) {
-        assert(patches_[v].count(child));
-        patches_[v].erase(child);
-      }
+      for (auto v : child->vertices_view_idx_) assert(Erase(v, child));
 
   // Now we must update the new elements.
   for (auto elem : hist)
-    for (auto v : elem->vertices_view_idx_) patches_[v].insert(elem);
+    for (auto v : elem->vertices_view_idx_) Insert(v, elem);
 }
 
 MultigridTriangulationView::MultigridTriangulationView(
@@ -56,7 +50,7 @@ MultigridTriangulationView::FromCoarsestTriangulation(
   MultigridTriangulationView result(triang);
   for (const auto &elem : triang.elements()) {
     if (elem->level()) continue;
-    for (int vi : elem->vertices_view_idx_) result.patches_.at(vi).insert(elem);
+    for (int vi : elem->vertices_view_idx_) result.Insert(vi, elem);
   }
   result.vi_ = triang.InitialVertices();
   return result;
@@ -67,7 +61,7 @@ MultigridTriangulationView MultigridTriangulationView::FromFinestTriangulation(
   MultigridTriangulationView result(triang);
   for (const auto &elem : triang.elements()) {
     if (!elem->is_leaf()) continue;
-    for (int vi : elem->vertices_view_idx_) result.patches_.at(vi).insert(elem);
+    for (int vi : elem->vertices_view_idx_) result.Insert(vi, elem);
   }
   result.vi_ = triang.vertices().size();
   return result;

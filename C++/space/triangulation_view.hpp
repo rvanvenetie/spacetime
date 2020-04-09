@@ -44,22 +44,24 @@ class TriangulationView {
   // Total number of vertices.
   const size_t V;
 
-  // Number of initial vertices.
-  size_t InitialVertices() const { return initial_vertices_; }
-
   // Does the given vertex lie on the domain boundary?
-  bool OnBoundary(size_t v) const {
+  inline bool OnBoundary(size_t v) const {
     return vertices_.at(v)->on_domain_boundary;
   }
 
-  const std::vector<Vertex *> &vertices() const { return vertices_; }
+  // Number of initial vertices.
+  inline size_t InitialVertices() const { return initial_vertices_; }
 
-  const std::vector<Element2DView *> &elements() const { return elements_; }
-  const StaticVector<Element2DView *, 2> &history(int i) const {
+  // Access data members.
+  inline const std::vector<Vertex *> &vertices() const { return vertices_; }
+  inline const std::vector<Element2DView *> &elements() const {
+    return elements_;
+  }
+  inline const StaticVector<Element2DView *, 2> &history(int i) const {
     return history_.at(i);
   }
-
-  const datastructures::MultiTreeView<Element2DView> &element_view() const {
+  inline const datastructures::MultiTreeView<Element2DView> &element_view()
+      const {
     return element_view_;
   }
 
