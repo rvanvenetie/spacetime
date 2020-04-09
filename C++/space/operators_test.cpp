@@ -168,7 +168,7 @@ TEST(MultiGridOperator, MultilevelMesh) {
   for (bool dirichlet_boundary : {true, false}) {
     auto mass_op = MassOperator(triang, dirichlet_boundary);
     double prev_cond = 99999999;
-    for (size_t cycles = 1; cycles < 30; cycles++) {
+    for (size_t cycles = 1; cycles < 5; cycles++) {
       auto mg_op = MultigridPreconditioner<MassOperator>(triang, cycles,
                                                          dirichlet_boundary);
 
@@ -176,11 +176,8 @@ TEST(MultiGridOperator, MultilevelMesh) {
       tools::linalg::Lanczos lanczos(mass_op, mg_op,
                                      RandomVector(triang, dirichlet_boundary));
 
-      std::cerr << "Results for " << cycles << " cycles :\t" << lanczos
-                << std::endl;
-
       ASSERT_LE(lanczos.cond(), 1.5);
-      // ASSERT_LE(lanczos.cond(), prev_cond);
+      ASSERT_LE(lanczos.cond(), prev_cond);
       prev_cond = lanczos.cond();
     }
   }
