@@ -22,6 +22,11 @@ class Operator {
   // Apply the operator in the hierarchical basis.
   virtual void Apply(Eigen::VectorXd &vec_in) const = 0;
 
+  // Does the given vertex correspond to a dof?
+  inline bool IsDof(size_t vertex) const {
+    return !triang_.OnBoundary(vertex) || !dirichlet_boundary_;
+  }
+
   // Verify that the given vector satisfy the boundary conditions.
   bool FeasibleVector(const Eigen::VectorXd &vec) const;
   bool DirichletBoundary() const { return dirichlet_boundary_; }

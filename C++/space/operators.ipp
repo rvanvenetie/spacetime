@@ -18,9 +18,9 @@ ForwardMatrix<ForwardOp>::ForwardMatrix(const TriangulationView &triang,
     auto element_mat = ForwardOp::ElementMatrix(elem, time_level);
 
     for (size_t i = 0; i < 3; ++i) {
-      if (dirichlet_boundary_ && triang.OnBoundary(Vids[i])) continue;
+      if (!IsDof(Vids[i])) continue;
       for (size_t j = 0; j < 3; ++j) {
-        if (dirichlet_boundary_ && triang.OnBoundary(Vids[j])) continue;
+        if (!IsDof(Vids[j])) continue;
         triplets.emplace_back(Vids[i], Vids[j], element_mat(i, j));
       }
     }
@@ -109,7 +109,7 @@ std::vector<std::pair<size_t, double>>
 MultigridPreconditioner<ForwardOp>::RowMatrix(
     const MultigridTriangulationView &mg_triang, size_t vertex) const {
   assert(mg_triang.ContainsVertex(vertex));
-  if (dirichlet_boundary_) assert(!triang_.OnBoundary(vertex));
+  assert(IsDof(vertex));
 
   auto &patch = mg_triang.patches()[vertex];
   std::vector<std::pair<size_t, double>> result;
@@ -121,8 +121,7 @@ MultigridPreconditioner<ForwardOp>::RowMatrix(
       if (Vids[i] != vertex) continue;
       for (size_t j = 0; j < 3; ++j) {
         // If this is the inner product with a boundary dof, skip.
-        if (dirichlet_boundary_ && triang_.OnBoundary(Vids[j])) continue;
-        result.emplace_back(Vids[j], elem_mat(i, j));
+        if (IsDof(Vids[j])) result.emplace_back(Vids[j], elem_mat(i, j));
       }
     }
   }
@@ -160,7 +159,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         for (size_t vi : verts) {
           // If this vertex is on the boundary, we can simply skip the
           // correction.
-          if (dirichlet_boundary_ && triang_.OnBoundary(vi)) {
+          if (!IsDof(vi)) {
             e.emplace_back(0.0);
             continue;
           }
@@ -246,7 +245,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         // Step 4: Calculate corrections for these three vertices.
         for (size_t vi : verts) {
           // There is no correction if its not a dof.
-          if (dirichlet_boundary_ && triang_.OnBoundary(vi)) continue;
+          if (!IsDof(vi)) continue;
 
           // Get the row of the matrix associated vi on this level.
           auto row_mat = RowMatrix(mg_triang, vi);

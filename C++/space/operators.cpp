@@ -7,9 +7,8 @@ using Eigen::VectorXd;
 namespace space {
 
 bool Operator::FeasibleVector(const Eigen::VectorXd &vec) const {
-  if (dirichlet_boundary_)
-    for (int i = 0; i < triang_.V; ++i)
-      if (triang_.OnBoundary(i) && vec[i] != 0) return false;
+  for (int i = 0; i < triang_.V; ++i)
+    if (!IsDof(i) && vec[i] != 0) return false;
 
   return true;
 }
@@ -18,7 +17,7 @@ Eigen::MatrixXd Operator::ToMatrix() const {
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(triang_.V, triang_.V);
   for (int i = 0; i < triang_.V; ++i) {
     Eigen::VectorXd v = Eigen::VectorXd::Zero(triang_.V);
-    if (!dirichlet_boundary_ || !triang_.OnBoundary(i)) v[i] = 1;
+    if (IsDof(i)) v[i] = 1;
     Apply(v);
     A.col(i) = v;
   }
@@ -50,10 +49,8 @@ void ForwardOperator::ApplyHierarchToSingle(VectorXd &w) const {
 void ForwardOperator::ApplyTransposeHierarchToSingle(VectorXd &w) const {
   int vi = triang_.V - 1;
   for (; vi >= triang_.InitialVertices(); --vi)
-    for (auto gp : triang_.history(vi)[0]->RefinementEdge()) {
-      if (dirichlet_boundary_ && triang_.OnBoundary(gp)) continue;
-      w[gp] = w[gp] + 0.5 * w[vi];
-    }
+    for (auto gp : triang_.history(vi)[0]->RefinementEdge())
+      if (IsDof(gp)) w[gp] = w[gp] + 0.5 * w[vi];
 }
 
 BackwardOperator::BackwardOperator(const TriangulationView &triang,
@@ -63,7 +60,7 @@ BackwardOperator::BackwardOperator(const TriangulationView &triang,
   auto &vertices = triang.vertices();
   dof_mapping.reserve(vertices.size());
   for (int i = 0; i < vertices.size(); i++)
-    if (!dirichlet_boundary || !triang.OnBoundary(i)) dof_mapping.push_back(i);
+    if (IsDof(i)) dof_mapping.push_back(i);
   if (dof_mapping.size() == 0) return;
 
   std::vector<Eigen::Triplet<double>> triplets, tripletsT;
@@ -91,8 +88,7 @@ void BackwardOperator::ApplyTransposeInverseHierarchToSingle(
     VectorXd &w) const {
   for (int vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
     for (auto gp : triang_.history(vi)[0]->RefinementEdge()) {
-      if (dirichlet_boundary_ && triang_.OnBoundary(gp)) continue;
-      w[gp] = w[gp] - 0.5 * w[vi];
+      if (IsDof(gp)) w[gp] = w[gp] - 0.5 * w[vi];
     }
 }
 
