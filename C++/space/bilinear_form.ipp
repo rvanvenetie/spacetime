@@ -81,7 +81,7 @@ Eigen::MatrixXd BilinearForm<Operator, I_in, I_out>::ToMatrix() {
     for (int j = 0; j < nodes.size(); ++j) {
       nodes[j]->set_value(0);
     }
-    if (!operator_->DirichletBoundary() ||
+    if (operator_->DirichletBoundary() ||
         !nodes[i]->node()->on_domain_boundary())
       nodes[i]->set_value(1);
     Apply();

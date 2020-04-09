@@ -178,7 +178,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           // Add this correction to our estimate.
           e.emplace_back(e_vi);
 
-          // Update the residual with this new correction  <e_vi, \cdot>.
+          // Update the residual with this new correction  a(e_vi, \cdot).
           for (auto [vj, val] : row_mat) residual[vj] -= e_vi * val;
         }
 
