@@ -168,9 +168,9 @@ class CGInverse : public BackwardOperator {
 template <typename ForwardOp>
 class MultigridPreconditioner : public BackwardOperator {
  public:
-  MultigridPreconditioner(const TriangulationView &triang, size_t cycles = 5,
-                          bool dirichlet_boundary = true,
-                          size_t time_level = 0);
+  MultigridPreconditioner(const TriangulationView &triang,
+                          bool dirichlet_boundary = true, size_t time_level = 0,
+                          size_t cycles = 5);
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 

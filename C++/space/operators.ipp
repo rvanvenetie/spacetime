@@ -69,8 +69,8 @@ void CGInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 
 template <typename ForwardOp>
 MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
-    const TriangulationView &triang, size_t cycles, bool dirichlet_boundary,
-    size_t time_level)
+    const TriangulationView &triang, bool dirichlet_boundary, size_t time_level,
+    size_t cycles)
     : BackwardOperator(triang, dirichlet_boundary, time_level),
       cycles_(cycles),
       triang_mat_(ForwardOp(triang, dirichlet_boundary, time_level)
@@ -78,7 +78,9 @@ MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
       // Note that this will leave initial_triang_solver_ with dangling
       // reference, but it doesn't matter for our purpose..
       initial_triang_solver_(triang.InitialTriangulationView(),
-                             dirichlet_boundary, time_level) {}
+                             dirichlet_boundary, time_level) {
+  assert(dirichlet_boundary);
+}
 
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::Prolongate(

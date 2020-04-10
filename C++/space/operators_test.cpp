@@ -169,8 +169,8 @@ TEST(MultiGridOperator, MultilevelMesh) {
     auto mass_op = MassOperator(triang, dirichlet_boundary);
     double prev_cond = 99999999;
     for (size_t cycles = 1; cycles < 5; cycles++) {
-      auto mg_op = MultigridPreconditioner<MassOperator>(triang, cycles,
-                                                         dirichlet_boundary);
+      auto mg_op = MultigridPreconditioner<MassOperator>(
+          triang, dirichlet_boundary, /*time_level*/ 0, cycles);
 
       // Evaluate condition number.
       tools::linalg::Lanczos lanczos(mass_op, mg_op,
@@ -197,8 +197,8 @@ TEST(MultiGridOperator, SPD) {
 
   bool dirichlet_boundary = false;
   for (size_t cycles = 1; cycles < 5; cycles++) {
-    auto mg_op = MultigridPreconditioner<MassOperator>(triang, cycles,
-                                                       dirichlet_boundary);
+    auto mg_op = MultigridPreconditioner<MassOperator>(
+        triang, dirichlet_boundary, /*time_level*/ 0, cycles);
     auto mg_mat = mg_op.ToMatrix();
 
     // Verify that the matrix is symmetric.
