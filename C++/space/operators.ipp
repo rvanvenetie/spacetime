@@ -78,9 +78,7 @@ MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
       // Note that this will leave initial_triang_solver_ with dangling
       // reference, but it doesn't matter for our purpose..
       initial_triang_solver_(triang.InitialTriangulationView(),
-                             dirichlet_boundary, time_level) {
-  assert(dirichlet_boundary);
-}
+                             dirichlet_boundary, time_level) {}
 
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::Prolongate(
