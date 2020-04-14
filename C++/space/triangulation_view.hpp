@@ -52,6 +52,13 @@ class TriangulationView {
   // Number of initial vertices.
   inline size_t InitialVertices() const { return initial_vertices_; }
 
+  // Grandparents
+  inline const std::array<size_t, 2> Godparents(size_t vi) const {
+    const auto &hist = history(vi);
+    assert(!hist.empty());
+    return hist[0]->RefinementEdge();
+  }
+
   // Access data members.
   inline const std::vector<Vertex *> &vertices() const { return vertices_; }
   inline const std::vector<Element2DView *> &elements() const {

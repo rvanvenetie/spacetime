@@ -9,6 +9,7 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
     : V(vertices.size()),
       vertices_(std::move(vertices)),
       element_view_(vertices[0]->patch[0]->parents()[0]) {
+  assert(V >= 3);
   // First, we store a reference to this object in the underlying tree.
   std::vector<size_t> indices(V);
   initial_vertices_ = 0;

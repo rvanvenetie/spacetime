@@ -83,25 +83,19 @@ MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::Prolongate(
     size_t vertex, Eigen::VectorXd &vec_SS) const {
-  assert(!triang_.history(vertex).empty());
-  for (auto gp : triang_.history(vertex)[0]->RefinementEdge())
-    vec_SS[vertex] += 0.5 * vec_SS[gp];
+  for (auto gp : triang_.Godparents(vertex)) vec_SS[vertex] += 0.5 * vec_SS[gp];
 }
 
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::Restrict(
     size_t vertex, Eigen::VectorXd &vec_SS) const {
-  assert(!triang_.history(vertex).empty());
-  for (auto gp : triang_.history(vertex)[0]->RefinementEdge())
-    vec_SS[gp] += 0.5 * vec_SS[vertex];
+  for (auto gp : triang_.Godparents(vertex)) vec_SS[gp] += 0.5 * vec_SS[vertex];
 }
 
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::RestrictInverse(
     size_t vertex, Eigen::VectorXd &vec_SS) const {
-  assert(!triang_.history(vertex).empty());
-  for (auto gp : triang_.history(vertex)[0]->RefinementEdge())
-    vec_SS[gp] -= 0.5 * vec_SS[vertex];
+  for (auto gp : triang_.Godparents(vertex)) vec_SS[gp] -= 0.5 * vec_SS[vertex];
 }
 
 template <typename ForwardOp>
@@ -152,7 +146,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
       for (size_t vertex = V - 1; vertex >= triang_.InitialVertices();
            --vertex) {
-        auto godparents = triang_.history(vertex)[0]->RefinementEdge();
+        auto godparents = triang_.Godparents(vertex);
 
         // Step 2: Calculate corrections for these three vertices.
         for (size_t vi : {godparents[1], godparents[0], vertex}) {
@@ -194,7 +188,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         // Prolongate the current correction to the next level.
         Prolongate(vertex, e_SS);
 
-        auto godparents = triang_.history(vertex)[0]->RefinementEdge();
+        auto godparents = triang_.Godparents(vertex);
         for (size_t vi : {vertex, godparents[0], godparents[1]}) {
           // Add the the correction we have calculated in the above loop, in
           // reversed order of course.
@@ -213,7 +207,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       Eigen::VectorXd residual = rhs - triang_mat_ * u;
 
       // Step 1: Do a downward-cycle restrict the residual on the coarsest mesh.
-      for (int vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex)
+      for (size_t vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex)
         Restrict(vertex, residual);
 
       // Step 2: Solve on coarsest level.
@@ -237,7 +231,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         RestrictInverse(vertex, residual);
 
         // Find vertex + its godparents.
-        auto godparents = triang_.history(vertex)[0]->RefinementEdge();
+        auto godparents = triang_.Godparents(vertex);
 
         // Step 4: Calculate corrections for these three vertices.
         for (size_t vi : {vertex, godparents[0], godparents[1]}) {

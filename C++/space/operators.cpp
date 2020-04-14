@@ -41,15 +41,13 @@ void ForwardOperator::Apply(Eigen::VectorXd &v) const {
 }
 
 void ForwardOperator::ApplyHierarchToSingle(VectorXd &w) const {
-  for (int vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
-    for (auto gp : triang_.history(vi)[0]->RefinementEdge())
-      w[vi] = w[vi] + 0.5 * w[gp];
+  for (size_t vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
+    for (auto gp : triang_.Godparents(vi)) w[vi] = w[vi] + 0.5 * w[gp];
 }
 
 void ForwardOperator::ApplyTransposeHierarchToSingle(VectorXd &w) const {
-  int vi = triang_.V - 1;
-  for (; vi >= triang_.InitialVertices(); --vi)
-    for (auto gp : triang_.history(vi)[0]->RefinementEdge())
+  for (size_t vi = triang_.V - 1; vi >= triang_.InitialVertices(); --vi)
+    for (auto gp : triang_.Godparents(vi))
       if (IsDof(gp)) w[gp] = w[gp] + 0.5 * w[vi];
 }
 
@@ -78,18 +76,15 @@ BackwardOperator::BackwardOperator(const TriangulationView &triang,
 }
 
 void BackwardOperator::ApplyInverseHierarchToSingle(VectorXd &w) const {
-  int vi = triang_.V - 1;
-  for (; vi >= triang_.InitialVertices(); --vi)
-    for (auto gp : triang_.history(vi)[0]->RefinementEdge())
-      w[vi] = w[vi] - 0.5 * w[gp];
+  for (size_t vi = triang_.V - 1; vi >= triang_.InitialVertices(); --vi)
+    for (auto gp : triang_.Godparents(vi)) w[vi] = w[vi] - 0.5 * w[gp];
 }
 
 void BackwardOperator::ApplyTransposeInverseHierarchToSingle(
     VectorXd &w) const {
-  for (int vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
-    for (auto gp : triang_.history(vi)[0]->RefinementEdge()) {
+  for (size_t vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
+    for (auto gp : triang_.Godparents(vi))
       if (IsDof(gp)) w[gp] = w[gp] - 0.5 * w[vi];
-    }
 }
 
 void BackwardOperator::Apply(Eigen::VectorXd &v) const {
