@@ -152,10 +152,10 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
       for (size_t vertex = V - 1; vertex >= triang_.InitialVertices();
            --vertex) {
-        auto grandparents = triang_.history(vertex)[0]->RefinementEdge();
+        auto godparents = triang_.history(vertex)[0]->RefinementEdge();
 
         // Step 2: Calculate corrections for these three vertices.
-        for (size_t vi : {grandparents[1], grandparents[0], vertex}) {
+        for (size_t vi : {godparents[1], godparents[0], vertex}) {
           // If this vertex is on the boundary, we can simply skip the
           // correction.
           if (!IsDof(vi)) {
@@ -194,8 +194,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         // Prolongate the current correction to the next level.
         Prolongate(vertex, e_SS);
 
-        auto grandparents = triang_.history(vertex)[0]->RefinementEdge();
-        for (size_t vi : {vertex, grandparents[0], grandparents[1]}) {
+        auto godparents = triang_.history(vertex)[0]->RefinementEdge();
+        for (size_t vi : {vertex, godparents[0], godparents[1]}) {
           // Add the the correction we have calculated in the above loop, in
           // reversed order of course.
           e_SS[vi] += e[rev_vi];
@@ -236,11 +236,11 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         // Calculate the residual on the next level.
         RestrictInverse(vertex, residual);
 
-        // Find vertex + its grandparents.
-        auto grandparents = triang_.history(vertex)[0]->RefinementEdge();
+        // Find vertex + its godparents.
+        auto godparents = triang_.history(vertex)[0]->RefinementEdge();
 
         // Step 4: Calculate corrections for these three vertices.
-        for (size_t vi : {vertex, grandparents[0], grandparents[1]}) {
+        for (size_t vi : {vertex, godparents[0], godparents[1]}) {
           // There is no correction if its not a dof.
           if (!IsDof(vi)) continue;
 
