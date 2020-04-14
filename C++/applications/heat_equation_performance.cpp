@@ -44,15 +44,15 @@ int main() {
     // Generate some random input.
     for (auto nv : heat_eq.vec_X_in()->Bfs()) {
       if (nv->node_1()->on_domain_boundary()) continue;
-      nv->set_value(((double)std::rand()) / RAND_MAX);
+      nv->set_random();
     }
     for (auto nv : heat_eq.vec_Y_in()->Bfs()) {
       if (nv->node_1()->on_domain_boundary()) continue;
-      nv->set_value(((double)std::rand()) / RAND_MAX);
+      nv->set_random();
     }
 
     for (size_t k = 0; k < ::inner_iters; k++) {
-      heat_eq.BlockMat()->Apply();
+      heat_eq.BlockBF()->Apply();
     }
   }
   return 0;

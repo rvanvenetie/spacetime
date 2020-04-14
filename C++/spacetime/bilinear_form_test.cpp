@@ -90,7 +90,7 @@ void TestSpacetimeCache(
     // Put some random values into vec_in.
     for (auto nv : vec_in.Bfs()) {
       if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
-      nv->set_value(((double)std::rand()) / RAND_MAX);
+      nv->set_random();
     }
 
     // Apply the spacetime bilinear form.
@@ -105,7 +105,7 @@ void TestSpacetimeCache(
     // Check that applying it with a different input gives another result.
     for (auto nv : vec_in.Bfs()) {
       if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
-      nv->set_value(((double)std::rand()) / RAND_MAX);
+      nv->set_random();
     }
     bil_form->Apply();
     ASSERT_FALSE(eigen_out.isApprox(vec_out.ToVector()));
@@ -128,11 +128,11 @@ void TestSpacetimeLinearity(
   auto vec_in_2 = vec_in.DeepCopy();
   for (auto nv : vec_in_1.Bfs()) {
     if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
-    nv->set_value(((double)std::rand()) / RAND_MAX);
+    nv->set_random();
   }
   for (auto nv : vec_in_2.Bfs()) {
     if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
-    nv->set_value(((double)std::rand()) / RAND_MAX);
+    nv->set_random();
   }
 
   // Also calculate a lin. comb. of this vector
@@ -185,7 +185,7 @@ void TestSpacetimeQuadrature(
   // Simply put some random values into vec_in.
   for (auto nv : vec_in.Bfs()) {
     if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
-    nv->set_value(((double)std::rand()) / RAND_MAX);
+    nv->set_random();
   }
 
   // Apply the spacetime bilinear form.

@@ -33,8 +33,8 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
       three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
   X_delta.SparseRefine(1);
 
-  auto heat_eq = CreateAdaptiveHeatEquation<true>(
-      std::move(X_delta), std::move(g_lf), std::move(u0_lf));
+  auto heat_eq = CreateAdaptiveHeatEquation(std::move(X_delta), std::move(g_lf),
+                                            std::move(u0_lf));
 
   auto result = heat_eq.Solve();
   auto result_nodes = result->Bfs();

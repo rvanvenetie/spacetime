@@ -18,7 +18,7 @@ using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
 // Base class for constructing the operators necessary.
-template <bool use_cache = true>
+template <bool UseCache = true>
 class HeatEquation {
  public:
   // The symmetric operator acting from Y_delta to Y_delta.
@@ -37,7 +37,7 @@ class HeatEquation {
   // The transpose of B is the sum of the transpose of these two operators.
   // With the output/input vectors correctly remapped.
   using TypeBT = typename std::conditional<
-      use_cache,
+      UseCache,
       RemapBilinearForm<SumBilinearForm<TransposeBilinearForm<TypeB_t>,
                                         TransposeBilinearForm<TypeB_s>>>,
       SumBilinearForm<
@@ -51,14 +51,14 @@ class HeatEquation {
                              ThreePointWaveletFn, ThreePointWaveletFn>;
 
   // The block matrix necessary for the solving using minres.
-  using TypeBlockMat =
+  using TypeBlockBF =
       BlockBilinearForm<TypeA, TypeB, TypeBT, NegativeBilinearForm<TypeG>>;
 
   // Types necessary for the Schur complement matrix.
   using TypeAinv = spacetime::BlockDiagonalBilinearForm<
       space::DirectInverse<space::StiffnessOperator>, OrthonormalWaveletFn,
       OrthonormalWaveletFn>;
-  using TypeSchurMat = SchurBilinearForm<TypeAinv, TypeB, TypeBT, TypeG>;
+  using TypeSchurBF = SchurBilinearForm<TypeAinv, TypeB, TypeBT, TypeG>;
   using TypePrecondX = spacetime::BlockDiagonalBilinearForm<
       space::XPreconditionerOperator<space::DirectInverse>, ThreePointWaveletFn,
       ThreePointWaveletFn>;
@@ -87,10 +87,10 @@ class HeatEquation {
   auto B() { return B_; };
   auto BT() { return BT_; }
   auto G() { return G_; }
-  auto BlockMat() { return block_; }
+  auto BlockBF() { return block_bf_; }
 
   auto Ainv() { return A_inv_; }
-  auto SchurMat() { return schur_; }
+  auto SchurBF() { return schur_bf_; }
   auto PrecondX() { return precond_X_; }
 
   auto vec_X_in() { return vec_X_in_.get(); }
@@ -105,11 +105,11 @@ class HeatEquation {
   std::shared_ptr<TypeB> B_;
   std::shared_ptr<TypeBT> BT_;
   std::shared_ptr<TypeG> G_;
-  std::shared_ptr<TypeBlockMat> block_;
+  std::shared_ptr<TypeBlockBF> block_bf_;
 
   // Schur complement stuff.
   std::shared_ptr<TypeAinv> A_inv_;
-  std::shared_ptr<TypeSchurMat> schur_;
+  std::shared_ptr<TypeSchurBF> schur_bf_;
   std::shared_ptr<TypePrecondX> precond_X_;
 
   // Store doubletree vectors for X_delta input and output.
@@ -119,6 +119,12 @@ class HeatEquation {
   std::shared_ptr<TypeYVector> vec_Y_in_, vec_Y_out_;
 };
 
-}  // namespace applications
+template <>
+void HeatEquation<false>::InitializeBT();
+template <>
+void HeatEquation<true>::InitializeBT();
 
-#include "heat_equation.ipp"
+extern template class HeatEquation<false>;
+extern template class HeatEquation<true>;
+
+}  // namespace applications

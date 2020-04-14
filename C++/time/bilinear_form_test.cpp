@@ -32,10 +32,8 @@ void TestLinearity(const TreeVector<WaveletBasisIn>& vec_in,
   // Create two random vectors.
   auto vec_in_1 = vec_in.DeepCopy();
   auto vec_in_2 = vec_in.DeepCopy();
-  for (auto nv : vec_in_1.Bfs())
-    nv->set_value(((double)std::rand()) / RAND_MAX);
-  for (auto nv : vec_in_2.Bfs())
-    nv->set_value(((double)std::rand()) / RAND_MAX);
+  for (auto nv : vec_in_1.Bfs()) nv->set_random();
+  for (auto nv : vec_in_2.Bfs()) nv->set_random();
 
   // Also calculate a lin. comb. of this vector
   double alpha = 1.337;
@@ -69,8 +67,7 @@ void TestUppLow(const TreeVector<WaveletBasisIn>& vec_in,
                 const TreeVector<WaveletBasisOut>& vec_out) {
   // Checks that BilForm::Apply() == BilForm::ApplyUpp() + BilForm::ApplyLow().
   for (int i = 0; i < 20; i++) {
-    for (auto nv : vec_in.Bfs())
-      nv->set_value(((double)std::rand()) / RAND_MAX);
+    for (auto nv : vec_in.Bfs()) nv->set_random();
 
     CreateBilinearForm<Operator>(vec_in, vec_out).Apply();
     auto vec_out_full = vec_out.DeepCopy();

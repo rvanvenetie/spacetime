@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Dense>
 #include <iostream>
+#include <random>
 #include <vector>
 
 #include "multi_tree_view.hpp"
@@ -61,6 +62,9 @@ class MultiNodeVectorBase : public MultiNodeViewBase<I, T...>,
   inline void set_value(double val) {
     // assert(val == 0.0 || (1e-100 < std::abs(val) && std::abs(val) < 1e100));
     value_ = val;
+  }
+  inline void set_random() {
+    value_ = static_cast<double>(std::rand()) / RAND_MAX;
   }
 
  protected:

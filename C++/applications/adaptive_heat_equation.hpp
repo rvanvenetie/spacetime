@@ -14,7 +14,7 @@ using spacetime::GenerateYDelta;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
-template <bool use_cache, typename TypeGLinForm, typename TypeU0LinForm>
+template <typename TypeGLinForm, typename TypeU0LinForm, bool UseCache = true>
 class AdaptiveHeatEquation {
   using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeYDelta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>;
@@ -47,14 +47,14 @@ class AdaptiveHeatEquation {
   TypeXVector *vec_Xdd_out() { return vec_Xdd_out_.get(); }
 
  protected:
-  Eigen::VectorXd RHS(HeatEquation<use_cache> &heat);
+  Eigen::VectorXd RHS(HeatEquation<UseCache> &heat);
   void ApplyMeanZero(TypeXVector *vec);
 
   TypeXDelta X_d_;
   std::shared_ptr<TypeXVector> vec_Xd_in_, vec_Xd_out_, vec_Xdd_in_,
       vec_Xdd_out_;
   std::shared_ptr<TypeYVector> vec_Ydd_in_, vec_Ydd_out_;
-  std::unique_ptr<HeatEquation<use_cache>> heat_d_dd_;
+  std::unique_ptr<HeatEquation<UseCache>> heat_d_dd_;
   TypeGLinForm g_lin_form_;
   TypeU0LinForm u0_lin_form_;
 
@@ -62,13 +62,13 @@ class AdaptiveHeatEquation {
   size_t saturation_layers_;
 };
 
-template <bool use_cache, typename TypeGLinForm, typename TypeU0LinForm>
-AdaptiveHeatEquation<use_cache, TypeGLinForm, TypeU0LinForm>
+template <bool UseCache = true, typename TypeGLinForm, typename TypeU0LinForm>
+AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm, UseCache>
 CreateAdaptiveHeatEquation(
     DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &&X_delta,
     TypeGLinForm &&g_lin_form, TypeU0LinForm &&u0_lin_form, double theta = 0.7,
     size_t saturation_layers = 1) {
-  return AdaptiveHeatEquation<use_cache, TypeGLinForm, TypeU0LinForm>(
+  return AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm, UseCache>(
       std::move(X_delta), std::move(g_lin_form), std::move(u0_lin_form), theta,
       saturation_layers);
 }
