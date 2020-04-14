@@ -75,14 +75,12 @@ TEST(DoubleTreeVector, sum) {
       DoubleTreeVector<Vertex, Element2D>(T.vertex_meta_root, T.elem_meta_root);
   // Create a sparse DoubleTree Vector filled with random values.
   vec_sp.SparseRefine(4);
-  for (const auto &nv : vec_sp.Bfs())
-    nv->set_value(std::rand() * 1.0 / RAND_MAX);
+  for (const auto &nv : vec_sp.Bfs()) nv->set_random();
 
   // Create a double tree uniformly refined with levels [1,4].
   auto vec_unif =
       DoubleTreeVector<Vertex, Element2D>(T.vertex_meta_root, T.elem_meta_root);
-  for (const auto &nv : vec_unif.Bfs())
-    nv->set_value(std::rand() * 1.0 / RAND_MAX);
+  for (const auto &nv : vec_unif.Bfs()) nv->set_random();
 
   // Create two empty vectors holding the sum.
   auto vec_0 =
