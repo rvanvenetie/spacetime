@@ -124,8 +124,8 @@ Eigen::Matrix3d StiffnessOperator::ElementMatrix(const Element2DView *elem,
 
 Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
     const Element2DView *elem, size_t time_level) {
-  return MassOperator::ElementMatrix(elem) +
-         pow(2.0, time_level) * StiffnessOperator::ElementMatrix(elem);
+  return StiffnessOperator::ElementMatrix(elem) +
+         pow(2.0, time_level) * MassOperator::ElementMatrix(elem);
 }
 
 }  // namespace space

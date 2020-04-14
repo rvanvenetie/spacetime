@@ -229,7 +229,7 @@ class StiffPlusScaledMassOperator(Operator):
         super().__init__(triang=triang,
                          dirichlet_boundary=dirichlet_boundary,
                          use_cache=use_cache)
-        self.alpha = alpha
+        self.alpha = 1
         self.stiff = StiffnessOperator(triang,
                                        dirichlet_boundary,
                                        use_cache=use_cache)

@@ -24,7 +24,8 @@ class HeatEquation:
                  Y_delta=None,
                  dirichlet_boundary=True,
                  use_space_cache=True,
-                 formulation='saddle'):
+                 formulation='saddle',
+                 alpha=0.35):
         if Y_delta is None:
             Y_delta = generate_y_delta(X_delta)
 
@@ -98,7 +99,7 @@ class HeatEquation:
                 applicator_space=applicator_space(
                     s_operators.XPreconditioner,
                     precond_cls=s_operators.DirectInverse,
-                    alpha=0.35,
+                    alpha=alpha,
                     use_cache=use_space_cache))
 
             self.mat = CompositeApplicator([self.B, self.P_Y, self.BT
