@@ -49,12 +49,12 @@ class HeatEquation {
 
   // Types necessary for the Schur complement matrix.
   using TypeAinv = spacetime::BlockDiagonalBilinearForm<
-      space::MultigridPreconditioner<space::StiffnessOperator>,
-      OrthonormalWaveletFn, OrthonormalWaveletFn>;
+      space::DirectInverse<space::StiffnessOperator>, OrthonormalWaveletFn,
+      OrthonormalWaveletFn>;
   using TypeSchurMat = SchurBilinearForm<TypeAinv, TypeB, TypeBT, TypeG>;
   using TypePrecondX = spacetime::BlockDiagonalBilinearForm<
-      space::XPreconditionerOperator<space::MultigridPreconditioner>,
-      ThreePointWaveletFn, ThreePointWaveletFn>;
+      space::XPreconditionerOperator<space::DirectInverse>, ThreePointWaveletFn,
+      ThreePointWaveletFn>;
 
   using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeYDelta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>;
