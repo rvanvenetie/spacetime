@@ -1,8 +1,8 @@
-#include "multilevel_patches.hpp"
+#include "multigrid_triangulation_view.hpp"
 
 namespace space {
 
-void MultilevelPatches::Refine() {
+void MultigridTriangulationView::Refine() {
   assert(vi_ < triang_.vertices().size());
   assert(patches_[vi_].empty());
 
@@ -11,19 +11,16 @@ void MultilevelPatches::Refine() {
 
   // We must remove the elements from the existing patches.
   for (auto elem : hist)
-    for (auto v : elem->vertices_view_idx_) {
-      assert(patches_[v].count(elem));
-      patches_[v].erase(elem);
-    }
+    for (auto v : elem->vertices_view_idx_) assert(Erase(v, elem));
 
   // Now we must update the new elements.
   for (auto elem : hist)
     for (auto child : elem->children(0))
-      for (auto v : child->vertices_view_idx_) patches_[v].insert(child);
+      for (auto v : child->vertices_view_idx_) Insert(v, child);
   vi_++;
 }
 
-void MultilevelPatches::Coarsen() {
+void MultigridTriangulationView::Coarsen() {
   assert(vi_ > triang_.InitialVertices());
   vi_--;
   assert(!patches_[vi_].empty());
@@ -34,38 +31,37 @@ void MultilevelPatches::Coarsen() {
   // We must remove the elements from the existing patches.
   for (auto elem : hist)
     for (auto child : elem->children(0))
-      for (auto v : child->vertices_view_idx_) {
-        assert(patches_[v].count(child));
-        patches_[v].erase(child);
-      }
+      for (auto v : child->vertices_view_idx_) assert(Erase(v, child));
 
   // Now we must update the new elements.
   for (auto elem : hist)
-    for (auto v : elem->vertices_view_idx_) patches_[v].insert(elem);
+    for (auto v : elem->vertices_view_idx_) Insert(v, elem);
 }
 
-MultilevelPatches::MultilevelPatches(const TriangulationView &triang)
+MultigridTriangulationView::MultigridTriangulationView(
+    const TriangulationView &triang)
     : triang_(triang) {
   patches_.resize(triang.vertices().size());
 }
 
-MultilevelPatches MultilevelPatches::FromCoarsestTriangulation(
+MultigridTriangulationView
+MultigridTriangulationView::FromCoarsestTriangulation(
     const TriangulationView &triang) {
-  MultilevelPatches result(triang);
+  MultigridTriangulationView result(triang);
   for (const auto &elem : triang.elements()) {
     if (elem->level()) continue;
-    for (int vi : elem->vertices_view_idx_) result.patches_.at(vi).insert(elem);
+    for (int vi : elem->vertices_view_idx_) result.Insert(vi, elem);
   }
   result.vi_ = triang.InitialVertices();
   return result;
 }
 
-MultilevelPatches MultilevelPatches::FromFinestTriangulation(
+MultigridTriangulationView MultigridTriangulationView::FromFinestTriangulation(
     const TriangulationView &triang) {
-  MultilevelPatches result(triang);
+  MultigridTriangulationView result(triang);
   for (const auto &elem : triang.elements()) {
     if (!elem->is_leaf()) continue;
-    for (int vi : elem->vertices_view_idx_) result.patches_.at(vi).insert(elem);
+    for (int vi : elem->vertices_view_idx_) result.Insert(vi, elem);
   }
   result.vi_ = triang.vertices().size();
   return result;

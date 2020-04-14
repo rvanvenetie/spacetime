@@ -56,6 +56,11 @@ class Lanczos {
  public:
   Lanczos(const MatType &A, const PrecondType &P, size_t max_iterations = 200,
           double tol = 0.0001, double tol_bisec = 0.000001)
+      : Lanczos(A, P, Eigen::VectorXd::Random(A.cols()), max_iterations, tol,
+                tol_bisec) {}
+  Lanczos(const MatType &A, const PrecondType &P,
+          const Eigen::VectorXd &initial_guess, size_t max_iterations = 200,
+          double tol = 0.0001, double tol_bisec = 0.000001)
       : alpha_(max_iterations), beta_(max_iterations - 1), converged_(true) {
     assert(P.cols() == A.rows());
     using clock_t = std::chrono::steady_clock;
@@ -64,7 +69,7 @@ class Lanczos {
     double lmaxold, lminold;
 
     // start with random initial guess
-    Eigen::VectorXd w = Eigen::VectorXd::Random(A.cols());
+    Eigen::VectorXd w = initial_guess;
     Eigen::VectorXd v(A.rows());
     Eigen::VectorXd u(A.rows());
 

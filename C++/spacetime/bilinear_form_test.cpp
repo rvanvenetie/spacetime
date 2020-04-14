@@ -26,7 +26,8 @@ Eigen::MatrixXd ToMatrix(BilForm &bilform) {
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(nodes_out.size(), nodes_in.size());
   for (int i = 0; i < nodes_in.size(); ++i) {
     bilform.vec_in()->Reset();
-    nodes_in[i]->set_value(1);
+    if (!std::get<1>(nodes_in[i]->nodes())->on_domain_boundary())
+      nodes_in[i]->set_value(1);
     bilform.Apply();
     for (int j = 0; j < nodes_out.size(); ++j) {
       A(j, i) = nodes_out[j]->value();
@@ -87,8 +88,10 @@ void TestSpacetimeCache(
         &vec_in, &vec_out, /* use_cache */ i == 0);
 
     // Put some random values into vec_in.
-    for (auto nv : vec_in.Bfs())
+    for (auto nv : vec_in.Bfs()) {
+      if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
       nv->set_value(((double)std::rand()) / RAND_MAX);
+    }
 
     // Apply the spacetime bilinear form.
     bil_form->Apply();
@@ -100,8 +103,10 @@ void TestSpacetimeCache(
     ASSERT_TRUE(eigen_out.isApprox(vec_out.ToVector()));
 
     // Check that applying it with a different input gives another result.
-    for (auto nv : vec_in.Bfs())
+    for (auto nv : vec_in.Bfs()) {
+      if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
       nv->set_value(((double)std::rand()) / RAND_MAX);
+    }
     bil_form->Apply();
     ASSERT_FALSE(eigen_out.isApprox(vec_out.ToVector()));
 
@@ -121,10 +126,14 @@ void TestSpacetimeLinearity(
   // Create two random vectors.
   auto vec_in_1 = vec_in.DeepCopy();
   auto vec_in_2 = vec_in.DeepCopy();
-  for (auto nv : vec_in_1.Bfs())
+  for (auto nv : vec_in_1.Bfs()) {
+    if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
     nv->set_value(((double)std::rand()) / RAND_MAX);
-  for (auto nv : vec_in_1.Bfs())
+  }
+  for (auto nv : vec_in_2.Bfs()) {
+    if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
     nv->set_value(((double)std::rand()) / RAND_MAX);
+  }
 
   // Also calculate a lin. comb. of this vector
   double alpha = 1.337;
@@ -174,7 +183,10 @@ void TestSpacetimeQuadrature(
       CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in, &vec_out);
 
   // Simply put some random values into vec_in.
-  for (auto nv : vec_in.Bfs()) nv->set_value(((double)std::rand()) / RAND_MAX);
+  for (auto nv : vec_in.Bfs()) {
+    if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
+    nv->set_value(((double)std::rand()) / RAND_MAX);
+  }
 
   // Apply the spacetime bilinear form.
   bil_form->Apply();

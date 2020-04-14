@@ -6,12 +6,14 @@ using datastructures::TreeVector;
 using datastructures::TreeView;
 
 TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
-    : vertices_(std::move(vertices)),
+    : V(vertices.size()),
+      vertices_(std::move(vertices)),
       element_view_(vertices[0]->patch[0]->parents()[0]) {
+  assert(V >= 3);
   // First, we store a reference to this object in the underlying tree.
-  std::vector<size_t> indices(vertices_.size());
+  std::vector<size_t> indices(V);
   initial_vertices_ = 0;
-  for (size_t i = 0; i < vertices_.size(); ++i) {
+  for (size_t i = 0; i < V; ++i) {
     indices[i] = i;
     vertices_[i]->set_data(&indices[i]);
 
@@ -22,7 +24,7 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
   }
 
   // If we only have initial vertices, set the total.
-  if (initial_vertices_ == 0) initial_vertices_ = vertices_.size();
+  if (initial_vertices_ == 0) initial_vertices_ = V;
 
   // Now create the associated element tree
   element_view_.DeepRefine(
@@ -38,7 +40,7 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
 
   // For every new vertex introduced, we store the elements touching
   // the refinement edge.
-  history_.resize(vertices_.size());
+  history_.resize(V);
 
   // Create and fill in the history object.
   elements_ = element_view_.Bfs();

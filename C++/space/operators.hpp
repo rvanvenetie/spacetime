@@ -1,8 +1,10 @@
 #pragma once
 #include <Eigen/Sparse>
 #include <Eigen/SparseLU>
+#include <vector>
 
 #include "basis.hpp"
+#include "multigrid_triangulation_view.hpp"
 #include "triangulation_view.hpp"
 
 namespace space {
@@ -20,13 +22,31 @@ class Operator {
   // Apply the operator in the hierarchical basis.
   virtual void Apply(Eigen::VectorXd &vec_in) const = 0;
 
+  // Does the given vertex correspond to a dof?
+  inline bool IsDof(size_t vertex) const {
+    return !triang_.OnBoundary(vertex) || !dirichlet_boundary_;
+  }
+
+  // Verify that the given vector satisfy the boundary conditions.
+  bool FeasibleVector(const Eigen::VectorXd &vec) const;
+  bool DirichletBoundary() const { return dirichlet_boundary_; }
+
+  // Overloads required to for Eigen.
+  Eigen::VectorXd operator*(const Eigen::VectorXd &vec_in) const {
+    Eigen::VectorXd result = vec_in;
+    Apply(result);
+    return result;
+  }
+  size_t rows() const { return triang_.V; }
+  size_t cols() const { return triang_.V; }
+
+  // Debug function for turning this operator into a mtrix.
+  Eigen::MatrixXd ToMatrix() const;
+
  protected:
   const TriangulationView &triang_;
   bool dirichlet_boundary_;
   size_t time_level_;
-
-  // Apply the dirichlet boundary conditions.
-  void ApplyBoundaryConditions(Eigen::VectorXd &vec) const;
 };
 
 class ForwardOperator : public Operator {
@@ -143,6 +163,35 @@ class CGInverse : public BackwardOperator {
   Eigen::ConjugateGradient<Eigen::SparseMatrix<double>,
                            Eigen::Lower | Eigen::Upper>
       solver_;
+};
+
+template <typename ForwardOp>
+class MultigridPreconditioner : public BackwardOperator {
+ public:
+  MultigridPreconditioner(const TriangulationView &triang,
+                          bool dirichlet_boundary = true, size_t time_level = 0,
+                          size_t cycles = 5);
+
+  void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
+
+  inline void Prolongate(size_t vertex, Eigen::VectorXd &vec_SS) const;
+  inline void Restrict(size_t vertex, Eigen::VectorXd &vec_SS) const;
+  inline void RestrictInverse(size_t vertex, Eigen::VectorXd &vec_SS) const;
+
+ protected:
+  // Returns a row of the _forward_ matrix on the given multilevel triang.
+  // NOTE: The result is not compressed.
+  inline std::vector<std::pair<size_t, double>> RowMatrix(
+      const MultigridTriangulationView &mg_triang, size_t vertex) const;
+
+  // Number of cycles to do.
+  size_t cycles_;
+
+  // Matrix on the finest level.
+  Eigen::SparseMatrix<double> triang_mat_;
+
+  // Solver on the coarsest level.
+  DirectInverse<ForwardOp> initial_triang_solver_;
 };
 
 template <template <typename> class InverseOp>
