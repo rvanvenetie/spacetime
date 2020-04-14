@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Dense>
 #include <iostream>
+#include <random>
 #include <vector>
 
 #include "multi_tree_view.hpp"
