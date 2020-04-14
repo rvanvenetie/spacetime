@@ -52,7 +52,7 @@ int main() {
     }
 
     for (size_t k = 0; k < ::inner_iters; k++) {
-      heat_eq.BlockMat()->Apply();
+      heat_eq.BlockBF()->Apply();
     }
   }
   return 0;
