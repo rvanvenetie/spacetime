@@ -18,6 +18,7 @@ using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
 // Base class for constructing the operators necessary.
+template <bool use_cache = true>
 class HeatEquation {
  public:
   // The symmetric operator acting from Y_delta to Y_delta.
@@ -35,9 +36,15 @@ class HeatEquation {
 
   // The transpose of B is the sum of the transpose of these two operators.
   // With the output/input vectors correctly remapped.
-  using TypeBT =
+  using TypeBT = typename std::conditional<
+      use_cache,
       RemapBilinearForm<SumBilinearForm<TransposeBilinearForm<TypeB_t>,
-                                        TransposeBilinearForm<TypeB_s>>>;
+                                        TransposeBilinearForm<TypeB_s>>>,
+      SumBilinearForm<
+          BilinearForm<Time::TransportOperator, space::MassOperator,
+                       OrthonormalWaveletFn, ThreePointWaveletFn>,
+          BilinearForm<Time::MassOperator, space::StiffnessOperator,
+                       OrthonormalWaveletFn, ThreePointWaveletFn>>>::type;
 
   // The trace operator maps between X_delta and X_delta.
   using TypeG = BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
@@ -80,10 +87,10 @@ class HeatEquation {
   auto B() { return B_; };
   auto BT() { return BT_; }
   auto G() { return G_; }
-  auto BlockMat() { return block_mat_; }
+  auto BlockMat() { return block_; }
 
   auto Ainv() { return A_inv_; }
-  auto SchurMat() { return schur_mat_; }
+  auto SchurMat() { return schur_; }
   auto PrecondX() { return precond_X_; }
 
   auto vec_X_in() { return vec_X_in_.get(); }
@@ -92,15 +99,17 @@ class HeatEquation {
   auto vec_Y_out() { return vec_Y_out_.get(); }
 
  protected:
+  void InitializeBT();
+
   std::shared_ptr<TypeA> A_;
   std::shared_ptr<TypeB> B_;
   std::shared_ptr<TypeBT> BT_;
   std::shared_ptr<TypeG> G_;
-  std::shared_ptr<TypeBlockMat> block_mat_;
+  std::shared_ptr<TypeBlockMat> block_;
 
   // Schur complement stuff.
   std::shared_ptr<TypeAinv> A_inv_;
-  std::shared_ptr<TypeSchurMat> schur_mat_;
+  std::shared_ptr<TypeSchurMat> schur_;
   std::shared_ptr<TypePrecondX> precond_X_;
 
   // Store doubletree vectors for X_delta input and output.
@@ -111,3 +120,5 @@ class HeatEquation {
 };
 
 }  // namespace applications
+
+#include "heat_equation.ipp"

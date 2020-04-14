@@ -20,8 +20,8 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::AdaptiveHeatEquation(
           GenerateYDelta(*vec_Xdd_in_).template DeepCopy<TypeYVector>())),
       vec_Ydd_out_(std::make_shared<TypeYVector>(
           vec_Ydd_in_->template DeepCopy<TypeYVector>())),
-      heat_d_dd_(std::make_unique<HeatEquation>(vec_Xd_in_, vec_Xd_out_,
-                                                vec_Ydd_in_, vec_Ydd_out_)),
+      heat_d_dd_(std::make_unique<HeatEquation<true>>(
+          vec_Xd_in_, vec_Xd_out_, vec_Ydd_in_, vec_Ydd_out_)),
       g_lin_form_(std::move(g_lin_form)),
       u0_lin_form_(std::move(u0_lin_form)),
       theta_(theta),
@@ -29,7 +29,7 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::AdaptiveHeatEquation(
 
 template <typename TypeGLinForm, typename TypeU0LinForm>
 Eigen::VectorXd AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::RHS(
-    HeatEquation &heat) {
+    HeatEquation<true> &heat) {
   heat.B()->Apply();  // This is actually only needed to initialize BT()
   g_lin_form_.Apply(heat.vec_Y_out());
   heat.Ainv()->Apply();
@@ -57,8 +57,8 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
   auto A = heat_d_dd_->A();
   auto Ainv = heat_d_dd_->Ainv();
   heat_d_dd_.reset();
-  auto heat_dd_dd = HeatEquation(vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_,
-                                 vec_Ydd_out_, A, Ainv);
+  auto heat_dd_dd = HeatEquation<true>(vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_,
+                                       vec_Ydd_out_, A, Ainv);
   auto u_dd_dd = vec_Xdd_in();
   u_dd_dd->Reset();
   *u_dd_dd += *vec_Xd_out();
@@ -130,8 +130,8 @@ void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Refine(
   vec_Ydd_out_ = std::make_shared<TypeYVector>(
       vec_Ydd_in_->template DeepCopy<TypeYVector>());
 
-  heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_in_, vec_Xd_out_,
-                                              vec_Ydd_in_, vec_Ydd_out_);
+  heat_d_dd_ = std::make_unique<HeatEquation<true>>(vec_Xd_in_, vec_Xd_out_,
+                                                    vec_Ydd_in_, vec_Ydd_out_);
 }
 
 template <typename TypeGLinForm, typename TypeU0LinForm>

@@ -39,7 +39,7 @@ int main() {
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(::level);
 
-    HeatEquation heat_eq(X_delta);
+    HeatEquation<true> heat_eq(X_delta);
 
     // Generate some random input.
     for (auto nv : heat_eq.vec_X_in()->Bfs()) {

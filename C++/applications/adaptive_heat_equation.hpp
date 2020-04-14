@@ -47,14 +47,14 @@ class AdaptiveHeatEquation {
   TypeXVector *vec_Xdd_out() { return vec_Xdd_out_.get(); }
 
  protected:
-  Eigen::VectorXd RHS(HeatEquation &heat);
+  Eigen::VectorXd RHS(HeatEquation<true> &heat);
   void ApplyMeanZero(TypeXVector *vec);
 
   TypeXDelta X_d_;
   std::shared_ptr<TypeXVector> vec_Xd_in_, vec_Xd_out_, vec_Xdd_in_,
       vec_Xdd_out_;
   std::shared_ptr<TypeYVector> vec_Ydd_in_, vec_Ydd_out_;
-  std::unique_ptr<HeatEquation> heat_d_dd_;
+  std::unique_ptr<HeatEquation<true>> heat_d_dd_;
   TypeGLinForm g_lin_form_;
   TypeU0LinForm u0_lin_form_;
 

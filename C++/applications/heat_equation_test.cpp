@@ -35,7 +35,7 @@ TEST(HeatEquation, SparseMatVec) {
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(level);
 
-    HeatEquation heat_eq(X_delta);
+    HeatEquation<true> heat_eq(X_delta);
 
     // Generate some random rhs.
     for (auto nv : heat_eq.vec_X_in()->Bfs()) {
@@ -102,7 +102,7 @@ TEST(HeatEquation, SchurCG) {
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(level);
 
-    HeatEquation heat_eq(X_delta);
+    HeatEquation<true> heat_eq(X_delta);
 
     // Generate some rhs.
     for (auto nv : heat_eq.vec_X_in()->Bfs()) {
@@ -190,7 +190,7 @@ TEST(HeatEquation, SchurPCG) {
     ortho_tree.UniformRefine(level);
     three_point_tree.UniformRefine(level);
     X_delta.SparseRefine(level, {2, 1});
-    HeatEquation heat_eq(X_delta);
+    HeatEquation<true> heat_eq(X_delta);
 
     // Generate some rhs.
     for (auto nv : heat_eq.vec_X_in()->Bfs()) {

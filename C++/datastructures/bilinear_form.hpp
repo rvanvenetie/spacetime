@@ -117,6 +117,8 @@ class SumBilinearForm {
 
   DblVecIn *vec_in() const { return a_->vec_in(); }
   DblVecOut *vec_out() const { return a_->vec_out(); }
+  auto sigma() { return a_->sigma(); }
+  auto theta() { return a_->theta(); }
 
  protected:
   std::shared_ptr<BilFormA> a_;
