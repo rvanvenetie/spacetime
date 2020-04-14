@@ -2,10 +2,11 @@
 #include <boost/range/adaptor/reversed.hpp>
 
 namespace applications {
-template <typename TypeGLinForm, typename TypeU0LinForm>
-AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::AdaptiveHeatEquation(
-    TypeXDelta &&X_delta, TypeGLinForm &&g_lin_form,
-    TypeU0LinForm &&u0_lin_form, double theta, size_t saturation_layers)
+template <bool use_cache, typename TypeGLinForm, typename TypeU0LinForm>
+AdaptiveHeatEquation<use_cache, TypeGLinForm, TypeU0LinForm>::
+    AdaptiveHeatEquation(TypeXDelta &&X_delta, TypeGLinForm &&g_lin_form,
+                         TypeU0LinForm &&u0_lin_form, double theta,
+                         size_t saturation_layers)
     : X_d_(std::move(X_delta)),
       vec_Xd_in_(
           std::make_shared<TypeXVector>(X_d_.template DeepCopy<TypeXVector>())),
@@ -20,16 +21,17 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::AdaptiveHeatEquation(
           GenerateYDelta(*vec_Xdd_in_).template DeepCopy<TypeYVector>())),
       vec_Ydd_out_(std::make_shared<TypeYVector>(
           vec_Ydd_in_->template DeepCopy<TypeYVector>())),
-      heat_d_dd_(std::make_unique<HeatEquation<true>>(
+      heat_d_dd_(std::make_unique<HeatEquation<use_cache>>(
           vec_Xd_in_, vec_Xd_out_, vec_Ydd_in_, vec_Ydd_out_)),
       g_lin_form_(std::move(g_lin_form)),
       u0_lin_form_(std::move(u0_lin_form)),
       theta_(theta),
       saturation_layers_(saturation_layers) {}
 
-template <typename TypeGLinForm, typename TypeU0LinForm>
-Eigen::VectorXd AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::RHS(
-    HeatEquation<true> &heat) {
+template <bool use_cache, typename TypeGLinForm, typename TypeU0LinForm>
+Eigen::VectorXd
+AdaptiveHeatEquation<use_cache, TypeGLinForm, TypeU0LinForm>::RHS(
+    HeatEquation<use_cache> &heat) {
   heat.B()->Apply();  // This is actually only needed to initialize BT()
   g_lin_form_.Apply(heat.vec_Y_out());
   heat.Ainv()->Apply();
@@ -38,9 +40,9 @@ Eigen::VectorXd AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::RHS(
   return rhs;
 }
 
-template <typename TypeGLinForm, typename TypeU0LinForm>
+template <bool use_cache, typename TypeGLinForm, typename TypeU0LinForm>
 DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
-    *AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Solve(
+    *AdaptiveHeatEquation<use_cache, TypeGLinForm, TypeU0LinForm>::Solve(
         const Eigen::VectorXd &x0, double rtol, size_t maxit) {
   assert(heat_d_dd_);
   auto [result, data] =
@@ -50,15 +52,16 @@ DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
   return vec_Xd_out();
 }
 
-template <typename TypeGLinForm, typename TypeU0LinForm>
+template <bool use_cache, typename TypeGLinForm, typename TypeU0LinForm>
 std::pair<DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *, double>
-AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
+AdaptiveHeatEquation<use_cache, TypeGLinForm, TypeU0LinForm>::Estimate(
+    bool mean_zero) {
   assert(heat_d_dd_);
   auto A = heat_d_dd_->A();
   auto Ainv = heat_d_dd_->Ainv();
   heat_d_dd_.reset();
-  auto heat_dd_dd = HeatEquation<true>(vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_,
-                                       vec_Ydd_out_, A, Ainv);
+  auto heat_dd_dd = HeatEquation<use_cache>(vec_Xdd_in_, vec_Xdd_out_,
+                                            vec_Ydd_in_, vec_Ydd_out_, A, Ainv);
   auto u_dd_dd = vec_Xdd_in();
   u_dd_dd->Reset();
   *u_dd_dd += *vec_Xd_out();
@@ -88,9 +91,9 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Estimate(bool mean_zero) {
   return {u_dd_dd, sqrt(sq_norm)};
 }
 
-template <typename TypeGLinForm, typename TypeU0LinForm>
+template <bool use_cache, typename TypeGLinForm, typename TypeU0LinForm>
 std::vector<DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn> *>
-AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Mark() {
+AdaptiveHeatEquation<use_cache, TypeGLinForm, TypeU0LinForm>::Mark() {
   auto nodes = vec_Xdd_in()->Bfs();
   std::sort(nodes.begin(), nodes.end(), [](auto n1, auto n2) {
     return std::abs(n1->value()) > std::abs(n2->value());
@@ -107,8 +110,8 @@ AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Mark() {
   return nodes;
 }
 
-template <typename TypeGLinForm, typename TypeU0LinForm>
-void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Refine(
+template <bool use_cache, typename TypeGLinForm, typename TypeU0LinForm>
+void AdaptiveHeatEquation<use_cache, TypeGLinForm, TypeU0LinForm>::Refine(
     const std::vector<DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn>
                           *> &nodes_to_add) {
   X_d_.ConformingRefinement(*vec_Xdd_in(), nodes_to_add);
@@ -130,13 +133,14 @@ void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::Refine(
   vec_Ydd_out_ = std::make_shared<TypeYVector>(
       vec_Ydd_in_->template DeepCopy<TypeYVector>());
 
-  heat_d_dd_ = std::make_unique<HeatEquation<true>>(vec_Xd_in_, vec_Xd_out_,
-                                                    vec_Ydd_in_, vec_Ydd_out_);
+  heat_d_dd_ = std::make_unique<HeatEquation<use_cache>>(
+      vec_Xd_in_, vec_Xd_out_, vec_Ydd_in_, vec_Ydd_out_);
 }
 
-template <typename TypeGLinForm, typename TypeU0LinForm>
-void AdaptiveHeatEquation<TypeGLinForm, TypeU0LinForm>::ApplyMeanZero(
-    DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *vec) {
+template <bool use_cache, typename TypeGLinForm, typename TypeU0LinForm>
+void AdaptiveHeatEquation<use_cache, TypeGLinForm, TypeU0LinForm>::
+    ApplyMeanZero(
+        DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *vec) {
   for (auto &dblnode : boost::adaptors::reverse(vec->container())) {
     auto [_, space_node] = dblnode.nodes();
     if (space_node->level() == 0 || space_node->on_domain_boundary()) continue;

@@ -5,7 +5,7 @@
 #include "adaptive_heat_equation.hpp"
 #include "problems.hpp"
 
-using applications::AdaptiveHeatEquation;
+using applications::CreateAdaptiveHeatEquation;
 using datastructures::DoubleTreeView;
 using space::HierarchicalBasisFn;
 using Time::ortho_tree;
@@ -25,8 +25,8 @@ int main() {
       three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
   X_delta.SparseRefine(1);
 
-  AdaptiveHeatEquation heat_eq(std::move(X_delta), std::move(g_lf),
-                               std::move(u0_lf));
+  auto heat_eq = CreateAdaptiveHeatEquation<true>(
+      std::move(X_delta), std::move(g_lf), std::move(u0_lf));
 
   while (true) {
     auto start = std::chrono::steady_clock::now();

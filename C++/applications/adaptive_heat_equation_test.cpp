@@ -6,6 +6,7 @@
 #include "../tools/linalg.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "problems.hpp"
 
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
@@ -26,24 +27,14 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   ortho_tree.UniformRefine(1);
   three_point_tree.UniformRefine(1);
 
-  auto time_g1 = [](double t) { return -2 * (1 + t * t); };
-  auto space_g1 = [](double x, double y) { return (x - 1) * x + (y - 1) * y; };
-  auto time_g2 = [](double t) { return 2 * t; };
-  auto space_g2 = [](double x, double y) { return (x - 1) * x * (y - 1) * y; };
-  auto u0 = [](double x, double y) { return (1 - x) * x * (1 - y) * y; };
+  auto [g_lf, u0_lf] = SmoothProblem();
 
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
       three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
   X_delta.SparseRefine(1);
 
-  AdaptiveHeatEquation heat_eq(
-      std::move(X_delta),
-      CreateSumLinearForm<OrthonormalWaveletFn>(
-          CreateQuadratureLinearForm<OrthonormalWaveletFn, 2, 2>(time_g1,
-                                                                 space_g1),
-          CreateQuadratureLinearForm<OrthonormalWaveletFn, 1, 4>(time_g2,
-                                                                 space_g2)),
-      CreateZeroEvalLinearForm<ThreePointWaveletFn, 4>(u0));
+  auto heat_eq = CreateAdaptiveHeatEquation<true>(
+      std::move(X_delta), std::move(g_lf), std::move(u0_lf));
 
   auto result = heat_eq.Solve();
   auto result_nodes = result->Bfs();
