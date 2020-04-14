@@ -126,51 +126,58 @@ TEST(MultiGridOperator, RestrictProlongate) {
   }
 }
 
-TEST(MultiGridOperator, CoarsestMesh) {
-  for (size_t initial_ref = 0; initial_ref < 4; initial_ref++) {
-    auto T = InitialTriangulation::UnitSquare(initial_ref);
-    T.hierarch_basis_tree.UniformRefine(1);
+template <typename ForwardOp>
+void TestMultigridOperator(bool dirichlet_boundary, int time_level = 0) {
+  // std::cout << "TestMultigridOperator<" << typeid(ForwardOp).name() << ">("
+  //          << dirichlet_boundary << ", " << time_level << ")" << std::endl;
 
-    // Create a subtree with only vertices on coarset mesh.
-    auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
-    vertex_subtree.UniformRefine(0);
+  // Test multigrid preconditioner on coarsest mesh is an exact solve.
+  {
+    for (size_t initial_ref = 0; initial_ref < 4; initial_ref++) {
+      auto T = InitialTriangulation::UnitSquare(initial_ref);
+      T.hierarch_basis_tree.UniformRefine(1);
 
-    TriangulationView triang(vertex_subtree);
-    auto mg_op = MultigridPreconditioner<MassOperator>(triang);
-    auto mass_op = MassOperator(triang);
-    size_t V = triang.vertices().size();
+      // Create a subtree with only vertices on coarset mesh.
+      auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
+      vertex_subtree.UniformRefine(0);
 
-    for (int i = 0; i < 10; i++) {
-      Eigen::VectorXd vec = RandomVector(triang);
-      Eigen::VectorXd vec_copy = vec;
-      mass_op.Apply(vec);
-      mg_op.Apply(vec);
-      ASSERT_TRUE(vec.isApprox(vec_copy));
+      TriangulationView triang(vertex_subtree);
+      auto mg_op = MultigridPreconditioner<ForwardOp>(
+          triang, dirichlet_boundary, time_level);
+      auto mass_op = ForwardOp(triang, dirichlet_boundary, time_level);
+      size_t V = triang.vertices().size();
+
+      for (int i = 0; i < 10; i++) {
+        Eigen::VectorXd vec = RandomVector(triang);
+        Eigen::VectorXd vec_copy = vec;
+        mass_op.Apply(vec);
+        mg_op.Apply(vec);
+        ASSERT_TRUE(vec.isApprox(vec_copy));
+      }
     }
   }
-}
 
-TEST(MultiGridOperator, MultilevelMesh) {
-  auto T = InitialTriangulation::UnitSquare();
-  // Create a mesh refined along the line x==y.
-  size_t ml = 12;
-  T.elem_tree.DeepRefine([ml](auto elem) {
-    if (elem->level() >= ml) return false;
-    for (auto vertex : elem->vertices())
-      if (vertex->x == vertex->y) return true;
-    return false;
-  });
+  // Test MG works for a locally refined mesh.
+  {
+    auto T = InitialTriangulation::UnitSquare();
+    // Create a mesh refined along the line x==y.
+    size_t ml = 12;
+    T.elem_tree.DeepRefine([ml](auto elem) {
+      if (elem->level() >= ml) return false;
+      for (auto vertex : elem->vertices())
+        if (vertex->x == vertex->y) return true;
+      return false;
+    });
 
-  auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
-  vertex_subtree.DeepRefine();
-  TriangulationView triang(vertex_subtree);
+    auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
+    vertex_subtree.DeepRefine();
+    TriangulationView triang(vertex_subtree);
 
-  for (bool dirichlet_boundary : {true, false}) {
-    auto mass_op = MassOperator(triang, dirichlet_boundary);
+    auto mass_op = ForwardOp(triang, dirichlet_boundary, time_level);
     double prev_cond = 99999999;
     for (size_t cycles = 1; cycles < 5; cycles++) {
-      auto mg_op = MultigridPreconditioner<MassOperator>(
-          triang, dirichlet_boundary, /*time_level*/ 0, cycles);
+      auto mg_op = MultigridPreconditioner<ForwardOp>(
+          triang, dirichlet_boundary, time_level, cycles);
 
       // Evaluate condition number.
       tools::linalg::Lanczos lanczos(mass_op, mg_op,
@@ -181,34 +188,45 @@ TEST(MultiGridOperator, MultilevelMesh) {
       prev_cond = lanczos.cond();
     }
   }
-}
 
-TEST(MultiGridOperator, SPD) {
-  auto T = InitialTriangulation::UnitSquare();
-  T.hierarch_basis_tree.UniformRefine(max_level);
+  // Test that the multigridpreconditioner is SPD
+  {
+    auto T = InitialTriangulation::UnitSquare();
+    T.hierarch_basis_tree.UniformRefine(max_level);
 
-  // Create a subtree with only vertices lying below the diagonal.
-  auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
-  vertex_subtree.DeepRefine(/* call_filter */ [](const auto &vertex) {
-    return vertex->level() == 0 || (vertex->x + vertex->y <= 1.0);
-  });
+    // Create a subtree with only vertices lying below the diagonal.
+    auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
+    vertex_subtree.DeepRefine(/* call_filter */ [](const auto &vertex) {
+      return vertex->level() == 0 || (vertex->x + vertex->y <= 1.0);
+    });
 
-  TriangulationView triang(vertex_subtree);
+    TriangulationView triang(vertex_subtree);
 
-  bool dirichlet_boundary = false;
-  for (size_t cycles = 1; cycles < 5; cycles++) {
-    auto mg_op = MultigridPreconditioner<MassOperator>(
-        triang, dirichlet_boundary, /*time_level*/ 0, cycles);
-    auto mg_mat = mg_op.ToMatrix();
+    for (size_t cycles = 1; cycles < 5; cycles++) {
+      auto mg_op = MultigridPreconditioner<ForwardOp>(
+          triang, dirichlet_boundary, time_level, cycles);
+      auto mg_mat = mg_op.ToMatrix();
 
-    // Verify that the matrix is symmetric.
-    ASSERT_TRUE(mg_mat.isApprox(mg_mat.transpose()));
+      // Verify that the matrix is symmetric.
+      ASSERT_TRUE(mg_mat.isApprox(mg_mat.transpose()));
 
-    // Check that al its eigenvalues are real and positive.
-    auto eigs = mg_mat.eigenvalues();
-    for (size_t i = 0; i < triang.V; i++) {
-      ASSERT_GT(eigs[i].real(), 0);
-      ASSERT_EQ(eigs[i].imag(), 0);
+      // Check that al its eigenvalues are real and positive.
+      auto eigs = mg_mat.template selfadjointView<Eigen::Upper>().eigenvalues();
+      for (size_t i = 0; i < triang.V; i++) {
+        if (dirichlet_boundary)
+          ASSERT_GE(eigs[i], -1e-12);
+        else
+          ASSERT_GT(eigs[i], 0);
+      }
     }
   }
+}
+
+TEST(MultiGridOperator, All) {
+  TestMultigridOperator<MassOperator>(/*dirichlet */ false);
+  TestMultigridOperator<MassOperator>(/*dirichlet */ true);
+  TestMultigridOperator<StiffnessOperator>(/* dirichlet */ true);
+  TestMultigridOperator<StiffPlusScaledMassOperator>(/* dirichlet */ true);
+  TestMultigridOperator<StiffPlusScaledMassOperator>(/* dirichlet */ true,
+                                                     /* time_level */ 10);
 }
