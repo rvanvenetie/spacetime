@@ -40,11 +40,11 @@ TEST(HeatEquation, SparseMatVec) {
     // Generate some random rhs.
     for (auto nv : heat_eq.vec_X_in()->Bfs()) {
       if (nv->node_1()->on_domain_boundary()) continue;
-      nv->set_value(((double)std::rand()) / RAND_MAX);
+      nv->set_random();
     }
     for (auto nv : heat_eq.vec_Y_in()->Bfs()) {
       if (nv->node_1()->on_domain_boundary()) continue;
-      nv->set_value(((double)std::rand()) / RAND_MAX);
+      nv->set_random();
     }
 
     // Validate the input.
@@ -215,4 +215,5 @@ TEST(HeatEquation, SchurPCG) {
               << ", estimated error: " << residual << std::endl;
   }
 }
+
 }  // namespace applications
