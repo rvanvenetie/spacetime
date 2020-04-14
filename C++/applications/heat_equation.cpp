@@ -41,9 +41,9 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
   auto minus_G = std::make_shared<NegativeBilinearForm<TypeG>>(G_);
 
   // Create the block matrix.
-  block_mat_ = std::make_shared<TypeBlockMat>(A_, B_, BT_, minus_G);
+  block_ = std::make_shared<TypeBlockMat>(A_, B_, BT_, minus_G);
   // Create the Schur matrix.
-  schur_mat_ = std::make_shared<TypeSchurMat>(A_inv_, B_, BT_, G_);
+  schur_ = std::make_shared<TypeSchurMat>(A_inv_, B_, BT_, G_);
   precond_X_ =
       std::make_shared<TypePrecondX>(vec_X_in_.get(), vec_X_out_.get());
 }
