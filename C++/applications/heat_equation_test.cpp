@@ -178,7 +178,7 @@ TEST(HeatEquation, CompareToPython) {
   // For schur_mat * v
   std::cout << "Comparing schur_mat" << std::endl;
   heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
-  heat_eq.SchurMat()->Apply();
+  heat_eq.S()->Apply();
   compare(X_bfs_out, schur_mat_py);
 }
 
