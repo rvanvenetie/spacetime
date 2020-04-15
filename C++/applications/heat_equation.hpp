@@ -51,7 +51,7 @@ class HeatEquation {
   using TypeAinv = spacetime::BlockDiagonalBilinearForm<
       space::DirectInverse<space::StiffnessOperator>, OrthonormalWaveletFn,
       OrthonormalWaveletFn>;
-  using TypeSchurBF = SchurBilinearForm<TypeAinv, TypeB, TypeBT, TypeG>;
+  using TypeS = SchurBilinearForm<TypeAinv, TypeB, TypeBT, TypeG>;
   using TypePrecondX = spacetime::BlockDiagonalBilinearForm<
       space::XPreconditionerOperator<space::DirectInverse>, ThreePointWaveletFn,
       ThreePointWaveletFn>;
@@ -83,7 +83,7 @@ class HeatEquation {
   auto BlockBF() { return block_bf_; }
 
   auto Ainv() { return A_inv_; }
-  auto SchurBF() { return schur_bf_; }
+  auto S() { return S_; }
   auto PrecondX() { return precond_X_; }
 
   auto vec_X_in() { return vec_X_in_.get(); }
@@ -100,7 +100,7 @@ class HeatEquation {
 
   // Schur complement stuff.
   std::shared_ptr<TypeAinv> A_inv_;
-  std::shared_ptr<TypeSchurBF> schur_bf_;
+  std::shared_ptr<TypeS> S_;
   std::shared_ptr<TypePrecondX> precond_X_;
 
   // Store doubletree vectors for X_delta input and output.

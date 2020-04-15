@@ -117,7 +117,7 @@ TEST(HeatEquation, SchurCG) {
     auto v_in = heat_eq.vec_X_in()->ToVectorContainer();
 
     // Apply the block matrix :-).
-    heat_eq.SchurBF()->Apply();
+    heat_eq.S()->Apply();
 
     // Validate the result.
     ValidateVector(*heat_eq.vec_X_out());
@@ -130,7 +130,7 @@ TEST(HeatEquation, SchurCG) {
     Eigen::ConjugateGradient<EigenBilinearForm, Eigen::Lower | Eigen::Upper,
                              Eigen::IdentityPreconditioner>
         cg;
-    cg.compute(*heat_eq.SchurBF());
+    cg.compute(*heat_eq.S());
     Eigen::VectorXd x;
     x = cg.solve(v_in);
     std::cout << "CG:   #iterations: " << cg.iterations()
@@ -206,7 +206,7 @@ TEST(HeatEquation, SchurPCG) {
     // auto precond = Eigen::SparseMatrix<double>(v_in.rows(), v_in.rows());
     // precond.setIdentity();
     auto [result, data] =
-        tools::linalg::PCG(*heat_eq.SchurBF(), v_in, *heat_eq.PrecondX(),
+        tools::linalg::PCG(*heat_eq.S(), v_in, *heat_eq.PrecondX(),
                            Eigen::VectorXd::Zero(v_in.rows()), 1000, 1e-5);
     auto [residual, iter] = data;
     std::cout << ortho_tree.Bfs().size() << " " << three_point_tree.Bfs().size()
