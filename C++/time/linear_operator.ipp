@@ -139,7 +139,8 @@ using ArraySparseVector = std::array<std::pair<Basis *, double>, N>;
  *  Implementations of Prolongate.
  */
 template <>
-auto Prolongate<ContLinearScalingFn>::Column(ContLinearScalingFn *phi_in) {
+inline auto Prolongate<ContLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) {
   StaticSparseVector<ContLinearScalingFn, 3> result;
 
   auto [l, n] = phi_in->labda();
@@ -150,7 +151,7 @@ auto Prolongate<ContLinearScalingFn>::Column(ContLinearScalingFn *phi_in) {
 }
 
 template <>
-auto Prolongate<ContLinearScalingFn>::Row(ContLinearScalingFn *phi_in) {
+inline auto Prolongate<ContLinearScalingFn>::Row(ContLinearScalingFn *phi_in) {
   StaticSparseVector<ContLinearScalingFn, 2> result;
   const auto &parents = phi_in->parents();
   if (parents.size() == 1)
@@ -163,7 +164,8 @@ auto Prolongate<ContLinearScalingFn>::Row(ContLinearScalingFn *phi_in) {
 }
 
 template <>
-auto Prolongate<DiscLinearScalingFn>::Column(DiscLinearScalingFn *phi_in) {
+inline auto Prolongate<DiscLinearScalingFn>::Column(
+    DiscLinearScalingFn *phi_in) {
   StaticSparseVector<DiscLinearScalingFn, 4> result;
   auto [l, n] = phi_in->labda();
   phi_in->Refine();
@@ -181,7 +183,7 @@ auto Prolongate<DiscLinearScalingFn>::Column(DiscLinearScalingFn *phi_in) {
 }
 
 template <>
-auto Prolongate<DiscLinearScalingFn>::Row(DiscLinearScalingFn *phi_in) {
+inline auto Prolongate<DiscLinearScalingFn>::Row(DiscLinearScalingFn *phi_in) {
   StaticSparseVector<DiscLinearScalingFn, 2> result;
   auto [l, n] = phi_in->labda();
   const auto &parents = phi_in->parents();
@@ -206,7 +208,7 @@ auto Prolongate<DiscLinearScalingFn>::Row(DiscLinearScalingFn *phi_in) {
  *  Implementations of the Mass operator.
  */
 template <>
-auto MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
+inline auto MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
     ContLinearScalingFn *phi_in) {
   StaticSparseVector<ContLinearScalingFn, 3> result;
 
@@ -227,35 +229,35 @@ auto MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
 }
 
 template <>
-auto MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Row(
+inline auto MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Row(
     ContLinearScalingFn *phi_out) {
   // This MassOperator is symmetric.
   return Column(phi_out);
 }
 
 template <>
-auto MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Column(
+inline auto MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Column(
     DiscConstantScalingFn *phi_in) {
   return ArraySparseVector<DiscConstantScalingFn, 1>{
       {{phi_in, pow(2.0, -phi_in->level())}}};
 }
 
 template <>
-auto MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Row(
+inline auto MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Row(
     DiscConstantScalingFn *phi_out) {
   // This MassOperator is symmetric.
   return Column(phi_out);
 }
 
 template <>
-auto MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
+inline auto MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
     DiscLinearScalingFn *phi_in) {
   return ArraySparseVector<DiscLinearScalingFn, 1>{
       {{phi_in, pow(2.0, -phi_in->level())}}};
 }
 
 template <>
-auto MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Row(
+inline auto MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Row(
     DiscLinearScalingFn *phi_out) {
   // This MassOperator is symmetric.
   return Column(phi_out);
@@ -296,31 +298,31 @@ inline auto OrthoInThreeOut(DiscLinearScalingFn *phi_in) {
 };  // namespace Mass
 
 template <>
-auto MassOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
+inline auto MassOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
     ContLinearScalingFn *phi_in) {
   return Mass::ThreeInOrthoOut(phi_in);
 }
 
 template <>
-auto MassOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
+inline auto MassOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
     DiscLinearScalingFn *phi_out) {
   return Mass::OrthoInThreeOut(phi_out);
 }
 
 template <>
-auto MassOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
+inline auto MassOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
     DiscLinearScalingFn *phi_in) {
   return Mass::OrthoInThreeOut(phi_in);
 }
 
 template <>
-auto MassOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
+inline auto MassOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
     ContLinearScalingFn *phi_out) {
   return Mass::ThreeInOrthoOut(phi_out);
 }
 
 template <>
-auto ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
+inline auto ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
     ContLinearScalingFn *phi_in) {
   StaticSparseVector<ContLinearScalingFn, 1> result;
   auto [l, n] = phi_in->labda();
@@ -329,13 +331,13 @@ auto ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
 }
 
 template <>
-auto ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Row(
+inline auto ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Row(
     ContLinearScalingFn *phi_out) {
   return Column(phi_out);
 }
 
 template <>
-auto ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
+inline auto ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
     DiscLinearScalingFn *phi_in) {
   StaticSparseVector<DiscLinearScalingFn, 2> result;
   auto [l, n] = phi_in->labda();
@@ -351,7 +353,7 @@ auto ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
 }
 
 template <>
-auto ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Row(
+inline auto ZeroEvalOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Row(
     DiscLinearScalingFn *phi_out) {
   return Column(phi_out);
 }
@@ -384,25 +386,25 @@ inline auto OrthoInThreeOut(DiscLinearScalingFn *phi_in) {
 };  // namespace ZeroEval
 
 template <>
-auto ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
+inline auto ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
     ContLinearScalingFn *phi_in) {
   return ZeroEval::ThreeInOrthoOut(phi_in);
 }
 
 template <>
-auto ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
+inline auto ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
     DiscLinearScalingFn *phi_out) {
   return ZeroEval::OrthoInThreeOut(phi_out);
 }
 
 template <>
-auto ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
+inline auto ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
     DiscLinearScalingFn *phi_in) {
   return ZeroEval::OrthoInThreeOut(phi_in);
 }
 
 template <>
-auto ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
+inline auto ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
     ContLinearScalingFn *phi_out) {
   return ZeroEval::ThreeInOrthoOut(phi_out);
 }
@@ -435,25 +437,25 @@ inline auto OrthoInThreeOut(DiscLinearScalingFn *phi_in) {
 }  // namespace Transport
 
 template <>
-auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
+inline auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Column(
     ContLinearScalingFn *phi_in) {
   return Transport::ThreeInOrthoOut(phi_in);
 }
 
 template <>
-auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
+inline auto TransportOperator<ContLinearScalingFn, DiscLinearScalingFn>::Row(
     DiscLinearScalingFn *phi_out) {
   return Transport::OrthoInThreeOut(phi_out);
 }
 
 template <>
-auto TransportOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
+inline auto TransportOperator<DiscLinearScalingFn, ContLinearScalingFn>::Column(
     DiscLinearScalingFn *phi_in) {
   return Transport::OrthoInThreeOut(phi_in);
 }
 
 template <>
-auto TransportOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
+inline auto TransportOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
     ContLinearScalingFn *phi_out) {
   return Transport::ThreeInOrthoOut(phi_out);
 }

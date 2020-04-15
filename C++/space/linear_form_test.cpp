@@ -1,4 +1,5 @@
 #include "linear_form.hpp"
+
 #include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -14,11 +15,13 @@ TEST(LinearForm, Quadrature) {
   T.hierarch_basis_tree.UniformRefine(max_level);
 
   auto f = [](double x, double y) { return x * y; };
+  auto lf = LinearForm(std::make_unique<QuadratureFunctional</* order */ 2>>(f),
+                       /* dirichlet_boundary */ false);
   Eigen::VectorXd prev_vec;
   for (int level = 0; level <= max_level; ++level) {
     auto vec = TreeVector<HierarchicalBasisFn>(T.hierarch_basis_meta_root);
     vec.UniformRefine(level);
-    ApplyQuadrature</*order*/ 2>(f, vec.root(), /*dirichlet_boundary*/ false);
+    lf.Apply(vec.root());
     for (auto nv : vec.Bfs()) ASSERT_NE(nv->value(), 0.0);
     auto eigen_vec = vec.ToVector();
     if (level > 0)

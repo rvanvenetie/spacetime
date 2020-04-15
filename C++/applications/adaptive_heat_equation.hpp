@@ -1,21 +1,23 @@
 #pragma once
 #include "../datastructures/double_tree_view.hpp"
 #include "../spacetime/basis.hpp"
-#include "../tools/linalg.hpp"
+#include "../spacetime/linear_form.hpp"
 #include "heat_equation.hpp"
 
 namespace applications {
+
 using datastructures::DoubleNodeVector;
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
 using space::HierarchicalBasisFn;
 using spacetime::GenerateXDeltaUnderscore;
 using spacetime::GenerateYDelta;
+using spacetime::LinearFormBase;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
-template <typename TypeGLinForm, typename TypeU0LinForm>
 class AdaptiveHeatEquation {
+ public:
   using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeYDelta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>;
   using TypeXNode = DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn>;
@@ -23,11 +25,14 @@ class AdaptiveHeatEquation {
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeYVector =
       DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>;
+  using TypeXLinForm = LinearFormBase<ThreePointWaveletFn>;
+  using TypeYLinForm = LinearFormBase<OrthonormalWaveletFn>;
 
  public:
-  AdaptiveHeatEquation(TypeXDelta &&X_delta, TypeGLinForm &&g_lin_form,
-                       TypeU0LinForm &&u0_lin_form, double theta = 0.7,
-                       size_t saturation_layers = 1);
+  AdaptiveHeatEquation(TypeXDelta &&X_delta,
+                       std::unique_ptr<TypeYLinForm> &&g_lin_form,
+                       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
+                       double theta = 0.7, size_t saturation_layers = 1);
 
   TypeXVector *Solve(const Eigen::VectorXd &x0, double rtol = 1e-5,
                      size_t maxit = 100);
@@ -55,12 +60,10 @@ class AdaptiveHeatEquation {
       vec_Xdd_out_;
   std::shared_ptr<TypeYVector> vec_Ydd_in_, vec_Ydd_out_;
   std::unique_ptr<HeatEquation> heat_d_dd_;
-  TypeGLinForm g_lin_form_;
-  TypeU0LinForm u0_lin_form_;
+  std::unique_ptr<TypeYLinForm> g_lin_form_;
+  std::unique_ptr<TypeXLinForm> u0_lin_form_;
 
   double theta_;
   size_t saturation_layers_;
 };
 }  // namespace applications
-
-#include "adaptive_heat_equation.ipp"

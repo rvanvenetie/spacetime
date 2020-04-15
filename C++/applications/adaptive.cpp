@@ -1,5 +1,6 @@
 #include <chrono>
 
+#include "../space/initial_triangulation.hpp"
 #include "../time/basis.hpp"
 #include "../tools/util.hpp"
 #include "adaptive_heat_equation.hpp"
@@ -12,6 +13,8 @@ using Time::ortho_tree;
 using Time::OrthonormalWaveletFn;
 using Time::three_point_tree;
 using Time::ThreePointWaveletFn;
+
+using namespace applications;
 
 int main() {
   auto T = space::InitialTriangulation::UnitSquare();
