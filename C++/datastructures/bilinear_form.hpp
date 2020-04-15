@@ -280,6 +280,8 @@ class SchurBilinearForm : public EigenBilinearForm {
                     std::shared_ptr<BT> bt, std::shared_ptr<G> g)
       : a_inv_(a_inv), b_(b), bt_(bt), g_(g) {
     assert(b_->vec_in() == g_->vec_in());
+    assert(a_inv_->vec_in() == b_->vec_out());
+    assert(bt_->vec_in() == a_inv_->vec_out());
     assert(bt_->vec_out() == g_->vec_out());
     assert(g_->vec_in() != bt_->vec_out());
     assert(b_->vec_in() != g_->vec_out());
