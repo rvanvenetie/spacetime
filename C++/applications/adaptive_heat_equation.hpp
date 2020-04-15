@@ -2,10 +2,10 @@
 #include "../datastructures/double_tree_view.hpp"
 #include "../spacetime/basis.hpp"
 #include "../spacetime/linear_form.hpp"
-#include "../tools/linalg.hpp"
 #include "heat_equation.hpp"
 
 namespace applications {
+
 using datastructures::DoubleNodeVector;
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
@@ -17,6 +17,7 @@ using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
 class AdaptiveHeatEquation {
+ public:
   using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeYDelta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>;
   using TypeXNode = DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn>;

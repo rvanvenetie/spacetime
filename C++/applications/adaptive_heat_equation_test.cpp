@@ -1,11 +1,11 @@
 #include "adaptive_heat_equation.hpp"
 
 #include "../space/initial_triangulation.hpp"
-#include "../spacetime/linear_form.hpp"
 #include "../time/basis.hpp"
 #include "../tools/linalg.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "problems.hpp"
 
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;

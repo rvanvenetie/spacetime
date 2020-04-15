@@ -2,6 +2,8 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 
+#include "../tools/linalg.hpp"
+
 namespace applications {
 AdaptiveHeatEquation::AdaptiveHeatEquation(
     TypeXDelta &&X_delta, std::unique_ptr<TypeYLinForm> &&g_lin_form,

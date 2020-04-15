@@ -3,6 +3,7 @@
 #include "../spacetime/bilinear_form.hpp"
 
 namespace applications {
+
 using datastructures::BlockBilinearForm;
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;

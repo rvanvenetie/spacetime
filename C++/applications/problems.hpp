@@ -1,4 +1,4 @@
-#include "../space/initial_triangulation.hpp"
+#pragma once
 #include "../spacetime/linear_form.hpp"
 #include "../time/basis.hpp"
 
