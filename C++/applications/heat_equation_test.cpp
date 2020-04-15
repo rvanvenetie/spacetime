@@ -1,5 +1,7 @@
 #include "heat_equation.hpp"
 
+#include <unsupported/Eigen/IterativeSolvers>
+
 #include "../space/initial_triangulation.hpp"
 #include "../time/basis.hpp"
 #include "../tools/linalg.hpp"
@@ -8,6 +10,7 @@
 
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
+using spacetime::BilinearFormBase;
 using spacetime::GenerateYDelta;
 using Time::ortho_tree;
 using Time::three_point_tree;
@@ -70,7 +73,7 @@ TEST(HeatEquation, SparseMatVec) {
     ASSERT_TRUE(v_in.isApprox(v_now));
 
     // Now use Eigen to atually solve something.
-    Eigen::MINRES<EigenBilinearForm, Eigen::Lower | Eigen::Upper,
+    Eigen::MINRES<BilinearFormBase, Eigen::Lower | Eigen::Upper,
                   Eigen::IdentityPreconditioner>
         minres;
     minres.compute(*heat_eq.BlockMat());
@@ -220,7 +223,7 @@ TEST(HeatEquation, SchurCG) {
     ASSERT_TRUE(v_in.isApprox(v_now));
 
     // Now use Eigen to atually solve something.
-    Eigen::ConjugateGradient<EigenBilinearForm, Eigen::Lower | Eigen::Upper,
+    Eigen::ConjugateGradient<BilinearFormBase, Eigen::Lower | Eigen::Upper,
                              Eigen::IdentityPreconditioner>
         cg;
     cg.compute(*heat_eq.SchurMat());

@@ -157,8 +157,8 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
 }
 
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-Eigen::VectorXd BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn,
-                                          BasisTimeOut>::Apply() const {
+Eigen::VectorXd
+BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
   vec_out_->Reset();
   if (!use_cache_ || !is_cached_) {
     for (auto psi_out_labda : vec_out_->Project_0()->Bfs()) {

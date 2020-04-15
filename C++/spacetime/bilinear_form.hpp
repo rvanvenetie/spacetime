@@ -2,12 +2,12 @@
 #include <utility>
 #include <vector>
 
-#include "../datastructures/bilinear_form.hpp"
 #include "../datastructures/double_tree_view.hpp"
 #include "../space/basis.hpp"
 #include "../space/bilinear_form.hpp"
 #include "../time/bilinear_form.hpp"
 #include "basis.hpp"
+#include "bilinear_form_linalg.hpp"
 
 namespace spacetime {
 
@@ -60,7 +60,7 @@ class BilinearForm
   std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta_;
   bool use_cache_;
   bool is_cached_ = false;
-  std::shared_ptr<datastructures::TransposeBilinearForm<
+  std::shared_ptr<TransposeBilinearForm<
       BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>>>
       transpose_;
 
@@ -113,7 +113,7 @@ CreateBilinearForm(
 }
 
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-class BlockDiagonalBilinearForm : public EigenBilinearForm {
+class BlockDiagonalBilinearForm : public BilinearFormBase {
  protected:
   template <typename T0, typename T1>
   using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
@@ -131,12 +131,12 @@ class BlockDiagonalBilinearForm : public EigenBilinearForm {
   }
 
   // Apply takes data from vec_in and writes it to vec_out.
-  Eigen::VectorXd Apply() const;
+  virtual Eigen::VectorXd Apply() final;
 
   DblVecIn *vec_in() const { return vec_in_; }
   DblVecOut *vec_out() const { return vec_out_; }
 
-  Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const final {
+  Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) final {
     vec_in()->FromVectorContainer(rhs);
     return Apply();
   }
@@ -146,15 +146,14 @@ class BlockDiagonalBilinearForm : public EigenBilinearForm {
 
  protected:
   bool use_cache_;
-  mutable bool is_cached_ = false;
+  bool is_cached_ = false;
   DblVecIn *vec_in_;
   DblVecOut *vec_out_;
 
   template <size_t i>
   using FI = datastructures::FrozenDoubleNode<
       datastructures::DoubleNodeVector<BasisTimeIn, BasisSpace>, i>;
-  mutable std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>>
-      space_bilforms_;
+  std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> space_bilforms_;
 };
 
 template <typename OpSpace, typename BTimeIn, typename BTimeOut>
