@@ -26,7 +26,7 @@ TEST(LinearForm, Quadrature) {
         Time::ortho_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     vec.SparseRefine(level);
-    linform.Apply(&vec);
+    linform->Apply(&vec);
     for (auto phi : vec.Bfs())
       if (!std::get<1>(phi->nodes())->vertex()->on_domain_boundary)
         ASSERT_NE(phi->value(), 0.0);
@@ -48,7 +48,7 @@ TEST(LinearForm, ZeroEval) {
         Time::ortho_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     vec.SparseRefine(level);
-    linform.Apply(&vec);
+    linform->Apply(&vec);
     ASSERT_NE(vec.ToVector().sum(), 0.0);
   }
 }

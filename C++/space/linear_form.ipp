@@ -13,8 +13,21 @@ double EvalHatFn(double x, double y, Element2D *elem, size_t i) {
 }
 }  // namespace
 
-template <size_t order, class F, typename I>
-void ApplyQuadrature(const F &f, I *root, bool dirichlet_boundary) {
+template <size_t order>
+std::array<double, 3> QuadratureFunctional<order>::Eval(Element2D *elem) const {
+  std::array<double, 3> result;
+  for (size_t i = 0; i < 3; i++)
+    result[i] =
+        tools::IntegrationRule</*dim*/ 2, /*order*/ order + 1>::Integrate(
+            [&](double x, double y) {
+              return f_(x, y) * EvalHatFn(x, y, elem, i);
+            },
+            *elem);
+  return result;
+}
+
+template <typename I>
+void LinearForm::Apply(I *root) {
   assert(root->is_root());
   auto triang = TriangulationView(root->Bfs());
   const auto &vertices = triang.vertices();
@@ -22,13 +35,8 @@ void ApplyQuadrature(const F &f, I *root, bool dirichlet_boundary) {
   for (const auto &elem : triang.elements()) {
     if (!elem->is_leaf()) continue;
     auto &Vids = elem->vertices_view_idx_;
-    for (size_t i = 0; i < 3; ++i)
-      vec[Vids[i]] +=
-          tools::IntegrationRule</*dim*/ 2, /*order*/ order + 1>::Integrate(
-              [&](double x, double y) {
-                return f(x, y) * EvalHatFn(x, y, elem->node(), i);
-              },
-              *elem->node());
+    auto eval = functional_->Eval(elem->node());
+    for (size_t i = 0; i < 3; ++i) vec[Vids[i]] += eval[i];
   }
 
   int vi = triang.vertices().size() - 1;
@@ -36,7 +44,7 @@ void ApplyQuadrature(const F &f, I *root, bool dirichlet_boundary) {
     for (auto gp : triang.history(vi)[0]->RefinementEdge())
       vec[gp] = vec[gp] + 0.5 * vec[vi];
 
-  if (dirichlet_boundary)
+  if (dirichlet_boundary_)
     for (int i = 0; i < vertices.size(); ++i)
       if (vertices[i]->on_domain_boundary) vec[i] = 0;
 

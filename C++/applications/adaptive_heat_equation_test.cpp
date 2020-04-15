@@ -10,9 +10,10 @@
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
 using spacetime::CreateQuadratureLinearForm;
-using spacetime::CreateSumLinearForm;
 using spacetime::CreateZeroEvalLinearForm;
 using spacetime::GenerateYDelta;
+using spacetime::LinearForm;
+using spacetime::SumLinearForm;
 using Time::ortho_tree;
 using Time::OrthonormalWaveletFn;
 using Time::three_point_tree;
@@ -38,7 +39,7 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
 
   AdaptiveHeatEquation heat_eq(
       std::move(X_delta),
-      CreateSumLinearForm<OrthonormalWaveletFn>(
+      std::make_unique<SumLinearForm<OrthonormalWaveletFn>>(
           CreateQuadratureLinearForm<OrthonormalWaveletFn, 2, 2>(time_g1,
                                                                  space_g1),
           CreateQuadratureLinearForm<OrthonormalWaveletFn, 1, 4>(time_g2,

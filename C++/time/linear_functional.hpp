@@ -9,6 +9,8 @@ namespace Time {
 template <typename Basis>
 class LinearFunctional {
  public:
+  virtual ~LinearFunctional<Basis>() {}
+
   SparseVector<Basis> Eval(const SparseIndices<Basis> &indices) const {
     SparseVector<Basis> out;
     out.reserve(indices.size());
@@ -16,7 +18,6 @@ class LinearFunctional {
     return out;
   }
   virtual double Eval(Basis *phi) const = 0;
-  virtual ~LinearFunctional<Basis>() {}
 };
 
 template <typename Basis, size_t order>
