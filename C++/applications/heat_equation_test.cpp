@@ -171,9 +171,9 @@ TEST(HeatEquation, CompareToPython) {
 
   // For precond_X * v
   std::cout << "Comparing precond_X" << std::endl;
-  heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
+  heat_eq.vec_X_out()->FromVectorContainer(vec_X_in);
   heat_eq.PrecondX()->Apply();
-  compare(X_bfs_out, precond_X_py);
+  compare(X_bfs_in, precond_X_py);
 
   // For schur_mat * v
   std::cout << "Comparing schur_mat" << std::endl;
