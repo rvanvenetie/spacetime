@@ -40,8 +40,10 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
   // Create the negative trace operator.
   auto minus_G = std::make_shared<NegativeBilinearForm<TypeG>>(G_);
 
-  block_mat_ = std::make_shared<TypeBlockMat>(A_, B_, BT_, minus_G);
-  schur_mat_ = std::make_shared<TypeSchurMat>(A_inv_, B_, BT_, G_);
+  // Create the block bilinear form.
+  block_bf_ = std::make_shared<TypeBlockBF>(A_, B_, BT_, minus_G);
+  // Create the Schur bilinear form.
+  S_ = std::make_shared<TypeS>(A_inv_, B_, BT_, G_);
   precond_X_ =
       std::make_shared<TypePrecondX>(vec_X_out_.get(), vec_X_in_.get());
 }
