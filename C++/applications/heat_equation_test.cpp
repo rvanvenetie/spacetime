@@ -144,44 +144,37 @@ TEST(HeatEquation, CompareToPython) {
 
   // For A * v.
   std::cout << "Comparing A" << std::endl;
-  heat_eq.vec_Y_in()->FromVectorContainer(vec_Y_in);
-  heat_eq.A()->Apply();
+  heat_eq.A()->MatVec(vec_Y_in);
   compare(Y_bfs_out, A_py);
 
   // For B * v.
   std::cout << "Comparing B" << std::endl;
-  heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
-  heat_eq.B()->Apply();
+  heat_eq.B()->MatVec(vec_X_in);
   compare(Y_bfs_out, B_py);
 
   // For B.T * v.
   std::cout << "Comparing B.T" << std::endl;
-  heat_eq.vec_Y_in()->FromVectorContainer(vec_Y_in);
-  heat_eq.BT()->Apply();
+  heat_eq.BT()->MatVec(vec_Y_in);
   compare(X_bfs_out, BT_py);
 
   // For G * v
   std::cout << "Comparing G" << std::endl;
-  heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
-  heat_eq.G()->Apply();
+  heat_eq.G()->MatVec(vec_X_in);
   compare(X_bfs_out, G_py);
 
   // For A_inv * v
   std::cout << "Comparing A_inv" << std::endl;
-  heat_eq.vec_Y_out()->FromVectorContainer(vec_Y_in);
-  heat_eq.Ainv()->Apply();
+  heat_eq.Ainv()->MatVec(vec_Y_in);
   compare(Y_bfs_in, A_inv_py);
 
   // For precond_X * v
   std::cout << "Comparing precond_X" << std::endl;
-  heat_eq.vec_X_out()->FromVectorContainer(vec_X_in);
-  heat_eq.PrecondX()->Apply();
+  heat_eq.PrecondX()->MatVec(vec_X_in);
   compare(X_bfs_in, precond_X_py);
 
   // For schur_mat * v
   std::cout << "Comparing schur_mat" << std::endl;
-  heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
-  heat_eq.SchurMat()->Apply();
+  heat_eq.SchurMat()->MatVec(vec_X_in);
   compare(X_bfs_out, schur_mat_py);
 }
 
