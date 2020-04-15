@@ -73,7 +73,7 @@ TEST(HeatEquation, SparseMatVec) {
     ASSERT_TRUE(v_in.isApprox(v_now));
 
     // Now use Eigen to atually solve something.
-    Eigen::MINRES<BilinearFormBase, Eigen::Lower | Eigen::Upper,
+    Eigen::MINRES<BilinearFormBase<void>, Eigen::Lower | Eigen::Upper,
                   Eigen::IdentityPreconditioner>
         minres;
     minres.compute(*heat_eq.BlockMat());
@@ -223,7 +223,8 @@ TEST(HeatEquation, SchurCG) {
     ASSERT_TRUE(v_in.isApprox(v_now));
 
     // Now use Eigen to atually solve something.
-    Eigen::ConjugateGradient<BilinearFormBase, Eigen::Lower | Eigen::Upper,
+    Eigen::ConjugateGradient<BilinearFormBase<HeatEquation::TypeXVector>,
+                             Eigen::Lower | Eigen::Upper,
                              Eigen::IdentityPreconditioner>
         cg;
     cg.compute(*heat_eq.SchurMat());

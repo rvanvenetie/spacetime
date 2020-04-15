@@ -8,29 +8,49 @@
 
 // This is a base class for turning a bilinear form into an Eigen matvec.
 namespace spacetime {
+template <typename DblVecIn, typename DblVecOut = DblVecIn>
 class BilinearFormBase;
 }
 
 // Define a necessary Eigen trait.
 namespace Eigen {
 namespace internal {
-template <>
-struct traits<spacetime::BilinearFormBase>
+template <typename DblVecIn, typename DblVecOut>
+struct traits<spacetime::BilinearFormBase<DblVecIn, DblVecOut>>
     : public Eigen::internal::traits<Eigen::SparseMatrix<double>> {};
 }  // namespace internal
 }  // namespace Eigen
 
 namespace spacetime {
-class BilinearFormBase : public Eigen::EigenBase<BilinearFormBase> {
+template <typename DblVecIn, typename DblVecOut>
+class BilinearFormBase
+    : public Eigen::EigenBase<BilinearFormBase<DblVecIn, DblVecOut>> {
  public:
-  // This is the bilinear form apply function that must be implemented.
+  virtual ~BilinearFormBase() {}
+
+  // These are the BilinearForm functions that must be implemented.
   virtual Eigen::VectorXd Apply() = 0;
+  virtual DblVecIn *vec_in() const = 0;
+  virtual DblVecOut *vec_out() const = 0;
 
   // These are the functions that must be implemented for Eigen to work.
-  virtual Eigen::Index rows() const { assert(false); }
-  virtual Eigen::Index cols() const { assert(false); }
-  virtual Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) { assert(false); }
-  virtual ~BilinearFormBase() {}
+  virtual Eigen::Index rows() const {
+    if constexpr (!std::is_same_v<DblVecOut, void>)
+      return vec_out()->container().size();
+    assert(false);
+  }
+  virtual Eigen::Index cols() const {
+    if constexpr (!std::is_same_v<DblVecIn, void>)
+      return vec_in()->container().size();
+    assert(false);
+  }
+  virtual Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) {
+    if constexpr (!std::is_same_v<DblVecIn, void>) {
+      vec_in()->FromVectorContainer(rhs);
+      return Apply();
+    }
+    assert(false);
+  }
 
   // Eigen related stuff.
   using Scalar = double;
@@ -50,7 +70,9 @@ class BilinearFormBase : public Eigen::EigenBase<BilinearFormBase> {
 
 // This class represents the adjoint of a bilinear form.
 template <typename BilForm>
-class TransposeBilinearForm : public BilinearFormBase {
+class TransposeBilinearForm
+    : public BilinearFormBase<typename BilForm::DblVecOut,
+                              typename BilForm::DblVecIn> {
  public:
   using DblVecIn = typename BilForm::DblVecOut;
   using DblVecOut = typename BilForm::DblVecIn;
@@ -58,11 +80,11 @@ class TransposeBilinearForm : public BilinearFormBase {
   TransposeBilinearForm(std::shared_ptr<BilForm> bil_form)
       : bil_form_(bil_form) {}
 
-  virtual Eigen::VectorXd Apply() final { return bil_form_->ApplyTranspose(); }
-  auto Transpose() { return bil_form_; }
+  Eigen::VectorXd Apply() final { return bil_form_->ApplyTranspose(); }
+  DblVecIn *vec_in() const final { return bil_form_->vec_out(); }
+  DblVecOut *vec_out() const final { return bil_form_->vec_in(); }
 
-  DblVecIn *vec_in() const { return bil_form_->vec_out(); }
-  DblVecOut *vec_out() const { return bil_form_->vec_in(); }
+  auto Transpose() { return bil_form_; }
 
  protected:
   std::shared_ptr<BilForm> bil_form_;
@@ -70,7 +92,8 @@ class TransposeBilinearForm : public BilinearFormBase {
 
 // This class represents the sum of two bilinear forms.
 template <typename BilFormA, typename BilFormB>
-class SumBilinearForm : public BilinearFormBase {
+class SumBilinearForm : public BilinearFormBase<typename BilFormA::DblVecIn,
+                                                typename BilFormA::DblVecOut> {
  public:
   using DblVecIn = typename BilFormA::DblVecIn;
   using DblVecOut = typename BilFormA::DblVecOut;
@@ -81,13 +104,15 @@ class SumBilinearForm : public BilinearFormBase {
     assert(a->vec_out() == b->vec_out());
   }
 
-  virtual Eigen::VectorXd Apply() final {
+  Eigen::VectorXd Apply() final {
     // Apply both operators and store the vectorized result.
     auto v = a_->Apply();
     v += b_->Apply();
     a_->vec_out()->FromVectorContainer(v);
     return v;
   }
+  DblVecIn *vec_in() const final { return a_->vec_in(); }
+  DblVecOut *vec_out() const final { return a_->vec_out(); }
 
   auto Transpose() {
     auto a_t = a_->Transpose();
@@ -97,9 +122,6 @@ class SumBilinearForm : public BilinearFormBase {
                         typename decltype(b_t)::element_type>>(a_t, b_t);
   }
 
-  DblVecIn *vec_in() const { return a_->vec_in(); }
-  DblVecOut *vec_out() const { return a_->vec_out(); }
-
  protected:
   std::shared_ptr<BilFormA> a_;
   std::shared_ptr<BilFormB> b_;
@@ -107,14 +129,16 @@ class SumBilinearForm : public BilinearFormBase {
 
 // This class represents a negative bilinear form (-BilForm).
 template <typename BilForm>
-class NegativeBilinearForm : public BilinearFormBase {
+class NegativeBilinearForm
+    : public BilinearFormBase<typename BilForm::DblVecIn,
+                              typename BilForm::DblVecOut> {
  public:
   using DblVecIn = typename BilForm::DblVecIn;
   using DblVecOut = typename BilForm::DblVecOut;
   NegativeBilinearForm(std::shared_ptr<BilForm> bil_form)
       : bil_form_(bil_form) {}
 
-  virtual Eigen::VectorXd Apply() final {
+  Eigen::VectorXd Apply() final {
     // Calculate and negate the outpt.
     auto v = bil_form_->Apply();
     v = -v;
@@ -122,14 +146,14 @@ class NegativeBilinearForm : public BilinearFormBase {
     bil_form_->vec_out()->FromVectorContainer(v);
     return v;
   }
+  DblVecIn *vec_in() const final { return bil_form_->vec_in(); }
+  DblVecOut *vec_out() const final { return bil_form_->vec_out(); }
+
   auto Transpose() {
     auto b_t = bil_form_->Transpose();
     return std::make_shared<
         NegativeBilinearForm<typename decltype(b_t)::element_type>>(bil_form_);
   }
-
-  DblVecIn *vec_in() const { return bil_form_->vec_in(); }
-  DblVecOut *vec_out() const { return bil_form_->vec_out(); }
 
  protected:
   std::shared_ptr<BilForm> bil_form_;
@@ -138,7 +162,7 @@ class NegativeBilinearForm : public BilinearFormBase {
 // This operator remaps the intput/output vectors of a given bilinear form.
 template <typename BilForm, typename DblVecInType = typename BilForm::DblVecIn,
           typename DblVecOutType = typename BilForm::DblVecOut>
-class RemapBilinearForm : public BilinearFormBase {
+class RemapBilinearForm : public BilinearFormBase<DblVecInType, DblVecOutType> {
  public:
   using DblVecIn = DblVecInType;
   using DblVecOut = DblVecOutType;
@@ -162,7 +186,7 @@ class RemapBilinearForm : public BilinearFormBase {
              bil_form_->vec_out()->container()[i].nodes());
   }
 
-  virtual Eigen::VectorXd Apply() final {
+  Eigen::VectorXd Apply() final {
     // Backup the original input/output of the bilinear form.
     auto v_in = bil_form_->vec_in()->ToVectorContainer();
     auto v_out = bil_form_->vec_out()->ToVectorContainer();
@@ -182,8 +206,8 @@ class RemapBilinearForm : public BilinearFormBase {
     return result;
   }
 
-  DblVecIn *vec_in() const { return vec_in_; }
-  DblVecOut *vec_out() const { return vec_out_; }
+  DblVecIn *vec_in() const final { return vec_in_; }
+  DblVecOut *vec_out() const final { return vec_out_; }
 
  protected:
   std::shared_ptr<BilForm> bil_form_;
@@ -193,7 +217,7 @@ class RemapBilinearForm : public BilinearFormBase {
 
 // This class represents a 2x2 block diagonal bilinear form.
 template <typename B00, typename B01, typename B10, typename B11>
-class BlockBilinearForm : public BilinearFormBase {
+class BlockBilinearForm : public BilinearFormBase<void, void> {
  public:
   // Ordered like B00, B01, B10, B11
   BlockBilinearForm(std::shared_ptr<B00> b00, std::shared_ptr<B01> b01,
@@ -214,7 +238,7 @@ class BlockBilinearForm : public BilinearFormBase {
     return result;
   }
 
-  virtual Eigen::VectorXd Apply() final {
+  Eigen::VectorXd Apply() final {
     ::Eigen::VectorXd v0, v1;
 
     // Apply bil forms in the top row.
@@ -229,6 +253,8 @@ class BlockBilinearForm : public BilinearFormBase {
     b10_->vec_out()->FromVectorContainer(v1);
     return ToVector({v0, v1});
   }
+  void *vec_in() const final { return nullptr; }
+  void *vec_out() const final { return nullptr; }
 
   // Create an apply that works entirely on vectors.
   ::Eigen::VectorXd MatVec(const ::Eigen::VectorXd &rhs) final {
@@ -273,7 +299,8 @@ class BlockBilinearForm : public BilinearFormBase {
  * x \mapsto (B.T A^{-1} B + gamma_0' gamma_0) x.
  */
 template <typename Ainv, typename B, typename BT, typename G>
-class SchurBilinearForm : public BilinearFormBase {
+class SchurBilinearForm
+    : public BilinearFormBase<typename B::DblVecIn, typename BT::DblVecOut> {
  public:
   using DblVecIn = typename B::DblVecIn;
   using DblVecOut = typename BT::DblVecOut;
@@ -288,7 +315,7 @@ class SchurBilinearForm : public BilinearFormBase {
     assert(b_->vec_in() != g_->vec_out());
   }
 
-  virtual Eigen::VectorXd Apply() final {
+  Eigen::VectorXd Apply() final {
     b_->Apply();            // from X_in to Y_out
     a_inv_->Apply();        // from Y_out to Y_in
     auto v = bt_->Apply();  // from Y_in to X_out
@@ -297,18 +324,8 @@ class SchurBilinearForm : public BilinearFormBase {
     return v;
   }
 
-  ::Eigen::VectorXd MatVec(const ::Eigen::VectorXd &rhs) final {
-    g_->vec_in()->FromVectorContainer(rhs);
-    return Apply();
-  }
-
-  DblVecIn *vec_in() const { return b_->vec_in(); }
-  DblVecOut *vec_out() const { return bt_->vec_out(); }
-
-  ::Eigen::Index rows() const final {
-    return g_->vec_out()->container().size();
-  }
-  ::Eigen::Index cols() const final { return g_->vec_in()->container().size(); }
+  DblVecIn *vec_in() const final { return b_->vec_in(); }
+  DblVecOut *vec_out() const final { return bt_->vec_out(); }
 
  protected:
   std::shared_ptr<Ainv> a_inv_;

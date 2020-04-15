@@ -14,8 +14,12 @@ namespace spacetime {
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 class BilinearForm
-    : public std::enable_shared_from_this<BilinearForm<
-          OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>> {
+    : public std::enable_shared_from_this<
+          BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>>,
+      public BilinearFormBase<datastructures::DoubleTreeVector<
+                                  BasisTimeIn, space::HierarchicalBasisFn>,
+                              datastructures::DoubleTreeVector<
+                                  BasisTimeOut, space::HierarchicalBasisFn>> {
  protected:
   template <typename T0, typename T1>
   using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
@@ -34,7 +38,9 @@ class BilinearForm
       bool use_cache = true);
 
   // Apply takes data from vec_in and writes it to vec_out.
-  Eigen::VectorXd Apply();
+  Eigen::VectorXd Apply() final;
+  DblVecIn *vec_in() const final { return vec_in_; }
+  DblVecOut *vec_out() const final { return vec_out_; }
 
   // ApplyTranspose takes data from *vec_out* and writes it to *vec_in*.
   Eigen::VectorXd ApplyTranspose();
@@ -47,8 +53,6 @@ class BilinearForm
     return transpose_;
   }
 
-  DblVecIn *vec_in() const { return vec_in_; }
-  DblVecOut *vec_out() const { return vec_out_; }
   auto sigma() { return sigma_; }
   auto theta() { return theta_; }
 
@@ -113,7 +117,11 @@ CreateBilinearForm(
 }
 
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-class BlockDiagonalBilinearForm : public BilinearFormBase {
+class BlockDiagonalBilinearForm
+    : public BilinearFormBase<datastructures::DoubleTreeVector<
+                                  BasisTimeIn, space::HierarchicalBasisFn>,
+                              datastructures::DoubleTreeVector<
+                                  BasisTimeOut, space::HierarchicalBasisFn>> {
  protected:
   template <typename T0, typename T1>
   using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
@@ -131,18 +139,9 @@ class BlockDiagonalBilinearForm : public BilinearFormBase {
   }
 
   // Apply takes data from vec_in and writes it to vec_out.
-  virtual Eigen::VectorXd Apply() final;
-
-  DblVecIn *vec_in() const { return vec_in_; }
-  DblVecOut *vec_out() const { return vec_out_; }
-
-  Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) final {
-    vec_in()->FromVectorContainer(rhs);
-    return Apply();
-  }
-
-  Eigen::Index rows() const final { return vec_out()->container().size(); }
-  Eigen::Index cols() const final { return vec_in()->container().size(); }
+  Eigen::VectorXd Apply() final;
+  DblVecIn *vec_in() const final { return vec_in_; }
+  DblVecOut *vec_out() const final { return vec_out_; }
 
  protected:
   bool use_cache_;
