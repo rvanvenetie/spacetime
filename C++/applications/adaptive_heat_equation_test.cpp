@@ -37,14 +37,9 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
       three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
   X_delta.SparseRefine(1);
 
-  AdaptiveHeatEquation heat_eq(
-      std::move(X_delta),
-      std::make_unique<SumLinearForm<OrthonormalWaveletFn>>(
-          CreateQuadratureLinearForm<OrthonormalWaveletFn, 2, 2>(time_g1,
-                                                                 space_g1),
-          CreateQuadratureLinearForm<OrthonormalWaveletFn, 1, 4>(time_g2,
-                                                                 space_g2)),
-      CreateZeroEvalLinearForm<ThreePointWaveletFn, 4>(u0));
+  auto [g_lf, u0_lf] = SmoothProblem();
+  AdaptiveHeatEquation heat_eq(std::move(X_delta), std::move(g_lf),
+                               std::move(u0_lf));
 
   auto result = heat_eq.Solve();
   auto result_nodes = result->Bfs();

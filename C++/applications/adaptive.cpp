@@ -13,6 +13,8 @@ using Time::OrthonormalWaveletFn;
 using Time::three_point_tree;
 using Time::ThreePointWaveletFn;
 
+using namespace applications;
+
 int main() {
   auto T = space::InitialTriangulation::UnitSquare();
   auto [g_lf, u0_lf] = SmoothProblem();

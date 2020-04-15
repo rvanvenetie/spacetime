@@ -77,8 +77,8 @@ class SumLinearForm : public LinearFormBase<TimeBasis> {
       : a_(std::move(a)), b_(std::move(b)) {}
 
   Eigen::VectorXd Apply(DblVec *vec) final {
-    auto result = a_.Apply(vec);
-    result += b_.Apply(vec);
+    auto result = a_->Apply(vec);
+    result += b_->Apply(vec);
     vec->FromVectorContainer(result);
     return result;
   }

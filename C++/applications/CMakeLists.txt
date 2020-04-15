@@ -1,4 +1,4 @@
-add_library(applications STATIC heat_equation.cpp adaptive_heat_equation.cpp)
+add_library(applications SHARED heat_equation.cpp adaptive_heat_equation.cpp)
 target_link_libraries(applications space time)
 
 add_executable(heat_equation_performance heat_equation_performance.cpp)
