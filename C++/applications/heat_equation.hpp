@@ -44,14 +44,14 @@ class HeatEquation {
                              ThreePointWaveletFn, ThreePointWaveletFn>;
 
   // The block matrix necessary for the solving using minres.
-  using TypeBlockMat =
+  using TypeBlockBF =
       BlockBilinearForm<TypeA, TypeB, TypeBT, NegativeBilinearForm<TypeG>>;
 
   // Types necessary for the Schur complement matrix.
   using TypeAinv = spacetime::BlockDiagonalBilinearForm<
       space::DirectInverse<space::StiffnessOperator>, OrthonormalWaveletFn,
       OrthonormalWaveletFn>;
-  using TypeSchurMat = SchurBilinearForm<TypeAinv, TypeB, TypeBT, TypeG>;
+  using TypeS = SchurBilinearForm<TypeAinv, TypeB, TypeBT, TypeG>;
   using TypePrecondX = spacetime::BlockDiagonalBilinearForm<
       space::XPreconditionerOperator<space::DirectInverse>, ThreePointWaveletFn,
       ThreePointWaveletFn>;
@@ -80,10 +80,10 @@ class HeatEquation {
   auto B() { return B_; };
   auto BT() { return BT_; }
   auto G() { return G_; }
-  auto BlockMat() { return block_mat_; }
+  auto BlockBF() { return block_bf_; }
 
   auto Ainv() { return A_inv_; }
-  auto SchurMat() { return schur_mat_; }
+  auto S() { return S_; }
   auto PrecondX() { return precond_X_; }
 
   auto vec_X_in() { return vec_X_in_.get(); }
@@ -96,11 +96,11 @@ class HeatEquation {
   std::shared_ptr<TypeB> B_;
   std::shared_ptr<TypeBT> BT_;
   std::shared_ptr<TypeG> G_;
-  std::shared_ptr<TypeBlockMat> block_mat_;
+  std::shared_ptr<TypeBlockBF> block_bf_;
 
   // Schur complement stuff.
   std::shared_ptr<TypeAinv> A_inv_;
-  std::shared_ptr<TypeSchurMat> schur_mat_;
+  std::shared_ptr<TypeS> S_;
   std::shared_ptr<TypePrecondX> precond_X_;
 
   // Store doubletree vectors for X_delta input and output.

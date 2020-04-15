@@ -53,11 +53,11 @@ TEST(HeatEquation, SparseMatVec) {
 
     // Turn this into an eigen-friendly vector.
     auto v_in =
-        heat_eq.BlockMat()->ToVector({heat_eq.vec_Y_in()->ToVectorContainer(),
-                                      heat_eq.vec_X_in()->ToVectorContainer()});
+        heat_eq.BlockBF()->ToVector({heat_eq.vec_Y_in()->ToVectorContainer(),
+                                     heat_eq.vec_X_in()->ToVectorContainer()});
 
     // Apply the block matrix :-).
-    heat_eq.BlockMat()->Apply();
+    heat_eq.BlockBF()->Apply();
 
     // Validate the result.
     ValidateVector(*heat_eq.vec_X_out());
@@ -65,15 +65,15 @@ TEST(HeatEquation, SparseMatVec) {
 
     // Check that the input vector remained untouched.
     auto v_now =
-        heat_eq.BlockMat()->ToVector({heat_eq.vec_Y_in()->ToVectorContainer(),
-                                      heat_eq.vec_X_in()->ToVectorContainer()});
+        heat_eq.BlockBF()->ToVector({heat_eq.vec_Y_in()->ToVectorContainer(),
+                                     heat_eq.vec_X_in()->ToVectorContainer()});
     ASSERT_TRUE(v_in.isApprox(v_now));
 
     // Now use Eigen to atually solve something.
     Eigen::MINRES<EigenBilinearForm, Eigen::Lower | Eigen::Upper,
                   Eigen::IdentityPreconditioner>
         minres;
-    minres.compute(*heat_eq.BlockMat());
+    minres.compute(*heat_eq.BlockBF());
     Eigen::VectorXd x;
     x = minres.solve(v_in);
     std::cout << "MINRES:   #iterations: " << minres.iterations()
@@ -178,7 +178,7 @@ TEST(HeatEquation, CompareToPython) {
   // For schur_mat * v
   std::cout << "Comparing schur_mat" << std::endl;
   heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
-  heat_eq.SchurMat()->Apply();
+  heat_eq.S()->Apply();
   compare(X_bfs_out, schur_mat_py);
 }
 
@@ -210,7 +210,7 @@ TEST(HeatEquation, SchurCG) {
     auto v_in = heat_eq.vec_X_in()->ToVectorContainer();
 
     // Apply the block matrix :-).
-    heat_eq.SchurMat()->Apply();
+    heat_eq.S()->Apply();
 
     // Validate the result.
     ValidateVector(*heat_eq.vec_X_out());
@@ -223,7 +223,7 @@ TEST(HeatEquation, SchurCG) {
     Eigen::ConjugateGradient<EigenBilinearForm, Eigen::Lower | Eigen::Upper,
                              Eigen::IdentityPreconditioner>
         cg;
-    cg.compute(*heat_eq.SchurMat());
+    cg.compute(*heat_eq.S());
     Eigen::VectorXd x;
     x = cg.solve(v_in);
     std::cout << "CG:   #iterations: " << cg.iterations()
@@ -299,7 +299,7 @@ TEST(HeatEquation, SchurPCG) {
     // auto precond = Eigen::SparseMatrix<double>(v_in.rows(), v_in.rows());
     // precond.setIdentity();
     auto [result, data] =
-        tools::linalg::PCG(*heat_eq.SchurMat(), v_in, *heat_eq.PrecondX(),
+        tools::linalg::PCG(*heat_eq.S(), v_in, *heat_eq.PrecondX(),
                            Eigen::VectorXd::Zero(v_in.rows()), 1000, 1e-5);
     auto [residual, iter] = data;
     std::cout << ortho_tree.Bfs().size() << " " << three_point_tree.Bfs().size()
