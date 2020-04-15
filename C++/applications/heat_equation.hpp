@@ -4,17 +4,17 @@
 
 namespace applications {
 
-using datastructures::BlockBilinearForm;
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
-using datastructures::NegativeBilinearForm;
-using datastructures::RemapBilinearForm;
-using datastructures::SchurBilinearForm;
-using datastructures::SumBilinearForm;
-using datastructures::TransposeBilinearForm;
 using space::HierarchicalBasisFn;
 using spacetime::BilinearForm;
+using spacetime::BlockBilinearForm;
 using spacetime::BlockDiagonalBilinearForm;
+using spacetime::NegativeBilinearForm;
+using spacetime::RemapBilinearForm;
+using spacetime::SchurBilinearForm;
+using spacetime::SumBilinearForm;
+using spacetime::TransposeBilinearForm;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 

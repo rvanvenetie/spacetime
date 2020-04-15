@@ -2,20 +2,24 @@
 #include <utility>
 #include <vector>
 
-#include "../datastructures/bilinear_form.hpp"
 #include "../datastructures/double_tree_view.hpp"
 #include "../space/basis.hpp"
 #include "../space/bilinear_form.hpp"
 #include "../time/bilinear_form.hpp"
 #include "basis.hpp"
+#include "bilinear_form_linalg.hpp"
 
 namespace spacetime {
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 class BilinearForm
-    : public std::enable_shared_from_this<BilinearForm<
-          OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>> {
+    : public std::enable_shared_from_this<
+          BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>>,
+      public BilinearFormBase<datastructures::DoubleTreeVector<
+                                  BasisTimeIn, space::HierarchicalBasisFn>,
+                              datastructures::DoubleTreeVector<
+                                  BasisTimeOut, space::HierarchicalBasisFn>> {
  protected:
   template <typename T0, typename T1>
   using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
@@ -34,7 +38,9 @@ class BilinearForm
       bool use_cache = true);
 
   // Apply takes data from vec_in and writes it to vec_out.
-  Eigen::VectorXd Apply();
+  Eigen::VectorXd Apply() final;
+  DblVecIn *vec_in() const final { return vec_in_; }
+  DblVecOut *vec_out() const final { return vec_out_; }
 
   // ApplyTranspose takes data from *vec_out* and writes it to *vec_in*.
   Eigen::VectorXd ApplyTranspose();
@@ -47,8 +53,6 @@ class BilinearForm
     return transpose_;
   }
 
-  DblVecIn *vec_in() const { return vec_in_; }
-  DblVecOut *vec_out() const { return vec_out_; }
   auto sigma() { return sigma_; }
   auto theta() { return theta_; }
 
@@ -60,7 +64,7 @@ class BilinearForm
   std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta_;
   bool use_cache_;
   bool is_cached_ = false;
-  std::shared_ptr<datastructures::TransposeBilinearForm<
+  std::shared_ptr<TransposeBilinearForm<
       BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>>>
       transpose_;
 
@@ -113,7 +117,11 @@ CreateBilinearForm(
 }
 
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-class BlockDiagonalBilinearForm : public EigenBilinearForm {
+class BlockDiagonalBilinearForm
+    : public BilinearFormBase<datastructures::DoubleTreeVector<
+                                  BasisTimeIn, space::HierarchicalBasisFn>,
+                              datastructures::DoubleTreeVector<
+                                  BasisTimeOut, space::HierarchicalBasisFn>> {
  protected:
   template <typename T0, typename T1>
   using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
@@ -131,30 +139,20 @@ class BlockDiagonalBilinearForm : public EigenBilinearForm {
   }
 
   // Apply takes data from vec_in and writes it to vec_out.
-  Eigen::VectorXd Apply() const;
-
-  DblVecIn *vec_in() const { return vec_in_; }
-  DblVecOut *vec_out() const { return vec_out_; }
-
-  Eigen::VectorXd MatVec(const Eigen::VectorXd &rhs) const final {
-    vec_in()->FromVectorContainer(rhs);
-    return Apply();
-  }
-
-  Eigen::Index rows() const final { return vec_out()->container().size(); }
-  Eigen::Index cols() const final { return vec_in()->container().size(); }
+  Eigen::VectorXd Apply() final;
+  DblVecIn *vec_in() const final { return vec_in_; }
+  DblVecOut *vec_out() const final { return vec_out_; }
 
  protected:
   bool use_cache_;
-  mutable bool is_cached_ = false;
+  bool is_cached_ = false;
   DblVecIn *vec_in_;
   DblVecOut *vec_out_;
 
   template <size_t i>
   using FI = datastructures::FrozenDoubleNode<
       datastructures::DoubleNodeVector<BasisTimeIn, BasisSpace>, i>;
-  mutable std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>>
-      space_bilforms_;
+  std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> space_bilforms_;
 };
 
 template <typename OpSpace, typename BTimeIn, typename BTimeOut>
