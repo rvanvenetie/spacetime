@@ -1,5 +1,6 @@
 #include <chrono>
 
+#include "../space/initial_triangulation.hpp"
 #include "../time/basis.hpp"
 #include "../tools/util.hpp"
 #include "adaptive_heat_equation.hpp"
