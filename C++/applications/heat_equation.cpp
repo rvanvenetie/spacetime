@@ -45,7 +45,7 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
   // Create the Schur bilinear form.
   S_ = std::make_shared<TypeS>(A_inv_, B_, BT_, G_);
   precond_X_ =
-      std::make_shared<TypePrecondX>(vec_X_in_.get(), vec_X_out_.get());
+      std::make_shared<TypePrecondX>(vec_X_out_.get(), vec_X_in_.get());
 }
 HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
                            std::shared_ptr<TypeXVector> vec_X_out,

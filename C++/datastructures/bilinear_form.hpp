@@ -38,32 +38,12 @@ class EigenBilinearForm : public Eigen::EigenBase<EigenBilinearForm> {
     MaxColsAtCompileTime = Eigen::Dynamic,
     IsRowMajor = false
   };
-  template <typename Rhs>
-  Eigen::Product<EigenBilinearForm, Rhs, Eigen::AliasFreeProduct> operator*(
-      const Eigen::MatrixBase<Rhs> &x) const {
-    return Eigen::Product<EigenBilinearForm, Rhs, Eigen::AliasFreeProduct>(
-        *this, x.derived());
-  }
-};
 
-// Define a necessary eigen product overload, simply uses matvec.
-namespace Eigen {
-namespace internal {
-template <typename Rhs>
-struct generic_product_impl<EigenBilinearForm, Rhs, SparseShape, DenseShape,
-                            GemvProduct>  // GEMV stands for matrix-vector
-    : generic_product_impl_base<EigenBilinearForm, Rhs,
-                                generic_product_impl<EigenBilinearForm, Rhs>> {
-  using Scalar = typename Product<EigenBilinearForm, Rhs>::Scalar;
-  template <typename Dest>
-  static void scaleAndAddTo(Dest &dst, const EigenBilinearForm &lhs,
-                            const Rhs &rhs, const Scalar &alpha) {
-    assert(alpha == Scalar(1));
-    dst.noalias() += lhs.MatVec(rhs);
+  template <typename Rhs>
+  Eigen::VectorXd operator*(const Eigen::MatrixBase<Rhs> &x) const {
+    return MatVec(x);
   }
 };
-}  // namespace internal
-}  // namespace Eigen
 
 namespace datastructures {
 // This class represents the adjoint of a bilinear form.
@@ -190,11 +170,13 @@ class RemapBilinearForm {
 
     // Apply the operator
     auto result = bil_form_->Apply();
-    vec_out_->FromVectorContainer(result);
 
     // Restore the backedup values.
     bil_form_->vec_in()->FromVectorContainer(v_in);
     bil_form_->vec_out()->FromVectorContainer(v_out);
+
+    // Set the correct output.
+    vec_out_->FromVectorContainer(result);
     return result;
   }
 
@@ -298,6 +280,8 @@ class SchurBilinearForm : public EigenBilinearForm {
                     std::shared_ptr<BT> bt, std::shared_ptr<G> g)
       : a_inv_(a_inv), b_(b), bt_(bt), g_(g) {
     assert(b_->vec_in() == g_->vec_in());
+    assert(a_inv_->vec_in() == b_->vec_out());
+    assert(bt_->vec_in() == a_inv_->vec_out());
     assert(bt_->vec_out() == g_->vec_out());
     assert(g_->vec_in() != bt_->vec_out());
     assert(b_->vec_in() != g_->vec_out());

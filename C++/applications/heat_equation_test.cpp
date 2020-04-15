@@ -89,6 +89,99 @@ TEST(HeatEquation, SparseMatVec) {
   }
 }
 
+TEST(HeatEquation, CompareToPython) {
+  int level = 6;
+  auto T = space::InitialTriangulation::UnitSquare();
+  auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+
+  T.hierarch_basis_tree.UniformRefine(level);
+  ortho_tree.UniformRefine(level);
+  three_point_tree.UniformRefine(level);
+  X_delta.SparseRefine(level, {2, 1});
+  HeatEquation heat_eq(X_delta);
+
+  // Set double-tree vectors
+  auto X_bfs_in = heat_eq.vec_X_in()->Bfs();
+  auto Y_bfs_in = heat_eq.vec_Y_in()->Bfs();
+  auto X_bfs_out = heat_eq.vec_X_out()->Bfs();
+  auto Y_bfs_out = heat_eq.vec_Y_out()->Bfs();
+  for (size_t i = 0; i < X_bfs_in.size(); i++)
+    if (X_bfs_in[i]->node_1()->on_domain_boundary())
+      X_bfs_in[i]->set_value(0);
+    else
+      X_bfs_in[i]->set_value(i);
+  for (size_t i = 0; i < Y_bfs_in.size(); i++)
+    if (Y_bfs_in[i]->node_1()->on_domain_boundary())
+      Y_bfs_in[i]->set_value(0);
+    else
+      Y_bfs_in[i]->set_value(i);
+
+  auto vec_X_in = heat_eq.vec_X_in()->ToVectorContainer();
+  auto vec_Y_in = heat_eq.vec_Y_in()->ToVectorContainer();
+
+// Load the vectors in Python format.
+#include "heat_equation_python.ipp"
+
+  // Create a little compare function.
+  auto compare = [&](auto bfs, auto res_py) {
+    ASSERT_EQ(bfs.size(), res_py.size());
+    for (size_t i = 0; i < bfs.size(); i++) {
+      auto [level, index, x, y] = res_py[i].first;
+      double value = res_py[i].second;
+      ASSERT_EQ(bfs[i]->node_0()->level(), level);
+      ASSERT_EQ(bfs[i]->node_0()->index(), index);
+      ASSERT_EQ(bfs[i]->node_1()->vertex()->x, x);
+      ASSERT_EQ(bfs[i]->node_1()->vertex()->y, y);
+      ASSERT_NEAR(bfs[i]->value(), value, 1e-8);
+    }
+  };
+
+  // Compare the results in C++ to the Python format.
+
+  // For A * v.
+  std::cout << "Comparing A" << std::endl;
+  heat_eq.vec_Y_in()->FromVectorContainer(vec_Y_in);
+  heat_eq.A()->Apply();
+  compare(Y_bfs_out, A_py);
+
+  // For B * v.
+  std::cout << "Comparing B" << std::endl;
+  heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
+  heat_eq.B()->Apply();
+  compare(Y_bfs_out, B_py);
+
+  // For B.T * v.
+  std::cout << "Comparing B.T" << std::endl;
+  heat_eq.vec_Y_in()->FromVectorContainer(vec_Y_in);
+  heat_eq.BT()->Apply();
+  compare(X_bfs_out, BT_py);
+
+  // For G * v
+  std::cout << "Comparing G" << std::endl;
+  heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
+  heat_eq.G()->Apply();
+  compare(X_bfs_out, G_py);
+
+  // For A_inv * v
+  std::cout << "Comparing A_inv" << std::endl;
+  heat_eq.vec_Y_out()->FromVectorContainer(vec_Y_in);
+  heat_eq.Ainv()->Apply();
+  compare(Y_bfs_in, A_inv_py);
+
+  // For precond_X * v
+  std::cout << "Comparing precond_X" << std::endl;
+  heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
+  heat_eq.PrecondX()->Apply();
+  compare(X_bfs_out, precond_X_py);
+
+  // For schur_mat * v
+  std::cout << "Comparing schur_mat" << std::endl;
+  heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
+  heat_eq.SchurMat()->Apply();
+  compare(X_bfs_out, schur_mat_py);
+}
+
 TEST(HeatEquation, SchurCG) {
   int max_level = 7;
   auto T = space::InitialTriangulation::UnitSquare();

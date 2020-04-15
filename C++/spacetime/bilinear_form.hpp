@@ -126,7 +126,9 @@ class BlockDiagonalBilinearForm : public EigenBilinearForm {
 
   BlockDiagonalBilinearForm(DblVecIn *vec_in, DblVecOut *vec_out,
                             bool use_cache = true)
-      : vec_in_(vec_in), vec_out_(vec_out), use_cache_(use_cache) {}
+      : vec_in_(vec_in), vec_out_(vec_out), use_cache_(use_cache) {
+    assert(vec_in->container().size() == vec_out->container().size());
+  }
 
   // Apply takes data from vec_in and writes it to vec_out.
   Eigen::VectorXd Apply() const;
