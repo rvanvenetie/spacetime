@@ -29,9 +29,9 @@ class BilinearFormBase
   virtual ~BilinearFormBase() {}
 
   // These are the BilinearForm functions that must be implemented.
-  virtual Eigen::VectorXd Apply() = 0;
-  virtual DblVecIn *vec_in() const = 0;
-  virtual DblVecOut *vec_out() const = 0;
+  virtual Eigen::VectorXd Apply() { assert(false); }
+  virtual DblVecIn *vec_in() const { assert(false); }
+  virtual DblVecOut *vec_out() const { assert(false); }
 
   // These are the functions that must be implemented for Eigen to work.
   virtual Eigen::Index rows() const {
