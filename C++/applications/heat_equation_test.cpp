@@ -1,5 +1,7 @@
 #include "heat_equation.hpp"
 
+#include <unsupported/Eigen/IterativeSolvers>
+
 #include "../space/initial_triangulation.hpp"
 #include "../time/basis.hpp"
 #include "../tools/linalg.hpp"
@@ -8,6 +10,7 @@
 
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
+using spacetime::BilinearFormBase;
 using spacetime::GenerateYDelta;
 using Time::ortho_tree;
 using Time::three_point_tree;
@@ -70,7 +73,7 @@ TEST(HeatEquation, SparseMatVec) {
     ASSERT_TRUE(v_in.isApprox(v_now));
 
     // Now use Eigen to atually solve something.
-    Eigen::MINRES<EigenBilinearForm, Eigen::Lower | Eigen::Upper,
+    Eigen::MINRES<BilinearFormBase<void>, Eigen::Lower | Eigen::Upper,
                   Eigen::IdentityPreconditioner>
         minres;
     minres.compute(*heat_eq.BlockBF());
@@ -141,44 +144,37 @@ TEST(HeatEquation, CompareToPython) {
 
   // For A * v.
   std::cout << "Comparing A" << std::endl;
-  heat_eq.vec_Y_in()->FromVectorContainer(vec_Y_in);
-  heat_eq.A()->Apply();
+  heat_eq.A()->MatVec(vec_Y_in);
   compare(Y_bfs_out, A_py);
 
   // For B * v.
   std::cout << "Comparing B" << std::endl;
-  heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
-  heat_eq.B()->Apply();
+  heat_eq.B()->MatVec(vec_X_in);
   compare(Y_bfs_out, B_py);
 
   // For B.T * v.
   std::cout << "Comparing B.T" << std::endl;
-  heat_eq.vec_Y_in()->FromVectorContainer(vec_Y_in);
-  heat_eq.BT()->Apply();
+  heat_eq.BT()->MatVec(vec_Y_in);
   compare(X_bfs_out, BT_py);
 
   // For G * v
   std::cout << "Comparing G" << std::endl;
-  heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
-  heat_eq.G()->Apply();
+  heat_eq.G()->MatVec(vec_X_in);
   compare(X_bfs_out, G_py);
 
   // For A_inv * v
   std::cout << "Comparing A_inv" << std::endl;
-  heat_eq.vec_Y_out()->FromVectorContainer(vec_Y_in);
-  heat_eq.Ainv()->Apply();
+  heat_eq.Ainv()->MatVec(vec_Y_in);
   compare(Y_bfs_in, A_inv_py);
 
   // For precond_X * v
   std::cout << "Comparing precond_X" << std::endl;
-  heat_eq.vec_X_out()->FromVectorContainer(vec_X_in);
-  heat_eq.PrecondX()->Apply();
+  heat_eq.PrecondX()->MatVec(vec_X_in);
   compare(X_bfs_in, precond_X_py);
 
   // For schur_mat * v
   std::cout << "Comparing schur_mat" << std::endl;
-  heat_eq.vec_X_in()->FromVectorContainer(vec_X_in);
-  heat_eq.S()->Apply();
+  heat_eq.S()->MatVec(vec_X_in);
   compare(X_bfs_out, schur_mat_py);
 }
 
@@ -220,7 +216,8 @@ TEST(HeatEquation, SchurCG) {
     ASSERT_TRUE(v_in.isApprox(v_now));
 
     // Now use Eigen to atually solve something.
-    Eigen::ConjugateGradient<EigenBilinearForm, Eigen::Lower | Eigen::Upper,
+    Eigen::ConjugateGradient<BilinearFormBase<HeatEquation::TypeXVector>,
+                             Eigen::Lower | Eigen::Upper,
                              Eigen::IdentityPreconditioner>
         cg;
     cg.compute(*heat_eq.S());

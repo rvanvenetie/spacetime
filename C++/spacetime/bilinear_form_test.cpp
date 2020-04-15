@@ -305,7 +305,7 @@ TEST(BilinearForm, Transpose) {
     ASSERT_TRUE(mat_B_t.transpose().isApprox(ToMatrix(*trans_B_t)));
 
     // Now check the sum.
-    auto B = datastructures::SumBilinearForm(A_s, B_t);
+    auto B = SumBilinearForm(A_s, B_t);
     ASSERT_TRUE((mat_A_s + mat_B_t).isApprox(ToMatrix(B)));
 
     // Now check the transpose of the sum.
