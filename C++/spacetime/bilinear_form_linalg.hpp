@@ -295,8 +295,8 @@ class BlockBilinearForm : public BilinearFormBase<void, void> {
 };
 
 /**
- * A class that represents the Schur complement operator
- * x \mapsto (B.T A^{-1} B + gamma_0' gamma_0) x.
+ * The Schur complement operator for the matrix [A B; B^t G].
+ * x \mapsto (B.T A^{-1} B + G) x.
  */
 template <typename Ainv, typename B, typename BT, typename G>
 class SchurBilinearForm

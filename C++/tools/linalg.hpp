@@ -97,6 +97,7 @@ class Lanczos {
       v -= alpha_[k] * w;  // v=v-alpha_[k]w
       u = A * v;
       beta_[k] = sqrt(u.dot(v));  // beta_[k]=||v||
+      if (beta_[k] == 0) break;
 
       Eigen::VectorXd temp = w;
 
@@ -118,7 +119,7 @@ class Lanczos {
              (lminold - lmin_) > tol * lmin_);
     iterations_ = k + 1;
     alpha_.conservativeResize(k);
-    beta_.conservativeResize(k - 1);
+    if (k) beta_.conservativeResize(k - 1);
 
     time_ = std::chrono::duration<float>(clock_t::now() - start).count();
   }

@@ -33,7 +33,7 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
 Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
   heat.B()->Apply();  // This is actually only needed to initialize BT()
   g_lin_form_->Apply(heat.vec_Y_out());
-  heat.Ainv()->Apply();
+  heat.P_Y()->Apply();
   auto rhs = heat.BT()->Apply();
   rhs += u0_lin_form_->Apply(heat.vec_X_in());
   return rhs;
@@ -43,9 +43,8 @@ DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
     *AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0, double rtol,
                                  size_t maxit) {
   assert(heat_d_dd_);
-  auto [result, data] =
-      tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
-                         *heat_d_dd_->PrecondX(), x0, maxit, rtol);
+  auto [result, data] = tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
+                                           *heat_d_dd_->P_X(), x0, maxit, rtol);
   vec_Xd_out()->FromVectorContainer(result);
   return vec_Xd_out();
 }
@@ -54,10 +53,10 @@ std::pair<DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *, double>
 AdaptiveHeatEquation::Estimate(bool mean_zero) {
   assert(heat_d_dd_);
   auto A = heat_d_dd_->A();
-  auto Ainv = heat_d_dd_->Ainv();
+  auto P_Y = heat_d_dd_->P_Y();
   heat_d_dd_.reset();
   auto heat_dd_dd = HeatEquation(vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_,
-                                 vec_Ydd_out_, A, Ainv);
+                                 vec_Ydd_out_, A, P_Y);
   auto u_dd_dd = vec_Xdd_in();
   u_dd_dd->Reset();
   *u_dd_dd += *vec_Xd_out();
