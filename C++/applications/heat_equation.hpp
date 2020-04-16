@@ -96,9 +96,6 @@ class HeatEquation {
 
   auto P_Y() { return P_Y_; }
   auto P_X() { return P_X_; }
-  void reset_P_X() {
-    P_X_ = std::make_shared<TypePrecondX>(vec_X_out_.get(), vec_X_in_.get());
-  }
 
   auto S() { return S_; }
 
