@@ -305,7 +305,7 @@ TEST(HeatEquation, SchurPCG) {
   }
 }
 
-TEST(HeatEquation, Lanczos) {
+TEST(HeatEquation, LanczosDirectInverse) {
   int max_level = 12;
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
@@ -341,6 +341,49 @@ TEST(HeatEquation, Lanczos) {
         *heat_eq.S(), *heat_eq.P_X(), heat_eq.vec_X_in()->ToVectorContainer());
     std::cout << "\tkappa(P_X * S) :" << lanczos_X << std::endl << std::endl;
     ASSERT_LT(lanczos_Y.cond(), 6);
+  }
+}
+
+TEST(HeatEquation, LanczosMG) {
+  int max_level = 10;
+  auto T = space::InitialTriangulation::UnitSquare();
+  auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+
+  for (int level = 1; level <= max_level; level++) {
+    if (level % 2) continue;
+    T.hierarch_basis_tree.UniformRefine(level);
+    ortho_tree.UniformRefine(level);
+    three_point_tree.UniformRefine(level);
+    X_delta.SparseRefine(level, {2, 1});
+
+    HeatEquationOptions heat_eq_opts;
+    heat_eq_opts.P_X_inv_ = HeatEquationOptions::SpaceInverse::Multigrid;
+    heat_eq_opts.P_Y_inv_ = HeatEquationOptions::SpaceInverse::Multigrid;
+    HeatEquation heat_eq(X_delta, heat_eq_opts);
+
+    std::cout << "Level " << level << "; #(X_delta, Y_delta) = ("
+              << heat_eq.vec_X_in()->Bfs().size() << ", "
+              << heat_eq.vec_Y_in()->Bfs().size() << ")" << std::endl;
+
+    // Generate some initial Y_delta rhs.
+    for (auto nv : heat_eq.vec_Y_in()->Bfs())
+      if (!nv->node_1()->on_domain_boundary())
+        nv->set_random();
+      else
+        nv->set_value(0);
+    auto lanczos_Y = tools::linalg::Lanczos(
+        *heat_eq.A(), *heat_eq.P_Y(), heat_eq.vec_Y_in()->ToVectorContainer());
+    std::cout << "\tkappa(P_Y * A_s): " << lanczos_Y << std::endl;
+    ASSERT_NEAR(lanczos_Y.cond(), 1., 1e-2);
+
+    // Generate some initial X_delta rhs.
+    for (auto nv : heat_eq.vec_X_in()->Bfs())
+      if (!nv->node_1()->on_domain_boundary()) nv->set_random();
+    auto lanczos_X = tools::linalg::Lanczos(
+        *heat_eq.S(), *heat_eq.P_X(), heat_eq.vec_X_in()->ToVectorContainer());
+    std::cout << "\tkappa(P_X * S) :" << lanczos_X << std::endl << std::endl;
+    ASSERT_LT(lanczos_Y.cond(), 5.5);
   }
 }
 

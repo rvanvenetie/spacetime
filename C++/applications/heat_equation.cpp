@@ -45,14 +45,12 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
   // Create the block bilinear form.
   block_bf_ = std::make_shared<TypeBlockBF>(A_, B_, BT_, minus_G);
 
+  // Initialize preconditioners (if necessary).
+  if (!P_Y_) InitializePrecondY();
+  InitializePrecondX();
+
   // Create the Schur bilinear form.
   S_ = std::make_shared<TypeS>(P_Y_, B_, BT_, G_);
-
-  // Create preconditioner for X_delta.
-  space::OperatorOptions space_opts;
-  space_opts.alpha_ = opts.alpha_;
-  P_X_ = std::make_shared<TypePrecondX>(vec_X_out_.get(), vec_X_in_.get(),
-                                        /* use_cache */ true, space_opts);
 }
 
 HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
@@ -60,11 +58,9 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
                            std::shared_ptr<TypeYVector> vec_Y_in,
                            std::shared_ptr<TypeYVector> vec_Y_out,
                            const HeatEquationOptions &opts)
-    : HeatEquation(
-          vec_X_in, vec_X_out, vec_Y_in, vec_Y_out,
-          std::make_shared<TypeA>(vec_Y_in.get(), vec_Y_out.get()),
-          std::make_shared<TypePrecondY>(vec_Y_out.get(), vec_Y_in.get()),
-          opts) {}
+    : HeatEquation(vec_X_in, vec_X_out, vec_Y_in, vec_Y_out,
+                   std::make_shared<TypeA>(vec_Y_in.get(), vec_Y_out.get()),
+                   nullptr, opts) {}
 
 HeatEquation::HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta,
                            const HeatEquationOptions &opts)
@@ -82,5 +78,51 @@ HeatEquation::HeatEquation(
     const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta,
     const HeatEquationOptions &opts)
     : HeatEquation(X_delta, GenerateYDelta(X_delta), opts) {}
+
+void HeatEquation::InitializePrecondX() {
+  space::OperatorOptions space_opts;
+  space_opts.alpha_ = opts_.P_X_alpha_;
+  space_opts.cycles_ = opts_.P_X_mg_cycles_;
+  switch (opts_.P_X_inv_) {
+    case HeatEquationOptions::SpaceInverse::DirectInverse:
+      P_X_ = std::make_shared<spacetime::BlockDiagonalBilinearForm<
+          space::XPreconditionerOperator<space::DirectInverse>,
+          ThreePointWaveletFn, ThreePointWaveletFn>>(
+          vec_X_out_.get(), vec_X_in_.get(),
+          /* use_cache */ true, space_opts);
+      break;
+    case HeatEquationOptions::SpaceInverse::Multigrid:
+      P_X_ = std::make_shared<spacetime::BlockDiagonalBilinearForm<
+          space::XPreconditionerOperator<space::MultigridPreconditioner>,
+          ThreePointWaveletFn, ThreePointWaveletFn>>(
+          vec_X_out_.get(), vec_X_in_.get(),
+          /* use_cache */ true, space_opts);
+      break;
+    default:
+      assert(false);
+  }
+}
+
+void HeatEquation::InitializePrecondY() {
+  space::OperatorOptions space_opts;
+  space_opts.cycles_ = opts_.P_Y_mg_cycles_;
+  switch (opts_.P_Y_inv_) {
+    case HeatEquationOptions::SpaceInverse::DirectInverse:
+      P_Y_ = std::make_shared<spacetime::BlockDiagonalBilinearForm<
+          space::DirectInverse<space::StiffnessOperator>, OrthonormalWaveletFn,
+          OrthonormalWaveletFn>>(vec_Y_out_.get(), vec_Y_in_.get(),
+                                 /* use_cache */ true, space_opts);
+      break;
+    case HeatEquationOptions::SpaceInverse::Multigrid:
+      P_Y_ = std::make_shared<spacetime::BlockDiagonalBilinearForm<
+          space::MultigridPreconditioner<space::StiffnessOperator>,
+          OrthonormalWaveletFn, OrthonormalWaveletFn>>(
+          vec_Y_out_.get(), vec_Y_in_.get(),
+          /* use_cache */ true, space_opts);
+      break;
+    default:
+      assert(false);
+  }
+}
 
 }  // namespace applications
