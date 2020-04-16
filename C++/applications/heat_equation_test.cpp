@@ -332,7 +332,7 @@ TEST(HeatEquation, Lanczos) {
     auto lanczos_Y = tools::linalg::Lanczos(
         *heat_eq.A(), *heat_eq.P_Y(), heat_eq.vec_Y_in()->ToVectorContainer());
     std::cout << "\tkappa(P_Y * A_s): " << lanczos_Y << std::endl;
-    ASSERT_DOUBLE_EQ(lanczos_Y.cond(), 1.);
+    ASSERT_NEAR(lanczos_Y.cond(), 1., 1e-5);
 
     // Generate some initial X_delta rhs.
     for (auto nv : heat_eq.vec_X_in()->Bfs())
