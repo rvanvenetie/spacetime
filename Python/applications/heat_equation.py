@@ -35,7 +35,7 @@ class HeatEquation:
         self.formulation = formulation
 
         print('HeatEquation with #(Y_delta, X_delta)=({}, {})'.format(
-              len(Y_delta.bfs()), len(X_delta.bfs())))
+            len(Y_delta.bfs()), len(X_delta.bfs())))
 
         self.time_basis_X = ThreePointBasis()
         self.time_basis_Y = OrthonormalBasis()
