@@ -9,13 +9,30 @@
 
 namespace space {
 
+struct OperatorOptions {
+  // Options for all operators.
+  bool dirichlet_boundary_;
+
+  // Options for stiff plus scaled mass operator.
+  size_t time_level_;
+  double alpha_;
+
+  // Options for multigrid preconditioner.
+  size_t cycles_;
+
+  OperatorOptions(bool dirichlet_boundary = true, size_t time_level = 0,
+                  double alpha = 1, size_t cycles = 5)
+      : dirichlet_boundary_(dirichlet_boundary),
+        time_level_(time_level),
+        alpha_(alpha),
+        cycles_(cycles) {}
+};
+
 class Operator {
  public:
-  Operator(const TriangulationView &triang, bool dirichlet_boundary = true,
-           size_t time_level = 0)
-      : triang_(triang),
-        dirichlet_boundary_(dirichlet_boundary),
-        time_level_(time_level) {}
+  Operator(const TriangulationView &triang,
+           OperatorOptions opts = OperatorOptions())
+      : triang_(triang), opts_(std::move(opts)) {}
 
   virtual ~Operator() {}
 
@@ -24,12 +41,12 @@ class Operator {
 
   // Does the given vertex correspond to a dof?
   inline bool IsDof(size_t vertex) const {
-    return !triang_.OnBoundary(vertex) || !dirichlet_boundary_;
+    return !triang_.OnBoundary(vertex) || !opts_.dirichlet_boundary_;
   }
 
   // Verify that the given vector satisfy the boundary conditions.
   bool FeasibleVector(const Eigen::VectorXd &vec) const;
-  bool DirichletBoundary() const { return dirichlet_boundary_; }
+  inline bool DirichletBoundary() const { return opts_.dirichlet_boundary_; }
 
   // Overloads required to for Eigen.
   Eigen::VectorXd operator*(const Eigen::VectorXd &vec_in) const {
@@ -45,8 +62,7 @@ class Operator {
 
  protected:
   const TriangulationView &triang_;
-  bool dirichlet_boundary_;
-  size_t time_level_;
+  OperatorOptions opts_;
 };
 
 class ForwardOperator : public Operator {
@@ -69,8 +85,8 @@ class ForwardOperator : public Operator {
 template <typename ForwardOp>
 class ForwardMatrix : public ForwardOperator {
  public:
-  ForwardMatrix(const TriangulationView &triang, bool dirichlet_boundary = true,
-                size_t time_level = 0);
+  ForwardMatrix(const TriangulationView &triang,
+                OperatorOptions opts = OperatorOptions());
 
   virtual void ApplySingleScale(Eigen::VectorXd &vec_SS) const final {
     vec_SS = matrix_ * vec_SS;
@@ -86,7 +102,7 @@ class ForwardMatrix : public ForwardOperator {
 class BackwardOperator : public Operator {
  public:
   BackwardOperator(const TriangulationView &triang,
-                   bool dirichlet_boundary = true, size_t time_level = 0);
+                   OperatorOptions opts = OperatorOptions());
 
   // Apply the operator in the hierarchical basis.
   virtual void Apply(Eigen::VectorXd &vec_in) const final;
@@ -113,8 +129,8 @@ class MassOperator : public ForwardMatrix<MassOperator> {
   using ForwardMatrix<MassOperator>::ForwardMatrix;
 
   // Returns the element matrix for the given element.
-  static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
-                                       size_t time_level = 0);
+  inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+                                              const OperatorOptions &opts);
 };
 
 class StiffnessOperator : public ForwardMatrix<StiffnessOperator> {
@@ -123,8 +139,8 @@ class StiffnessOperator : public ForwardMatrix<StiffnessOperator> {
   using ForwardMatrix<StiffnessOperator>::ForwardMatrix;
 
   // Returns the element matrix for the given element.
-  static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
-                                       size_t time_level = 0);
+  inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+                                              const OperatorOptions &opts);
 };
 
 class StiffPlusScaledMassOperator
@@ -134,15 +150,15 @@ class StiffPlusScaledMassOperator
   using ForwardMatrix<StiffPlusScaledMassOperator>::ForwardMatrix;
 
   // Returns the element matrix for the given element.
-  static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
-                                       size_t time_level);
+  inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+                                              const OperatorOptions &opts);
 };
 
 template <typename ForwardOp>
 class DirectInverse : public BackwardOperator {
  public:
-  DirectInverse(const TriangulationView &triang, bool dirichlet_boundary = true,
-                size_t time_level = 0);
+  DirectInverse(const TriangulationView &triang,
+                OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
@@ -154,8 +170,8 @@ class DirectInverse : public BackwardOperator {
 template <typename ForwardOp>
 class CGInverse : public BackwardOperator {
  public:
-  CGInverse(const TriangulationView &triang, bool dirichlet_boundary = true,
-            size_t time_level = 0);
+  CGInverse(const TriangulationView &triang,
+            OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
@@ -169,8 +185,7 @@ template <typename ForwardOp>
 class MultigridPreconditioner : public BackwardOperator {
  public:
   MultigridPreconditioner(const TriangulationView &triang,
-                          bool dirichlet_boundary = true, size_t time_level = 0,
-                          size_t cycles = 5);
+                          OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
@@ -184,9 +199,6 @@ class MultigridPreconditioner : public BackwardOperator {
   inline std::vector<std::pair<size_t, double>> RowMatrix(
       const MultigridTriangulationView &mg_triang, size_t vertex) const;
 
-  // Number of cycles to do.
-  size_t cycles_;
-
   // Matrix on the finest level.
   Eigen::SparseMatrix<double> triang_mat_;
 
@@ -198,8 +210,7 @@ template <template <typename> class InverseOp>
 class XPreconditionerOperator : public BackwardOperator {
  public:
   XPreconditionerOperator(const TriangulationView &triang,
-                          bool dirichlet_boundary = true,
-                          size_t time_level = 0);
+                          OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 

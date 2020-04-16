@@ -18,6 +18,11 @@ using spacetime::TransposeBilinearForm;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
+struct HeatEquationOptions {
+  // The alpha used in the preconditioner on X.
+  double alpha_ = 0.3;
+};
+
 // Base class for constructing the operators necessary.
 class HeatEquation {
  public:
@@ -48,14 +53,16 @@ class HeatEquation {
   using TypeBlockBF =
       BlockBilinearForm<TypeA, TypeB, TypeBT, NegativeBilinearForm<TypeG>>;
 
-  // Types necessary for the Schur complement matrix.
-  using TypeAinv = spacetime::BlockDiagonalBilinearForm<
+  // Preconditioners.
+  using TypePrecondY = spacetime::BlockDiagonalBilinearForm<
       space::DirectInverse<space::StiffnessOperator>, OrthonormalWaveletFn,
       OrthonormalWaveletFn>;
-  using TypeS = SchurBilinearForm<TypeAinv, TypeB, TypeBT, TypeG>;
   using TypePrecondX = spacetime::BlockDiagonalBilinearForm<
       space::XPreconditionerOperator<space::DirectInverse>, ThreePointWaveletFn,
       ThreePointWaveletFn>;
+
+  // Schur complement.
+  using TypeS = SchurBilinearForm<TypePrecondY, TypeB, TypeBT, TypeG>;
 
   using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeYDelta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>;
@@ -68,13 +75,17 @@ class HeatEquation {
                std::shared_ptr<TypeXVector> vec_X_out,
                std::shared_ptr<TypeYVector> vec_Y_in,
                std::shared_ptr<TypeYVector> vec_Y_out, std::shared_ptr<TypeA> A,
-               std::shared_ptr<TypeAinv> Ainv);
+               std::shared_ptr<TypePrecondY> P_Y,
+               const HeatEquationOptions &opts = HeatEquationOptions());
   HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
                std::shared_ptr<TypeXVector> vec_X_out,
                std::shared_ptr<TypeYVector> vec_Y_in,
-               std::shared_ptr<TypeYVector> vec_Y_out);
-  HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta);
-  HeatEquation(const TypeXDelta &X_delta);
+               std::shared_ptr<TypeYVector> vec_Y_out,
+               const HeatEquationOptions &opts = HeatEquationOptions());
+  HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta,
+               const HeatEquationOptions &opts = HeatEquationOptions());
+  HeatEquation(const TypeXDelta &X_delta,
+               const HeatEquationOptions &opts = HeatEquationOptions());
 
   // This returns *shared_ptrs* to the respective operators.
   auto A() { return A_; }
@@ -83,9 +94,13 @@ class HeatEquation {
   auto G() { return G_; }
   auto BlockBF() { return block_bf_; }
 
-  auto Ainv() { return A_inv_; }
+  auto P_Y() { return P_Y_; }
+  auto P_X() { return P_X_; }
+  void reset_P_X() {
+    P_X_ = std::make_shared<TypePrecondX>(vec_X_out_.get(), vec_X_in_.get());
+  }
+
   auto S() { return S_; }
-  auto PrecondX() { return precond_X_; }
 
   auto vec_X_in() { return vec_X_in_.get(); }
   auto vec_X_out() { return vec_X_out_.get(); }
@@ -93,16 +108,21 @@ class HeatEquation {
   auto vec_Y_out() { return vec_Y_out_.get(); }
 
  protected:
+  HeatEquationOptions opts_;
+
+  // Operators.
   std::shared_ptr<TypeA> A_;
   std::shared_ptr<TypeB> B_;
   std::shared_ptr<TypeBT> BT_;
   std::shared_ptr<TypeG> G_;
   std::shared_ptr<TypeBlockBF> block_bf_;
 
-  // Schur complement stuff.
-  std::shared_ptr<TypeAinv> A_inv_;
+  // Preconditioners.
+  std::shared_ptr<TypePrecondY> P_Y_;
+  std::shared_ptr<TypePrecondX> P_X_;
+
+  // Schur complement.
   std::shared_ptr<TypeS> S_;
-  std::shared_ptr<TypePrecondX> precond_X_;
 
   // Store doubletree vectors for X_delta input and output.
   std::shared_ptr<TypeXVector> vec_X_in_, vec_X_out_;

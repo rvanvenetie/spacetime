@@ -34,8 +34,8 @@ class HeatEquation:
         self.dirichlet_boundary = dirichlet_boundary
         self.formulation = formulation
 
-        print('HeatEquation with #(Y_delta, X_delta)=({}, {})'.format(
-            len(Y_delta.bfs()), len(X_delta.bfs())))
+        # print('HeatEquation with #(Y_delta, X_delta)=({}, {})'.format(
+        #     len(Y_delta.bfs()), len(X_delta.bfs())))
 
         self.time_basis_X = ThreePointBasis()
         self.time_basis_Y = OrthonormalBasis()

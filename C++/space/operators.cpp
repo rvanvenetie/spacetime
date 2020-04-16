@@ -52,8 +52,8 @@ void ForwardOperator::ApplyTransposeHierarchToSingle(VectorXd &w) const {
 }
 
 BackwardOperator::BackwardOperator(const TriangulationView &triang,
-                                   bool dirichlet_boundary, size_t time_level)
-    : Operator(triang, dirichlet_boundary, time_level) {
+                                   OperatorOptions opts)
+    : Operator(triang, opts) {
   std::vector<int> dof_mapping;
   auto &vertices = triang.vertices();
   dof_mapping.reserve(vertices.size());
@@ -101,31 +101,6 @@ void BackwardOperator::Apply(Eigen::VectorXd &v) const {
   // Single scale to hierarchical basis.
   ApplyInverseHierarchToSingle(v);
   assert(FeasibleVector(v));
-}
-
-Eigen::Matrix3d MassOperator::ElementMatrix(const Element2DView *elem,
-                                            size_t time_level) {
-  return elem->node()->area() / 12.0 *
-         (Eigen::Matrix3d() << 2, 1, 1, 1, 2, 1, 1, 1, 2).finished();
-}
-
-Eigen::Matrix3d StiffnessOperator::ElementMatrix(const Element2DView *elem,
-                                                 size_t time_level) {
-  Eigen::Vector2d v0, v1, v2;
-
-  v0 << elem->node()->vertices()[0]->x, elem->node()->vertices()[0]->y;
-  v1 << elem->node()->vertices()[1]->x, elem->node()->vertices()[1]->y;
-  v2 << elem->node()->vertices()[2]->x, elem->node()->vertices()[2]->y;
-  Eigen::Matrix<double, 3, 2> D;
-  D << v2[0] - v1[0], v2[1] - v1[1], v0[0] - v2[0], v0[1] - v2[1],
-      v1[0] - v0[0], v1[1] - v0[1];
-  return D * D.transpose() / (4.0 * elem->node()->area());
-}
-
-Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
-    const Element2DView *elem, size_t time_level) {
-  return StiffnessOperator::ElementMatrix(elem) +
-         pow(2.0, time_level) * MassOperator::ElementMatrix(elem);
 }
 
 }  // namespace space

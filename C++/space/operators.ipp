@@ -2,12 +2,35 @@
 
 namespace space {
 
+inline Eigen::Matrix3d MassOperator::ElementMatrix(
+    const Element2DView *elem, const OperatorOptions &opts) {
+  return elem->node()->area() / 12.0 *
+         (Eigen::Matrix3d() << 2, 1, 1, 1, 2, 1, 1, 1, 2).finished();
+}
+
+inline Eigen::Matrix3d StiffnessOperator::ElementMatrix(
+    const Element2DView *elem, const OperatorOptions &opts) {
+  Eigen::Vector2d v0, v1, v2;
+
+  v0 << elem->node()->vertices()[0]->x, elem->node()->vertices()[0]->y;
+  v1 << elem->node()->vertices()[1]->x, elem->node()->vertices()[1]->y;
+  v2 << elem->node()->vertices()[2]->x, elem->node()->vertices()[2]->y;
+  Eigen::Matrix<double, 3, 2> D;
+  D << v2[0] - v1[0], v2[1] - v1[1], v0[0] - v2[0], v0[1] - v2[1],
+      v1[0] - v0[0], v1[1] - v0[1];
+  return D * D.transpose() / (4.0 * elem->node()->area());
+}
+
+inline Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
+    const Element2DView *elem, const OperatorOptions &opts) {
+  return opts.alpha_ * StiffnessOperator::ElementMatrix(elem, opts) +
+         pow(2.0, opts.time_level_) * MassOperator::ElementMatrix(elem, opts);
+}
+
 template <typename ForwardOp>
 ForwardMatrix<ForwardOp>::ForwardMatrix(const TriangulationView &triang,
-                                        bool dirichlet_boundary,
-                                        size_t time_level)
-    : ForwardOperator(triang, dirichlet_boundary, time_level),
-      matrix_(triang_.V, triang_.V) {
+                                        OperatorOptions opts)
+    : ForwardOperator(triang, opts), matrix_(triang_.V, triang_.V) {
   std::vector<Eigen::Triplet<double>> triplets;
   triplets.reserve(triang_.elements().size() * 3);
 
@@ -15,7 +38,7 @@ ForwardMatrix<ForwardOp>::ForwardMatrix(const TriangulationView &triang,
   for (const auto &elem : triang_.elements()) {
     if (!elem->is_leaf()) continue;
     auto &Vids = elem->vertices_view_idx_;
-    auto element_mat = ForwardOp::ElementMatrix(elem, time_level);
+    auto element_mat = ForwardOp::ElementMatrix(elem, opts);
 
     for (size_t i = 0; i < 3; ++i) {
       if (!IsDof(Vids[i])) continue;
@@ -30,12 +53,10 @@ ForwardMatrix<ForwardOp>::ForwardMatrix(const TriangulationView &triang,
 
 template <typename ForwardOp>
 DirectInverse<ForwardOp>::DirectInverse(const TriangulationView &triang,
-                                        bool dirichlet_boundary,
-                                        size_t time_level)
-    : BackwardOperator(triang, dirichlet_boundary, time_level) {
+                                        OperatorOptions opts)
+    : BackwardOperator(triang, opts) {
   if (transform_.cols() > 0) {
-    auto matrix =
-        ForwardOp(triang, dirichlet_boundary, time_level).MatrixSingleScale();
+    auto matrix = ForwardOp(triang, opts).MatrixSingleScale();
     matrix = transform_ * matrix * transformT_;
     solver_.analyzePattern(matrix);
     solver_.factorize(matrix);
@@ -52,10 +73,9 @@ void DirectInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 
 template <typename ForwardOp>
 CGInverse<ForwardOp>::CGInverse(const TriangulationView &triang,
-                                bool dirichlet_boundary, size_t time_level)
-    : BackwardOperator(triang, dirichlet_boundary, time_level) {
-  auto matrix =
-      ForwardOp(triang, dirichlet_boundary, time_level).MatrixSingleScale();
+                                OperatorOptions opts)
+    : BackwardOperator(triang, opts) {
+  auto matrix = ForwardOp(triang, opts).MatrixSingleScale();
   solver_.compute(transform_ * matrix * transformT_);
 }
 
@@ -69,16 +89,12 @@ void CGInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 
 template <typename ForwardOp>
 MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
-    const TriangulationView &triang, bool dirichlet_boundary, size_t time_level,
-    size_t cycles)
-    : BackwardOperator(triang, dirichlet_boundary, time_level),
-      cycles_(cycles),
-      triang_mat_(ForwardOp(triang, dirichlet_boundary, time_level)
-                      .MatrixSingleScale()),
+    const TriangulationView &triang, OperatorOptions opts)
+    : BackwardOperator(triang, opts),
+      triang_mat_(ForwardOp(triang, opts).MatrixSingleScale()),
       // Note that this will leave initial_triang_solver_ with dangling
       // reference, but it doesn't matter for our purpose..
-      initial_triang_solver_(triang.InitialTriangulationView(),
-                             dirichlet_boundary, time_level) {}
+      initial_triang_solver_(triang.InitialTriangulationView(), opts) {}
 
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::Prolongate(
@@ -110,7 +126,7 @@ MultigridPreconditioner<ForwardOp>::RowMatrix(
   result.reserve(patch.size() * 3);
   for (auto elem : patch) {
     auto &Vids = elem->vertices_view_idx_;
-    auto elem_mat = ForwardOp::ElementMatrix(elem, time_level_);
+    auto elem_mat = ForwardOp::ElementMatrix(elem, opts_);
     for (size_t i = 0; i < 3; ++i) {
       if (Vids[i] != vertex) continue;
       for (size_t j = 0; j < 3; ++j) {
@@ -133,7 +149,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
   auto mg_triang = MultigridTriangulationView::FromFinestTriangulation(triang_);
 
   // Do a V-cycle.
-  for (size_t cycle = 0; cycle < cycles_; cycle++) {
+  for (size_t cycle = 0; cycle < opts_.cycles_; cycle++) {
     // Part 1: Down-cycle, calculates corrections while coarsening.
     {
       // Initialize the residual vector with  a(f, \Phi) - a(u, \Phi).
@@ -271,10 +287,10 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
 template <template <typename> class InverseOp>
 XPreconditionerOperator<InverseOp>::XPreconditionerOperator(
-    const TriangulationView &triang, bool dirichlet_boundary, size_t time_level)
-    : BackwardOperator(triang, dirichlet_boundary, time_level),
-      stiff_op_(triang, dirichlet_boundary, time_level),
-      inverse_op_(triang, dirichlet_boundary, time_level) {}
+    const TriangulationView &triang, OperatorOptions opts)
+    : BackwardOperator(triang, opts),
+      stiff_op_(triang, opts),
+      inverse_op_(triang, opts) {}
 
 template <template <typename> class InverseOp>
 void XPreconditionerOperator<InverseOp>::ApplySingleScale(

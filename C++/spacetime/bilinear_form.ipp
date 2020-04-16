@@ -7,7 +7,7 @@ template <template <typename, typename> class OperatorTime,
 BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
     BilinearForm(DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
                  DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
-                 bool use_cache)
+                 bool use_cache, space::OperatorOptions space_opts)
     : BilinearForm(vec_in, vec_out, GenerateSigma(*vec_in, *vec_out),
                    GenerateTheta(*vec_in, *vec_out), use_cache) {}
 
@@ -19,12 +19,13 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
         DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
         std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma,
         std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta,
-        bool use_cache)
+        bool use_cache, space::OperatorOptions space_opts)
     : vec_in_(vec_in),
       vec_out_(vec_out),
       sigma_(sigma),
       theta_(theta),
-      use_cache_(use_cache) {
+      use_cache_(use_cache),
+      space_opts_(std::move(space_opts)) {
   if constexpr (std::is_same_v<BasisTimeIn, BasisTimeOut>)
     assert(vec_in != vec_out);
 }
@@ -46,8 +47,8 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
       auto fiber_in = vec_in_->Fiber_1(psi_in_labda->node());
       auto fiber_out = psi_in_labda->FrozenOtherAxis();
       if (fiber_out->children().empty()) continue;
-      auto bil_form =
-          space::CreateBilinearForm<OperatorSpace>(fiber_in, fiber_out);
+      auto bil_form = space::CreateBilinearForm<OperatorSpace>(
+          fiber_in, fiber_out, space_opts_);
       bil_form.Apply();
       if (use_cache_) bil_space_low_.emplace_back(std::move(bil_form));
     }
@@ -83,8 +84,8 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
       auto fiber_in = theta_->Fiber_1(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
-      auto bil_form =
-          space::CreateBilinearForm<OperatorSpace>(fiber_in, fiber_out);
+      auto bil_form = space::CreateBilinearForm<OperatorSpace>(
+          fiber_in, fiber_out, space_opts_);
       bil_form.Apply();
       if (use_cache_) bil_space_upp_.emplace_back(std::move(bil_form));
     }
@@ -165,9 +166,10 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
       auto fiber_in = vec_in_->Fiber_1(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
+      // Set the level of the time wavelet.
+      space_opts_.time_level_ = std::get<0>(psi_out_labda->nodes())->level();
       auto bil_form = space::CreateBilinearForm<OperatorSpace>(
-          fiber_in, fiber_out, /*dirichlet_boundary*/ true,
-          /*time_level*/ std::get<0>(psi_out_labda->nodes())->level());
+          fiber_in, fiber_out, space_opts_);
       bil_form.Apply();
       if (use_cache_) space_bilforms_.emplace_back(std::move(bil_form));
     }

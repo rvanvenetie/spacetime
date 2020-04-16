@@ -30,12 +30,14 @@ class BilinearForm
   using DblVecIn = DoubleTreeVector<BasisTimeIn, BasisSpace>;
   using DblVecOut = DoubleTreeVector<BasisTimeOut, BasisSpace>;
 
-  BilinearForm(DblVecIn *vec_in, DblVecOut *vec_out, bool use_cache = true);
+  BilinearForm(DblVecIn *vec_in, DblVecOut *vec_out, bool use_cache = true,
+               space::OperatorOptions space_opts = space::OperatorOptions());
   BilinearForm(
       DblVecIn *vec_in, DblVecOut *vec_out,
       std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma,
       std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta,
-      bool use_cache = true);
+      bool use_cache = true,
+      space::OperatorOptions space_opts = space::OperatorOptions());
 
   // Apply takes data from vec_in and writes it to vec_out.
   Eigen::VectorXd Apply() final;
@@ -57,13 +59,16 @@ class BilinearForm
   auto theta() { return theta_; }
 
  protected:
+  // References to in/out vectors.
   DblVecIn *vec_in_;
   DblVecOut *vec_out_;
 
+  // Options.
+  bool use_cache_;
+  space::OperatorOptions space_opts_;
+
   std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma_;
   std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta_;
-  bool use_cache_;
-  bool is_cached_ = false;
   std::shared_ptr<TransposeBilinearForm<
       BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>>>
       transpose_;
@@ -76,7 +81,8 @@ class BilinearForm
   using FO = datastructures::FrozenDoubleNode<
       datastructures::DoubleNodeVector<BasisTimeOut, BasisSpace>, i>;
 
-  // Store bilinear forms in vectors.
+  // Store (cached) bilinear forms in vectors.
+  bool is_cached_ = false;
   std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> bil_space_low_;
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_low_;
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_upp_;
@@ -132,9 +138,13 @@ class BlockDiagonalBilinearForm
   using DblVecIn = DoubleTreeVector<BasisTimeIn, BasisSpace>;
   using DblVecOut = DoubleTreeVector<BasisTimeOut, BasisSpace>;
 
-  BlockDiagonalBilinearForm(DblVecIn *vec_in, DblVecOut *vec_out,
-                            bool use_cache = true)
-      : vec_in_(vec_in), vec_out_(vec_out), use_cache_(use_cache) {
+  BlockDiagonalBilinearForm(
+      DblVecIn *vec_in, DblVecOut *vec_out, bool use_cache = true,
+      space::OperatorOptions space_opts = space::OperatorOptions())
+      : vec_in_(vec_in),
+        vec_out_(vec_out),
+        use_cache_(use_cache),
+        space_opts_(std::move(space_opts)) {
     assert(vec_in->container().size() == vec_out->container().size());
   }
 
@@ -145,10 +155,13 @@ class BlockDiagonalBilinearForm
 
  protected:
   bool use_cache_;
-  bool is_cached_ = false;
+  space::OperatorOptions space_opts_;
+
   DblVecIn *vec_in_;
   DblVecOut *vec_out_;
 
+  // The (cached) bilinear forms.
+  bool is_cached_ = false;
   template <size_t i>
   using FI = datastructures::FrozenDoubleNode<
       datastructures::DoubleNodeVector<BasisTimeIn, BasisSpace>, i>;

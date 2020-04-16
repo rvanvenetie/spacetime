@@ -11,7 +11,6 @@
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
 using spacetime::BilinearFormBase;
-using spacetime::GenerateYDelta;
 using Time::ortho_tree;
 using Time::three_point_tree;
 
@@ -162,14 +161,14 @@ TEST(HeatEquation, CompareToPython) {
   heat_eq.G()->MatVec(vec_X_in);
   compare(X_bfs_out, G_py);
 
-  // For A_inv * v
-  std::cout << "Comparing A_inv" << std::endl;
-  heat_eq.Ainv()->MatVec(vec_Y_in);
+  // For P_Y * v
+  std::cout << "Comparing P_Y" << std::endl;
+  heat_eq.P_Y()->MatVec(vec_Y_in);
   compare(Y_bfs_in, A_inv_py);
 
   // For precond_X * v
-  std::cout << "Comparing precond_X" << std::endl;
-  heat_eq.PrecondX()->MatVec(vec_X_in);
+  std::cout << "Comparing P_X" << std::endl;
+  heat_eq.P_X()->MatVec(vec_X_in);
   compare(X_bfs_in, precond_X_py);
 
   // For schur_mat * v
@@ -296,7 +295,7 @@ TEST(HeatEquation, SchurPCG) {
     // auto precond = Eigen::SparseMatrix<double>(v_in.rows(), v_in.rows());
     // precond.setIdentity();
     auto [result, data] =
-        tools::linalg::PCG(*heat_eq.S(), v_in, *heat_eq.PrecondX(),
+        tools::linalg::PCG(*heat_eq.S(), v_in, *heat_eq.P_X(),
                            Eigen::VectorXd::Zero(v_in.rows()), 1000, 1e-5);
     auto [residual, iter] = data;
     std::cout << ortho_tree.Bfs().size() << " " << three_point_tree.Bfs().size()
@@ -307,12 +306,12 @@ TEST(HeatEquation, SchurPCG) {
 }
 
 TEST(HeatEquation, Lanczos) {
-  int max_level = 20;
+  int max_level = 12;
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
       three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
 
-  for (int level = 1; level < max_level; level++) {
+  for (int level = 1; level <= max_level; level++) {
     if (level % 2) continue;
     T.hierarch_basis_tree.UniformRefine(level);
     ortho_tree.UniformRefine(level);
@@ -320,15 +319,28 @@ TEST(HeatEquation, Lanczos) {
     X_delta.SparseRefine(level, {2, 1});
     HeatEquation heat_eq(X_delta);
 
-    // Generate some initial vector rhs.
+    std::cout << "Level " << level << "; #(X_delta, Y_delta) = ("
+              << heat_eq.vec_X_in()->Bfs().size() << ", "
+              << heat_eq.vec_Y_in()->Bfs().size() << ")" << std::endl;
+
+    // Generate some initial Y_delta rhs.
+    for (auto nv : heat_eq.vec_Y_in()->Bfs())
+      if (!nv->node_1()->on_domain_boundary())
+        nv->set_random();
+      else
+        nv->set_value(0);
+    auto lanczos_Y = tools::linalg::Lanczos(
+        *heat_eq.A(), *heat_eq.P_Y(), heat_eq.vec_Y_in()->ToVectorContainer());
+    std::cout << "\tkappa(P_Y * A_s): " << lanczos_Y << std::endl;
+    ASSERT_DOUBLE_EQ(lanczos_Y.cond(), 1.);
+
+    // Generate some initial X_delta rhs.
     for (auto nv : heat_eq.vec_X_in()->Bfs())
       if (!nv->node_1()->on_domain_boundary()) nv->set_random();
-
-    auto lanczos =
-        tools::linalg::Lanczos(*heat_eq.S(), *heat_eq.PrecondX(),
-                               heat_eq.vec_X_in()->ToVectorContainer());
-    std::cout << "Level " << level << " #X_delta = " << X_delta.Bfs().size()
-              << "\tLanczos: " << lanczos << std::endl;
+    auto lanczos_X = tools::linalg::Lanczos(
+        *heat_eq.S(), *heat_eq.P_X(), heat_eq.vec_X_in()->ToVectorContainer());
+    std::cout << "\tkappa(P_X * S) :" << lanczos_X << std::endl << std::endl;
+    ASSERT_LT(lanczos_Y.cond(), 6);
   }
 }
 
