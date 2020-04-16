@@ -306,4 +306,30 @@ TEST(HeatEquation, SchurPCG) {
   }
 }
 
+TEST(HeatEquation, Lanczos) {
+  int max_level = 20;
+  auto T = space::InitialTriangulation::UnitSquare();
+  auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+
+  for (int level = 1; level < max_level; level++) {
+    if (level % 2) continue;
+    T.hierarch_basis_tree.UniformRefine(level);
+    ortho_tree.UniformRefine(level);
+    three_point_tree.UniformRefine(level);
+    X_delta.SparseRefine(level, {2, 1});
+    HeatEquation heat_eq(X_delta);
+
+    // Generate some initial vector rhs.
+    for (auto nv : heat_eq.vec_X_in()->Bfs())
+      if (!nv->node_1()->on_domain_boundary()) nv->set_random();
+
+    auto lanczos =
+        tools::linalg::Lanczos(*heat_eq.S(), *heat_eq.PrecondX(),
+                               heat_eq.vec_X_in()->ToVectorContainer());
+    std::cout << "Level " << level << " #X_delta = " << X_delta.Bfs().size()
+              << "\tLanczos: " << lanczos << std::endl;
+  }
+}
+
 }  // namespace applications
