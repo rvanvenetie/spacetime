@@ -20,7 +20,8 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
       vec_Xdd_out_(std::make_shared<TypeXVector>(
           vec_Xdd_in_->template DeepCopy<TypeXVector>())),
       vec_Ydd_in_(std::make_shared<TypeYVector>(
-          GenerateYDelta(*vec_Xdd_in_).template DeepCopy<TypeYVector>())),
+          GenerateYDelta<DoubleTreeVector, DoubleTreeView>(*vec_Xdd_in_)
+              .template DeepCopy<TypeYVector>())),
       vec_Ydd_out_(std::make_shared<TypeYVector>(
           vec_Ydd_in_->template DeepCopy<TypeYVector>())),
       heat_d_dd_(std::make_unique<HeatEquation>(vec_Xd_in_, vec_Xd_out_,
@@ -122,7 +123,8 @@ void AdaptiveHeatEquation::Refine(
       vec_Xdd_in_->template DeepCopy<TypeXVector>());
 
   vec_Ydd_in_ = std::make_shared<TypeYVector>(
-      GenerateYDelta(*vec_Xdd_in_).template DeepCopy<TypeYVector>());
+      GenerateYDelta<DoubleTreeVector, DoubleTreeView>(*vec_Xdd_in_)
+          .template DeepCopy<TypeYVector>());
   vec_Ydd_out_ = std::make_shared<TypeYVector>(
       vec_Ydd_in_->template DeepCopy<TypeYVector>());
 
