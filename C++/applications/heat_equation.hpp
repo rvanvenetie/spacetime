@@ -8,6 +8,7 @@ using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
 using space::HierarchicalBasisFn;
 using spacetime::BilinearForm;
+using spacetime::BilinearFormBase;
 using spacetime::BlockBilinearForm;
 using spacetime::BlockDiagonalBilinearForm;
 using spacetime::NegativeBilinearForm;
@@ -20,12 +21,29 @@ using Time::ThreePointWaveletFn;
 
 struct HeatEquationOptions {
   // The alpha used in the preconditioner on X.
-  double alpha_ = 0.3;
+  double P_X_alpha_ = 0.3;
+
+  // Options for the inversion of space matrices, necessary for preconditioners.
+  enum SpaceInverse { DirectInverse, Multigrid };
+  SpaceInverse P_X_inv_ = SpaceInverse::DirectInverse;
+  SpaceInverse P_Y_inv_ = SpaceInverse::DirectInverse;
+
+  // If a multigrid Preconditioner is chosen, this sets the number of cycles.
+  size_t P_X_mg_cycles_ = 5;
+  size_t P_Y_mg_cycles_ = 5;
 };
 
 // Base class for constructing the operators necessary.
 class HeatEquation {
  public:
+  // DoubleTreeView/DoubleTreeVectors.
+  using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
+  using TypeYDelta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>;
+  using TypeXVector =
+      DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>;
+  using TypeYVector =
+      DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>;
+
   // The symmetric operator acting from Y_delta to Y_delta.
   using TypeA = BilinearForm<Time::MassOperator, space::StiffnessOperator,
                              OrthonormalWaveletFn, OrthonormalWaveletFn>;
@@ -54,28 +72,17 @@ class HeatEquation {
       BlockBilinearForm<TypeA, TypeB, TypeBT, NegativeBilinearForm<TypeG>>;
 
   // Preconditioners.
-  using TypePrecondY = spacetime::BlockDiagonalBilinearForm<
-      space::DirectInverse<space::StiffnessOperator>, OrthonormalWaveletFn,
-      OrthonormalWaveletFn>;
-  using TypePrecondX = spacetime::BlockDiagonalBilinearForm<
-      space::XPreconditionerOperator<space::DirectInverse>, ThreePointWaveletFn,
-      ThreePointWaveletFn>;
+  using TypePrecondY = BilinearFormBase<TypeYVector, TypeYVector>;
+  using TypePrecondX = BilinearFormBase<TypeXVector, TypeXVector>;
 
   // Schur complement.
   using TypeS = SchurBilinearForm<TypePrecondY, TypeB, TypeBT, TypeG>;
-
-  using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
-  using TypeYDelta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>;
-  using TypeXVector =
-      DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>;
-  using TypeYVector =
-      DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>;
 
   HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
                std::shared_ptr<TypeXVector> vec_X_out,
                std::shared_ptr<TypeYVector> vec_Y_in,
                std::shared_ptr<TypeYVector> vec_Y_out, std::shared_ptr<TypeA> A,
-               std::shared_ptr<TypePrecondY> P_Y,
+               std::shared_ptr<TypePrecondY> P_Y = nullptr,
                const HeatEquationOptions &opts = HeatEquationOptions());
   HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
                std::shared_ptr<TypeXVector> vec_X_out,
@@ -126,6 +133,10 @@ class HeatEquation {
 
   // Store doubletree vectors for Y_delta input and output.
   std::shared_ptr<TypeYVector> vec_Y_in_, vec_Y_out_;
+
+  // Constructors for preconditioners.
+  void InitializePrecondX();
+  void InitializePrecondY();
 };
 
 }  // namespace applications
