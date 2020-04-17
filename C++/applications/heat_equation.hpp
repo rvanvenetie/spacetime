@@ -128,4 +128,24 @@ class HeatEquation {
   std::shared_ptr<TypeYVector> vec_Y_in_, vec_Y_out_;
 };
 
+// Template specializations for faster compile times.
+extern template class BilinearForm<Time::MassOperator, space::StiffnessOperator,
+                                   Time::OrthonormalWaveletFn,
+                                   Time::OrthonormalWaveletFn>;
+extern template class BilinearForm<Time::TransportOperator, space::MassOperator,
+                                   Time::ThreePointWaveletFn,
+                                   Time::OrthonormalWaveletFn>;
+extern template class BilinearForm<Time::MassOperator, space::StiffnessOperator,
+                                   Time::ThreePointWaveletFn,
+                                   Time::OrthonormalWaveletFn>;
+extern template class BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
+                                   Time::ThreePointWaveletFn,
+                                   Time::ThreePointWaveletFn>;
+extern template class BlockDiagonalBilinearForm<
+    space::DirectInverse<space::StiffnessOperator>, Time::OrthonormalWaveletFn,
+    Time::OrthonormalWaveletFn>;
+extern template class BlockDiagonalBilinearForm<
+    space::XPreconditionerOperator<space::DirectInverse>,
+    Time::ThreePointWaveletFn, Time::ThreePointWaveletFn>;
+
 }  // namespace applications
