@@ -1,8 +1,8 @@
 #pragma once
-#include "../datastructures/double_tree_view.hpp"
-#include "../spacetime/basis.hpp"
-#include "../spacetime/linear_form.hpp"
+#include "datastructures/include.hpp"
 #include "heat_equation.hpp"
+#include "spacetime/basis.hpp"
+#include "spacetime/linear_form.hpp"
 
 namespace applications {
 

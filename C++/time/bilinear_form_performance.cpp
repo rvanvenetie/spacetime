@@ -3,8 +3,7 @@
 #include <random>
 #include <set>
 
-#include "time/basis.hpp"
-#include "time/bilinear_form.hpp"
+#include "time/include.hpp"
 
 int bsd_rnd() {
   static unsigned int seed = 0;

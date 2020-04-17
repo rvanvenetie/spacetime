@@ -1,15 +1,14 @@
-
-#include "space/triangulation_view.hpp"
+#include "triangulation_view.hpp"
 
 #include <cmath>
 #include <map>
 #include <set>
 
-#include "datastructures/multi_tree_view.hpp"
+#include "datastructures/include.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "space/initial_triangulation.hpp"
-#include "space/triangulation.hpp"
+#include "initial_triangulation.hpp"
+#include "triangulation.hpp"
 
 using namespace space;
 using namespace datastructures;

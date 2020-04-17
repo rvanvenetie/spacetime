@@ -2,11 +2,11 @@
 
 #include <unsupported/Eigen/IterativeSolvers>
 
-#include "../space/initial_triangulation.hpp"
-#include "../time/basis.hpp"
-#include "../tools/linalg.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "space/include.hpp"
+#include "time/include.hpp"
+#include "tools/linalg.hpp"
 
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;

@@ -7,8 +7,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "space/initial_triangulation.hpp"
-#include "space/triangulation.hpp"
+#include "space/include.hpp"
 
 using namespace space;
 using namespace datastructures;

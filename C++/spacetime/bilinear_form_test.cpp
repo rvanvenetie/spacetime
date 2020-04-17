@@ -1,12 +1,11 @@
 #include "bilinear_form.hpp"
 
-#include "../space/initial_triangulation.hpp"
-#include "../space/operators.hpp"
-#include "../time/linear_operator.hpp"
-#include "../tools/integration.hpp"
 #include "basis.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "space/include.hpp"
+#include "time/include.hpp"
+#include "tools/integration.hpp"
 
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;

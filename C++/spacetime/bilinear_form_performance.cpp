@@ -3,8 +3,8 @@
 #include <random>
 #include <set>
 
-#include "../space/initial_triangulation.hpp"
 #include "bilinear_form.hpp"
+#include "space/include.hpp"
 
 int bsd_rnd() {
   static unsigned int seed = 0;

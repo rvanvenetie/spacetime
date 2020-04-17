@@ -4,14 +4,14 @@
 #include <map>
 #include <set>
 
-#include "datastructures/multi_tree_view.hpp"
+#include "datastructures/include.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "initial_triangulation.hpp"
 #include "operators.hpp"
-#include "space/initial_triangulation.hpp"
-#include "space/triangulation.hpp"
-#include "space/triangulation_view.hpp"
 #include "tools/integration.hpp"
+#include "triangulation.hpp"
+#include "triangulation_view.hpp"
 
 using namespace space;
 using namespace datastructures;

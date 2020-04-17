@@ -1,9 +1,9 @@
 #include "operators.hpp"
 
-#include "datastructures/multi_tree_view.hpp"
+#include "datastructures/include.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "space/initial_triangulation.hpp"
+#include "initial_triangulation.hpp"
 #include "tools/linalg.hpp"
 
 using namespace space;
