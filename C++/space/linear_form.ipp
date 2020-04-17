@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../tools/integration.hpp"
 #include "linear_form.hpp"
+#include "tools/integration.hpp"
 #include "triangulation_view.hpp"
 
 namespace space {

@@ -1,11 +1,8 @@
-#include "linear_functional.hpp"
+#include "include.hpp"
 
-#include <functional>
-
-#include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "three_point_basis.hpp"
+#include "tools/integration.hpp"
 
 namespace Time {
 TEST(LinearFunctional, ZeroEvalFunctional) {

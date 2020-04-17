@@ -1,6 +1,5 @@
 #include "initial_triangulation.hpp"
 
-#include <map>
 namespace space {
 
 InitialTriangulation::InitialTriangulation(

@@ -1,8 +1,6 @@
 #pragma once
-
-#include "../datastructures/double_tree_view.hpp"
-#include "../space/linear_form.hpp"
-#include "../time/linear_form.hpp"
+#include "space/include.hpp"
+#include "time/include.hpp"
 
 namespace spacetime {
 

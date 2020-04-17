@@ -1,3 +1,6 @@
+#pragma once
+#include "datastructures/include.hpp"
+
 #include "basis.hpp"
 #include "bilinear_form.hpp"
 #include "initial_triangulation.hpp"

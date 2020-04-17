@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
 
-#include "bilinear_form.hpp"
 #include "linear_operator.hpp"
 
 namespace Time {

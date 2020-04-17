@@ -1,12 +1,5 @@
 #pragma once
-#include <Eigen/Dense>
-#include <array>
-#include <cmath>
-#include <iostream>
-#include <memory>
-#include <vector>
-
-#include "../datastructures/tree.hpp"
+#include "datastructures/include.hpp"
 
 namespace space {
 

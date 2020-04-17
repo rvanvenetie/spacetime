@@ -1,4 +1,6 @@
 #pragma once
+#include "datastructures/include.hpp"
+
 #include <Eigen/Dense>
 #include <memory>
 #include <tuple>
@@ -6,7 +8,6 @@
 #include <utility>
 #include <vector>
 
-#include "../datastructures/multi_tree_vector.hpp"
 #include "basis.hpp"
 #include "sparse_vector.hpp"
 

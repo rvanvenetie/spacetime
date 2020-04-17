@@ -1,10 +1,11 @@
 #pragma once
+#include "datastructures/include.hpp"
+
 #include <array>
 #include <cmath>
 #include <iostream>
 #include <memory>
 
-#include "../datastructures/tree.hpp"
 #include "sparse_vector.hpp"
 
 namespace Time {

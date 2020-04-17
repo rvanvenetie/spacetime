@@ -1,5 +1,3 @@
-#include "operators.hpp"
-
 namespace space {
 
 inline Eigen::Matrix3d MassOperator::ElementMatrix(

@@ -1,6 +1,5 @@
 #pragma once
-#include "datastructures/include.hpp"
-#include "spacetime/bilinear_form.hpp"
+#include "spacetime/include.hpp"
 
 namespace applications {
 

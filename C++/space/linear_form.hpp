@@ -1,9 +1,8 @@
 #pragma once
+#include "datastructures/include.hpp"
+
 #include <stddef.h>
-
 #include <utility>
-
-#include "triangulation.hpp"
 
 namespace space {
 

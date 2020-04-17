@@ -1,3 +1,5 @@
+#include "spacetime/include.hpp"
+
 #include "heat_equation.hpp"
 
 #include <unsupported/Eigen/IterativeSolvers>
@@ -51,6 +53,7 @@ TEST(HeatEquation, SparseMatVec) {
 
     // Validate the input.
     ValidateVector(*heat_eq.vec_X_in());
+
     ValidateVector(*heat_eq.vec_Y_in());
 
     // Turn this into an eigen-friendly vector.

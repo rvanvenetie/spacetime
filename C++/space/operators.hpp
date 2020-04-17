@@ -1,11 +1,11 @@
 #pragma once
-#include <Eigen/Sparse>
-#include <Eigen/SparseLU>
-#include <vector>
-
 #include "basis.hpp"
 #include "multigrid_triangulation_view.hpp"
 #include "triangulation_view.hpp"
+
+#include <Eigen/Sparse>
+#include <Eigen/SparseLU>
+#include <vector>
 
 namespace space {
 

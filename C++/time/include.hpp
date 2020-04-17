@@ -1,3 +1,6 @@
+#pragma once
+#include "datastructures/include.hpp"
+
 #include "basis.hpp"
 #include "bilinear_form.hpp"
 #include "haar_basis.hpp"

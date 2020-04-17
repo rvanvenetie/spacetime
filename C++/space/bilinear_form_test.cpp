@@ -1,17 +1,8 @@
-#include "bilinear_form.hpp"
+#include "include.hpp"
 
-#include <cmath>
-#include <map>
-#include <set>
-
-#include "datastructures/include.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "initial_triangulation.hpp"
-#include "operators.hpp"
 #include "tools/integration.hpp"
-#include "triangulation.hpp"
-#include "triangulation_view.hpp"
 
 using namespace space;
 using namespace datastructures;

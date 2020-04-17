@@ -1,9 +1,7 @@
-#include "operators.hpp"
+#include "include.hpp"
 
-#include "datastructures/include.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "initial_triangulation.hpp"
 #include "tools/linalg.hpp"
 
 using namespace space;

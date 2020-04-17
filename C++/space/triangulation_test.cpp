@@ -1,12 +1,7 @@
-#include "triangulation.hpp"
-
-#include <cmath>
-#include <map>
-#include <set>
+#include "include.hpp"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "initial_triangulation.hpp"
 
 int bsd_rnd() {
   static unsigned int seed = 0;

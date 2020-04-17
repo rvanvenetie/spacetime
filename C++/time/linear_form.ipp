@@ -1,8 +1,4 @@
 #pragma once
-
-#include "bilinear_form.hpp"
-#include "linear_form.hpp"
-
 namespace Time {
 
 template <typename WaveletBasis>

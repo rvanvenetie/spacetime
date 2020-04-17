@@ -1,10 +1,10 @@
 #pragma once
+#include "datastructures/include.hpp"
+
 #include <memory>
 #include <utility>
 #include <vector>
 
-#include "../datastructures/multi_tree_vector.hpp"
-#include "../datastructures/multi_tree_view.hpp"
 #include "basis.hpp"
 #include "triangulation.hpp"
 

@@ -1,12 +1,7 @@
-#include <cmath>
-#include <map>
-#include <set>
+#include "include.hpp"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "haar_basis.hpp"
-#include "orthonormal_basis.hpp"
-#include "three_point_basis.hpp"
 
 namespace Time {
 using ::testing::ElementsAre;

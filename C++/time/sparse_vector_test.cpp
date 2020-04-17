@@ -1,13 +1,7 @@
-
-#include "sparse_vector.hpp"
-
-#include <cmath>
-#include <set>
-#include <unordered_map>
+#include "include.hpp"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "three_point_basis.hpp"
 
 namespace Time {
 

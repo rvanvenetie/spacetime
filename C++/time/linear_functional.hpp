@@ -2,8 +2,8 @@
 
 #include <functional>
 
-#include "../tools/integration.hpp"
 #include "sparse_vector.hpp"
+#include "tools/integration.hpp"
 namespace Time {
 
 template <typename Basis>

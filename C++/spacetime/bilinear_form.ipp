@@ -1,5 +1,4 @@
 #include "basis.hpp"
-#include "bilinear_form.hpp"
 namespace spacetime {
 
 template <template <typename, typename> class OperatorTime,

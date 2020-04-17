@@ -1,7 +1,6 @@
 #pragma once
-#include <Eigen/Dense>
+#include "datastructures/include.hpp"
 
-#include "../datastructures/tree.hpp"
 #include "triangulation.hpp"
 
 namespace space {

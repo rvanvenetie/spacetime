@@ -1,9 +1,8 @@
-#include "linear_form.hpp"
+#include "include.hpp"
 
-#include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "space/initial_triangulation.hpp"
+#include "tools/integration.hpp"
 
 using namespace datastructures;
 

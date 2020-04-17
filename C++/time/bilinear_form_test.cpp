@@ -1,16 +1,8 @@
-#include "bilinear_form.hpp"
+#include "include.hpp"
 
-#include <cmath>
-#include <cstdlib>
-#include <set>
-#include <unordered_map>
-
-#include "../datastructures/multi_tree_vector.hpp"
-#include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "linear_operator.hpp"
-#include "three_point_basis.hpp"
+#include "tools/integration.hpp"
 
 int bsd_rnd() {
   static unsigned int seed = 0;

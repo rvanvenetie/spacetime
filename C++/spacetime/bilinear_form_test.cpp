@@ -1,10 +1,7 @@
-#include "bilinear_form.hpp"
+#include "include.hpp"
 
-#include "basis.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "space/include.hpp"
-#include "time/include.hpp"
 #include "tools/integration.hpp"
 
 using datastructures::DoubleTreeVector;

@@ -1,9 +1,4 @@
-#include "double_tree_view.hpp"
-
-#include <cmath>
-#include <cstdlib>
-#include <map>
-#include <set>
+#include "include.hpp"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
