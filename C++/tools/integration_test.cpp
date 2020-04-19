@@ -1,6 +1,7 @@
 #include "integration.hpp"
 
 #include <cmath>
+
 #include "../datastructures/multi_tree_view.hpp"
 #include "../space/initial_triangulation.hpp"
 #include "gmock/gmock.h"
@@ -19,7 +20,7 @@ TEST(Integration1D, Monomials) {
       for (size_t n = 0; n < degree; n++) {
         auto f = [n](double x) { return pow(x, n); };
         auto [a, b] = elem->Interval();
-        auto result = IntegrationRule<1, degree>::Integrate(f, *elem);
+        auto result = Integrate1D(f, *elem, degree);
         auto expected = (pow(b, n + 1) - pow(a, n + 1)) / (n + 1);
         EXPECT_NEAR(result, expected, 1e-10);
       }
@@ -34,7 +35,7 @@ TEST(Integration2D, ProductOfMonomials) {
   static_for<10>([&T](auto degree) {
     for (auto elem : T.elem_tree.Bfs()) {
       auto f = [](double x, double y) { return 1.0; };
-      auto result = IntegrationRule<2, degree>::Integrate(f, *elem);
+      auto result = Integrate2D(f, *elem, degree);
       EXPECT_NEAR(result, elem->area(), 1e-10);
     }
   });
@@ -44,7 +45,7 @@ TEST(Integration2D, ProductOfMonomials) {
     for (size_t n = 0; n < degree; n++) {
       for (size_t m = 0; m + n <= degree; m++) {
         auto f = [n, m](double x, double y) { return pow(x, n) * pow(y, m); };
-        auto result = IntegrationRule<2, degree>::Integrate(f, *root);
+        auto result = Integrate2D(f, *root, degree);
         auto expected =
             tgamma(2 + m) * tgamma(1 + n) / ((1 + m) * tgamma(3 + m + n));
         EXPECT_NEAR(result, expected, 1e-10);

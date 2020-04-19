@@ -1,12 +1,12 @@
 #include "linear_operator.hpp"
 
-#include "../tools/integration.hpp"
 #include <Eigen/Dense>
 #include <array>
 #include <cmath>
 #include <set>
 #include <unordered_map>
 
+#include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -77,8 +77,7 @@ void CheckMatrixQuadrature(const SparseIndices<BasisIn> &indices_in,
         return psi_j->Eval(t, deriv_in) * phi_i->Eval(t, deriv_out);
       };
       for (auto elem : phi_i->support())
-        ip += tools::IntegrationRule</*dim*/ 1, /*degree*/ 3>::Integrate(
-            eval, *elem);
+        ip += tools::Integrate1D(eval, *elem, 3);
 
       ASSERT_NEAR(mat(i, j), ip, 1e-10);
     }

@@ -15,7 +15,7 @@ TEST(LinearForm, Quadrature) {
   T.hierarch_basis_tree.UniformRefine(max_level);
 
   auto f = [](double x, double y) { return x * y; };
-  auto lf = LinearForm(std::make_unique<QuadratureFunctional</* order */ 2>>(f),
+  auto lf = LinearForm(std::make_unique<QuadratureFunctional>(f, /*order*/ 2),
                        /* dirichlet_boundary */ false);
   Eigen::VectorXd prev_vec;
   for (int level = 0; level <= max_level; ++level) {

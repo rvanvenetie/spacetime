@@ -1,12 +1,15 @@
+add_library(spacetime INTERFACE)
+target_link_libraries(spacetime INTERFACE space time tools)
+
 add_executable(spacetime_bilinear_form_performance bilinear_form_performance.cpp)
-target_link_libraries(spacetime_bilinear_form_performance space time)
+target_link_libraries(spacetime_bilinear_form_performance spacetime)
 
 # Create tests.
 package_add_test(spacetime_basis_test basis_test.cpp)
-target_link_libraries(spacetime_basis_test space time)
+target_link_libraries(spacetime_basis_test spacetime)
 
 package_add_test(spacetime_bilinear_form_test bilinear_form_test.cpp)
-target_link_libraries(spacetime_bilinear_form_test space time)
+target_link_libraries(spacetime_bilinear_form_test spacetime)
 
 package_add_test(spacetime_linear_form_test linear_form_test.cpp)
-target_link_libraries(spacetime_linear_form_test space time)
+target_link_libraries(spacetime_linear_form_test spacetime)

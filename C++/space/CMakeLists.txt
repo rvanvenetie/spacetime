@@ -1,4 +1,5 @@
 add_library(space STATIC triangulation.cpp initial_triangulation.cpp basis.cpp operators.cpp triangulation_view.cpp multigrid_triangulation_view.cpp)
+target_link_libraries(space tools)
 
 add_executable(triangulation_view_performance triangulation_view_performance.cpp)
 target_link_libraries(triangulation_view_performance space)

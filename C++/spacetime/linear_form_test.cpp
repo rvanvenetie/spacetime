@@ -18,8 +18,8 @@ TEST(LinearForm, Quadrature) {
   auto time_f = [](double t) { return t * t * t; };
   auto space_f = [](double x, double y) { return x * y; };
 
-  auto linform = CreateQuadratureLinearForm<Time::OrthonormalWaveletFn, 3, 2>(
-      time_f, space_f);
+  auto linform = CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(
+      time_f, space_f, /*time_order*/ 3, /*space_order*/ 2);
   for (int level = 1; level < max_level; level++) {
     auto vec = datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
                                                 space::HierarchicalBasisFn>(
@@ -40,8 +40,8 @@ TEST(LinearForm, ZeroEval) {
 
   auto space_f = [](double x, double y) { return x * y; };
 
-  auto linform =
-      CreateZeroEvalLinearForm<Time::OrthonormalWaveletFn, 2>(space_f);
+  auto linform = CreateZeroEvalLinearForm<Time::OrthonormalWaveletFn>(
+      space_f, /*space_order*/ 2);
   for (int level = 1; level < max_level; level++) {
     auto vec = datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
                                                 space::HierarchicalBasisFn>(
