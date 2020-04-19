@@ -28,7 +28,8 @@ TEST(LinearForm, ThreePointQuadratureTest) {
     double ip = 0.0;
     for (auto elem : phi->support())
       ip += tools::Integrate1D(
-          [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem, 3);
+          [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
+          /*degree*/ 3);
     ASSERT_NE(nv->value(), 0.0);
     ASSERT_NEAR(nv->value(), ip, 1e-10);
   }
@@ -62,7 +63,7 @@ TEST(LinearForm, OrthoQuadratureTest) {
   auto f = [](double t) { return t * t * t; };
   auto linear_form = LinearForm<OrthonormalWaveletFn>(
       std::make_unique<QuadratureFunctional<DiscLinearScalingFn>>(f,
-                                                                  /*order*/ 2));
+                                                                  /*order*/ 3));
   auto vec_out = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
   vec_out.DeepRefine();
 

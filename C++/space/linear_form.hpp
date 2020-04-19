@@ -15,8 +15,7 @@ class LinearFunctional {
 
 class QuadratureFunctional : public LinearFunctional {
  public:
-  QuadratureFunctional(std::function<double(double, double)> f,
-                       size_t order = 4)
+  QuadratureFunctional(std::function<double(double, double)> f, size_t order)
       : f_(f), order_(order) {}
   std::array<double, 3> Eval(Element2D *elem) const final;
 

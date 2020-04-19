@@ -25,7 +25,7 @@ class QuadratureFunctional : public LinearFunctional<Basis> {
  public:
   using LinearFunctional<Basis>::Eval;
 
-  QuadratureFunctional(std::function<double(double)> f, size_t order = 4)
+  QuadratureFunctional(std::function<double(double)> f, size_t order)
       : f_(f), order_(order) {}
 
   double Eval(Basis *phi) const {
