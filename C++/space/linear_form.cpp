@@ -1,6 +1,6 @@
 #include "linear_form.hpp"
 
-#include "../tools/integration.hpp"
+#include "integration.hpp"
 
 namespace space {
 namespace {
@@ -14,7 +14,7 @@ double EvalHatFn(double x, double y, Element2D *elem, size_t i) {
 std::array<double, 3> QuadratureFunctional::Eval(Element2D *elem) const {
   std::array<double, 3> result;
   for (size_t i = 0; i < 3; i++)
-    result[i] = tools::Integrate2D(
+    result[i] = Integrate(
         [&](double x, double y) { return f_(x, y) * EvalHatFn(x, y, elem, i); },
         *elem, order_ + 1);
   return result;

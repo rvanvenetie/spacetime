@@ -2,9 +2,9 @@
 
 #include <functional>
 
-#include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "integration.hpp"
 #include "three_point_basis.hpp"
 
 namespace Time {
@@ -43,9 +43,9 @@ TEST(LinearFunctional, QuadratureFunctional) {
   for (auto phi : phis) {
     double ip = 0.0;
     for (auto elem : phi->support())
-      ip += tools::Integrate1D(
-          [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
-          /*degree*/ 3);
+      ip +=
+          Integrate([phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
+                    /*degree*/ 3);
     ASSERT_NEAR(quad_func.Eval(phi), ip, 1e-10);
   }
 
@@ -57,9 +57,9 @@ TEST(LinearFunctional, QuadratureFunctional) {
       auto phi = Delta[l][i];
       double ip = 0.0;
       for (auto elem : phi->support())
-        ip += tools::Integrate1D(
-            [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
-            /*degree*/ 3);
+        ip += Integrate([phi, &f](double t) { return phi->Eval(t) * f(t); },
+                        *elem,
+                        /*degree*/ 3);
       ASSERT_NEAR(vec[i].second, ip, 1e-10);
     }
   }

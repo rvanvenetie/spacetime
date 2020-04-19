@@ -1,8 +1,8 @@
 #include "linear_form.hpp"
 
-#include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "integration.hpp"
 
 using datastructures::TreeVector;
 
@@ -27,9 +27,9 @@ TEST(LinearForm, ThreePointQuadratureTest) {
     auto phi = nv->node();
     double ip = 0.0;
     for (auto elem : phi->support())
-      ip += tools::Integrate1D(
-          [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
-          /*degree*/ 3);
+      ip +=
+          Integrate([phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
+                    /*degree*/ 3);
     ASSERT_NE(nv->value(), 0.0);
     ASSERT_NEAR(nv->value(), ip, 1e-10);
   }
@@ -73,9 +73,9 @@ TEST(LinearForm, OrthoQuadratureTest) {
     auto phi = nv->node();
     double ip = 0.0;
     for (auto elem : phi->support())
-      ip += tools::Integrate1D(
-          [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
-          /*degree*/ 4);
+      ip +=
+          Integrate([phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
+                    /*degree*/ 4);
     ASSERT_NE(nv->value(), 0.0);
     ASSERT_NEAR(nv->value(), ip, 1e-10);
   }

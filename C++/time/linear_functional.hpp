@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "../tools/integration.hpp"
+#include "integration.hpp"
 #include "sparse_vector.hpp"
 namespace Time {
 
@@ -31,8 +31,8 @@ class QuadratureFunctional : public LinearFunctional<Basis> {
   double Eval(Basis *phi) const {
     double cell = 0.0;
     for (auto elem : phi->support())
-      cell += tools::Integrate1D([&](double t) { return f_(t) * phi->Eval(t); },
-                                 *elem, order_ + 1);
+      cell += Integrate([&](double t) { return f_(t) * phi->Eval(t); }, *elem,
+                        order_ + 1);
     return cell;
   }
 

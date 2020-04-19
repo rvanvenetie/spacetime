@@ -6,9 +6,9 @@
 #include <unordered_map>
 
 #include "../datastructures/multi_tree_vector.hpp"
-#include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "integration.hpp"
 #include "linear_operator.hpp"
 #include "three_point_basis.hpp"
 
@@ -106,7 +106,7 @@ void CheckMatrixQuadrature(const TreeVector<WaveletBasisIn>& vec_in,
       if (g->level() > f->level()) support = g->support();
       double ip = 0;
       for (auto elem : support)
-        ip += tools::Integrate1D(
+        ip += Integrate(
             [f, deriv_in, g, deriv_out](const double& t) {
               return f->Eval(t, deriv_in) * g->Eval(t, deriv_out);
             },

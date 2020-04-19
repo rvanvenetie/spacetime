@@ -1,5 +1,4 @@
-add_library(time STATIC basis.cpp haar_basis.cpp orthonormal_basis.cpp three_point_basis.cpp)
-target_link_libraries(time tools)
+add_library(time STATIC basis.cpp haar_basis.cpp orthonormal_basis.cpp three_point_basis.cpp integration.cpp)
 
 add_executable(bilinear_form_performance bilinear_form_performance.cpp)
 target_link_libraries(bilinear_form_performance time)
@@ -22,3 +21,6 @@ target_link_libraries(time_linear_functional_test time)
 
 package_add_test(time_linear_form_test linear_form_test.cpp)
 target_link_libraries(time_linear_form_test time)
+
+package_add_test(time_integration_test integration_test.cpp)
+target_link_libraries(time_integration_test time)
