@@ -38,7 +38,6 @@ class LinearForm {
   std::unique_ptr<LinearFunctional> functional_;
   bool dirichlet_boundary_;
 };
-
 }  // namespace space
 
 #include "linear_form.ipp"
