@@ -110,7 +110,7 @@ void CheckMatrixQuadrature(const TreeVector<WaveletBasisIn>& vec_in,
             [f, deriv_in, g, deriv_out](const double& t) {
               return f->Eval(t, deriv_in) * g->Eval(t, deriv_out);
             },
-            *elem, 2);
+            *elem, /*degree*/ 2);
 
       ASSERT_NEAR(mat(i, j), ip, 1e-10);
     }

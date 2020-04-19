@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../tools/integration.hpp"
+#include "linear_form.hpp"
+#include "triangulation_view.hpp"
 
 namespace space {
 namespace {
@@ -45,5 +47,4 @@ void LinearForm::Apply(I *root) {
   assert(root->Bfs().size() == vec.size());
   root->FromVector(vec);
 }
-
 }  // namespace space

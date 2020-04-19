@@ -73,7 +73,8 @@ TEST(LinearForm, OrthoQuadratureTest) {
     double ip = 0.0;
     for (auto elem : phi->support())
       ip += tools::Integrate1D(
-          [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem, 4);
+          [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
+          /*degree*/ 4);
     ASSERT_NE(nv->value(), 0.0);
     ASSERT_NEAR(nv->value(), ip, 1e-10);
   }

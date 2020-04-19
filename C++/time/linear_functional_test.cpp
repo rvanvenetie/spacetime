@@ -44,7 +44,8 @@ TEST(LinearFunctional, QuadratureFunctional) {
     double ip = 0.0;
     for (auto elem : phi->support())
       ip += tools::Integrate1D(
-          [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem, 3);
+          [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
+          /*degree*/ 3);
     ASSERT_NEAR(quad_func.Eval(phi), ip, 1e-10);
   }
 
@@ -57,7 +58,8 @@ TEST(LinearFunctional, QuadratureFunctional) {
       double ip = 0.0;
       for (auto elem : phi->support())
         ip += tools::Integrate1D(
-            [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem, 3);
+            [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
+            /*degree*/ 3);
       ASSERT_NEAR(vec[i].second, ip, 1e-10);
     }
   }

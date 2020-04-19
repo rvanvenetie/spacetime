@@ -56,13 +56,13 @@ Eigen::MatrixXd MatrixQuad(const TreeVector<HierarchicalBasisFn>& tree_in,
                 [&](double x, double y) {
                   return fn_out->EvalGrad(x, y).dot(fn_in->EvalGrad(x, y));
                 },
-                *elem, 0);
+                *elem, /*degree*/ 0);
           } else {
             quad += tools::Integrate2D(
                 [&](double x, double y) {
                   return fn_out->Eval(x, y) * fn_in->Eval(x, y);
                 },
-                *elem, 2);
+                *elem, /*degree*/ 2);
           }
         }
       }

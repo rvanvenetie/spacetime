@@ -77,7 +77,7 @@ void CheckMatrixQuadrature(const SparseIndices<BasisIn> &indices_in,
         return psi_j->Eval(t, deriv_in) * phi_i->Eval(t, deriv_out);
       };
       for (auto elem : phi_i->support())
-        ip += tools::Integrate1D(eval, *elem, 3);
+        ip += tools::Integrate1D(eval, *elem, /*degree*/ 3);
 
       ASSERT_NEAR(mat(i, j), ip, 1e-10);
     }

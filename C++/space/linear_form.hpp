@@ -4,7 +4,6 @@
 #include <utility>
 
 #include "triangulation.hpp"
-#include "triangulation_view.hpp"
 
 namespace space {
 
