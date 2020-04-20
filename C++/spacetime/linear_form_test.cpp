@@ -12,6 +12,7 @@ namespace spacetime {
 TEST(LinearForm, Quadrature) {
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
+  Time::ResetTrees();
   Time::ortho_tree.UniformRefine(max_level);
 
   auto time_f = [](double t) { return t * t * t; };
@@ -35,6 +36,7 @@ TEST(LinearForm, Quadrature) {
 TEST(LinearForm, ZeroEval) {
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
+  Time::ResetTrees();
   Time::ortho_tree.UniformRefine(max_level);
 
   auto space_f = [](double x, double y) { return x * y; };
