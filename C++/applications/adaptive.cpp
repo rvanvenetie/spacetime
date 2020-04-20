@@ -67,7 +67,6 @@ int main(int argc, char* argv[]) {
   po::store(po::command_line_parser(argc, argv).options(cmdline_options).run(),
             vm);
   po::notify(vm);
-  std::cout << adapt_opts.use_cache_ << std::endl;
   std::cout << adapt_opts << std::endl;
   auto T = space::InitialTriangulation::UnitSquare(initial_refines);
 
