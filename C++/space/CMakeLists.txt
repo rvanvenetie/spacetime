@@ -1,7 +1,11 @@
 add_library(space STATIC triangulation.cpp initial_triangulation.cpp basis.cpp operators.cpp triangulation_view.cpp multigrid_triangulation_view.cpp linear_form.cpp integration.cpp)
 
+# Executables
 add_executable(triangulation_view_performance triangulation_view_performance.cpp)
 target_link_libraries(triangulation_view_performance space)
+
+add_executable(multigrid_preconditioner_performance multigrid_preconditioner_performance.cpp)
+target_link_libraries(multigrid_preconditioner_performance space)
 
 # Create tests
 package_add_test(triangulation_test triangulation_test.cpp)

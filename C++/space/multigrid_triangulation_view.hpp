@@ -54,7 +54,7 @@ class MultigridTriangulationView {
     return false;
   }
   inline void Insert(int v, Element2DView *elem) {
-    patches_.at(v).push_back(elem);
+    patches_[v].emplace_back(elem);
   }
 };
 
