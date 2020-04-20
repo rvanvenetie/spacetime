@@ -1,6 +1,6 @@
 #pragma once
-#include "../datastructures/double_tree_view.hpp"
-#include "../spacetime/bilinear_form.hpp"
+#include "datastructures/double_tree_view.hpp"
+#include "spacetime/bilinear_form.hpp"
 
 namespace applications {
 

@@ -1,5 +1,5 @@
-add_library(spacetime INTERFACE)
-target_link_libraries(spacetime INTERFACE space time)
+add_library(spacetime STATIC bilinear_form.cpp basis.cpp)
+target_link_libraries(spacetime space time)
 
 add_executable(spacetime_bilinear_form_performance bilinear_form_performance.cpp)
 target_link_libraries(spacetime_bilinear_form_performance spacetime)
