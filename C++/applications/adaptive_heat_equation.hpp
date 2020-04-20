@@ -16,6 +16,19 @@ using spacetime::LinearFormBase;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
+struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
+  // Solve-step parameters.
+  double solve_pcg_rtol_ = 1e-5;
+  size_t solve_pcg_maxit_ = 100;
+
+  // Residual estimation parameter.
+  size_t estimate_saturation_layers_ = 1;
+  bool estimate_mean_zero_ = true;
+
+  // Dorfler marking parameter.
+  double mark_theta_ = 0.7;
+};
+
 class AdaptiveHeatEquation {
  public:
   using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
@@ -29,19 +42,18 @@ class AdaptiveHeatEquation {
   using TypeYLinForm = LinearFormBase<OrthonormalWaveletFn>;
 
  public:
-  AdaptiveHeatEquation(TypeXDelta &&X_delta,
-                       std::unique_ptr<TypeYLinForm> &&g_lin_form,
-                       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
-                       double theta = 0.7, size_t saturation_layers = 1);
+  AdaptiveHeatEquation(
+      TypeXDelta &&X_delta, std::unique_ptr<TypeYLinForm> &&g_lin_form,
+      std::unique_ptr<TypeXLinForm> &&u0_lin_form,
+      const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
-  TypeXVector *Solve(const Eigen::VectorXd &x0, double rtol = 1e-5,
-                     size_t maxit = 100);
-  TypeXVector *Solve(double rtol = 1e-5, size_t maxit = 100) {
+  TypeXVector *Solve(const Eigen::VectorXd &x0);
+  TypeXVector *Solve() {
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd_in()->container().size());
-    return Solve(x0, rtol, maxit);
+    return Solve(x0);
   }
 
-  std::pair<TypeXVector *, double> Estimate(bool mean_zero = true);
+  std::pair<TypeXVector *, double> Estimate();
 
   std::vector<TypeXNode *> Mark();
   void Refine(const std::vector<TypeXNode *> &nodes_to_add);
@@ -63,7 +75,6 @@ class AdaptiveHeatEquation {
   std::unique_ptr<TypeYLinForm> g_lin_form_;
   std::unique_ptr<TypeXLinForm> u0_lin_form_;
 
-  double theta_;
-  size_t saturation_layers_;
+  AdaptiveHeatEquationOptions opts_;
 };
 }  // namespace applications

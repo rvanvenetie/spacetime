@@ -29,13 +29,14 @@ int main() {
   X_delta.SparseRefine(1);
 
   AdaptiveHeatEquation heat_eq(std::move(X_delta), std::move(g_lf),
-                               std::move(u0_lf));
+                               std::move(u0_lf),
+                               {.estimate_mean_zero_ = false});
 
   while (true) {
     auto start = std::chrono::steady_clock::now();
     auto solution = heat_eq.Solve(heat_eq.vec_Xd_out()->ToVectorContainer());
     auto ndof = solution->container().size();  // A O(sqrt(N)) overestimate.
-    auto [residual, residual_norm] = heat_eq.Estimate(/*mean_zero*/ false);
+    auto [residual, residual_norm] = heat_eq.Estimate();
     auto end = std::chrono::steady_clock::now();
     auto marked_nodes = heat_eq.Mark();
     heat_eq.Refine(marked_nodes);
