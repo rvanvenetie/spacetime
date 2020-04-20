@@ -11,7 +11,7 @@ datastructures::Tree<HaarWaveletFn> haar_tree;
 // Metaroot constructor.
 DiscConstantScalingFn::DiscConstantScalingFn()
     : ScalingFn<DiscConstantScalingFn>() {
-  make_child(/* parent */ this, /* index */ 0, /* support */ MotherElement());
+  make_child(/* parent */ this, /* index */ 0, /* support */ mother_element);
 }
 
 double DiscConstantScalingFn::EvalMother(double t, bool deriv) const {

@@ -6,15 +6,9 @@
 
 namespace Time {
 
-// Static data members.
-static datastructures::Tree<Element1D> elem_tree;
-static Element1D *mother_element{elem_tree.meta_root->children()[0]};
-
-Element1D *MotherElement() {
-  assert(mother_element);
-  return mother_element;
-}
-datastructures::Tree<Element1D> &ElementTree() { return elem_tree; }
+// Initialize static variable;
+datastructures::Tree<Element1D> elem_tree;
+Element1D *mother_element{elem_tree.meta_root->children()[0]};
 
 bool Element1D::Refine() {
   if (is_full()) return false;

@@ -1,7 +1,6 @@
 #include "integration.hpp"
 
 #include <cmath>
-
 #include "../datastructures/multi_tree_view.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -13,10 +12,10 @@ namespace space {
 TEST(Integration, ProductOfMonomials) {
 =======
 using space::InitialTriangulation;
+using Time::elem_tree;
 
 namespace tools {
 TEST(Integration1D, Monomials) {
-  auto &elem_tree = Time::ElementTree();
   elem_tree.UniformRefine(4);
 
   static_for<10>([&](auto degree) {
