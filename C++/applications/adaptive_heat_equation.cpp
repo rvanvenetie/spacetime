@@ -128,7 +128,7 @@ void AdaptiveHeatEquation::Refine(
       vec_Ydd_in_->template DeepCopy<TypeYVector>());
 
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_in_, vec_Xd_out_,
-                                              vec_Ydd_in_, vec_Ydd_out_);
+                                              vec_Ydd_in_, vec_Ydd_out_, opts_);
 }
 
 void AdaptiveHeatEquation::ApplyMeanZero(

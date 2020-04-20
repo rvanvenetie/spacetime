@@ -48,8 +48,8 @@ FetchContent_Declare(
 FetchContent_Populate(boost)
 file(GLOB boost_includes ${boost_SOURCE_DIR}/libs/*/include ${boost_SOURCE_DIR}/libs/numeric/conversion/include)
 include_directories(${boost_includes})
-file(GLOB BoostProgramSourceFiles ${boost_SOURCE_DIR}/libs/program_options/src/*.cpp)
-add_library(BoostProgramOptions SHARED ${BoostProgramSourceFiles})
+file(GLOB BoostProgramOptionsSources ${boost_SOURCE_DIR}/libs/program_options/src/*.cpp)
+add_library(BoostProgramOptions SHARED ${BoostProgramOptionsSources})
 
 ### Download Eigen
 FetchContent_Declare(

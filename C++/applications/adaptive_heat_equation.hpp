@@ -27,6 +27,29 @@ struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
 
   // Dorfler marking parameter.
   double mark_theta_ = 0.7;
+
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const AdaptiveHeatEquationOptions &opts) {
+    os << "Adaptive heat equation options:" << std::endl;
+    os << "\tSolve options -- rtol: " << opts.solve_rtol_
+       << "; maxit: " << opts.solve_maxit_ << std::endl;
+    os << "\tEstimate options -- saturation layers: "
+       << opts.estimate_saturation_layers_
+       << "; mean-zero: " << opts.estimate_mean_zero_ << std::endl;
+    os << "\tMarking options -- theta: " << opts.mark_theta_ << std::endl;
+    os << "\tPreconditioner options:" << std::endl;
+    if (opts.P_X_inv_ == HeatEquationOptions::SpaceInverse::DirectInverse)
+      os << "\t\tPX: type DirectInverse";
+    else if (opts.P_X_inv_ == HeatEquationOptions::SpaceInverse::Multigrid)
+      os << "\t\tPX: type Multigrid; cycles " << opts.P_X_mg_cycles_;
+    os << "; alpha " << opts.P_X_alpha_ << std::endl;
+    if (opts.P_Y_inv_ == HeatEquationOptions::SpaceInverse::DirectInverse)
+      os << "\t\tPY: type DirectInverse";
+    else if (opts.P_Y_inv_ == HeatEquationOptions::SpaceInverse::Multigrid)
+      os << "\t\tPY: type Multigrid; cycles " << opts.P_Y_mg_cycles_;
+    os << std::endl;
+    return os;
+  }
 };
 
 class AdaptiveHeatEquation {
