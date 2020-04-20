@@ -92,7 +92,6 @@ MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
     const TriangulationView &triang, OperatorOptions opts)
     : BackwardOperator(triang, opts),
       triang_mat_(ForwardOp(triang, opts).MatrixSingleScale()),
-      mg_triang_(MultigridTriangulationView::FromFinestTriangulation(triang_)),
       // Note that this will leave initial_triang_solver_ with dangling
       // reference, but it doesn't matter for our purpose..
       initial_triang_solver_(triang.InitialTriangulationView(), opts) {}
@@ -149,6 +148,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
   // Take zero vector as initial guess.
   Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
+  auto mg_triang = MultigridTriangulationView::FromFinestTriangulation(triang_);
 
   // Do a V-cycle.
   for (size_t cycle = 0; cycle < opts_.cycles_; cycle++) {
@@ -176,7 +176,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           }
 
           // Get the row of the matrix associated vi on this level.
-          RowMatrix(mg_triang_, vi, row_mat);
+          RowMatrix(mg_triang, vi, row_mat);
 
           // Calculate a(phi_vi, phi_vi).
           double a_phi_vi_phi_vi = 0;
@@ -194,7 +194,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         }
 
         // Coarsen mesh, and restrict the residual calculated thus far.
-        mg_triang_.Coarsen();
+        mg_triang.Coarsen();
         Restrict(vertex, residual);
       }
 
@@ -237,7 +237,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
       // Step 3: Walk back up and do 1-dimensional corrections.
       for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
-        mg_triang_.Refine();
+        mg_triang.Refine();
 
         // Prolongate the current correction to the next level.
         Prolongate(vertex, e_SS);
@@ -254,7 +254,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           if (!IsDof(vi)) continue;
 
           // Get the row of the matrix associated vi on this level.
-          RowMatrix(mg_triang_, vi, row_mat);
+          RowMatrix(mg_triang, vi, row_mat);
 
           // Calculate a(phi_vi, phi_vi) and a(e_SS, phi_vi).
           double a_phi_vi_phi_vi = 0;

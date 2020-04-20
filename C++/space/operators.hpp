@@ -203,9 +203,6 @@ class MultigridPreconditioner : public BackwardOperator {
   // Matrix on the finest level.
   Eigen::SparseMatrix<double> triang_mat_;
 
-  // The MultigridTriangulationView on the finest level.
-  mutable MultigridTriangulationView mg_triang_;
-
   // Solver on the coarsest level.
   DirectInverse<ForwardOp> initial_triang_solver_;
 };

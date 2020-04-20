@@ -12,7 +12,7 @@
 using namespace space;
 using namespace datastructures;
 
-constexpr int max_level = 16;
+constexpr int max_level = 6;
 
 int bsd_rnd() {
   static unsigned int seed = 0;
