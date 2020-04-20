@@ -46,12 +46,12 @@ int main(int argc, char* argv[]) {
   boost::program_options::options_description adapt_optdesc(
       "AdaptiveHeatEquation options");
   adapt_optdesc.add_options()("use_cache",
-                              po::bool_switch(&adapt_opts.use_cache_))(
+                              po::value<bool>(&adapt_opts.use_cache_))(
       "solve_rtol", po::value<double>(&adapt_opts.solve_rtol_))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit_))(
       "estimate_saturation_layers",
       po::value<size_t>(&adapt_opts.estimate_saturation_layers_))(
-      "estimate_mean_zero", po::bool_switch(&adapt_opts.estimate_mean_zero_))(
+      "estimate_mean_zero", po::value<bool>(&adapt_opts.estimate_mean_zero_))(
       "mark_theta", po::value<double>(&adapt_opts.mark_theta_))(
       "PX_alpha", po::value<double>(&adapt_opts.P_X_alpha_))(
       "PX_inv",
