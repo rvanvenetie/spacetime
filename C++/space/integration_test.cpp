@@ -8,7 +8,6 @@
 #include "initial_triangulation.hpp"
 
 using datastructures::static_for;
-
 namespace space {
 TEST(Integration, ProductOfMonomials) {
   auto T = InitialTriangulation::UnitSquare();
