@@ -1,6 +1,7 @@
 #include "integration.hpp"
 
 #include <cmath>
+
 #include "../datastructures/multi_tree_view.hpp"
 #include "../space/initial_triangulation.hpp"
 #include "gmock/gmock.h"
@@ -8,10 +9,10 @@
 
 using datastructures::static_for;
 using space::InitialTriangulation;
-using Time::elem_tree;
 
 namespace tools {
 TEST(Integration1D, Monomials) {
+  auto &elem_tree = Time::ElementTree();
   elem_tree.UniformRefine(4);
 
   static_for<10>([&](auto degree) {

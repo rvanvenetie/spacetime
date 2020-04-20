@@ -14,11 +14,11 @@ ContLinearScalingFn::ContLinearScalingFn() : ScalingFn<ContLinearScalingFn>() {
   auto scaling_left = make_child(
       /* parents */ std::vector{this},
       /* index */ 0,
-      /* support */ std::vector{mother_element});
+      /* support */ std::vector{MotherElement()});
   auto scaling_right = make_child(
       /* parents */ std::vector{this},
       /* index */ 1,
-      /* support */ std::vector{mother_element});
+      /* support */ std::vector{MotherElement()});
 
   scaling_left->nbr_right_ = scaling_right;
   scaling_right->nbr_left_ = scaling_left;
