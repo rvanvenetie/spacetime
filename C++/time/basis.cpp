@@ -6,13 +6,15 @@
 
 namespace Time {
 
+// Static data members.
+static datastructures::Tree<Element1D> elem_tree;
+static Element1D *mother_element{elem_tree.meta_root->children()[0]};
+
 Element1D *MotherElement() {
-  // Static data members.
-  static datastructures::Tree<Element1D> elem_tree;
-  static Element1D *mother_element{elem_tree.meta_root->children()[0]};
   assert(mother_element);
   return mother_element;
 }
+datastructures::Tree<Element1D> &ElementTree() { return elem_tree; }
 
 bool Element1D::Refine() {
   if (is_full()) return false;
@@ -60,6 +62,10 @@ double Element1D::GlobalCoordinates(double bary2) const {
 }
 
 void ResetTrees() {
+  // Reset the element tree.
+  elem_tree = datastructures::Tree<Element1D>();
+  mother_element = elem_tree.meta_root->children()[0];
+
   // Reset the 3pt tree.
   cont_lin_tree = datastructures::Tree<ContLinearScalingFn>();
   three_point_tree = datastructures::Tree<ThreePointWaveletFn>();

@@ -192,6 +192,7 @@ class WaveletFn : public Function<I> {
 
 // Static function that returns the mother element.
 Element1D *MotherElement();
+datastructures::Tree<Element1D> &ElementTree();
 
 // Debug function for reseting all the `time trees`
 void ResetTrees();

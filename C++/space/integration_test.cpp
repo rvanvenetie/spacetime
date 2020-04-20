@@ -8,8 +8,32 @@
 #include "initial_triangulation.hpp"
 
 using datastructures::static_for;
+<<<<<<< HEAD:C++/space/integration_test.cpp
 namespace space {
 TEST(Integration, ProductOfMonomials) {
+=======
+using space::InitialTriangulation;
+
+namespace tools {
+TEST(Integration1D, Monomials) {
+  auto &elem_tree = Time::ElementTree();
+  elem_tree.UniformRefine(4);
+
+  static_for<10>([&](auto degree) {
+    for (auto elem : elem_tree.Bfs()) {
+      for (size_t n = 0; n < degree; n++) {
+        auto f = [n](double x) { return pow(x, n); };
+        auto [a, b] = elem->Interval();
+        auto result = IntegrationRule<1, degree>::Integrate(f, *elem);
+        auto expected = (pow(b, n + 1) - pow(a, n + 1)) / (n + 1);
+        EXPECT_NEAR(result, expected, 1e-10);
+      }
+    }
+  });
+}
+
+TEST(Integration2D, ProductOfMonomials) {
+>>>>>>> parent of 3d7665c... bla:C++/tools/integration_test.cpp
   auto T = InitialTriangulation::UnitSquare();
   T.elem_tree.UniformRefine(4);
 
