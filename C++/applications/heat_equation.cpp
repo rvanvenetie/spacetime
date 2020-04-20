@@ -125,7 +125,7 @@ void HeatEquation::InitializePrecondX() {
 
 void HeatEquation::InitializePrecondY() {
   space::OperatorOptions space_opts;
-  space_opts.cycles_ = opts_.P_X_mg_cycles_;
+  space_opts.cycles_ = opts_.P_Y_mg_cycles_;
   switch (opts_.P_Y_inv_) {
     case HeatEquationOptions::SpaceInverse::DirectInverse:
       P_Y_ = std::make_shared<spacetime::BlockDiagonalBilinearForm<
