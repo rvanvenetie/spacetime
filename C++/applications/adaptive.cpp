@@ -34,11 +34,13 @@ std::istream& operator>>(std::istream& in,
 }  // namespace applications
 
 int main(int argc, char* argv[]) {
+  std::string problem;
   size_t initial_refines = 0;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
-  problem_optdesc.add_options()("initial_refines",
-                                po::value<size_t>(&initial_refines));
+  problem_optdesc.add_options()(
+      "problem", po::value<std::string>(&problem)->default_value("smooth"))(
+      "initial_refines", po::value<size_t>(&initial_refines));
 
   AdaptiveHeatEquationOptions adapt_opts;
   boost::program_options::options_description adapt_optdesc("Generic options");
@@ -64,7 +66,6 @@ int main(int argc, char* argv[]) {
             vm);
   po::notify(vm);
   auto T = space::InitialTriangulation::UnitSquare(initial_refines);
-  auto [g_lf, u0_lf] = SmoothProblem();
 
   T.hierarch_basis_tree.UniformRefine(1);
   ortho_tree.UniformRefine(1);
@@ -74,8 +75,20 @@ int main(int argc, char* argv[]) {
       three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
   X_delta.SparseRefine(1);
 
-  AdaptiveHeatEquation heat_eq(std::move(X_delta), std::move(g_lf),
-                               std::move(u0_lf), adapt_opts);
+  std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
+            std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
+      problem_data;
+  if (problem == "smooth")
+    problem_data = SmoothProblem();
+  else if (problem == "singular")
+    problem_data = SingularProblem();
+  else {
+    std::cout << "problem not recognized :-(" << std::endl;
+    return 1;
+  }
+  AdaptiveHeatEquation heat_eq(std::move(X_delta),
+                               std::move(problem_data.first),
+                               std::move(problem_data.second), adapt_opts);
 
   while (true) {
     auto start = std::chrono::steady_clock::now();
