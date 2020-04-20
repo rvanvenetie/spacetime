@@ -18,8 +18,8 @@ using Time::ThreePointWaveletFn;
 
 struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   // Solve-step parameters.
-  double solve_pcg_rtol_ = 1e-5;
-  size_t solve_pcg_maxit_ = 100;
+  double solve_rtol_ = 1e-5;
+  size_t solve_maxit_ = 100;
 
   // Residual estimation parameter.
   size_t estimate_saturation_layers_ = 1;
