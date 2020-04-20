@@ -36,7 +36,7 @@ int main() {
         three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(::level, {2, 1});
-    auto Y_delta = GenerateYDelta(X_delta);
+    auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
     auto vec_X = X_delta.template DeepCopy<
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();

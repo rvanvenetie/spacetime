@@ -1,4 +1,5 @@
 #include "basis.hpp"
+
 #include <set>
 
 #include "../space/initial_triangulation.hpp"
@@ -29,7 +30,7 @@ TEST(GenerateYDelta, FullTensor) {
         T.hierarch_basis_tree.meta_root.get());
     X_delta.UniformRefine(level);
 
-    auto Y_delta = GenerateYDelta(X_delta);
+    auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
     auto Y_delta_fulltensor =
         DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>(
             ortho_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
@@ -57,7 +58,7 @@ TEST(GenerateYDelta, SparseTensor) {
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(level);
 
-    auto Y_delta = GenerateYDelta(X_delta);
+    auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
     auto Y_delta_fulltensor =
         DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>(
             ortho_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());

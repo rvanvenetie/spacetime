@@ -77,7 +77,7 @@ HeatEquation::HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta,
 HeatEquation::HeatEquation(
     const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta,
     const HeatEquationOptions &opts)
-    : HeatEquation(X_delta, GenerateYDelta(X_delta), opts) {}
+    : HeatEquation(X_delta, GenerateYDelta<DoubleTreeView>(X_delta), opts) {}
 
 void HeatEquation::InitializePrecondX() {
   space::OperatorOptions space_opts;

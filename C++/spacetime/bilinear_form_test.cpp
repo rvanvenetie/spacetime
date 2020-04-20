@@ -221,7 +221,7 @@ TEST(BilinearForm, SparseQuadrature) {
         three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(level);
-    auto Y_delta = GenerateYDelta(X_delta);
+    auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
     auto vec_X_in = X_delta.template DeepCopy<
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
@@ -273,7 +273,7 @@ TEST(BilinearForm, Transpose) {
         three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(level);
-    auto Y_delta = GenerateYDelta(X_delta);
+    auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
     auto vec_X_in = X_delta.template DeepCopy<
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
@@ -325,7 +325,7 @@ TEST(BlockDiagonalBilinearForm, CanBeConstructed) {
         three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(level);
-    auto Y_delta = GenerateYDelta(X_delta);
+    auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
     auto vec_Y_in = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();

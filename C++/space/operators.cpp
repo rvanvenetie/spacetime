@@ -103,4 +103,16 @@ void BackwardOperator::Apply(Eigen::VectorXd &v) const {
   assert(FeasibleVector(v));
 }
 
+// Explicit specializations.
+template class DirectInverse<MassOperator>;
+template class DirectInverse<StiffnessOperator>;
+template class DirectInverse<StiffPlusScaledMassOperator>;
+
+template class MultigridPreconditioner<MassOperator>;
+template class MultigridPreconditioner<StiffnessOperator>;
+template class MultigridPreconditioner<StiffPlusScaledMassOperator>;
+
+template class XPreconditionerOperator<DirectInverse>;
+template class XPreconditionerOperator<MultigridPreconditioner>;
+
 }  // namespace space

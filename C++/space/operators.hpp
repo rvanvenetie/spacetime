@@ -219,6 +219,17 @@ class XPreconditionerOperator : public BackwardOperator {
   InverseOp<StiffPlusScaledMassOperator> inverse_op_;
 };
 
+extern template class DirectInverse<MassOperator>;
+extern template class DirectInverse<StiffnessOperator>;
+extern template class DirectInverse<StiffPlusScaledMassOperator>;
+
+extern template class MultigridPreconditioner<MassOperator>;
+extern template class MultigridPreconditioner<StiffnessOperator>;
+extern template class MultigridPreconditioner<StiffPlusScaledMassOperator>;
+
+extern template class XPreconditionerOperator<DirectInverse>;
+extern template class XPreconditionerOperator<MultigridPreconditioner>;
+
 }  // namespace space
 
 #include "operators.ipp"
