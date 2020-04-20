@@ -1,31 +1,8 @@
 #pragma once
 
-#include "../tools/integration.hpp"
-#include "linear_form.hpp"
 #include "triangulation_view.hpp"
 
 namespace space {
-namespace {
-double EvalHatFn(double x, double y, Element2D *elem, size_t i) {
-  auto bary = elem->BarycentricCoordinates(x, y);
-  assert((bary.array() >= 0).all());
-  return bary[i];
-}
-}  // namespace
-
-template <size_t order>
-std::array<double, 3> QuadratureFunctional<order>::Eval(Element2D *elem) const {
-  std::array<double, 3> result;
-  for (size_t i = 0; i < 3; i++)
-    result[i] =
-        tools::IntegrationRule</*dim*/ 2, /*order*/ order + 1>::Integrate(
-            [&](double x, double y) {
-              return f_(x, y) * EvalHatFn(x, y, elem, i);
-            },
-            *elem);
-  return result;
-}
-
 template <typename I>
 void LinearForm::Apply(I *root) {
   assert(root->is_root());

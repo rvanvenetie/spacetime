@@ -1,9 +1,10 @@
 #include "bilinear_form.hpp"
 
 #include "../space/initial_triangulation.hpp"
+#include "../space/integration.hpp"
 #include "../space/operators.hpp"
+#include "../time/integration.hpp"
 #include "../time/linear_operator.hpp"
-#include "../tools/integration.hpp"
 #include "basis.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -15,7 +16,6 @@ using Time::ortho_tree;
 using Time::OrthonormalWaveletFn;
 using Time::three_point_tree;
 using Time::ThreePointWaveletFn;
-using tools::IntegrationRule;
 
 namespace spacetime {
 
@@ -43,11 +43,11 @@ double TimeQuadrature(WaveletBasisIn *f, WaveletBasisOut *g, bool deriv_in,
   if (g->level() > f->level()) support = g->support();
   double ip = 0;
   for (auto elem : support)
-    ip += IntegrationRule</*dim*/ 1, /*degree*/ 2>::Integrate(
+    ip += Time::Integrate(
         [f, deriv_in, g, deriv_out](const double &t) {
           return f->Eval(t, deriv_in) * g->Eval(t, deriv_out);
         },
-        *elem);
+        *elem, /*degree*/ 2);
   return ip;
 }
 
@@ -60,17 +60,17 @@ double SpaceQuadrature(HierarchicalBasisFn *fn_in, HierarchicalBasisFn *fn_out,
         fn_in->level() < fn_out->level() ? fn_out->support() : fn_in->support();
     for (auto elem : elems_fine) {
       if (deriv) {
-        quad += IntegrationRule</*dim*/ 2, /*degree*/ 0>::Integrate(
+        quad += space::Integrate(
             [&](double x, double y) {
               return fn_out->EvalGrad(x, y).dot(fn_in->EvalGrad(x, y));
             },
-            *elem);
+            *elem, /*degree*/ 0);
       } else {
-        quad += IntegrationRule</*dim*/ 2, /*degree*/ 2>::Integrate(
+        quad += space::Integrate(
             [&](double x, double y) {
               return fn_out->Eval(x, y) * fn_in->Eval(x, y);
             },
-            *elem);
+            *elem, /*degree*/ 2);
       }
     }
   }

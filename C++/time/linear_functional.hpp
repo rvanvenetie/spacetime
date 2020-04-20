@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "../tools/integration.hpp"
+#include "integration.hpp"
 #include "sparse_vector.hpp"
 namespace Time {
 
@@ -20,23 +20,25 @@ class LinearFunctional {
   virtual double Eval(Basis *phi) const = 0;
 };
 
-template <typename Basis, size_t order>
+template <typename Basis>
 class QuadratureFunctional : public LinearFunctional<Basis> {
  public:
   using LinearFunctional<Basis>::Eval;
 
-  QuadratureFunctional(std::function<double(double)> f) : f_(f) {}
+  QuadratureFunctional(std::function<double(double)> f, size_t order)
+      : f_(f), order_(order) {}
 
   double Eval(Basis *phi) const {
     double cell = 0.0;
     for (auto elem : phi->support())
-      cell += tools::IntegrationRule<1, order + 1>::Integrate(
-          [&](double t) { return f_(t) * phi->Eval(t); }, *elem);
+      cell += Integrate([&](double t) { return f_(t) * phi->Eval(t); }, *elem,
+                        order_ + 1);
     return cell;
   }
 
  protected:
   std::function<double(double)> f_;
+  size_t order_;
 };
 
 template <typename Basis>

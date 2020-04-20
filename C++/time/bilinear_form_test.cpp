@@ -6,9 +6,9 @@
 #include <unordered_map>
 
 #include "../datastructures/multi_tree_vector.hpp"
-#include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "integration.hpp"
 #include "linear_operator.hpp"
 #include "three_point_basis.hpp"
 
@@ -23,7 +23,6 @@ int bsd_rnd() {
 namespace Time {
 using datastructures::TreeVector;
 using ::testing::ElementsAre;
-using tools::IntegrationRule;
 
 template <template <typename, typename> class Operator, typename WaveletBasisIn,
           typename WaveletBasisOut>
@@ -107,11 +106,11 @@ void CheckMatrixQuadrature(const TreeVector<WaveletBasisIn>& vec_in,
       if (g->level() > f->level()) support = g->support();
       double ip = 0;
       for (auto elem : support)
-        ip += IntegrationRule<1, 2>::Integrate(
+        ip += Integrate(
             [f, deriv_in, g, deriv_out](const double& t) {
               return f->Eval(t, deriv_in) * g->Eval(t, deriv_out);
             },
-            *elem);
+            *elem, /*degree*/ 2);
 
       ASSERT_NEAR(mat(i, j), ip, 1e-10);
     }

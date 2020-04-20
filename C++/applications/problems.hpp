@@ -19,11 +19,11 @@ SmoothProblem() {
   auto u0 = [](double x, double y) { return (1 - x) * x * (1 - y) * y; };
 
   return {std::make_unique<SumLinearForm<Time::OrthonormalWaveletFn>>(
-              CreateQuadratureLinearForm<Time::OrthonormalWaveletFn, 2, 2>(
-                  time_g1, space_g1),
-              CreateQuadratureLinearForm<Time::OrthonormalWaveletFn, 1, 4>(
-                  time_g2, space_g2)),
-          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn, 4>(u0)};
+              CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(
+                  time_g1, space_g1, 2, 2),
+              CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(
+                  time_g2, space_g2, 1, 4)),
+          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(u0, 4)};
 }
 
 // Singular problem on unit square.
@@ -34,8 +34,8 @@ SingularProblem() {
   auto space_g = [](double x, double y) { return 0; };
   auto u0 = [](double x, double y) { return 1.0; };
 
-  return {CreateQuadratureLinearForm<Time::OrthonormalWaveletFn, 0, 0>(time_g,
-                                                                       space_g),
-          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn, 1>(u0)};
+  return {CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(time_g,
+                                                                 space_g, 0, 0),
+          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(u0, 1)};
 }
 }  // namespace applications

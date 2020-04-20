@@ -196,8 +196,9 @@ class MultigridPreconditioner : public BackwardOperator {
  protected:
   // Returns a row of the _forward_ matrix on the given multilevel triang.
   // NOTE: The result is not compressed.
-  inline std::vector<std::pair<size_t, double>> RowMatrix(
-      const MultigridTriangulationView &mg_triang, size_t vertex) const;
+  inline void RowMatrix(const MultigridTriangulationView &mg_triang,
+                        size_t vertex,
+                        std::vector<std::pair<size_t, double>> &result) const;
 
   // Matrix on the finest level.
   Eigen::SparseMatrix<double> triang_mat_;

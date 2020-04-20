@@ -2,9 +2,9 @@
 
 #include <functional>
 
-#include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "integration.hpp"
 #include "three_point_basis.hpp"
 
 namespace Time {
@@ -38,13 +38,14 @@ TEST(LinearFunctional, QuadratureFunctional) {
   three_point_tree.UniformRefine(ml);
 
   std::function<double(double)> f([](double t) { return t * t; });
-  auto quad_func = QuadratureFunctional<ContLinearScalingFn, /*order*/ 2>(f);
+  auto quad_func = QuadratureFunctional<ContLinearScalingFn>(f, /*order*/ 2);
   auto phis = cont_lin_tree.Bfs();
   for (auto phi : phis) {
     double ip = 0.0;
     for (auto elem : phi->support())
-      ip += tools::IntegrationRule</*dim*/ 1, /*degree*/ 3>::Integrate(
-          [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem);
+      ip +=
+          Integrate([phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem,
+                    /*degree*/ 3);
     ASSERT_NEAR(quad_func.Eval(phi), ip, 1e-10);
   }
 
@@ -56,8 +57,9 @@ TEST(LinearFunctional, QuadratureFunctional) {
       auto phi = Delta[l][i];
       double ip = 0.0;
       for (auto elem : phi->support())
-        ip += tools::IntegrationRule</*dim*/ 1, /*degree*/ 3>::Integrate(
-            [phi, &f](double t) { return phi->Eval(t) * f(t); }, *elem);
+        ip += Integrate([phi, &f](double t) { return phi->Eval(t) * f(t); },
+                        *elem,
+                        /*degree*/ 3);
       ASSERT_NEAR(vec[i].second, ip, 1e-10);
     }
   }

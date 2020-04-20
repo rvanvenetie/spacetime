@@ -7,16 +7,15 @@
 #include "datastructures/multi_tree_view.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "integration.hpp"
 #include "operators.hpp"
 #include "space/initial_triangulation.hpp"
 #include "space/triangulation.hpp"
 #include "space/triangulation_view.hpp"
-#include "tools/integration.hpp"
 
 using namespace space;
 using namespace datastructures;
 using ::testing::ElementsAre;
-using tools::IntegrationRule;
 
 int bsd_rnd() {
   static unsigned int seed = 0;
@@ -53,17 +52,17 @@ Eigen::MatrixXd MatrixQuad(const TreeVector<HierarchicalBasisFn>& tree_in,
                                                            : fn_in->support();
         for (auto elem : elems_fine) {
           if (deriv) {
-            quad += IntegrationRule</*dim*/ 2, /*degree*/ 0>::Integrate(
+            quad += Integrate(
                 [&](double x, double y) {
                   return fn_out->EvalGrad(x, y).dot(fn_in->EvalGrad(x, y));
                 },
-                *elem);
+                *elem, /*degree*/ 0);
           } else {
-            quad += IntegrationRule</*dim*/ 2, /*degree*/ 2>::Integrate(
+            quad += Integrate(
                 [&](double x, double y) {
                   return fn_out->Eval(x, y) * fn_in->Eval(x, y);
                 },
-                *elem);
+                *elem, /*degree*/ 2);
           }
         }
       }

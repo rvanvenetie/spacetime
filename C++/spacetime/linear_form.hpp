@@ -88,28 +88,28 @@ class SumLinearForm : public LinearFormBase<TimeBasis> {
   std::unique_ptr<LinearForm<TimeBasis>> b_;
 };
 
-template <typename TimeBasis, size_t time_order, size_t space_order>
+template <typename TimeBasis>
 std::unique_ptr<LinearForm<TimeBasis>> CreateQuadratureLinearForm(
     std::function<double(double)> time_f,
-    std::function<double(double, double)> space_f) {
+    std::function<double(double, double)> space_f, size_t time_order,
+    size_t space_order) {
   using TimeScalingBasis = typename Time::FunctionTrait<TimeBasis>::Scaling;
   return std::make_unique<LinearForm<TimeBasis>>(
       Time::LinearForm<TimeBasis>(
-          std::make_unique<
-              Time::QuadratureFunctional<TimeScalingBasis, time_order>>(
-              time_f)),
+          std::make_unique<Time::QuadratureFunctional<TimeScalingBasis>>(
+              time_f, time_order)),
       space::LinearForm(
-          std::make_unique<space::QuadratureFunctional<space_order>>(space_f)));
+          std::make_unique<space::QuadratureFunctional>(space_f, space_order)));
 }
 
-template <typename TimeBasis, size_t space_order>
+template <typename TimeBasis>
 std::unique_ptr<LinearForm<TimeBasis>> CreateZeroEvalLinearForm(
-    std::function<double(double, double)> space_f) {
+    std::function<double(double, double)> space_f, size_t space_order) {
   using TimeScalingBasis = typename Time::FunctionTrait<TimeBasis>::Scaling;
   return std::make_unique<LinearForm<TimeBasis>>(
       Time::LinearForm<TimeBasis>(
           std::make_unique<Time::ZeroEvalFunctional<TimeScalingBasis>>()),
       space::LinearForm(
-          std::make_unique<space::QuadratureFunctional<space_order>>(space_f)));
+          std::make_unique<space::QuadratureFunctional>(space_f, space_order)));
 }
 }  // namespace spacetime

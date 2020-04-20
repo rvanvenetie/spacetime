@@ -13,14 +13,15 @@ class LinearFunctional {
   virtual std::array<double, 3> Eval(Element2D *elem) const = 0;
 };
 
-template <size_t order>
 class QuadratureFunctional : public LinearFunctional {
  public:
-  QuadratureFunctional(std::function<double(double, double)> f) : f_(f) {}
+  QuadratureFunctional(std::function<double(double, double)> f, size_t order)
+      : f_(f), order_(order) {}
   std::array<double, 3> Eval(Element2D *elem) const final;
 
  protected:
   std::function<double(double, double)> f_;
+  size_t order_;
 };
 
 class LinearForm {
@@ -37,7 +38,6 @@ class LinearForm {
   std::unique_ptr<LinearFunctional> functional_;
   bool dirichlet_boundary_;
 };
-
 }  // namespace space
 
 #include "linear_form.ipp"

@@ -1,6 +1,5 @@
 #include "linear_form.hpp"
 
-#include "../tools/integration.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "space/initial_triangulation.hpp"
@@ -13,13 +12,14 @@ namespace spacetime {
 TEST(LinearForm, Quadrature) {
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
+  Time::ResetTrees();
   Time::ortho_tree.UniformRefine(max_level);
 
   auto time_f = [](double t) { return t * t * t; };
   auto space_f = [](double x, double y) { return x * y; };
 
-  auto linform = CreateQuadratureLinearForm<Time::OrthonormalWaveletFn, 3, 2>(
-      time_f, space_f);
+  auto linform = CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(
+      time_f, space_f, /*time_order*/ 3, /*space_order*/ 2);
   for (int level = 1; level < max_level; level++) {
     auto vec = datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
                                                 space::HierarchicalBasisFn>(
@@ -36,12 +36,13 @@ TEST(LinearForm, Quadrature) {
 TEST(LinearForm, ZeroEval) {
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
+  Time::ResetTrees();
   Time::ortho_tree.UniformRefine(max_level);
 
   auto space_f = [](double x, double y) { return x * y; };
 
-  auto linform =
-      CreateZeroEvalLinearForm<Time::OrthonormalWaveletFn, 2>(space_f);
+  auto linform = CreateZeroEvalLinearForm<Time::OrthonormalWaveletFn>(
+      space_f, /*space_order*/ 2);
   for (int level = 1; level < max_level; level++) {
     auto vec = datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
                                                 space::HierarchicalBasisFn>(
