@@ -11,10 +11,10 @@ inline Eigen::Matrix3d MassOperator::ElementMatrix(
 inline Eigen::Matrix3d StiffnessOperator::ElementMatrix(
     const Element2DView *elem, const OperatorOptions &opts) {
   Eigen::Vector2d v0, v1, v2;
-
   v0 << elem->node()->vertices()[0]->x, elem->node()->vertices()[0]->y;
   v1 << elem->node()->vertices()[1]->x, elem->node()->vertices()[1]->y;
   v2 << elem->node()->vertices()[2]->x, elem->node()->vertices()[2]->y;
+
   Eigen::Matrix<double, 3, 2> D;
   D << v2[0] - v1[0], v2[1] - v1[1], v0[0] - v2[0], v0[1] - v2[1],
       v1[0] - v0[0], v1[1] - v0[1];
@@ -92,6 +92,7 @@ MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
     const TriangulationView &triang, OperatorOptions opts)
     : BackwardOperator(triang, opts),
       triang_mat_(ForwardOp(triang, opts).MatrixSingleScale()),
+      mg_triang_(MultigridTriangulationView::FromFinestTriangulation(triang_)),
       // Note that this will leave initial_triang_solver_ with dangling
       // reference, but it doesn't matter for our purpose..
       initial_triang_solver_(triang.InitialTriangulationView(), opts) {}
@@ -115,14 +116,14 @@ void MultigridPreconditioner<ForwardOp>::RestrictInverse(
 }
 
 template <typename ForwardOp>
-std::vector<std::pair<size_t, double>>
-MultigridPreconditioner<ForwardOp>::RowMatrix(
-    const MultigridTriangulationView &mg_triang, size_t vertex) const {
+inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
+    const MultigridTriangulationView &mg_triang, size_t vertex,
+    std::vector<std::pair<size_t, double>> &result) const {
   assert(mg_triang.ContainsVertex(vertex));
   assert(IsDof(vertex));
 
   auto &patch = mg_triang.patches()[vertex];
-  std::vector<std::pair<size_t, double>> result;
+  result.clear();
   result.reserve(patch.size() * 3);
   for (auto elem : patch) {
     auto &Vids = elem->vertices_view_idx_;
@@ -135,18 +136,19 @@ MultigridPreconditioner<ForwardOp>::RowMatrix(
       }
     }
   }
-  return result;
 }
 
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     Eigen::VectorXd &rhs) const {
+  // Reuse a static variable for storing the row of a matrix.
+  static std::vector<std::pair<size_t, double>> row_mat;
+
   // Shortcut.
-  size_t V = triang_.V;
+  const size_t V = triang_.V;
 
   // Take zero vector as initial guess.
   Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
-  auto mg_triang = MultigridTriangulationView::FromFinestTriangulation(triang_);
 
   // Do a V-cycle.
   for (size_t cycle = 0; cycle < opts_.cycles_; cycle++) {
@@ -162,7 +164,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
       for (size_t vertex = V - 1; vertex >= triang_.InitialVertices();
            --vertex) {
-        auto godparents = triang_.Godparents(vertex);
+        const auto godparents = triang_.Godparents(vertex);
 
         // Step 2: Calculate corrections for these three vertices.
         for (size_t vi : {godparents[1], godparents[0], vertex}) {
@@ -174,7 +176,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           }
 
           // Get the row of the matrix associated vi on this level.
-          auto row_mat = RowMatrix(mg_triang, vi);
+          RowMatrix(mg_triang_, vi, row_mat);
 
           // Calculate a(phi_vi, phi_vi).
           double a_phi_vi_phi_vi = 0;
@@ -182,7 +184,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
             if (vj == vi) a_phi_vi_phi_vi += val;
 
           // Calculate the correction in phi_vi.
-          double e_vi = residual[vi] / a_phi_vi_phi_vi;
+          const double e_vi = residual[vi] / a_phi_vi_phi_vi;
 
           // Add this correction to our estimate.
           e.emplace_back(e_vi);
@@ -192,10 +194,9 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         }
 
         // Coarsen mesh, and restrict the residual calculated thus far.
-        mg_triang.Coarsen();
+        mg_triang_.Coarsen();
         Restrict(vertex, residual);
       }
-      assert(!mg_triang.CanCoarsen());
 
       // Step 3: Do an upward cycle to calculate the correction on finest mesh.
       int rev_vi = e.size() - 1;
@@ -204,7 +205,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         // Prolongate the current correction to the next level.
         Prolongate(vertex, e_SS);
 
-        auto godparents = triang_.Godparents(vertex);
+        const auto godparents = triang_.Godparents(vertex);
         for (size_t vi : {vertex, godparents[0], godparents[1]}) {
           // Add the the correction we have calculated in the above loop, in
           // reversed order of course.
@@ -227,7 +228,6 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         Restrict(vertex, residual);
 
       // Step 2: Solve on coarsest level.
-      assert(!mg_triang.CanCoarsen());
       Eigen::VectorXd e_0 = residual.head(triang_.InitialVertices());
       initial_triang_solver_.ApplySingleScale(e_0);
 
@@ -237,8 +237,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
       // Step 3: Walk back up and do 1-dimensional corrections.
       for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
-        assert(mg_triang.CanRefine());
-        mg_triang.Refine();
+        mg_triang_.Refine();
 
         // Prolongate the current correction to the next level.
         Prolongate(vertex, e_SS);
@@ -247,7 +246,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         RestrictInverse(vertex, residual);
 
         // Find vertex + its godparents.
-        auto godparents = triang_.Godparents(vertex);
+        const auto godparents = triang_.Godparents(vertex);
 
         // Step 4: Calculate corrections for these three vertices.
         for (size_t vi : {vertex, godparents[0], godparents[1]}) {
@@ -255,7 +254,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           if (!IsDof(vi)) continue;
 
           // Get the row of the matrix associated vi on this level.
-          auto row_mat = RowMatrix(mg_triang, vi);
+          RowMatrix(mg_triang_, vi, row_mat);
 
           // Calculate a(phi_vi, phi_vi) and a(e_SS, phi_vi).
           double a_phi_vi_phi_vi = 0;
@@ -269,7 +268,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           }
 
           // Calculate the correction in phi_vi.
-          double e_i = (residual[vi] - a_e_phi_vi) / a_phi_vi_phi_vi;
+          const double e_i = (residual[vi] - a_e_phi_vi) / a_phi_vi_phi_vi;
 
           // Add this correction
           e_SS[vi] += e_i;

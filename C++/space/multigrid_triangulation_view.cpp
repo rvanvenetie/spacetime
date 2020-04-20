@@ -42,6 +42,7 @@ MultigridTriangulationView::MultigridTriangulationView(
     const TriangulationView &triang)
     : triang_(triang) {
   patches_.resize(triang.vertices().size());
+  for (auto &patch : patches_) patch.reserve(4);
 }
 
 MultigridTriangulationView
