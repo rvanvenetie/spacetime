@@ -20,6 +20,9 @@ using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
 struct HeatEquationOptions {
+  // Whether or not to cache the bilinear forms.
+  bool use_cache_ = false;
+
   // The alpha used in the preconditioner on X.
   double P_X_alpha_ = 0.3;
 
@@ -59,10 +62,7 @@ class HeatEquation {
 
   // The transpose of B is the sum of the transpose of these two operators.
   // With the output/input vectors correctly remapped.
-  using TypeBT =
-      RemapBilinearForm<SumBilinearForm<TransposeBilinearForm<TypeB_t>,
-                                        TransposeBilinearForm<TypeB_s>>>;
-
+  using TypeBT = BilinearFormBase<TypeYVector, TypeXVector>;
   // The trace operator maps between X_delta and X_delta.
   using TypeG = BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
                              ThreePointWaveletFn, ThreePointWaveletFn>;
@@ -134,6 +134,7 @@ class HeatEquation {
   // Store doubletree vectors for Y_delta input and output.
   std::shared_ptr<TypeYVector> vec_Y_in_, vec_Y_out_;
 
+  void InitializeBT();
   // Constructors for preconditioners.
   void InitializePrecondX();
   void InitializePrecondY();

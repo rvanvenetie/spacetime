@@ -22,10 +22,12 @@ struct traits<spacetime::BilinearFormBase<DblVecIn, DblVecOut>>
 }  // namespace Eigen
 
 namespace spacetime {
-template <typename DblVecIn, typename DblVecOut>
+template <typename DblVecInType, typename DblVecOutType>
 class BilinearFormBase
-    : public Eigen::EigenBase<BilinearFormBase<DblVecIn, DblVecOut>> {
+    : public Eigen::EigenBase<BilinearFormBase<DblVecInType, DblVecOutType>> {
  public:
+  using DblVecIn = DblVecInType;
+  using DblVecOut = DblVecOutType;
   virtual ~BilinearFormBase() {}
 
   // These are the BilinearForm functions that must be implemented.
@@ -113,6 +115,8 @@ class SumBilinearForm : public BilinearFormBase<typename BilFormA::DblVecIn,
   }
   DblVecIn *vec_in() const final { return a_->vec_in(); }
   DblVecOut *vec_out() const final { return a_->vec_out(); }
+  auto sigma() { return a_->sigma(); }
+  auto theta() { return a_->theta(); }
 
   auto Transpose() {
     auto a_t = a_->Transpose();

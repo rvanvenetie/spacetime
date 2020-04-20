@@ -43,9 +43,11 @@ int main(int argc, char* argv[]) {
       "initial_refines", po::value<size_t>(&initial_refines));
 
   AdaptiveHeatEquationOptions adapt_opts;
-  boost::program_options::options_description adapt_optdesc("Generic options");
-  adapt_optdesc.add_options()("solve_rtol",
-                              po::value<double>(&adapt_opts.solve_rtol_))(
+  boost::program_options::options_description adapt_optdesc(
+      "AdaptiveHeatEquation options");
+  adapt_optdesc.add_options()("use_cache",
+                              po::bool_switch(&adapt_opts.use_cache_))(
+      "solve_rtol", po::value<double>(&adapt_opts.solve_rtol_))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit_))(
       "estimate_saturation_layers",
       po::value<size_t>(&adapt_opts.estimate_saturation_layers_))(
@@ -65,6 +67,7 @@ int main(int argc, char* argv[]) {
   po::store(po::command_line_parser(argc, argv).options(cmdline_options).run(),
             vm);
   po::notify(vm);
+  std::cout << adapt_opts.use_cache_ << std::endl;
   std::cout << adapt_opts << std::endl;
   auto T = space::InitialTriangulation::UnitSquare(initial_refines);
 
