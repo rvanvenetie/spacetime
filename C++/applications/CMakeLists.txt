@@ -6,7 +6,7 @@ add_executable(heat_equation_performance heat_equation_performance.cpp)
 target_link_libraries(heat_equation_performance applications)
 
 add_executable(adaptive adaptive.cpp)
-target_link_libraries(adaptive applications)
+target_link_libraries(adaptive applications BoostProgramOptions)
 
 # Create tests
 package_add_test(heat_equation_test heat_equation_test.cpp)
