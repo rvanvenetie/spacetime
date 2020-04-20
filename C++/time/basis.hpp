@@ -77,6 +77,7 @@ class Function : public datastructures::Node<I> {
                     const std::vector<Element1D *> &support = {})
       : datastructures::Node<I>(parents), index_(index), support_(support) {
     for (size_t i = 0; i < support_.size(); ++i) {
+      assert(support[i]);
       assert(support[i]->level() == this->level_);
       if (i > 0) assert(support_[i - 1]->index() + 1 == support_[i]->index());
     }
@@ -189,9 +190,9 @@ class WaveletFn : public Function<I> {
   SparseVector<ScalingType> single_scale_;
 };
 
-// Declare static variables.
-extern Element1D *mother_element;
-extern datastructures::Tree<Element1D> elem_tree;
+// Static function that returns the mother element.
+Element1D *MotherElement();
+datastructures::Tree<Element1D> &ElementTree();
 
 // Debug function for reseting all the `time trees`
 void ResetTrees();

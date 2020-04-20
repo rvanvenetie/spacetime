@@ -11,6 +11,7 @@ using datastructures::static_for;
 
 namespace Time {
 TEST(Integration, Monomials) {
+  auto &elem_tree = ElementTree();
   elem_tree.UniformRefine(4);
 
   static_for<10>([&](auto degree) {
