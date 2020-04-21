@@ -131,7 +131,10 @@ inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
           if (IsDof(Vids[j]))
             result.emplace_back(Vids[j], elem_mat.coeff(i, j));
   }
-  std::sort(result.begin(), result.end());
+  std::sort(
+      result.begin(), result.end(),
+      [](const std::pair<size_t, double> &p1,
+         const std::pair<size_t, double> &p2) { return p1.first < p2.first; });
   size_t j = 0;
   for (size_t i = 1; i < result.size(); i++) {
     if (result[i].first == result[j].first)
