@@ -42,7 +42,7 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
                                std::move(u0_lf),
                                {.estimate_mean_zero_ = false});
 
-  auto result = heat_eq.Solve();
+  auto [result, solve_data] = heat_eq.Solve();
   auto result_nodes = result->Bfs();
   Eigen::VectorXd python_result(result_nodes.size());
   python_result << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
