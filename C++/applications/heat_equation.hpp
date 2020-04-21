@@ -21,7 +21,7 @@ using Time::ThreePointWaveletFn;
 
 struct HeatEquationOptions {
   // Whether or not to cache the bilinear forms.
-  bool use_cache_ = false;
+  bool use_cache_ = true;
 
   // The alpha used in the preconditioner on X.
   double P_X_alpha_ = 0.3;
