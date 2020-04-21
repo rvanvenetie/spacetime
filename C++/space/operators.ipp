@@ -8,17 +8,9 @@ inline Eigen::Matrix3d MassOperator::ElementMatrix(
          (Eigen::Matrix3d() << 2, 1, 1, 1, 2, 1, 1, 1, 2).finished();
 }
 
-inline Eigen::Matrix3d StiffnessOperator::ElementMatrix(
+inline const Eigen::Matrix3d &StiffnessOperator::ElementMatrix(
     const Element2DView *elem, const OperatorOptions &opts) {
-  Eigen::Vector2d v0, v1, v2;
-  v0 << elem->node()->vertices()[0]->x, elem->node()->vertices()[0]->y;
-  v1 << elem->node()->vertices()[1]->x, elem->node()->vertices()[1]->y;
-  v2 << elem->node()->vertices()[2]->x, elem->node()->vertices()[2]->y;
-
-  Eigen::Matrix<double, 3, 2> D;
-  D << v2[0] - v1[0], v2[1] - v1[1], v0[0] - v2[0], v0[1] - v2[1],
-      v1[0] - v0[0], v1[1] - v0[1];
-  return D * D.transpose() / (4.0 * elem->node()->area());
+  return elem->node()->StiffnessMatrix();
 }
 
 inline Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
@@ -126,7 +118,7 @@ inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
   result.reserve(patch.size() * 3);
   for (auto elem : patch) {
     auto &Vids = elem->vertices_view_idx_;
-    auto elem_mat = ForwardOp::ElementMatrix(elem, opts_);
+    auto &&elem_mat = ForwardOp::ElementMatrix(elem, opts_);
     for (size_t i = 0; i < 3; ++i) {
       if (Vids[i] != vertex) continue;
       for (size_t j = 0; j < 3; ++j) {
