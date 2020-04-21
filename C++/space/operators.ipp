@@ -128,7 +128,8 @@ inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
     for (size_t i = 0; i < 3; ++i)
       if (Vids[i] == vertex)
         for (size_t j = 0; j < 3; ++j)
-          if (IsDof(Vids[j])) result.emplace_back(Vids[j], elem_mat(i, j));
+          if (IsDof(Vids[j]))
+            result.emplace_back(Vids[j], elem_mat.coeff(i, j));
   }
 }
 
