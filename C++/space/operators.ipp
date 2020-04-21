@@ -4,8 +4,9 @@ namespace space {
 
 inline Eigen::Matrix3d MassOperator::ElementMatrix(
     const Element2DView *elem, const OperatorOptions &opts) {
-  return elem->node()->area() / 12.0 *
-         (Eigen::Matrix3d() << 2, 1, 1, 1, 2, 1, 1, 1, 2).finished();
+  static Eigen::Matrix3d elem_mat =
+      (Eigen::Matrix3d() << 2, 1, 1, 1, 2, 1, 1, 1, 2).finished();
+  return elem->node()->area() / 12.0 * elem_mat;
 }
 
 inline const Eigen::Matrix3d &StiffnessOperator::ElementMatrix(
