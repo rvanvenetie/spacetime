@@ -131,17 +131,27 @@ inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
           if (IsDof(Vids[j]))
             result.emplace_back(Vids[j], elem_mat.coeff(i, j));
   }
+  std::sort(result.begin(), result.end());
+  size_t j = 0;
+  for (size_t i = 1; i < result.size(); i++) {
+    if (result[i].first == result[j].first)
+      result[j].second += result[i].second;
+    else
+      result[++j] = result[i];
+  }
+  result.resize(j + 1);
 }
 
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     Eigen::VectorXd &rhs) const {
+  // Shortcut.
+  const size_t V = triang_.V;
+
   // Reuse a static variable for storing the row of a matrix.
   static std::vector<std::vector<std::pair<size_t, double>>> row_mat;
   static std::vector<double> e;
-
-  // Shortcut.
-  const size_t V = triang_.V;
+  e.reserve(V * 3);
 
   // First, initialize the row matrix variables.
   {
@@ -171,7 +181,6 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
       // Store all the corrections found in this downward cycle in a vector.
       e.clear();
-      e.reserve(V * 3);
 
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
       size_t idx = 0;
@@ -203,11 +212,11 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         // Coarsen mesh, and restrict the residual calculated thus far.
         Restrict(vertex, residual);
       }
-      assert(e.size() == row_mat.size());
 
       // Step 3: Do an upward cycle to calculate the correction on finest mesh.
       Eigen::VectorXd e_SS = Eigen::VectorXd::Zero(V);
       idx = e.size();
+      assert(e.size() == row_mat.size());
       for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
         // Prolongate the current correction to the next level.
         Prolongate(vertex, e_SS);
