@@ -308,4 +308,5 @@ void XPreconditionerOperator<InverseOp>::ApplySingleScale(
 
 #ifdef COMPILE_WITH_EIGEN_DEBUG
 #undef EIGEN_NO_DEBUG
+#undef COMPILE_WITH_EIGEN_DEBUG
 #endif
