@@ -27,16 +27,19 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X_in,
       P_Y_(P_Y),
       opts_(opts) {
   // Create two parts of B sharing sigma and theta.
-  auto B_t = std::make_shared<TypeB_t>(vec_X_in_.get(), vec_Y_out_.get());
-  auto B_s = std::make_shared<TypeB_s>(vec_X_in_.get(), vec_Y_out_.get(),
-                                       B_t->sigma(), B_t->theta());
+  auto B_t = std::make_shared<TypeB_t>(vec_X_in_.get(), vec_Y_out_.get(),
+                                       opts_.use_cache_);
+  auto B_s =
+      std::make_shared<TypeB_s>(vec_X_in_.get(), vec_Y_out_.get(), B_t->sigma(),
+                                B_t->theta(), opts_.use_cache_);
   B_ = std::make_shared<TypeB>(B_t, B_s);
 
   // Create transpose of B sharing data with B.
   InitializeBT();
 
   // Create trace operator.
-  G_ = std::make_shared<TypeG>(vec_X_in_.get(), vec_X_out_.get());
+  G_ = std::make_shared<TypeG>(vec_X_in_.get(), vec_X_out_.get(),
+                               opts_.use_cache_);
 
   // Create the negative trace operator.
   auto minus_G = std::make_shared<NegativeBilinearForm<TypeG>>(G_);
@@ -88,11 +91,13 @@ void HeatEquation::InitializeBT() {
     auto BT_t = std::make_shared<
         BilinearForm<Time::TransportOperator, space::MassOperator,
                      OrthonormalWaveletFn, ThreePointWaveletFn>>(
-        vec_Y_in_.get(), vec_X_out_.get(), B_->theta(), B_->sigma());
+        vec_Y_in_.get(), vec_X_out_.get(), B_->theta(), B_->sigma(),
+        opts_.use_cache_);
     auto BT_s = std::make_shared<
         BilinearForm<Time::MassOperator, space::StiffnessOperator,
                      OrthonormalWaveletFn, ThreePointWaveletFn>>(
-        vec_Y_in_.get(), vec_X_out_.get(), B_->theta(), B_->sigma());
+        vec_Y_in_.get(), vec_X_out_.get(), B_->theta(), B_->sigma(),
+        opts_.use_cache_);
     BT_ = std::make_shared<SumBilinearForm<
         BilinearForm<Time::TransportOperator, space::MassOperator,
                      OrthonormalWaveletFn, ThreePointWaveletFn>,

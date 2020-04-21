@@ -103,7 +103,6 @@ TEST(HeatEquation, CompareToPython) {
   X_delta.SparseRefine(level, {2, 1});
   HeatEquationOptions opts;
   opts.P_X_alpha_ = 1.0;
-  opts.use_cache_ = true;
   HeatEquation heat_eq(X_delta, opts);
 
   // Set double-tree vectors

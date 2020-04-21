@@ -30,13 +30,13 @@ class BilinearForm
   using DblVecIn = DoubleTreeVector<BasisTimeIn, BasisSpace>;
   using DblVecOut = DoubleTreeVector<BasisTimeOut, BasisSpace>;
 
-  BilinearForm(DblVecIn *vec_in, DblVecOut *vec_out, bool use_cache = true,
+  BilinearForm(DblVecIn *vec_in, DblVecOut *vec_out, bool use_cache,
                space::OperatorOptions space_opts = space::OperatorOptions());
   BilinearForm(
       DblVecIn *vec_in, DblVecOut *vec_out,
       std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma,
       std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta,
-      bool use_cache = true,
+      bool use_cache,
       space::OperatorOptions space_opts = space::OperatorOptions());
 
   // Apply takes data from vec_in and writes it to vec_out.
@@ -98,7 +98,7 @@ CreateBilinearForm(
         *vec_in,
     datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>
         *vec_out,
-    bool use_cache = true) {
+    bool use_cache) {
   return std::make_shared<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>(
       vec_in, vec_out, use_cache);
 }
@@ -117,7 +117,7 @@ CreateBilinearForm(
     std::shared_ptr<
         datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>>
         theta,
-    bool use_cache = true) {
+    bool use_cache) {
   return std::make_shared<BilinearForm<OpTime, OpSpace, BTimeIn, BTimeOut>>(
       vec_in, vec_out, sigma, theta, use_cache);
 }
@@ -139,7 +139,7 @@ class BlockDiagonalBilinearForm
   using DblVecOut = DoubleTreeVector<BasisTimeOut, BasisSpace>;
 
   BlockDiagonalBilinearForm(
-      DblVecIn *vec_in, DblVecOut *vec_out, bool use_cache = true,
+      DblVecIn *vec_in, DblVecOut *vec_out, bool use_cache,
       space::OperatorOptions space_opts = space::OperatorOptions())
       : vec_in_(vec_in),
         vec_out_(vec_out),
@@ -174,9 +174,11 @@ CreateBlockDiagonalBilinearForm(
     datastructures::DoubleTreeVector<BTimeIn, space::HierarchicalBasisFn>
         *vec_in,
     datastructures::DoubleTreeVector<BTimeOut, space::HierarchicalBasisFn>
-        *vec_out) {
+        *vec_out,
+    bool use_cache) {
   return std::make_shared<
-      BlockDiagonalBilinearForm<OpSpace, BTimeIn, BTimeOut>>(vec_in, vec_out);
+      BlockDiagonalBilinearForm<OpSpace, BTimeIn, BTimeOut>>(vec_in, vec_out,
+                                                             use_cache);
 }
 
 // Template specializations for faster compile times.
