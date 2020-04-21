@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
   while (ndof < max_dofs) {
     auto start = std::chrono::steady_clock::now();
     auto solution = heat_eq.Solve(heat_eq.vec_Xd_out()->ToVectorContainer());
-    ndof = solution->container().size();  // A O(sqrt(N)) overestimate.
+    ndof = heat_eq.vec_Xd_out()->Bfs().size();  // A slight overestimate.
     auto [residual, residual_norm] = heat_eq.Estimate();
     auto end = std::chrono::steady_clock::now();
     auto marked_nodes = heat_eq.Mark();
