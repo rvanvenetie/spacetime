@@ -142,14 +142,19 @@ void TestSpacetimeLinearity(
   vec_in_comb += vec_in_2;
 
   // Apply this weighted comb. by hand
-  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_1, &vec_out)->Apply();
+  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_1, &vec_out,
+                                                  /*use_cache*/ true)
+      ->Apply();
   auto vec_out_test = vec_out.DeepCopy();
   vec_out_test *= alpha;
-  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_2, &vec_out)->Apply();
+  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_2, &vec_out,
+                                                  /*use_cache*/ true)
+      ->Apply();
   vec_out_test += vec_out;
 
   // Do it using the lin comb.
-  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_comb, &vec_out)
+  CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in_comb, &vec_out,
+                                                  /*use_cache*/ true)
       ->Apply();
   auto vec_out_comb = vec_out.DeepCopy();
 
@@ -179,8 +184,8 @@ void TestSpacetimeQuadrature(
       vec_in, vec_out);
 
   // Create a bilinear form and do some quadrature tests.
-  auto bil_form =
-      CreateBilinearForm<OperatorTime, OperatorSpace>(&vec_in, &vec_out);
+  auto bil_form = CreateBilinearForm<OperatorTime, OperatorSpace>(
+      &vec_in, &vec_out, /*use_cache*/ true);
 
   // Simply put some random values into vec_in.
   for (auto nv : vec_in.Bfs()) {
@@ -286,11 +291,11 @@ TEST(BilinearForm, Transpose) {
 
     // Test the actual operators that we use.
     auto A_s = CreateBilinearForm<Time::MassOperator, space::StiffnessOperator>(
-        &vec_X_in, &vec_Y_out);
+        &vec_X_in, &vec_Y_out, /*use_cache*/ true);
 
     // Reuse theta/sigma for B_t.
     auto B_t = CreateBilinearForm<Time::TransportOperator, space::MassOperator>(
-        &vec_X_in, &vec_Y_out, A_s->sigma(), A_s->theta());
+        &vec_X_in, &vec_Y_out, A_s->sigma(), A_s->theta(), /*use_cache*/ true);
 
     // Create matrices.
     auto mat_A_s = ToMatrix(*A_s);
@@ -333,11 +338,12 @@ TEST(BlockDiagonalBilinearForm, CanBeConstructed) {
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
 
     auto A_s = CreateBlockDiagonalBilinearForm<space::StiffnessOperator>(
-        &vec_Y_in, &vec_Y_out);
+        &vec_Y_in, &vec_Y_out, /*use_cache*/ true);
     auto mat_A_s = ToMatrix(*A_s);
 
     auto P_Y = CreateBlockDiagonalBilinearForm<
-        space::DirectInverse<space::StiffnessOperator>>(&vec_Y_out, &vec_Y_in);
+        space::DirectInverse<space::StiffnessOperator>>(&vec_Y_out, &vec_Y_in,
+                                                        /*use_cache*/ true);
     auto mat_P_Y = ToMatrix(*P_Y);
 
     ASSERT_TRUE((mat_A_s * mat_P_Y).isApprox(mat_P_Y * mat_A_s));

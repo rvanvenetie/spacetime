@@ -31,6 +31,7 @@ struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   friend std::ostream &operator<<(std::ostream &os,
                                   const AdaptiveHeatEquationOptions &opts) {
     os << "Adaptive heat equation options:" << std::endl;
+    os << "\tUse cache: " << (opts.use_cache_ ? "true" : "false") << std::endl;
     os << "\tSolve options -- rtol: " << opts.solve_rtol_
        << "; maxit: " << opts.solve_maxit_ << std::endl;
     os << "\tEstimate options -- saturation layers: "

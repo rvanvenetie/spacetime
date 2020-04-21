@@ -24,14 +24,15 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
               .template DeepCopy<TypeYVector>())),
       vec_Ydd_out_(std::make_shared<TypeYVector>(
           vec_Ydd_in_->template DeepCopy<TypeYVector>())),
-      heat_d_dd_(std::make_unique<HeatEquation>(vec_Xd_in_, vec_Xd_out_,
-                                                vec_Ydd_in_, vec_Ydd_out_)),
+      heat_d_dd_(std::make_unique<HeatEquation>(
+          vec_Xd_in_, vec_Xd_out_, vec_Ydd_in_, vec_Ydd_out_, opts)),
       g_lin_form_(std::move(g_lin_form)),
       u0_lin_form_(std::move(u0_lin_form)),
       opts_(opts) {}
 
 Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
-  heat.B()->Apply();  // This is actually only needed to initialize BT()
+  if (opts_.use_cache_)
+    heat.B()->Apply();  // This is actually only needed to initialize BT()
   g_lin_form_->Apply(heat.vec_Y_out());
   heat.P_Y()->Apply();
   auto rhs = heat.BT()->Apply();
@@ -56,7 +57,7 @@ AdaptiveHeatEquation::Estimate() {
   auto P_Y = heat_d_dd_->P_Y();
   heat_d_dd_.reset();
   auto heat_dd_dd = HeatEquation(vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_,
-                                 vec_Ydd_out_, A, P_Y);
+                                 vec_Ydd_out_, A, P_Y, opts_);
   auto u_dd_dd = vec_Xdd_in();
   u_dd_dd->Reset();
   *u_dd_dd += *vec_Xd_out();

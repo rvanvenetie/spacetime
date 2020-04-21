@@ -101,7 +101,9 @@ TEST(HeatEquation, CompareToPython) {
   ortho_tree.UniformRefine(level);
   three_point_tree.UniformRefine(level);
   X_delta.SparseRefine(level, {2, 1});
-  HeatEquation heat_eq(X_delta, {/* alpha_X */ 1});
+  HeatEquationOptions opts;
+  opts.P_X_alpha_ = 1.0;
+  HeatEquation heat_eq(X_delta, opts);
 
   // Set double-tree vectors
   auto X_bfs_in = heat_eq.vec_X_in()->Bfs();
