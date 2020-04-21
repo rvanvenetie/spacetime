@@ -1,3 +1,4 @@
+#define EIGEN_NO_DEBUG
 #include "operators.hpp"
 
 #include <vector>

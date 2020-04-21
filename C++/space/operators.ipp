@@ -1,5 +1,10 @@
 #include "operators.hpp"
 
+#ifndef EIGEN_NO_DEBUG
+#define COMPILE_WITH_EIGEN_DEBUG
+#define EIGEN_NO_DEBUG
+#endif
+
 namespace space {
 
 inline Eigen::Matrix3d MassOperator::ElementMatrix(
@@ -300,3 +305,7 @@ void XPreconditionerOperator<InverseOp>::ApplySingleScale(
 }
 
 }  // namespace space
+
+#ifdef COMPILE_WITH_EIGEN_DEBUG
+#undef EIGEN_NO_DEBUG
+#endif
