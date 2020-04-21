@@ -37,14 +37,14 @@ std::istream& operator>>(std::istream& in,
 int main(int argc, char* argv[]) {
   std::string problem;
   size_t initial_refines = 0;
-  size_t maxdofs = 0;
+  size_t max_dofs = 0;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
   problem_optdesc.add_options()(
       "problem", po::value<std::string>(&problem)->default_value("smooth"))(
       "initial_refines", po::value<size_t>(&initial_refines))(
-      "maxdofs", po::value<size_t>(&maxdofs)->default_value(
-                     std::numeric_limits<std::size_t>::max()));
+      "max_dofs", po::value<size_t>(&max_dofs)->default_value(
+                      std::numeric_limits<std::size_t>::max()));
 
   AdaptiveHeatEquationOptions adapt_opts;
   boost::program_options::options_description adapt_optdesc(
@@ -98,7 +98,7 @@ int main(int argc, char* argv[]) {
                                std::move(problem_data.second), adapt_opts);
 
   size_t ndof = 0;
-  while (ndof < maxdofs) {
+  while (ndof < max_dofs) {
     auto start = std::chrono::steady_clock::now();
     auto solution = heat_eq.Solve(heat_eq.vec_Xd_out()->ToVectorContainer());
     ndof = solution->container().size();  // A O(sqrt(N)) overestimate.
