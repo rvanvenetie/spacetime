@@ -119,34 +119,61 @@ inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
   assert(mg_triang.ContainsVertex(vertex));
   assert(IsDof(vertex));
 
-  auto &patch = mg_triang.patches()[vertex];
+  const auto &patch = mg_triang.patches()[vertex];
   result.clear();
   result.reserve(patch.size() * 3);
   for (auto elem : patch) {
-    auto &Vids = elem->vertices_view_idx_;
-    auto &&elem_mat = ForwardOp::ElementMatrix(elem, opts_);
-    for (size_t i = 0; i < 3; ++i) {
-      if (Vids[i] != vertex) continue;
-      for (size_t j = 0; j < 3; ++j) {
-        // If this is the inner product with a boundary dof, skip.
-        if (IsDof(Vids[j])) result.emplace_back(Vids[j], elem_mat(i, j));
-      }
-    }
+    const auto &Vids = elem->vertices_view_idx_;
+    const auto &elem_mat = ForwardOp::ElementMatrix(elem, opts_);
+    for (size_t i = 0; i < 3; ++i)
+      if (Vids[i] == vertex)
+        for (size_t j = 0; j < 3; ++j)
+          if (IsDof(Vids[j]))
+            result.emplace_back(Vids[j], elem_mat.coeff(i, j));
   }
+  std::sort(
+      result.begin(), result.end(),
+      [](const std::pair<size_t, double> &p1,
+         const std::pair<size_t, double> &p2) { return p1.first < p2.first; });
+  size_t j = 0;
+  for (size_t i = 1; i < result.size(); i++) {
+    if (result[i].first == result[j].first)
+      result[j].second += result[i].second;
+    else
+      result[++j] = result[i];
+  }
+  result.resize(j + 1);
 }
 
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     Eigen::VectorXd &rhs) const {
-  // Reuse a static variable for storing the row of a matrix.
-  static std::vector<std::pair<size_t, double>> row_mat;
-
   // Shortcut.
   const size_t V = triang_.V;
 
+  // Reuse a static variable for storing the row of a matrix.
+  static std::vector<std::vector<std::pair<size_t, double>>> row_mat;
+  static std::vector<double> e;
+  e.reserve(V * 3);
+
+  // First, initialize the row matrix variables.
+  {
+    auto mg_triang =
+        MultigridTriangulationView::FromFinestTriangulation(triang_);
+    row_mat.resize(V * 3);
+    size_t idx = 0;
+    for (size_t vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
+      const auto godparents = triang_.Godparents(vertex);
+      for (size_t vi : {godparents[1], godparents[0], vertex}) {
+        if (IsDof(vi)) RowMatrix(mg_triang, vi, row_mat[idx++]);
+      }
+      mg_triang.Coarsen();
+    }
+    row_mat.resize(idx);
+  }
+
   // Take zero vector as initial guess.
   Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
-  auto mg_triang = MultigridTriangulationView::FromFinestTriangulation(triang_);
 
   // Do a V-cycle.
   for (size_t cycle = 0; cycle < opts_.cycles_; cycle++) {
@@ -156,10 +183,10 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       Eigen::VectorXd residual = rhs - triang_mat_ * u;
 
       // Store all the corrections found in this downward cycle in a vector.
-      std::vector<double> e;
-      e.reserve(V * 3);
+      e.clear();
 
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
+      size_t idx = 0;
       for (size_t vertex = V - 1; vertex >= triang_.InitialVertices();
            --vertex) {
         const auto godparents = triang_.Godparents(vertex);
@@ -168,17 +195,11 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         for (size_t vi : {godparents[1], godparents[0], vertex}) {
           // If this vertex is on the boundary, we can simply skip the
           // correction.
-          if (!IsDof(vi)) {
-            e.emplace_back(0.0);
-            continue;
-          }
-
-          // Get the row of the matrix associated vi on this level.
-          RowMatrix(mg_triang, vi, row_mat);
+          if (!IsDof(vi)) continue;
 
           // Calculate a(phi_vi, phi_vi).
           double a_phi_vi_phi_vi = 0;
-          for (auto [vj, val] : row_mat)
+          for (auto [vj, val] : row_mat[idx])
             if (vj == vi) a_phi_vi_phi_vi += val;
 
           // Calculate the correction in phi_vi.
@@ -188,27 +209,28 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           e.emplace_back(e_vi);
 
           // Update the residual with this new correction  a(e_vi, \cdot).
-          for (auto [vj, val] : row_mat) residual[vj] -= e_vi * val;
+          for (auto [vj, val] : row_mat[idx++]) residual[vj] -= e_vi * val;
         }
 
         // Coarsen mesh, and restrict the residual calculated thus far.
-        mg_triang.Coarsen();
         Restrict(vertex, residual);
       }
 
       // Step 3: Do an upward cycle to calculate the correction on finest mesh.
-      int rev_vi = e.size() - 1;
       Eigen::VectorXd e_SS = Eigen::VectorXd::Zero(V);
+      idx = e.size();
+      assert(e.size() == row_mat.size());
       for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
         // Prolongate the current correction to the next level.
         Prolongate(vertex, e_SS);
 
         const auto godparents = triang_.Godparents(vertex);
         for (size_t vi : {vertex, godparents[0], godparents[1]}) {
+          if (!IsDof(vi)) continue;
+
           // Add the the correction we have calculated in the above loop, in
           // reversed order of course.
-          e_SS[vi] += e[rev_vi];
-          rev_vi--;
+          e_SS[vi] += e[--idx];
         }
       }
 
@@ -234,9 +256,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       e_SS.head(triang_.InitialVertices()) = e_0;
 
       // Step 3: Walk back up and do 1-dimensional corrections.
+      size_t idx = row_mat.size();
       for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
-        mg_triang.Refine();
-
         // Prolongate the current correction to the next level.
         Prolongate(vertex, e_SS);
 
@@ -251,13 +272,10 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           // There is no correction if its not a dof.
           if (!IsDof(vi)) continue;
 
-          // Get the row of the matrix associated vi on this level.
-          RowMatrix(mg_triang, vi, row_mat);
-
           // Calculate a(phi_vi, phi_vi) and a(e_SS, phi_vi).
           double a_phi_vi_phi_vi = 0;
           double a_e_phi_vi = 0;
-          for (auto [vj, val] : row_mat) {
+          for (auto [vj, val] : row_mat[--idx]) {
             // Calculate the inner product with itself.
             if (vj == vi) a_phi_vi_phi_vi += 1 * val;
 
