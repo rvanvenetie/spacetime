@@ -71,8 +71,9 @@ class AdaptiveHeatEquation {
       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
-  TypeXVector *Solve(const Eigen::VectorXd &x0);
-  TypeXVector *Solve() {
+  std::pair<TypeXVector *, std::pair<double, int>> Solve(
+      const Eigen::VectorXd &x0);
+  std::pair<TypeXVector *, std::pair<double, int>> Solve() {
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd_in()->container().size());
     return Solve(x0);
   }
