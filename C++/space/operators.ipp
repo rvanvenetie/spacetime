@@ -116,22 +116,19 @@ template <typename ForwardOp>
 inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
     const MultigridTriangulationView &mg_triang, size_t vertex,
     std::vector<std::pair<size_t, double>> &result) const {
-  assert(mg_triang.ContainsVertex(vertex));
-  assert(IsDof(vertex));
+  // assert(mg_triang.ContainsVertex(vertex));
+  // assert(IsDof(vertex));
 
-  auto &patch = mg_triang.patches()[vertex];
+  const auto &patch = mg_triang.patches()[vertex];
   result.clear();
   result.reserve(patch.size() * 3);
   for (auto elem : patch) {
-    auto &Vids = elem->vertices_view_idx_;
-    auto &&elem_mat = ForwardOp::ElementMatrix(elem, opts_);
-    for (size_t i = 0; i < 3; ++i) {
-      if (Vids[i] != vertex) continue;
-      for (size_t j = 0; j < 3; ++j) {
-        // If this is the inner product with a boundary dof, skip.
-        if (IsDof(Vids[j])) result.emplace_back(Vids[j], elem_mat(i, j));
-      }
-    }
+    const auto &Vids = elem->vertices_view_idx_;
+    const auto &elem_mat = ForwardOp::ElementMatrix(elem, opts_);
+    for (size_t i = 0; i < 3; ++i)
+      if (Vids[i] == vertex)
+        for (size_t j = 0; j < 3; ++j)
+          if (IsDof(Vids[j])) result.emplace_back(Vids[j], elem_mat(i, j));
   }
 }
 
@@ -140,6 +137,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     Eigen::VectorXd &rhs) const {
   // Reuse a static variable for storing the row of a matrix.
   static std::vector<std::pair<size_t, double>> row_mat;
+  static std::vector<double> e;
 
   // Shortcut.
   const size_t V = triang_.V;
@@ -156,7 +154,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       Eigen::VectorXd residual = rhs - triang_mat_ * u;
 
       // Store all the corrections found in this downward cycle in a vector.
-      std::vector<double> e;
+      e.clear();
       e.reserve(V * 3);
 
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
