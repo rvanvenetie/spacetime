@@ -31,7 +31,7 @@ ForwardMatrix<ForwardOp>::ForwardMatrix(const TriangulationView &triang,
   for (const auto &elem : triang_.elements()) {
     if (!elem->is_leaf()) continue;
     auto &Vids = elem->vertices_view_idx_;
-    auto element_mat = ForwardOp::ElementMatrix(elem, opts);
+    auto &&element_mat = ForwardOp::ElementMatrix(elem, opts);
 
     for (size_t i = 0; i < 3; ++i) {
       if (!IsDof(Vids[i])) continue;
