@@ -73,23 +73,20 @@ class AdaptiveHeatEquation {
 
   Eigen::VectorXd Solve(const Eigen::VectorXd &x0);
   Eigen::VectorXd Solve() {
-    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd()->container().size());
-    return Solve(x0);
+    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
   }
 
-  std::pair<Eigen::VectorXd, double> Estimate(const Eigen::VectorXd &u_dd_d);
-
-  std::vector<TypeXNode *> Mark(const Eigen::VectorXd &residual);
+  std::pair<TypeXVector *, double> Estimate(const Eigen::VectorXd &u_dd_d);
+  std::vector<TypeXNode *> Mark(TypeXVector *residual);
   void Refine(const std::vector<TypeXNode *> &nodes_to_add);
 
-  TypeXVector *vec_Xd() { return vec_Xd_.get(); }
-  TypeXVector *vec_Xdd() { return vec_Xdd_.get(); }
+  std::shared_ptr<TypeXVector> vec_Xd() { return vec_Xd_; }
+  std::shared_ptr<TypeXVector> vec_Xdd() { return vec_Xdd_; }
 
  protected:
   Eigen::VectorXd RHS(HeatEquation &heat);
-  void ApplyMeanZero(Eigen::VectorXd &vec);
+  void ApplyMeanZero(TypeXVector *vec);
 
-  TypeXDelta Xd_;
   std::shared_ptr<TypeXVector> vec_Xd_, vec_Xdd_;
   std::shared_ptr<TypeYVector> vec_Ydd_;
   std::unique_ptr<HeatEquation> heat_d_dd_;

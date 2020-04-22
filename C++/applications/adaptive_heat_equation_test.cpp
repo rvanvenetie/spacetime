@@ -52,8 +52,7 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     ASSERT_NEAR(result_nodes[i]->value(), python_result[i], 1e-5);
 
   auto [residual, residual_norm] = heat_eq.Estimate(result);
-  heat_eq.vec_Xdd()->FromVectorContainer(residual);
-  auto residual_nodes = heat_eq.vec_Xdd()->Bfs();
+  auto residual_nodes = residual->Bfs();
   Eigen::VectorXd python_residual(residual_nodes.size());
   python_residual << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       5.551115123125783e-17, 5.551115123125783e-17, 0.0, 0.0, 0.0, 0.0, 0.0,

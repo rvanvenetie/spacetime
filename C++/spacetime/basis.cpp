@@ -43,16 +43,16 @@ DblTreeOut<OrthonormalWaveletFn, HierarchicalBasisFn> GenerateYDelta(
   return Y_delta;
 }
 
-DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>
+DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
 GenerateXDeltaUnderscore(
-    const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta,
+    const DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta,
     size_t num_repeats) {
   assert(num_repeats > 0);
   if (num_repeats > 1)
     return GenerateXDeltaUnderscore(GenerateXDeltaUnderscore(X_delta),
                                     num_repeats - 1);
-  DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> X_delta_underscore =
-      X_delta.DeepCopy();
+  DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
+      X_delta_underscore = X_delta.DeepCopy();
   std::vector<typename decltype(X_delta_underscore)::DNType *> time_leaves,
       space_leaves;
   for (auto &dblnode : X_delta_underscore.container()) {
@@ -86,8 +86,8 @@ GenerateXDeltaUnderscore(
 template DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>
 GenerateYDelta<DoubleTreeView, DoubleTreeView>(
     const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta);
-template DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>
-GenerateYDelta<DoubleTreeVector, DoubleTreeView>(
+template DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>
+GenerateYDelta<DoubleTreeVector, DoubleTreeVector>(
     const DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta);
 
 };  // namespace spacetime

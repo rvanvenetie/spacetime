@@ -9,15 +9,12 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
     TypeXDelta &&X_delta, std::unique_ptr<TypeYLinForm> &&g_lin_form,
     std::unique_ptr<TypeXLinForm> &&u0_lin_form,
     const AdaptiveHeatEquationOptions &opts)
-    : Xd_(std::move(X_delta)),
-      vec_Xd_(
-          std::make_shared<TypeXVector>(Xd_.template DeepCopy<TypeXVector>())),
-      vec_Xdd_(std::make_shared<TypeXVector>(
-          GenerateXDeltaUnderscore(Xd_, opts.estimate_saturation_layers_)
-              .template DeepCopy<TypeXVector>())),
+    : vec_Xd_(std::make_shared<TypeXVector>(
+          X_delta.template DeepCopy<TypeXVector>())),
+      vec_Xdd_(std::make_shared<TypeXVector>(GenerateXDeltaUnderscore(
+          *vec_Xd_, opts.estimate_saturation_layers_))),
       vec_Ydd_(std::make_shared<TypeYVector>(
-          GenerateYDelta<DoubleTreeVector, DoubleTreeView>(*vec_Xdd_)
-              .template DeepCopy<TypeYVector>())),
+          GenerateYDelta<DoubleTreeVector>(*vec_Xdd_))),
       heat_d_dd_(std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts)),
       g_lin_form_(std::move(g_lin_form)),
       u0_lin_form_(std::move(u0_lin_form)),
@@ -44,8 +41,9 @@ Eigen::VectorXd AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
   return result;
 }
 
-std::pair<Eigen::VectorXd, double> AdaptiveHeatEquation::Estimate(
-    const Eigen::VectorXd &u_dd_d) {
+auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
+    -> std::pair<TypeXVector *, double> {
+  // Create heat equation with X_dd and Y_dd.
   assert(heat_d_dd_);
   auto A = heat_d_dd_->A();
   auto P_Y = heat_d_dd_->P_Y();
@@ -54,22 +52,22 @@ std::pair<Eigen::VectorXd, double> AdaptiveHeatEquation::Estimate(
 
   // Prolongate u_dd_d from X_d to X_dd.
   vec_Xd_->FromVectorContainer(u_dd_d);
-  vec_Xdd_->Reset();
-  *vec_Xdd_ += *vec_Xd_;
+  vec_Xdd_->FromVector(*vec_Xd_);
   Eigen::VectorXd u_dd_dd = vec_Xdd_->ToVectorContainer();
 
   // Calculate the residual and store inside the dbltree.
   Eigen::VectorXd residual = RHS(heat_dd_dd) - heat_dd_dd.S()->Apply(u_dd_dd);
-  if (opts_.estimate_mean_zero_) ApplyMeanZero(residual);
   vec_Xdd_->FromVectorContainer(residual);
+  if (opts_.estimate_mean_zero_) ApplyMeanZero(vec_Xdd_.get());
 
   // Get the X_d nodes *inside* X_dd.
-  auto Xd_nodes = vec_Xdd_->Union(Xd_,
-                                  /*call_filter*/ datastructures::func_false);
-  assert(Xd_nodes.size() == Xd_.container().size());
+  auto vec_Xd_nodes =
+      vec_Xdd_->Union(*vec_Xd_,
+                      /*call_filter*/ datastructures::func_false);
+  assert(vec_Xd_nodes.size() == vec_Xd_->container().size());
 
   // Do a basis transformation for calculation of the residual wrt Psi_delta.
-  for (auto dblnode : Xd_nodes) dblnode->set_marked(true);
+  for (auto dblnode : vec_Xd_nodes) dblnode->set_marked(true);
   double sq_norm = 0.0;
   for (auto &dblnode : vec_Xdd_->container()) {
     if (dblnode.is_metaroot()) continue;
@@ -79,17 +77,14 @@ std::pair<Eigen::VectorXd, double> AdaptiveHeatEquation::Estimate(
     dblnode.set_value(dblnode.value() / sqrt(1.0 + pow(4.0, lvl_diff)));
     sq_norm += dblnode.value() * dblnode.value();
   }
-  for (auto dblnode : Xd_nodes) dblnode->set_marked(false);
+  for (auto dblnode : vec_Xd_nodes) dblnode->set_marked(false);
 
-  return {vec_Xdd_->ToVectorContainer(), sqrt(sq_norm)};
+  return {vec_Xdd_.get(), sqrt(sq_norm)};
 }
 
-std::vector<DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn> *>
-AdaptiveHeatEquation::Mark(const Eigen::VectorXd &residual) {
-  // Store the residual inside the dbltree.
-  vec_Xdd_->FromVectorContainer(residual);
-
-  auto nodes = vec_Xdd_->Bfs();
+auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
+    -> std::vector<TypeXNode *> {
+  auto nodes = residual->Bfs();
   std::sort(nodes.begin(), nodes.end(), [](auto n1, auto n2) {
     return std::abs(n1->value()) > std::abs(n2->value());
   });
@@ -106,29 +101,19 @@ AdaptiveHeatEquation::Mark(const Eigen::VectorXd &residual) {
 }
 
 void AdaptiveHeatEquation::Refine(
-    const std::vector<DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn>
-                          *> &nodes_to_add) {
-  Xd_.ConformingRefinement(*vec_Xdd_, nodes_to_add);
-
-  vec_Xd_ = std::make_shared<TypeXVector>(Xd_.template DeepCopy<TypeXVector>());
-  TypeXVector vec_Xd_tmp = Xd_.template DeepCopy<TypeXVector>();
-  vec_Xd_tmp += *vec_Xd_;
-  *vec_Xd_ = std::move(vec_Xd_tmp);
+    const std::vector<TypeXNode *> &nodes_to_add) {
+  vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
 
   vec_Xdd_ = std::make_shared<TypeXVector>(
-      GenerateXDeltaUnderscore(Xd_, opts_.estimate_saturation_layers_)
-          .template DeepCopy<TypeXVector>());
-
+      GenerateXDeltaUnderscore(*vec_Xd_, opts_.estimate_saturation_layers_));
   vec_Ydd_ = std::make_shared<TypeYVector>(
-      GenerateYDelta<DoubleTreeVector, DoubleTreeView>(*vec_Xdd_)
-          .template DeepCopy<TypeYVector>());
+      GenerateYDelta<DoubleTreeVector>(*vec_Xdd_));
 
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
 }
 
-void AdaptiveHeatEquation::ApplyMeanZero(Eigen::VectorXd &vec) {
-  vec_Xdd_->FromVectorContainer(vec);
-  for (auto &dblnode : boost::adaptors::reverse(vec_Xdd_->container())) {
+void AdaptiveHeatEquation::ApplyMeanZero(TypeXVector *vec) {
+  for (auto &dblnode : boost::adaptors::reverse(vec->container())) {
     auto [_, space_node] = dblnode.nodes();
     if (space_node->level() == 0 || space_node->on_domain_boundary()) continue;
     if (std::any_of(space_node->parents().begin(), space_node->parents().end(),
@@ -141,6 +126,5 @@ void AdaptiveHeatEquation::ApplyMeanZero(Eigen::VectorXd &vec) {
                                               parent->value());
     }
   }
-  vec = vec_Xdd_->ToVectorContainer();
 }
 };  // namespace applications

@@ -12,11 +12,11 @@ DblTreeOut<Time::OrthonormalWaveletFn, space::HierarchicalBasisFn>
 GenerateYDelta(const DblTreeIn<Time::ThreePointWaveletFn,
                                space::HierarchicalBasisFn> &X_delta);
 
-datastructures::DoubleTreeView<Time::ThreePointWaveletFn,
-                               space::HierarchicalBasisFn>
+datastructures::DoubleTreeVector<Time::ThreePointWaveletFn,
+                                 space::HierarchicalBasisFn>
 GenerateXDeltaUnderscore(
-    const datastructures::DoubleTreeView<Time::ThreePointWaveletFn,
-                                         space::HierarchicalBasisFn> &X_delta,
+    const datastructures::DoubleTreeVector<Time::ThreePointWaveletFn,
+                                           space::HierarchicalBasisFn> &X_delta,
     size_t num_repeats = 1);
 
 template <class DblTreeIn, class DblTreeOut>
@@ -31,10 +31,10 @@ extern template datastructures::DoubleTreeView<Time::OrthonormalWaveletFn,
 GenerateYDelta<datastructures::DoubleTreeView, datastructures::DoubleTreeView>(
     const datastructures::DoubleTreeView<Time::ThreePointWaveletFn,
                                          space::HierarchicalBasisFn> &X_delta);
-extern template datastructures::DoubleTreeView<Time::OrthonormalWaveletFn,
-                                               space::HierarchicalBasisFn>
+extern template datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
+                                                 space::HierarchicalBasisFn>
 GenerateYDelta<datastructures::DoubleTreeVector,
-               datastructures::DoubleTreeView>(
+               datastructures::DoubleTreeVector>(
     const datastructures::DoubleTreeVector<
         Time::ThreePointWaveletFn, space::HierarchicalBasisFn> &X_delta);
 
