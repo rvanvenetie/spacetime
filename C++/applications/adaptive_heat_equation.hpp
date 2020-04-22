@@ -79,7 +79,7 @@ class AdaptiveHeatEquation {
 
   std::pair<Eigen::VectorXd, double> Estimate(const Eigen::VectorXd &u_dd_d);
 
-  std::vector<TypeXNode *> Mark();
+  std::vector<TypeXNode *> Mark(const Eigen::VectorXd &residual);
   void Refine(const std::vector<TypeXNode *> &nodes_to_add);
 
   TypeXVector *vec_Xd() { return vec_Xd_.get(); }
@@ -87,9 +87,9 @@ class AdaptiveHeatEquation {
 
  protected:
   Eigen::VectorXd RHS(HeatEquation &heat);
-  void ApplyMeanZero(TypeXVector *vec);
+  void ApplyMeanZero(Eigen::VectorXd &vec);
 
-  TypeXDelta X_d_;
+  TypeXDelta Xd_;
   std::shared_ptr<TypeXVector> vec_Xd_, vec_Xdd_;
   std::shared_ptr<TypeYVector> vec_Ydd_;
   std::unique_ptr<HeatEquation> heat_d_dd_;
