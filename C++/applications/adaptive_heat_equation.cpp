@@ -105,10 +105,9 @@ AdaptiveHeatEquation::Mark(const Eigen::VectorXd &residual) {
   return nodes;
 }
 
-Eigen::VectorXd AdaptiveHeatEquation::Refine(
+void AdaptiveHeatEquation::Refine(
     const std::vector<DoubleNodeVector<ThreePointWaveletFn, HierarchicalBasisFn>
-                          *> &nodes_to_add,
-    const Eigen::VectorXd &v) {
+                          *> &nodes_to_add) {
   Xd_.ConformingRefinement(*vec_Xdd_, nodes_to_add);
 
   vec_Xd_ = std::make_shared<TypeXVector>(Xd_.template DeepCopy<TypeXVector>());
