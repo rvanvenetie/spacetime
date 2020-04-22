@@ -9,8 +9,9 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
     TypeXDelta &&X_delta, std::unique_ptr<TypeYLinForm> &&g_lin_form,
     std::unique_ptr<TypeXLinForm> &&u0_lin_form,
     const AdaptiveHeatEquationOptions &opts)
-    : vec_Xd_(std::make_shared<TypeXVector>(
-          X_delta.template DeepCopy<TypeXVector>())),
+    : Xd_(std::move(X_delta)),
+      vec_Xd_(
+          std::make_shared<TypeXVector>(Xd_.template DeepCopy<TypeXVector>())),
       vec_Xdd_(std::make_shared<TypeXVector>(GenerateXDeltaUnderscore(
           *vec_Xd_, opts.estimate_saturation_layers_))),
       vec_Ydd_(std::make_shared<TypeYVector>(
@@ -84,7 +85,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
 
 auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
     -> std::vector<TypeXNode *> {
-  auto nodes = residual->Bfs();
+  auto nodes = vec_Xdd_->Bfs();
   std::sort(nodes.begin(), nodes.end(), [](auto n1, auto n2) {
     return std::abs(n1->value()) > std::abs(n2->value());
   });
@@ -102,7 +103,8 @@ auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
 
 void AdaptiveHeatEquation::Refine(
     const std::vector<TypeXNode *> &nodes_to_add) {
-  vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
+  Xd_.ConformingRefinement(*vec_Xdd_, nodes_to_add);
+  vec_Xd_ = std::make_shared<TypeXVector>(Xd_.template DeepCopy<TypeXVector>());
 
   vec_Xdd_ = std::make_shared<TypeXVector>(
       GenerateXDeltaUnderscore(*vec_Xd_, opts_.estimate_saturation_layers_));

@@ -311,10 +311,10 @@ void MultiTreeView<I>::ConformingRefinement(
     });
   }
 
-  root()->Union(supertree.root(),
-                /*call_filter*/ [](auto& super_mltnode) {
-                  return super_mltnode->marked();
-                });
+  root_->Union(supertree.root(),
+               /*call_filter*/ [](auto& super_mltnode) {
+                 return super_mltnode->marked();
+               });
 
   for (auto super_mltnode : marked) super_mltnode->set_marked(false);
 }
