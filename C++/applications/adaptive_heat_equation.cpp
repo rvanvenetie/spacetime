@@ -104,8 +104,8 @@ auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
 void AdaptiveHeatEquation::Refine(
     const std::vector<TypeXNode *> &nodes_to_add) {
   Xd_.ConformingRefinement(*vec_Xdd_, nodes_to_add);
-  vec_Xd_ = std::make_shared<TypeXVector>(Xd_.template DeepCopy<TypeXVector>());
 
+  vec_Xd_->Union(Xd_);
   vec_Xdd_ = std::make_shared<TypeXVector>(
       GenerateXDeltaUnderscore(*vec_Xd_, opts_.estimate_saturation_layers_));
   vec_Ydd_ = std::make_shared<TypeYVector>(

@@ -42,16 +42,16 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
                                std::move(u0_lf),
                                {.estimate_mean_zero_ = false});
 
-  auto result = heat_eq.Solve();
-  heat_eq.vec_Xd()->FromVectorContainer(result);
-  auto result_nodes = heat_eq.vec_Xd()->Bfs();
-  Eigen::VectorXd python_result(result_nodes.size());
-  python_result << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+  auto u = heat_eq.Solve();
+  heat_eq.vec_Xd()->FromVectorContainer(u);
+  auto u_nodes = heat_eq.vec_Xd()->Bfs();
+  Eigen::VectorXd python_u(u_nodes.size());
+  python_u << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.056793956002164525, 0.12413158640093236;
-  for (size_t i = 0; i < result_nodes.size(); i++)
-    ASSERT_NEAR(result_nodes[i]->value(), python_result[i], 1e-5);
+  for (size_t i = 0; i < u_nodes.size(); i++)
+    ASSERT_NEAR(u_nodes[i]->value(), python_u[i], 1e-5);
 
-  auto [residual, residual_norm] = heat_eq.Estimate(result);
+  auto [residual, residual_norm] = heat_eq.Estimate(u);
   auto residual_nodes = residual->Bfs();
   Eigen::VectorXd python_residual(residual_nodes.size());
   python_residual << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -72,15 +72,19 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   auto marked_nodes = heat_eq.Mark(residual);
   ASSERT_EQ(marked_nodes.size(), python_data[0].first);
   ASSERT_NEAR(residual_norm, python_data[0].second, 1e-10);
+
+  heat_eq.vec_Xd()->FromVectorContainer(u);
   heat_eq.Refine(marked_nodes);
 
-  //  for (size_t iter = 1; iter < 5; iter++) {
-  //    heat_eq.Solve(heat_eq.vec_Xd_out()->ToVectorContainer());
-  //    auto [errors, norm] = heat_eq.Estimate();
-  //    auto marked_nodes = heat_eq.Mark();
-  //    ASSERT_EQ(marked_nodes.size(), python_data[iter].first);
-  //    ASSERT_NEAR(norm, python_data[iter].second, 1e-5);
-  //    heat_eq.Refine(marked_nodes);
-  //  }
+  for (size_t iter = 1; iter < 5; iter++) {
+    u = heat_eq.Solve(heat_eq.vec_Xd()->ToVectorContainer());
+    auto [residual, norm] = heat_eq.Estimate(u);
+    auto marked_nodes = heat_eq.Mark(residual);
+    ASSERT_EQ(marked_nodes.size(), python_data[iter].first);
+    ASSERT_NEAR(norm, python_data[iter].second, 1e-5);
+
+    heat_eq.vec_Xd()->FromVectorContainer(u);
+    heat_eq.Refine(marked_nodes);
+  }
 }
 }  // namespace applications
