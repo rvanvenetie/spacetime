@@ -25,20 +25,18 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
       sigma_(sigma),
       theta_(theta),
       use_cache_(use_cache),
-      space_opts_(std::move(space_opts)) {
-  if constexpr (std::is_same_v<BasisTimeIn, BasisTimeOut>)
-    assert(vec_in != vec_out);
-}
+      space_opts_(std::move(space_opts)) {}
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-Eigen::VectorXd
-BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
-  // Reset the necessary DoubleTrees.
-  vec_out_->Reset();
+Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
+                             BasisTimeOut>::Apply(const Eigen::VectorXd &v_in) {
   sigma_->Reset();
   theta_->Reset();
-  Eigen::VectorXd v;
+  Eigen::VectorXd v_lower;
+
+  // Store the input in the double tree.
+  vec_in_->FromVectorContainer(v_in);
 
   // Check whether we have to recalculate the bilinear forms.
   if (!use_cache_ || !is_cached_) {
@@ -53,6 +51,9 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
       if (use_cache_) bil_space_low_.emplace_back(std::move(bil_form));
     }
 
+    // Reset the output.
+    vec_out_->Reset();
+
     // Calculate R_Lambda(L_0 x Id)I_Sigma.
     for (auto psi_out_labda : vec_out_->Project_1()->Bfs()) {
       auto fiber_in = sigma_->Fiber_0(psi_out_labda->node());
@@ -65,8 +66,11 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
     }
 
     // Store the lower output.
-    v = vec_out_->ToVectorContainer();
-    vec_out_->Reset();
+    v_lower = vec_out_->ToVectorContainer();
+
+    // Reset the input, if necessary.
+    if constexpr (std::is_same_v<BasisTimeIn, BasisTimeOut>)
+      if (vec_in_ == vec_out_) vec_in_->FromVectorContainer(v_in);
 
     // Calculate R_Theta(U_1 x Id)I_Lambda.
     for (auto psi_in_labda : theta_->Project_1()->Bfs()) {
@@ -78,6 +82,9 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
       bil_form.ApplyUpp();
       if (use_cache_) bil_time_upp_.emplace_back(std::move(bil_form));
     }
+
+    // Reset the output.
+    vec_out_->Reset();
 
     // Calculate R_Lambda(Id x A2)I_Theta.
     for (auto psi_out_labda : vec_out_->Project_0()->Bfs()) {
@@ -93,40 +100,41 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
   } else {
     // Apply the lower part using cached bil forms.
     for (auto &bil_form : bil_space_low_) bil_form.Apply();
+    vec_out_->Reset();
     for (auto &bil_form : bil_time_low_) bil_form.ApplyLow();
 
     // Store the lower output.
-    v = vec_out_->ToVectorContainer();
-    vec_out_->Reset();
+    v_lower = vec_out_->ToVectorContainer();
+
+    // Reset the input, if necessary.
+    if constexpr (std::is_same_v<BasisTimeIn, BasisTimeOut>)
+      if (vec_in_ == vec_out_) vec_in_->FromVectorContainer(v_in);
 
     // Apply the upper part using cached bil forms.
     for (auto &bil_form : bil_time_upp_) bil_form.ApplyUpp();
+    vec_out_->Reset();
     for (auto &bil_form : bil_space_upp_) bil_form.Apply();
   }
 
-  // Add the upper part to the output, and store the result in the tree.
-  size_t i = 0;
-  for (auto &node : vec_out_->container()) {
-    v[i] += node.value();
-    node.set_value(v[i++]);
-  }
-
   // Return vectorized output.
-  return v;
+  return v_lower + vec_out_->ToVectorContainer();
 }
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
-                             BasisTimeOut>::ApplyTranspose() {
+Eigen::VectorXd
+BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
+             BasisTimeOut>::ApplyTranspose(const Eigen::VectorXd &v_in) {
   // ApplyTranspose only works with if we have cached the bil forms.
   assert(use_cache_ && is_cached_);
 
   // Reset the necessary DoubleTrees.
-  vec_in_->Reset();
   sigma_->Reset();
   theta_->Reset();
-  Eigen::VectorXd v;
+  Eigen::VectorXd v_lower;
+
+  // Store the input in the double tree.
+  vec_out_->FromVectorContainer(v_in);
 
   // NOTE: We are calculating the transpose, by transposing all the time/space
   // bilinear forms. This means that the order of evaluation changes, and that
@@ -136,31 +144,32 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
 
   // Apply the lower part using cached bil forms.
   for (auto &bil_form : bil_space_upp_) bil_form.Transpose().Apply();
+  vec_in_->Reset();
   for (auto &bil_form : bil_time_upp_) bil_form.Transpose().ApplyLow();
 
   // Store the lower output.
-  v = vec_in_->ToVectorContainer();
-  vec_in_->Reset();
+  v_lower = vec_in_->ToVectorContainer();
+
+  // Reset the input, if necessary.
+  if constexpr (std::is_same_v<BasisTimeIn, BasisTimeOut>)
+    if (vec_in_ == vec_out_) vec_out_->FromVectorContainer(v_in);
 
   // Apply the upper part using cached bil forms.
   for (auto &bil_form : bil_time_low_) bil_form.Transpose().ApplyUpp();
+  vec_in_->Reset();
   for (auto &bil_form : bil_space_low_) bil_form.Transpose().Apply();
 
-  // Add the upper part to the output, and store the result in the tree.
-  size_t i = 0;
-  for (auto &node : vec_in_->container()) {
-    v[i] += node.value();
-    node.set_value(v[i++]);
-  }
-
   // Return vectorized output.
-  return v;
+  return v_lower + vec_in_->ToVectorContainer();
 }
 
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 Eigen::VectorXd
-BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply() {
-  vec_out_->Reset();
+BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
+    const Eigen::VectorXd &v_in) {
+  // Store the input in the double tree.
+  vec_in_->FromVectorContainer(v_in);
+
   if (!use_cache_ || !is_cached_) {
     for (auto psi_out_labda : vec_out_->Project_0()->Bfs()) {
       auto fiber_in = vec_in_->Fiber_1(psi_out_labda->node());
