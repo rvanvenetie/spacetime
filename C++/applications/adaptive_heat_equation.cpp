@@ -56,7 +56,7 @@ AdaptiveHeatEquation::Estimate() {
   auto A = heat_d_dd_->A();
   auto P_Y = heat_d_dd_->P_Y();
   heat_d_dd_.reset();
-  auto heat_dd_dd = HeatEquation(vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_,
+  HeatEquation heat_dd_dd(vec_Xdd_in_, vec_Xdd_out_, vec_Ydd_in_,
                                  vec_Ydd_out_, A, P_Y, opts_);
   auto u_dd_dd = vec_Xdd_in();
   u_dd_dd->Reset();
