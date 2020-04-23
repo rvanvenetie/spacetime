@@ -48,11 +48,9 @@ class BilinearForm
   Eigen::VectorXd ApplyTranspose();
 
   auto Transpose() {
-    if (!transpose_)
-      transpose_ =
-          std::make_shared<typename decltype(transpose_)::element_type>(
-              this->shared_from_this());
-    return transpose_;
+    return std::make_shared<TransposeBilinearForm<
+        BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>>>(
+        this->shared_from_this());
   }
 
   auto sigma() { return sigma_; }
@@ -69,9 +67,6 @@ class BilinearForm
 
   std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma_;
   std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta_;
-  std::shared_ptr<TransposeBilinearForm<
-      BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>>>
-      transpose_;
 
   // Define frozen templates, useful for storing the bil forms.
   template <size_t i>
