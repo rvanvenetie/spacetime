@@ -7,11 +7,8 @@
 
 namespace Time {
 
-// Initialize static variables.
-datastructures::Tree<DiscLinearScalingFn> disc_lin_tree;
-datastructures::Tree<OrthonormalWaveletFn> ortho_tree;
-
-DiscLinearScalingFn::DiscLinearScalingFn() : ScalingFn<DiscLinearScalingFn>() {
+DiscLinearScalingFn::DiscLinearScalingFn(Element1D* mother_element)
+    : ScalingFn<DiscLinearScalingFn>() {
   auto scaling_left = make_child(
       /* parents */ std::vector{this},
       /* index */ 0,
@@ -73,15 +70,15 @@ bool DiscLinearScalingFn::Refine() {
   return true;
 }
 
-OrthonormalWaveletFn::OrthonormalWaveletFn()
+OrthonormalWaveletFn::OrthonormalWaveletFn(
+    std::vector<DiscLinearScalingFn*> mother_scalings)
     : WaveletFn<OrthonormalWaveletFn>() {
-  auto l0_scalings = disc_lin_tree.meta_root->children();
-  assert(l0_scalings.size() == 2);
+  assert(mother_scalings.size() == 2);
   for (size_t i = 0; i < 2; ++i) {
     make_child(
         /* parents */ std::vector{this},
         /* index */ i,
-        /* single_scale */ std::vector{std::pair{l0_scalings[i], 1.0}});
+        /* single_scale */ std::vector{std::pair{mother_scalings[i], 1.0}});
   }
 }
 

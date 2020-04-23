@@ -1,14 +1,9 @@
 #include "basis.hpp"
 
-#include "haar_basis.hpp"
 #include "orthonormal_basis.hpp"
 #include "three_point_basis.hpp"
 
 namespace Time {
-
-// Initialize static variable;
-datastructures::Tree<Element1D> elem_tree;
-Element1D *mother_element{elem_tree.meta_root->children()[0]};
 
 bool Element1D::Refine() {
   if (is_full()) return false;
@@ -53,24 +48,6 @@ double Element1D::GlobalCoordinates(double bary2) const {
   assert(0 <= bary2 && bary2 <= 1);
   auto [a, b] = Interval();
   return a + bary2 * (b - a);
-}
-
-void ResetTrees() {
-  // Reset the element tree.
-  elem_tree = datastructures::Tree<Element1D>();
-  mother_element = elem_tree.meta_root->children()[0];
-
-  // Reset the 3pt tree.
-  cont_lin_tree = datastructures::Tree<ContLinearScalingFn>();
-  three_point_tree = datastructures::Tree<ThreePointWaveletFn>();
-
-  // Reset the haar tree.
-  disc_cons_tree = datastructures::Tree<DiscConstantScalingFn>();
-  haar_tree = datastructures::Tree<HaarWaveletFn>();
-
-  // Reset the orthonormal tree.
-  disc_lin_tree = datastructures::Tree<DiscLinearScalingFn>();
-  ortho_tree = datastructures::Tree<OrthonormalWaveletFn>();
 }
 
 }  // namespace Time

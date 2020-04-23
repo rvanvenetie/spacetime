@@ -139,6 +139,9 @@ class Tree {
   // This constructs the tree with a single meta_root.
   Tree(I *meta_root) : meta_root(meta_root) {}
   Tree() : Tree(new I()) {}
+  template <typename... Args>
+  Tree(Args &&... args) : Tree(new I(std::forward<Args>(args)...)) {}
+
   Tree(const Tree &) = delete;
   Tree<I> &operator=(Tree<I> &&) = default;
 

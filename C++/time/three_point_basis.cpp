@@ -5,12 +5,9 @@
 #include <memory>
 namespace Time {
 
-// Initialize static variables.
-datastructures::Tree<ContLinearScalingFn> cont_lin_tree;
-datastructures::Tree<ThreePointWaveletFn> three_point_tree;
-
 // Metaroot constructor.
-ContLinearScalingFn::ContLinearScalingFn() : ScalingFn<ContLinearScalingFn>() {
+ContLinearScalingFn::ContLinearScalingFn(Element1D *mother_element)
+    : ScalingFn<ContLinearScalingFn>() {
   auto scaling_left = make_child(
       /* parents */ std::vector{this},
       /* index */ 0,
@@ -91,8 +88,9 @@ ContLinearScalingFn *ContLinearScalingFn::RefineLeft() {
   return child_left_;
 }
 
-ThreePointWaveletFn::ThreePointWaveletFn() : WaveletFn<ThreePointWaveletFn>() {
-  auto mother_scalings = cont_lin_tree.meta_root->children();
+ThreePointWaveletFn::ThreePointWaveletFn(
+    std::vector<ContLinearScalingFn *> mother_scalings)
+    : WaveletFn<ThreePointWaveletFn>() {
   assert(mother_scalings.size() == 2);
   for (size_t i = 0; i < 2; ++i) {
     make_child(
