@@ -48,7 +48,8 @@ class BilinearForm
   Eigen::VectorXd ApplyTranspose();
 
   auto Transpose() {
-    return std::make_shared<typename decltype(transpose_)::element_type>(
+    return std::make_shared<TransposeBilinearForm<
+        BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>>>(
         this->shared_from_this());
   }
 
