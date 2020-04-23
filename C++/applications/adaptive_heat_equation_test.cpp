@@ -38,8 +38,7 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   X_delta.SparseRefine(1);
 
   auto [g_lf, u0_lf] = SmoothProblem();
-  AdaptiveHeatEquation heat_eq(std::move(X_delta), std::move(g_lf),
-                               std::move(u0_lf),
+  AdaptiveHeatEquation heat_eq(X_delta, std::move(g_lf), std::move(u0_lf),
                                {.estimate_mean_zero_ = false});
 
   auto u = heat_eq.Solve();

@@ -97,22 +97,23 @@ int main(int argc, char* argv[]) {
                                std::move(problem_data.first),
                                std::move(problem_data.second), adapt_opts);
 
-  //  size_t ndof = 0;
-  //  while (ndof < max_dofs) {
-  //    auto start = std::chrono::steady_clock::now();
-  //    auto solution =
-  //    heat_eq.Solve(heat_eq.vec_Xd_out()->ToVectorContainer()); ndof =
-  //    heat_eq.vec_Xd_out()->Bfs().size();  // A slight overestimate. auto
-  //    [residual, residual_norm] = heat_eq.Estimate(); auto end =
-  //    std::chrono::steady_clock::now(); auto marked_nodes = heat_eq.Mark();
-  //    heat_eq.Refine(marked_nodes);
-  //    std::chrono::duration<double> elapsed_seconds = end - start;
-  //    std::cout << "XDelta-size: " << ndof << " residual-norm: " <<
-  //    residual_norm
-  //              << " total-memory-kB: " << getmem()
-  //              << " solve-estimate-time: " << elapsed_seconds.count()
-  //              << std::endl;
-  //  }
+  size_t ndof = 0;
+  while (ndof < max_dofs) {
+    auto start = std::chrono::steady_clock::now();
+    auto solution = heat_eq.Solve(heat_eq.vec_Xd()->ToVectorContainer());
+    ndof = heat_eq.vec_Xd()->Bfs().size();  // A slight overestimate. auto
+    auto [residual, residual_norm] = heat_eq.Estimate(solution);
+    auto end = std::chrono::steady_clock::now();
+    auto marked_nodes = heat_eq.Mark(residual);
+
+    heat_eq.vec_Xd()->FromVectorContainer(solution);
+    heat_eq.Refine(marked_nodes);
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    std::cout << "XDelta-size: " << ndof << " residual-norm: " << residual_norm
+              << " total-memory-kB: " << getmem()
+              << " solve-estimate-time: " << elapsed_seconds.count()
+              << std::endl;
+  }
 
   return 0;
 }

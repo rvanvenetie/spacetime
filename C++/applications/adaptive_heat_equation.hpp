@@ -67,7 +67,7 @@ class AdaptiveHeatEquation {
 
  public:
   AdaptiveHeatEquation(
-      TypeXDelta &&X_delta, std::unique_ptr<TypeYLinForm> &&g_lin_form,
+      const TypeXDelta &X_delta, std::unique_ptr<TypeYLinForm> &&g_lin_form,
       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
@@ -89,7 +89,6 @@ class AdaptiveHeatEquation {
   Eigen::VectorXd RHS(HeatEquation &heat);
   void ApplyMeanZero(TypeXVector *vec);
 
-  TypeXDelta Xd_;
   std::shared_ptr<TypeXVector> vec_Xd_, vec_Xdd_;
   std::shared_ptr<TypeYVector> vec_Ydd_;
   std::unique_ptr<HeatEquation> heat_d_dd_;
