@@ -98,16 +98,21 @@ int main(int argc, char* argv[]) {
                                std::move(problem_data.second), adapt_opts);
 
   size_t ndof = 0;
+  Eigen::VectorXd x0 =
+      Eigen::VectorXd::Zero(heat_eq.vec_Xd()->container().size());
   while (ndof < max_dofs) {
     auto start = std::chrono::steady_clock::now();
-    auto solution = heat_eq.Solve(heat_eq.vec_Xd()->ToVectorContainer());
+    auto solution = heat_eq.Solve(x0);
     ndof = heat_eq.vec_Xd()->Bfs().size();  // A slight overestimate. auto
     auto [residual, residual_norm] = heat_eq.Estimate(solution);
     auto end = std::chrono::steady_clock::now();
     auto marked_nodes = heat_eq.Mark(residual);
 
+    // Refine and prolongate the current solution.
     heat_eq.vec_Xd()->FromVectorContainer(solution);
     heat_eq.Refine(marked_nodes);
+    x0 = heat_eq.vec_Xd()->ToVectorContainer();
+
     std::chrono::duration<double> elapsed_seconds = end - start;
     std::cout << "XDelta-size: " << ndof << " residual-norm: " << residual_norm
               << " total-memory-kB: " << getmem()
