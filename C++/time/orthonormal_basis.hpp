@@ -52,7 +52,7 @@ class DiscLinearScalingFn : public ScalingFn<DiscLinearScalingFn> {
   }
 
   // Protected constructor for creating a metaroot.
-  DiscLinearScalingFn();
+  DiscLinearScalingFn(Element1D *mother_element);
 
   friend datastructures::Tree<DiscLinearScalingFn>;
   friend OrthonormalWaveletFn;
@@ -79,13 +79,9 @@ class OrthonormalWaveletFn : public WaveletFn<OrthonormalWaveletFn> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  OrthonormalWaveletFn();
+  OrthonormalWaveletFn(std::vector<DiscLinearScalingFn *> mother_scalings);
 
   friend datastructures::Tree<OrthonormalWaveletFn>;
 };
-
-// Define static variables.
-extern datastructures::Tree<DiscLinearScalingFn> disc_lin_tree;
-extern datastructures::Tree<OrthonormalWaveletFn> ortho_tree;
 
 }  // namespace Time

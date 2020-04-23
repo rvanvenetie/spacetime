@@ -11,9 +11,7 @@
 using applications::AdaptiveHeatEquation;
 using datastructures::DoubleTreeView;
 using space::HierarchicalBasisFn;
-using Time::ortho_tree;
 using Time::OrthonormalWaveletFn;
-using Time::three_point_tree;
 using Time::ThreePointWaveletFn;
 
 using namespace applications;
@@ -72,14 +70,16 @@ int main(int argc, char* argv[]) {
             vm);
   po::notify(vm);
   std::cout << adapt_opts << std::endl;
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare(initial_refines);
 
   T.hierarch_basis_tree.UniformRefine(1);
-  ortho_tree.UniformRefine(1);
-  three_point_tree.UniformRefine(1);
+  B.ortho_tree.UniformRefine(1);
+  B.three_point_tree.UniformRefine(1);
 
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root.get(),
+      T.hierarch_basis_tree.meta_root.get());
   X_delta.SparseRefine(1);
 
   std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
