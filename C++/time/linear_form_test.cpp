@@ -1,5 +1,6 @@
 #include "linear_form.hpp"
 
+#include "bases.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "integration.hpp"
@@ -8,17 +9,17 @@ using datastructures::TreeVector;
 
 namespace Time {
 TEST(LinearForm, ThreePointQuadratureTest) {
-  ResetTrees();
+  Bases B;
 
   int ml = 6;
   // Now we check what happens when we also refine near the end points.
-  three_point_tree.UniformRefine(ml);
+  B.three_point_tree.UniformRefine(ml);
 
   auto f = [](double t) { return t * t; };
   auto linear_form = LinearForm<ThreePointWaveletFn>(
       std::make_unique<QuadratureFunctional<ContLinearScalingFn>>(f,
                                                                   /*order*/ 2));
-  auto vec_out = TreeVector<ThreePointWaveletFn>(three_point_tree.meta_root);
+  auto vec_out = TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root);
   vec_out.DeepRefine();
 
   linear_form.Apply(vec_out.root());
@@ -36,15 +37,15 @@ TEST(LinearForm, ThreePointQuadratureTest) {
 }
 
 TEST(LinearForm, ThreePointZeroEvalTest) {
-  ResetTrees();
+  Bases B;
 
   int ml = 6;
   // Now we check what happens when we also refine near the end points.
-  three_point_tree.UniformRefine(ml);
+  B.three_point_tree.UniformRefine(ml);
 
   auto linear_form = LinearForm<ThreePointWaveletFn>(
       std::make_unique<ZeroEvalFunctional<ContLinearScalingFn>>());
-  auto vec_out = TreeVector<ThreePointWaveletFn>(three_point_tree.meta_root);
+  auto vec_out = TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root);
   vec_out.DeepRefine();
 
   linear_form.Apply(vec_out.root());
@@ -54,17 +55,17 @@ TEST(LinearForm, ThreePointZeroEvalTest) {
 }
 
 TEST(LinearForm, OrthoQuadratureTest) {
-  ResetTrees();
+  Bases B;
 
   int ml = 6;
   // Now we check what happens when we also refine near the end points.
-  ortho_tree.UniformRefine(ml);
+  B.ortho_tree.UniformRefine(ml);
 
   auto f = [](double t) { return t * t * t; };
   auto linear_form = LinearForm<OrthonormalWaveletFn>(
       std::make_unique<QuadratureFunctional<DiscLinearScalingFn>>(f,
                                                                   /*order*/ 3));
-  auto vec_out = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
+  auto vec_out = TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root);
   vec_out.DeepRefine();
 
   linear_form.Apply(vec_out.root());

@@ -5,19 +5,19 @@
 #include <set>
 #include <unordered_map>
 
+#include "bases.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "three_point_basis.hpp"
 
 namespace Time {
 
 TEST(SparseVector, BLAS) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 7;
-  three_point_tree.UniformRefine(ml);
-  auto nodes = cont_lin_tree.meta_root->Bfs();
+  B.three_point_tree.UniformRefine(ml);
+  auto nodes = B.cont_lin_tree.meta_root->Bfs();
 
   // First sum up two disjoint subsets.
   SparseVector<ContLinearScalingFn> vec1, vec2, vecsum;

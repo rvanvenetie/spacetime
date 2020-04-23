@@ -59,7 +59,7 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
   ContLinearScalingFn *child_right_ = nullptr;
 
   // Protected constructor for creating a metaroot.
-  ContLinearScalingFn();
+  ContLinearScalingFn(Element1D *mother_element);
 
   friend datastructures::Tree<ContLinearScalingFn>;
   friend ThreePointWaveletFn;
@@ -82,13 +82,9 @@ class ThreePointWaveletFn : public WaveletFn<ThreePointWaveletFn> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  ThreePointWaveletFn();
+  ThreePointWaveletFn(std::vector<ContLinearScalingFn *> mother_scalings);
 
   friend datastructures::Tree<ThreePointWaveletFn>;
 };
-
-// Define static variables.
-extern datastructures::Tree<ContLinearScalingFn> cont_lin_tree;
-extern datastructures::Tree<ThreePointWaveletFn> three_point_tree;
 
 }  // namespace Time

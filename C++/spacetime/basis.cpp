@@ -16,8 +16,19 @@ DblTreeOut<OrthonormalWaveletFn, HierarchicalBasisFn> GenerateYDelta(
   using SpaceTreeVector =
       std::vector<typename DblTreeIn<ThreePointWaveletFn,
                                      HierarchicalBasisFn>::FrozenDN1Type *>;
+  // Figure out the orthonormal metaroot.
+  OrthonormalWaveletFn *ortho_meta_root = std::get<0>(X_delta.root()->nodes())
+                                              ->children()
+                                              .at(0)
+                                              ->support()
+                                              .at(0)
+                                              ->RefinePsiOrthonormal()[0]
+                                              ->parents()
+                                              .at(0);
+  assert(ortho_meta_root->is_metaroot());
+
   auto Y_delta = DblTreeOut<OrthonormalWaveletFn, HierarchicalBasisFn>(
-      Time::ortho_tree.meta_root.get(), std::get<1>(X_delta.root()->nodes()));
+      ortho_meta_root, std::get<1>(X_delta.root()->nodes()));
 
   Y_delta.Project_1()->Union(X_delta.Project_1());
 

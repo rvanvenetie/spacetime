@@ -3,7 +3,7 @@
 #include <cmath>
 
 #include "../datastructures/multi_tree_view.hpp"
-#include "basis.hpp"
+#include "bases.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -11,10 +11,11 @@ using datastructures::static_for;
 
 namespace Time {
 TEST(Integration, Monomials) {
-  elem_tree.UniformRefine(4);
+  Bases B;
+  B.elem_tree.UniformRefine(4);
 
   static_for<10>([&](auto degree) {
-    for (auto elem : elem_tree.Bfs()) {
+    for (auto elem : B.elem_tree.Bfs()) {
       for (size_t n = 0; n < degree; n++) {
         auto f = [n](double x) { return pow(x, n); };
         auto [a, b] = elem->Interval();

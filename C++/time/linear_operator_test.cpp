@@ -6,6 +6,7 @@
 #include <set>
 #include <unordered_map>
 
+#include "bases.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "integration.hpp"
@@ -85,19 +86,19 @@ void CheckMatrixQuadrature(const SparseIndices<BasisIn> &indices_in,
 
 TEST(ContLinearScaling, ProlongateEval) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 15;
   // Now we check what happens when we also refine near the end points.
-  three_point_tree.DeepRefine([ml](auto node) {
+  B.three_point_tree.DeepRefine([ml](auto node) {
     return node->is_metaroot() ||
            (node->level() < ml &&
             (node->index() == 0 ||
              node->index() == (1 << (node->level() - 1)) - 1));
   });
 
-  auto Lambda = three_point_tree.NodesPerLevel();
-  auto Delta = cont_lin_tree.NodesPerLevel();
+  auto Lambda = B.three_point_tree.NodesPerLevel();
+  auto Delta = B.cont_lin_tree.NodesPerLevel();
 
   double n_t = 2048;
   for (int l = 0; l < ml; ++l) {
@@ -121,13 +122,13 @@ TEST(ContLinearScaling, ProlongateEval) {
 
 TEST(ContLinearScaling, CheckMatrixTransposes) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 7;
 
-  three_point_tree.UniformRefine(ml);
-  auto Lambda = three_point_tree.NodesPerLevel();
-  auto Delta = cont_lin_tree.NodesPerLevel();
+  B.three_point_tree.UniformRefine(ml);
+  auto Lambda = B.three_point_tree.NodesPerLevel();
+  auto Delta = B.cont_lin_tree.NodesPerLevel();
 
   for (int l = 1; l < ml; ++l) {
     CheckMatrixTranspose<Prolongate<ContLinearScalingFn>, ContLinearScalingFn,
@@ -144,13 +145,13 @@ TEST(ContLinearScaling, CheckMatrixTransposes) {
 
 TEST(ContLinearScaling, MatrixQuadrature) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 7;
 
-  three_point_tree.UniformRefine(ml);
-  auto Lambda = three_point_tree.NodesPerLevel();
-  auto Delta = cont_lin_tree.NodesPerLevel();
+  B.three_point_tree.UniformRefine(ml);
+  auto Lambda = B.three_point_tree.NodesPerLevel();
+  auto Delta = B.cont_lin_tree.NodesPerLevel();
 
   for (int l = 0; l < ml; ++l) {
     CheckMatrixQuadrature<
@@ -162,13 +163,13 @@ TEST(ContLinearScaling, MatrixQuadrature) {
 
 TEST(DiscLinearScaling, CheckMatrixTransposes) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 7;
 
-  ortho_tree.UniformRefine(ml);
-  auto Lambda = ortho_tree.NodesPerLevel();
-  auto Delta = disc_lin_tree.NodesPerLevel();
+  B.ortho_tree.UniformRefine(ml);
+  auto Lambda = B.ortho_tree.NodesPerLevel();
+  auto Delta = B.disc_lin_tree.NodesPerLevel();
 
   for (int l = 1; l < ml; ++l) {
     std::cout << "Prolongation" << std::endl;
@@ -188,13 +189,13 @@ TEST(DiscLinearScaling, CheckMatrixTransposes) {
 
 TEST(DiscLinearScaling, MatrixQuadrature) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 7;
 
-  ortho_tree.UniformRefine(ml);
-  auto Lambda = ortho_tree.NodesPerLevel();
-  auto Delta = disc_lin_tree.NodesPerLevel();
+  B.ortho_tree.UniformRefine(ml);
+  auto Lambda = B.ortho_tree.NodesPerLevel();
+  auto Delta = B.disc_lin_tree.NodesPerLevel();
 
   for (int l = 0; l < ml; ++l) {
     CheckMatrixQuadrature<
@@ -206,17 +207,17 @@ TEST(DiscLinearScaling, MatrixQuadrature) {
 
 TEST(DiscContLinearScaling, CheckMatrixTransposes) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 7;
 
-  three_point_tree.UniformRefine(ml);
-  auto Lambda_3pt = three_point_tree.NodesPerLevel();
-  auto Delta_3pt = cont_lin_tree.NodesPerLevel();
+  B.three_point_tree.UniformRefine(ml);
+  auto Lambda_3pt = B.three_point_tree.NodesPerLevel();
+  auto Delta_3pt = B.cont_lin_tree.NodesPerLevel();
 
-  ortho_tree.UniformRefine(ml);
-  auto Lambda_ortho = ortho_tree.NodesPerLevel();
-  auto Delta_ortho = disc_lin_tree.NodesPerLevel();
+  B.ortho_tree.UniformRefine(ml);
+  auto Lambda_ortho = B.ortho_tree.NodesPerLevel();
+  auto Delta_ortho = B.disc_lin_tree.NodesPerLevel();
 
   for (int l = 1; l < ml; ++l) {
     CheckMatrixTranspose<MassOperator<ContLinearScalingFn, DiscLinearScalingFn>,
@@ -242,17 +243,17 @@ TEST(DiscContLinearScaling, CheckMatrixTransposes) {
 
 TEST(DiscContLinearScaling, ZeroEvalWorks) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 7;
 
-  three_point_tree.UniformRefine(ml);
-  auto Lambda_3pt = three_point_tree.NodesPerLevel();
-  auto Delta_3pt = cont_lin_tree.NodesPerLevel();
+  B.three_point_tree.UniformRefine(ml);
+  auto Lambda_3pt = B.three_point_tree.NodesPerLevel();
+  auto Delta_3pt = B.cont_lin_tree.NodesPerLevel();
 
-  ortho_tree.UniformRefine(ml);
-  auto Lambda_ortho = ortho_tree.NodesPerLevel();
-  auto Delta_ortho = disc_lin_tree.NodesPerLevel();
+  B.ortho_tree.UniformRefine(ml);
+  auto Lambda_ortho = B.ortho_tree.NodesPerLevel();
+  auto Delta_ortho = B.disc_lin_tree.NodesPerLevel();
 
   for (int l = 0; l < ml; ++l) {
     auto mat =
@@ -267,17 +268,17 @@ TEST(DiscContLinearScaling, ZeroEvalWorks) {
 }
 TEST(DiscContLinearScaling, MatrixQuadrature) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 7;
 
-  three_point_tree.UniformRefine(ml);
-  auto Lambda_3pt = three_point_tree.NodesPerLevel();
-  auto Delta_3pt = cont_lin_tree.NodesPerLevel();
+  B.three_point_tree.UniformRefine(ml);
+  auto Lambda_3pt = B.three_point_tree.NodesPerLevel();
+  auto Delta_3pt = B.cont_lin_tree.NodesPerLevel();
 
-  ortho_tree.UniformRefine(ml);
-  auto Lambda_ortho = ortho_tree.NodesPerLevel();
-  auto Delta_ortho = disc_lin_tree.NodesPerLevel();
+  B.ortho_tree.UniformRefine(ml);
+  auto Lambda_ortho = B.ortho_tree.NodesPerLevel();
+  auto Delta_ortho = B.disc_lin_tree.NodesPerLevel();
 
   for (int l = 0; l < ml; ++l) {
     CheckMatrixQuadrature<

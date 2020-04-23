@@ -3,17 +3,16 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "space/initial_triangulation.hpp"
-#include "time/basis.hpp"
-#include "time/orthonormal_basis.hpp"
+#include "time/bases.hpp"
 
 constexpr int max_level = 6;
 
 namespace spacetime {
 TEST(LinearForm, Quadrature) {
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
-  Time::ResetTrees();
-  Time::ortho_tree.UniformRefine(max_level);
+  B.ortho_tree.UniformRefine(max_level);
 
   auto time_f = [](double t) { return t * t * t; };
   auto space_f = [](double x, double y) { return x * y; };
@@ -23,8 +22,7 @@ TEST(LinearForm, Quadrature) {
   for (int level = 1; level < max_level; level++) {
     auto vec = datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
                                                 space::HierarchicalBasisFn>(
-        Time::ortho_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
+        B.ortho_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
     vec.SparseRefine(level);
     linform->Apply(&vec);
     for (auto phi : vec.Bfs())
@@ -34,10 +32,10 @@ TEST(LinearForm, Quadrature) {
 }
 
 TEST(LinearForm, ZeroEval) {
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
-  Time::ResetTrees();
-  Time::ortho_tree.UniformRefine(max_level);
+  B.ortho_tree.UniformRefine(max_level);
 
   auto space_f = [](double x, double y) { return x * y; };
 
@@ -46,8 +44,7 @@ TEST(LinearForm, ZeroEval) {
   for (int level = 1; level < max_level; level++) {
     auto vec = datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
                                                 space::HierarchicalBasisFn>(
-        Time::ortho_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
+        B.ortho_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
     vec.SparseRefine(level);
     linform->Apply(&vec);
     ASSERT_NE(vec.ToVector().sum(), 0.0);
