@@ -139,8 +139,8 @@ class StiffnessOperator : public ForwardMatrix<StiffnessOperator> {
   using ForwardMatrix<StiffnessOperator>::ForwardMatrix;
 
   // Returns the element matrix for the given element.
-  inline static const Eigen::Matrix3d &ElementMatrix(
-      const Element2DView *elem, const OperatorOptions &opts);
+  inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+                                              const OperatorOptions &opts);
 };
 
 class StiffPlusScaledMassOperator

@@ -68,7 +68,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
 
   Eigen::Vector3d BarycentricCoordinates(double x, double y) const;
   std::pair<double, double> GlobalCoordinates(double bary2, double bary3) const;
-  const Eigen::Matrix3d &StiffnessMatrix() const { return stiff_mat_; }
+  // const Eigen::Matrix3d &StiffnessMatrix() const { return stiff_mat_; }
 
   bool Refine();
 
@@ -89,7 +89,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
  protected:
   double area_;
   std::array<Vertex *, 3> vertices_;
-  Eigen::Matrix3d stiff_mat_;
+  // Eigen::Matrix3d stiff_mat_;
 
   // Protected constructor for creating a metaroot.
   Element2D() : BinaryNode(), area_(-1) {}

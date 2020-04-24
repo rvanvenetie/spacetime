@@ -1,10 +1,5 @@
 #include "operators.hpp"
 
-#ifndef EIGEN_NO_DEBUG
-#define COMPILE_WITH_EIGEN_DEBUG
-#define EIGEN_NO_DEBUG
-#endif
-
 namespace space {
 
 inline Eigen::Matrix3d MassOperator::ElementMatrix(
@@ -14,9 +9,28 @@ inline Eigen::Matrix3d MassOperator::ElementMatrix(
   return elem->node()->area() / 12.0 * elem_mat;
 }
 
-inline const Eigen::Matrix3d &StiffnessOperator::ElementMatrix(
+inline Eigen::Matrix3d StiffnessOperator::ElementMatrix(
     const Element2DView *elem, const OperatorOptions &opts) {
-  return elem->node()->StiffnessMatrix();
+  // The matrix \int_{ref tri} 2 * d/dx phi * d/dx psi.
+  static Eigen::Matrix3d elem_mat1 =
+      (Eigen::Matrix3d() << 1, -1, 0, -1, 1, 0, 0, 0, 0).finished();
+  // The matrix \int_{ref tri} 2* d/dx phi * d/dy psi + 2* d/dy phi * d/dx psi.
+  static Eigen::Matrix3d elem_mat2 =
+      (Eigen::Matrix3d() << 2, -1, -1, -1, 0, 1, -1, 1, 0).finished();
+  // The matrix \int_{ref tri} 2 * d/dy phi * d/dy psi.
+  static Eigen::Matrix3d elem_mat3 =
+      (Eigen::Matrix3d() << 1, 0, -1, 0, 0, 0, -1, 0, 1).finished();
+  auto verts = elem->node()->vertices();
+  double v1x = verts[0]->x, v1y = verts[0]->y, v2x = verts[1]->x,
+         v2y = verts[1]->y, v3x = verts[2]->x, v3y = verts[2]->y;
+  double C1 = (v3x - v1x) * (v3x - v1x) + (v3y - v1y) * (v3y - v1y);
+  double C2 = (v2x - v1x) * (v1x - v3x) + (v2y - v1y) * (v1y - v3y);
+  double C3 = (v2x - v1x) * (v2x - v1x) + (v2y - v1y) * (v2y - v1y);
+  // assert(elem->node()->StiffnessMatrix().isApprox(
+  //     1.0 / (4 * elem->node()->area()) *
+  //     (elem_mat1 * C1 + elem_mat2 * C2 + elem_mat3 * C3)));
+  return 1.0 / (4 * elem->node()->area()) *
+         (elem_mat1 * C1 + elem_mat2 * C2 + elem_mat3 * C3);
 }
 
 inline Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
@@ -316,8 +330,3 @@ void XPreconditionerOperator<InverseOp>::ApplySingleScale(
 }
 
 }  // namespace space
-
-#ifdef COMPILE_WITH_EIGEN_DEBUG
-#undef EIGEN_NO_DEBUG
-#undef COMPILE_WITH_EIGEN_DEBUG
-#endif
