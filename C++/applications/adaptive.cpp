@@ -77,10 +77,11 @@ int main(int argc, char* argv[]) {
   B.ortho_tree.UniformRefine(1);
   B.three_point_tree.UniformRefine(1);
 
-  auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+  auto vec_Xd = std::make_shared<
+      DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
       B.three_point_tree.meta_root.get(),
       T.hierarch_basis_tree.meta_root.get());
-  X_delta.SparseRefine(1);
+  vec_Xd->SparseRefine(1);
 
   std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
             std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
@@ -93,20 +94,24 @@ int main(int argc, char* argv[]) {
     std::cout << "problem not recognized :-(" << std::endl;
     return 1;
   }
-  AdaptiveHeatEquation heat_eq(std::move(X_delta),
-                               std::move(problem_data.first),
+  AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                std::move(problem_data.second), adapt_opts);
 
   size_t ndof = 0;
+  Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
   while (ndof < max_dofs) {
     auto start = std::chrono::steady_clock::now();
-    auto [solution, pcg_data] =
-        heat_eq.Solve(heat_eq.vec_Xd_out()->ToVectorContainer());
-    ndof = heat_eq.vec_Xd_out()->Bfs().size();  // A slight overestimate.
-    auto [residual, residual_norm] = heat_eq.Estimate();
+    auto [solution, pcg_data] = heat_eq.Solve(x0);
+    ndof = vec_Xd->Bfs().size();  // A slight overestimate.
+    auto [residual, residual_norm] = heat_eq.Estimate(solution);
     auto end = std::chrono::steady_clock::now();
-    auto marked_nodes = heat_eq.Mark();
+    auto marked_nodes = heat_eq.Mark(residual);
+
+    // Refine and prolongate the current solution.
+    vec_Xd->FromVectorContainer(solution);
     heat_eq.Refine(marked_nodes);
+    x0 = vec_Xd->ToVectorContainer();
+
     std::chrono::duration<double> elapsed_seconds = end - start;
     std::cout << "XDelta-size: " << ndof << " residual-norm: " << residual_norm
               << " total-memory-kB: " << getmem()

@@ -78,12 +78,13 @@ TEST(GenerateXDeltaUnderscore, EqualsSparseGrid) {
   size_t max_level = 6;
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
-  auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+  auto X_delta = DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
       B.three_point_tree.meta_root.get(),
       T.hierarch_basis_tree.meta_root.get());
-  auto X_delta_next = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      B.three_point_tree.meta_root.get(),
-      T.hierarch_basis_tree.meta_root.get());
+  auto X_delta_next =
+      DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
+          B.three_point_tree.meta_root.get(),
+          T.hierarch_basis_tree.meta_root.get());
   for (size_t level = 0; level < max_level; level++) {
     X_delta.SparseRefine(2 * level, {2, 1});
     auto X_delta_underscore = GenerateXDeltaUnderscore(X_delta);

@@ -40,12 +40,12 @@ class BilinearForm
       space::OperatorOptions space_opts = space::OperatorOptions());
 
   // Apply takes data from vec_in and writes it to vec_out.
-  Eigen::VectorXd Apply() final;
+  Eigen::VectorXd Apply(const Eigen::VectorXd &v) final;
   DblVecIn *vec_in() const final { return vec_in_; }
   DblVecOut *vec_out() const final { return vec_out_; }
 
   // ApplyTranspose takes data from *vec_out* and writes it to *vec_in*.
-  Eigen::VectorXd ApplyTranspose();
+  Eigen::VectorXd ApplyTranspose(const Eigen::VectorXd &v);
 
   auto Transpose() {
     return std::make_shared<TransposeBilinearForm<
@@ -144,7 +144,7 @@ class BlockDiagonalBilinearForm
   }
 
   // Apply takes data from vec_in and writes it to vec_out.
-  Eigen::VectorXd Apply() final;
+  Eigen::VectorXd Apply(const Eigen::VectorXd &v) final;
   DblVecIn *vec_in() const final { return vec_in_; }
   DblVecOut *vec_out() const final { return vec_out_; }
 

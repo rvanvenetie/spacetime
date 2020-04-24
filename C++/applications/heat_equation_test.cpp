@@ -23,73 +23,6 @@ auto ValidateVector(const DblVec &vec) {
   }
 }
 
-TEST(HeatEquation, SparseMatVec) {
-  auto B = Time::Bases();
-  auto T = space::InitialTriangulation::UnitSquare();
-  T.hierarch_basis_tree.UniformRefine(6);
-  B.ortho_tree.UniformRefine(6);
-  B.three_point_tree.UniformRefine(6);
-
-  for (int level = 1; level < 6; level++) {
-    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        B.three_point_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
-    X_delta.SparseRefine(level);
-
-    HeatEquation heat_eq(X_delta);
-
-    // Generate some random rhs.
-    for (auto nv : heat_eq.vec_X_in()->Bfs()) {
-      if (nv->node_1()->on_domain_boundary()) continue;
-      nv->set_random();
-    }
-    for (auto nv : heat_eq.vec_Y_in()->Bfs()) {
-      if (nv->node_1()->on_domain_boundary()) continue;
-      nv->set_random();
-    }
-
-    // Validate the input.
-    ValidateVector(*heat_eq.vec_X_in());
-    ValidateVector(*heat_eq.vec_Y_in());
-
-    // Turn this into an eigen-friendly vector.
-    auto v_in =
-        heat_eq.BlockBF()->ToVector({heat_eq.vec_Y_in()->ToVectorContainer(),
-                                     heat_eq.vec_X_in()->ToVectorContainer()});
-
-    // Apply the block matrix :-).
-    heat_eq.BlockBF()->Apply();
-
-    // Validate the result.
-    ValidateVector(*heat_eq.vec_X_out());
-    ValidateVector(*heat_eq.vec_Y_out());
-
-    // Check that the input vector remained untouched.
-    auto v_now =
-        heat_eq.BlockBF()->ToVector({heat_eq.vec_Y_in()->ToVectorContainer(),
-                                     heat_eq.vec_X_in()->ToVectorContainer()});
-    ASSERT_TRUE(v_in.isApprox(v_now));
-
-    // Now use Eigen to atually solve something.
-    Eigen::MINRES<BilinearFormBase<void>, Eigen::Lower | Eigen::Upper,
-                  Eigen::IdentityPreconditioner>
-        minres;
-    minres.compute(*heat_eq.BlockBF());
-    Eigen::VectorXd x;
-    x = minres.solve(v_in);
-    std::cout << "MINRES:   #iterations: " << minres.iterations()
-              << ", estimated error: " << minres.error() << std::endl;
-    ASSERT_NEAR(minres.error(), 0, 1e-14);
-
-    // Store the result, and validate wether it validates.
-    size_t i = 0;
-    for (auto &node : heat_eq.vec_Y_out()->container()) node.set_value(x(i++));
-    for (auto &node : heat_eq.vec_X_out()->container()) node.set_value(x(i++));
-    ValidateVector(*heat_eq.vec_X_out());
-    ValidateVector(*heat_eq.vec_Y_out());
-  }
-}
-
 TEST(HeatEquation, CompareToPython) {
   int level = 6;
   auto B = Time::Bases();
@@ -107,23 +40,23 @@ TEST(HeatEquation, CompareToPython) {
   HeatEquation heat_eq(X_delta, opts);
 
   // Set double-tree vectors
-  auto X_bfs_in = heat_eq.vec_X_in()->Bfs();
-  auto Y_bfs_in = heat_eq.vec_Y_in()->Bfs();
-  auto X_bfs_out = heat_eq.vec_X_out()->Bfs();
-  auto Y_bfs_out = heat_eq.vec_Y_out()->Bfs();
-  for (size_t i = 0; i < X_bfs_in.size(); i++)
-    if (X_bfs_in[i]->node_1()->on_domain_boundary())
-      X_bfs_in[i]->set_value(0);
+  auto X_vec = heat_eq.vec_X();
+  auto Y_vec = heat_eq.vec_Y();
+  auto X_bfs = X_vec->Bfs();
+  auto Y_bfs = Y_vec->Bfs();
+  for (size_t i = 0; i < X_bfs.size(); i++)
+    if (X_bfs[i]->node_1()->on_domain_boundary())
+      X_bfs[i]->set_value(0);
     else
-      X_bfs_in[i]->set_value(i);
-  for (size_t i = 0; i < Y_bfs_in.size(); i++)
-    if (Y_bfs_in[i]->node_1()->on_domain_boundary())
-      Y_bfs_in[i]->set_value(0);
+      X_bfs[i]->set_value(i);
+  for (size_t i = 0; i < Y_bfs.size(); i++)
+    if (Y_bfs[i]->node_1()->on_domain_boundary())
+      Y_bfs[i]->set_value(0);
     else
-      Y_bfs_in[i]->set_value(i);
+      Y_bfs[i]->set_value(i);
 
-  auto vec_X_in = heat_eq.vec_X_in()->ToVectorContainer();
-  auto vec_Y_in = heat_eq.vec_Y_in()->ToVectorContainer();
+  auto X_in = heat_eq.vec_X()->ToVectorContainer();
+  auto Y_in = heat_eq.vec_Y()->ToVectorContainer();
 
 // Load the vectors in Python format.
 #include "heat_equation_python.ipp"
@@ -146,38 +79,38 @@ TEST(HeatEquation, CompareToPython) {
 
   // For A * v.
   std::cout << "Comparing A" << std::endl;
-  heat_eq.A()->MatVec(vec_Y_in);
-  compare(Y_bfs_out, A_py);
+  Y_vec->FromVectorContainer(heat_eq.A()->Apply(Y_in));
+  compare(Y_bfs, A_py);
 
   // For B * v.
   std::cout << "Comparing B" << std::endl;
-  heat_eq.B()->MatVec(vec_X_in);
-  compare(Y_bfs_out, B_py);
+  Y_vec->FromVectorContainer(heat_eq.B()->Apply(X_in));
+  compare(Y_bfs, B_py);
 
   // For B.T * v.
   std::cout << "Comparing B.T" << std::endl;
-  heat_eq.BT()->MatVec(vec_Y_in);
-  compare(X_bfs_out, BT_py);
+  X_vec->FromVectorContainer(heat_eq.BT()->Apply(Y_in));
+  compare(X_bfs, BT_py);
 
   // For G * v
   std::cout << "Comparing G" << std::endl;
-  heat_eq.G()->MatVec(vec_X_in);
-  compare(X_bfs_out, G_py);
+  X_vec->FromVectorContainer(heat_eq.G()->Apply(X_in));
+  compare(X_bfs, G_py);
 
   // For P_Y * v
   std::cout << "Comparing P_Y" << std::endl;
-  heat_eq.P_Y()->MatVec(vec_Y_in);
-  compare(Y_bfs_in, A_inv_py);
+  Y_vec->FromVectorContainer(heat_eq.P_Y()->Apply(Y_in));
+  compare(Y_bfs, A_inv_py);
 
   // For precond_X * v
   std::cout << "Comparing P_X" << std::endl;
-  heat_eq.P_X()->MatVec(vec_X_in);
-  compare(X_bfs_in, precond_X_py);
+  X_vec->FromVectorContainer(heat_eq.P_X()->Apply(X_in));
+  compare(X_bfs, precond_X_py);
 
   // For schur_mat * v
   std::cout << "Comparing schur_mat" << std::endl;
-  heat_eq.S()->MatVec(vec_X_in);
-  compare(X_bfs_out, schur_mat_py);
+  X_vec->FromVectorContainer(heat_eq.S()->Apply(X_in));
+  compare(X_bfs, schur_mat_py);
 }
 
 TEST(HeatEquation, SchurCG) {
@@ -197,26 +130,22 @@ TEST(HeatEquation, SchurCG) {
     HeatEquation heat_eq(X_delta);
 
     // Generate some rhs.
-    for (auto nv : heat_eq.vec_X_in()->Bfs()) {
+    for (auto nv : heat_eq.vec_X()->Bfs()) {
       if (nv->node_1()->on_domain_boundary()) continue;
       nv->set_value(1.0);
     }
 
     // Validate the input.
-    ValidateVector(*heat_eq.vec_X_in());
+    ValidateVector(*heat_eq.vec_X());
 
     // Turn this into an eigen-friendly vector.
-    auto v_in = heat_eq.vec_X_in()->ToVectorContainer();
+    auto v_in = heat_eq.vec_X()->ToVectorContainer();
 
     // Apply the block matrix :-).
-    heat_eq.S()->Apply();
+    heat_eq.vec_X()->FromVectorContainer(heat_eq.S()->Apply(v_in));
 
     // Validate the result.
-    ValidateVector(*heat_eq.vec_X_out());
-
-    // Check that the input vector remained untouched.
-    auto v_now = heat_eq.vec_X_in()->ToVectorContainer();
-    ASSERT_TRUE(v_in.isApprox(v_now));
+    ValidateVector(*heat_eq.vec_X());
 
     // Now use Eigen to atually solve something.
     Eigen::ConjugateGradient<BilinearFormBase<HeatEquation::TypeXVector>,
@@ -231,11 +160,11 @@ TEST(HeatEquation, SchurCG) {
     ASSERT_NEAR(cg.error(), 0, 1e-14);
 
     // Store the result, and validate wether it validates.
-    heat_eq.vec_X_out()->FromVectorContainer(x);
-    ValidateVector(*heat_eq.vec_X_out());
+    heat_eq.vec_X()->FromVectorContainer(x);
+    ValidateVector(*heat_eq.vec_X());
 
     if (level == 5) {
-      auto dblnodes = heat_eq.vec_X_out()->Bfs();
+      auto dblnodes = heat_eq.vec_X()->Bfs();
       Eigen::VectorXd python_output(dblnodes.size());
       python_output << 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
           -1.63485745, -1.57125316, 0., 0., 0., 0., 0., 0., 0., 0., -0.62675243,
@@ -288,7 +217,7 @@ TEST(HeatEquation, SchurPCG) {
     HeatEquation heat_eq(X_delta);
 
     // Generate some rhs.
-    for (auto nv : heat_eq.vec_X_in()->Bfs()) {
+    for (auto nv : heat_eq.vec_X()->Bfs()) {
       if (nv->node_1()->on_domain_boundary())
         nv->set_value(0.0);
       else
@@ -296,7 +225,7 @@ TEST(HeatEquation, SchurPCG) {
     }
 
     // Turn this into an eigen-friendly vector.
-    auto v_in = heat_eq.vec_X_in()->ToVectorContainer();
+    auto v_in = heat_eq.vec_X()->ToVectorContainer();
 
     // auto precond = Eigen::SparseMatrix<double>(v_in.rows(), v_in.rows());
     // precond.setIdentity();
@@ -329,25 +258,25 @@ TEST(HeatEquation, LanczosDirectInverse) {
     HeatEquation heat_eq(X_delta);
 
     std::cout << "Level " << level << "; #(X_delta, Y_delta) = ("
-              << heat_eq.vec_X_in()->Bfs().size() << ", "
-              << heat_eq.vec_Y_in()->Bfs().size() << ")" << std::endl;
+              << heat_eq.vec_X()->Bfs().size() << ", "
+              << heat_eq.vec_Y()->Bfs().size() << ")" << std::endl;
 
     // Generate some initial Y_delta rhs.
-    for (auto nv : heat_eq.vec_Y_in()->Bfs())
+    for (auto nv : heat_eq.vec_Y()->Bfs())
       if (!nv->node_1()->on_domain_boundary())
         nv->set_random();
       else
         nv->set_value(0);
     auto lanczos_Y = tools::linalg::Lanczos(
-        *heat_eq.A(), *heat_eq.P_Y(), heat_eq.vec_Y_in()->ToVectorContainer());
+        *heat_eq.A(), *heat_eq.P_Y(), heat_eq.vec_Y()->ToVectorContainer());
     std::cout << "\tkappa(P_Y * A_s): " << lanczos_Y << std::endl;
     ASSERT_NEAR(lanczos_Y.cond(), 1., 1e-5);
 
     // Generate some initial X_delta rhs.
-    for (auto nv : heat_eq.vec_X_in()->Bfs())
+    for (auto nv : heat_eq.vec_X()->Bfs())
       if (!nv->node_1()->on_domain_boundary()) nv->set_random();
     auto lanczos_X = tools::linalg::Lanczos(
-        *heat_eq.S(), *heat_eq.P_X(), heat_eq.vec_X_in()->ToVectorContainer());
+        *heat_eq.S(), *heat_eq.P_X(), heat_eq.vec_X()->ToVectorContainer());
     std::cout << "\tkappa(P_X * S) :" << lanczos_X << std::endl << std::endl;
     ASSERT_LT(lanczos_Y.cond(), 6);
   }
@@ -374,25 +303,25 @@ TEST(HeatEquation, LanczosMG) {
     HeatEquation heat_eq(X_delta, heat_eq_opts);
 
     std::cout << "Level " << level << "; #(X_delta, Y_delta) = ("
-              << heat_eq.vec_X_in()->Bfs().size() << ", "
-              << heat_eq.vec_Y_in()->Bfs().size() << ")" << std::endl;
+              << heat_eq.vec_X()->Bfs().size() << ", "
+              << heat_eq.vec_Y()->Bfs().size() << ")" << std::endl;
 
     // Generate some initial Y_delta rhs.
-    for (auto nv : heat_eq.vec_Y_in()->Bfs())
+    for (auto nv : heat_eq.vec_Y()->Bfs())
       if (!nv->node_1()->on_domain_boundary())
         nv->set_random();
       else
         nv->set_value(0);
     auto lanczos_Y = tools::linalg::Lanczos(
-        *heat_eq.A(), *heat_eq.P_Y(), heat_eq.vec_Y_in()->ToVectorContainer());
+        *heat_eq.A(), *heat_eq.P_Y(), heat_eq.vec_Y()->ToVectorContainer());
     std::cout << "\tkappa(P_Y * A_s): " << lanczos_Y << std::endl;
     ASSERT_NEAR(lanczos_Y.cond(), 1., 1e-2);
 
     // Generate some initial X_delta rhs.
-    for (auto nv : heat_eq.vec_X_in()->Bfs())
+    for (auto nv : heat_eq.vec_X()->Bfs())
       if (!nv->node_1()->on_domain_boundary()) nv->set_random();
     auto lanczos_X = tools::linalg::Lanczos(
-        *heat_eq.S(), *heat_eq.P_X(), heat_eq.vec_X_in()->ToVectorContainer());
+        *heat_eq.S(), *heat_eq.P_X(), heat_eq.vec_X()->ToVectorContainer());
     std::cout << "\tkappa(P_X * S) :" << lanczos_X << std::endl << std::endl;
     ASSERT_LT(lanczos_Y.cond(), 5.5);
   }

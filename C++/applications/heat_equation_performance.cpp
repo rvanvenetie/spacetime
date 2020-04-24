@@ -43,17 +43,14 @@ int main() {
     HeatEquation heat_eq(X_delta);
 
     // Generate some random input.
-    for (auto nv : heat_eq.vec_X_in()->Bfs()) {
-      if (nv->node_1()->on_domain_boundary()) continue;
-      nv->set_random();
-    }
-    for (auto nv : heat_eq.vec_Y_in()->Bfs()) {
+    for (auto nv : heat_eq.vec_X()->Bfs()) {
       if (nv->node_1()->on_domain_boundary()) continue;
       nv->set_random();
     }
 
+    auto v_in = heat_eq.vec_X()->ToVectorContainer();
     for (size_t k = 0; k < ::inner_iters; k++) {
-      heat_eq.BlockBF()->Apply();
+      heat_eq.S()->Apply(v_in);
     }
   }
   return 0;

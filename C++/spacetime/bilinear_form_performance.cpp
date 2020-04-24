@@ -61,7 +61,7 @@ int main() {
       for (auto& nv : vec_X.Bfs()) {
         nv->set_value(bsd_rnd());
       }
-      bil_form->Apply();
+      bil_form->Apply(vec_X.ToVectorContainer());
     }
   }
   return 0;

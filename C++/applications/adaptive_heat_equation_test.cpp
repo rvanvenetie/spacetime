@@ -32,28 +32,29 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   auto space_g2 = [](double x, double y) { return (x - 1) * x * (y - 1) * y; };
   auto u0 = [](double x, double y) { return (1 - x) * x * (1 - y) * y; };
 
-  auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+  auto vec_Xd = std::make_shared<
+      DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
       B.three_point_tree.meta_root.get(),
       T.hierarch_basis_tree.meta_root.get());
-  X_delta.SparseRefine(1);
+  vec_Xd->SparseRefine(1);
 
   auto [g_lf, u0_lf] = SmoothProblem();
   AdaptiveHeatEquationOptions opts = {.estimate_mean_zero_ = false};
   opts.P_X_alpha_ = 0.35;
-  AdaptiveHeatEquation heat_eq(std::move(X_delta), std::move(g_lf),
-                               std::move(u0_lf), opts);
+  AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf), opts);
 
   std::vector<size_t> python_pcg_iters{2, 3, 5, 5, 5};
-  auto [result, pcg_data] = heat_eq.Solve();
-  auto result_nodes = result->Bfs();
-  Eigen::VectorXd python_result(result_nodes.size());
-  python_result << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+  auto [u, pcg_data] = heat_eq.Solve();
+  vec_Xd->FromVectorContainer(u);
+  auto u_nodes = vec_Xd->Bfs();
+  Eigen::VectorXd python_u(u_nodes.size());
+  python_u << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.056793956002164525, 0.12413158640093236;
-  for (size_t i = 0; i < result_nodes.size(); i++)
-    ASSERT_NEAR(result_nodes[i]->value(), python_result[i], 1e-5);
+  for (size_t i = 0; i < u_nodes.size(); i++)
+    ASSERT_NEAR(u_nodes[i]->value(), python_u[i], 1e-5);
   ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[0], 1);
 
-  auto [residual, residual_norm] = heat_eq.Estimate();
+  auto [residual, residual_norm] = heat_eq.Estimate(u);
   auto residual_nodes = residual->Bfs();
   Eigen::VectorXd python_residual(residual_nodes.size());
   python_residual << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -72,19 +73,22 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
        {13, 0.07019458968270276},
        {26, 0.050368099941736744}}};
 
-  auto marked_nodes = heat_eq.Mark();
+  auto marked_nodes = heat_eq.Mark(residual);
   ASSERT_EQ(marked_nodes.size(), python_mark_data[0].first);
   ASSERT_NEAR(residual_norm, python_mark_data[0].second, 1e-10);
+
+  vec_Xd->FromVectorContainer(u);
   heat_eq.Refine(marked_nodes);
 
   for (size_t iter = 1; iter < 5; iter++) {
-    auto [solution, pcg_data] =
-        heat_eq.Solve(heat_eq.vec_Xd_out()->ToVectorContainer());
-    auto [errors, norm] = heat_eq.Estimate();
-    auto marked_nodes = heat_eq.Mark();
+    auto [u, pcg_data] = heat_eq.Solve(vec_Xd->ToVectorContainer());
+    auto [residual, norm] = heat_eq.Estimate(u);
+    auto marked_nodes = heat_eq.Mark(residual);
     ASSERT_EQ(marked_nodes.size(), python_mark_data[iter].first);
-    ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[iter], 1);
     ASSERT_NEAR(norm, python_mark_data[iter].second, 1e-5);
+    ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[iter], 1);
+
+    vec_Xd->FromVectorContainer(u);
     heat_eq.Refine(marked_nodes);
   }
 }

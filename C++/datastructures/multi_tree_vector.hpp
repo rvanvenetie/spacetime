@@ -90,6 +90,14 @@ class MultiTreeVector : public MultiTreeView<I> {
   // Note: this is not compatible with the Python ToArray!
   Eigen::VectorXd ToVector() const { return Super::root_->ToVector(); }
   void FromVector(const Eigen::VectorXd &vec) { Super::root_->FromVector(vec); }
+  void FromVector(const MultiTreeVector<I> &vec) {
+    Reset();
+    Super::root_->Union(vec.root(),
+                        /* call_filter*/ func_true, /* call_postprocess*/
+                        [](const auto &my_node, const auto &other_node) {
+                          my_node->set_value(other_node->value());
+                        });
+  }
 
   // This uses the ordering as in the underlying container.
   Eigen::VectorXd ToVectorContainer() const {

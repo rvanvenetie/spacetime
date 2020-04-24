@@ -68,35 +68,31 @@ class AdaptiveHeatEquation {
 
  public:
   AdaptiveHeatEquation(
-      TypeXDelta &&X_delta, std::unique_ptr<TypeYLinForm> &&g_lin_form,
+      std::shared_ptr<TypeXVector> vec_Xd,
+      std::unique_ptr<TypeYLinForm> &&g_lin_form,
       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
-  std::pair<TypeXVector *, tools::linalg::SolverData> Solve(
+  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
       const Eigen::VectorXd &x0);
-  std::pair<TypeXVector *, tools::linalg::SolverData> Solve() {
-    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd_in()->container().size());
-    return Solve(x0);
+  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve() {
+    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
   }
 
-  std::pair<TypeXVector *, double> Estimate();
+  std::pair<TypeXVector *, double> Estimate(const Eigen::VectorXd &u_dd_d);
+  std::vector<TypeXNode *> Mark(TypeXVector *residual);
 
-  std::vector<TypeXNode *> Mark();
+  // Refines the grid and prolongates a solution living on Xd_.
   void Refine(const std::vector<TypeXNode *> &nodes_to_add);
 
-  TypeXVector *vec_Xd_in() { return vec_Xd_in_.get(); }
-  TypeXVector *vec_Xd_out() { return vec_Xd_out_.get(); }
-  TypeXVector *vec_Xdd_in() { return vec_Xdd_in_.get(); }
-  TypeXVector *vec_Xdd_out() { return vec_Xdd_out_.get(); }
+  std::shared_ptr<TypeXVector> vec_Xd() { return vec_Xd_; }
 
  protected:
   Eigen::VectorXd RHS(HeatEquation &heat);
   void ApplyMeanZero(TypeXVector *vec);
 
-  TypeXDelta X_d_;
-  std::shared_ptr<TypeXVector> vec_Xd_in_, vec_Xd_out_, vec_Xdd_in_,
-      vec_Xdd_out_;
-  std::shared_ptr<TypeYVector> vec_Ydd_in_, vec_Ydd_out_;
+  std::shared_ptr<TypeXVector> vec_Xd_, vec_Xdd_;
+  std::shared_ptr<TypeYVector> vec_Ydd_;
   std::unique_ptr<HeatEquation> heat_d_dd_;
   std::unique_ptr<TypeYLinForm> g_lin_form_;
   std::unique_ptr<TypeXLinForm> u0_lin_form_;
