@@ -137,7 +137,7 @@ class SymmetricBilinearForm
       DblVec *vec, bool use_cache,
       space::OperatorOptions space_opts = space::OperatorOptions());
 
-  // Apply takes data from vec_in and writes it to vec_out.
+  // Apply takes data from vec and writes it to vec.
   Eigen::VectorXd Apply(const Eigen::VectorXd &v) final;
   DblVec *vec_in() const final { return vec_; }
   DblVec *vec_out() const final { return vec_; }
