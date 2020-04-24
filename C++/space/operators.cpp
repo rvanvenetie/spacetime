@@ -25,7 +25,13 @@ Eigen::MatrixXd Operator::ToMatrix() const {
   return A;
 }
 
-void ForwardOperator::Apply(Eigen::VectorXd &v) const {
+template <class ForwardOp>
+ForwardOperator<ForwardOp>::ForwardOperator(const TriangulationView &triang,
+                                            OperatorOptions opts)
+    : Operator(triang, opts), matrix_(ComputeMatrixSingleScale()) {}
+
+template <class ForwardOp>
+void ForwardOperator<ForwardOp>::Apply(Eigen::VectorXd &v) const {
   assert(FeasibleVector(v));
 
   // Hierarhical basis to single scale basis.
@@ -41,15 +47,87 @@ void ForwardOperator::Apply(Eigen::VectorXd &v) const {
   assert(FeasibleVector(v));
 }
 
-void ForwardOperator::ApplyHierarchToSingle(VectorXd &w) const {
+template <class ForwardOp>
+void ForwardOperator<ForwardOp>::ApplyHierarchToSingle(VectorXd &w) const {
   for (size_t vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
     for (auto gp : triang_.Godparents(vi)) w[vi] = w[vi] + 0.5 * w[gp];
 }
 
-void ForwardOperator::ApplyTransposeHierarchToSingle(VectorXd &w) const {
+template <class ForwardOp>
+void ForwardOperator<ForwardOp>::ApplyTransposeHierarchToSingle(
+    VectorXd &w) const {
   for (size_t vi = triang_.V - 1; vi >= triang_.InitialVertices(); --vi)
     for (auto gp : triang_.Godparents(vi))
       if (IsDof(gp)) w[gp] = w[gp] + 0.5 * w[vi];
+}
+
+template <class ForwardOp>
+void ForwardOperator<ForwardOp>::ApplySingleScale(Eigen::VectorXd &v) const {
+  if (opts_.cache_forward_mat_) v = MatrixSingleScale() * v;
+
+  auto &vertices = triang_.vertices();
+  Eigen::VectorXd result = Eigen::VectorXd::Zero(v.rows());
+  for (const auto &elem : triang_.elements()) {
+    if (!elem->is_leaf()) continue;
+    auto &Vids = elem->vertices_view_idx_;
+    auto &&element_mat = ForwardOp::ElementMatrix(elem, opts_);
+
+    for (size_t i = 0; i < 3; ++i)
+      if (IsDof(Vids[i]))
+        for (size_t j = 0; j < 3; ++j)
+          if (IsDof(Vids[j]))
+            result[Vids[i]] += v[Vids[j]] * element_mat.coeff(i, j);
+  }
+  v = result;
+}
+
+template <class ForwardOp>
+Eigen::SparseMatrix<double> ForwardOperator<ForwardOp>::MatrixSingleScale()
+    const {
+  if (opts_.cache_forward_mat_) return matrix_;
+  return std::move(ComputeMatrixSingleScale());
+}
+
+template <class ForwardOp>
+Eigen::SparseMatrix<double>
+ForwardOperator<ForwardOp>::ComputeMatrixSingleScale() const {
+  std::vector<Eigen::Triplet<double>> triplets;
+  triplets.reserve(triang_.elements().size() * 3);
+
+  auto &vertices = triang_.vertices();
+  for (const auto &elem : triang_.elements()) {
+    if (!elem->is_leaf()) continue;
+    auto &Vids = elem->vertices_view_idx_;
+    auto &&element_mat = ForwardOp::ElementMatrix(elem, opts_);
+
+    for (size_t i = 0; i < 3; ++i)
+      if (IsDof(Vids[i]))
+        for (size_t j = 0; j < 3; ++j)
+          if (IsDof(Vids[j]))
+            triplets.emplace_back(Vids[i], Vids[j], element_mat(i, j));
+  }
+
+  Eigen::SparseMatrix<double> matrix(triang_.V, triang_.V);
+  matrix.setFromTriplets(triplets.begin(), triplets.end());
+  return matrix;
+}
+
+inline Eigen::Matrix3d MassOperator::ElementMatrix(
+    const Element2DView *elem, const OperatorOptions &opts) {
+  static Eigen::Matrix3d elem_mat =
+      (Eigen::Matrix3d() << 2, 1, 1, 1, 2, 1, 1, 1, 2).finished();
+  return elem->node()->area() / 12.0 * elem_mat;
+}
+
+inline const Eigen::Matrix3d &StiffnessOperator::ElementMatrix(
+    const Element2DView *elem, const OperatorOptions &opts) {
+  return elem->node()->StiffnessMatrix();
+}
+
+inline Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
+    const Element2DView *elem, const OperatorOptions &opts) {
+  return opts.alpha_ * StiffnessOperator::ElementMatrix(elem, opts) +
+         pow(2.0, opts.time_level_) * MassOperator::ElementMatrix(elem, opts);
 }
 
 BackwardOperator::BackwardOperator(const TriangulationView &triang,
@@ -105,6 +183,10 @@ void BackwardOperator::Apply(Eigen::VectorXd &v) const {
 }
 
 // Explicit specializations.
+template class ForwardOperator<MassOperator>;
+template class ForwardOperator<StiffnessOperator>;
+template class ForwardOperator<StiffPlusScaledMassOperator>;
+
 template class DirectInverse<MassOperator>;
 template class DirectInverse<StiffnessOperator>;
 template class DirectInverse<StiffPlusScaledMassOperator>;

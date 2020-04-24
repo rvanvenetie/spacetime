@@ -1,67 +1,10 @@
 #include "operators.hpp"
+#ifndef EIGEN_NO_DEBUG
+#define COMPILE_WITH_EIGEN_DEBUG
+#define EIGEN_NO_DEBUG
+#endif
 
 namespace space {
-
-inline Eigen::Matrix3d MassOperator::ElementMatrix(
-    const Element2DView *elem, const OperatorOptions &opts) {
-  static Eigen::Matrix3d elem_mat =
-      (Eigen::Matrix3d() << 2, 1, 1, 1, 2, 1, 1, 1, 2).finished();
-  return elem->node()->area() / 12.0 * elem_mat;
-}
-
-inline Eigen::Matrix3d StiffnessOperator::ElementMatrix(
-    const Element2DView *elem, const OperatorOptions &opts) {
-  // The matrix \int_{ref tri} 2 * d/dx phi * d/dx psi.
-  static Eigen::Matrix3d elem_mat1 =
-      (Eigen::Matrix3d() << 1, -1, 0, -1, 1, 0, 0, 0, 0).finished();
-  // The matrix \int_{ref tri} 2* d/dx phi * d/dy psi + 2* d/dy phi * d/dx psi.
-  static Eigen::Matrix3d elem_mat2 =
-      (Eigen::Matrix3d() << 2, -1, -1, -1, 0, 1, -1, 1, 0).finished();
-  // The matrix \int_{ref tri} 2 * d/dy phi * d/dy psi.
-  static Eigen::Matrix3d elem_mat3 =
-      (Eigen::Matrix3d() << 1, 0, -1, 0, 0, 0, -1, 0, 1).finished();
-  auto verts = elem->node()->vertices();
-  double v1x = verts[0]->x, v1y = verts[0]->y, v2x = verts[1]->x,
-         v2y = verts[1]->y, v3x = verts[2]->x, v3y = verts[2]->y;
-  double C1 = (v3x - v1x) * (v3x - v1x) + (v3y - v1y) * (v3y - v1y);
-  double C2 = (v2x - v1x) * (v1x - v3x) + (v2y - v1y) * (v1y - v3y);
-  double C3 = (v2x - v1x) * (v2x - v1x) + (v2y - v1y) * (v2y - v1y);
-  // assert(elem->node()->StiffnessMatrix().isApprox(
-  //     1.0 / (4 * elem->node()->area()) *
-  //     (elem_mat1 * C1 + elem_mat2 * C2 + elem_mat3 * C3)));
-  return 1.0 / (4 * elem->node()->area()) *
-         (elem_mat1 * C1 + elem_mat2 * C2 + elem_mat3 * C3);
-}
-
-inline Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
-    const Element2DView *elem, const OperatorOptions &opts) {
-  return opts.alpha_ * StiffnessOperator::ElementMatrix(elem, opts) +
-         pow(2.0, opts.time_level_) * MassOperator::ElementMatrix(elem, opts);
-}
-
-template <typename ForwardOp>
-ForwardMatrix<ForwardOp>::ForwardMatrix(const TriangulationView &triang,
-                                        OperatorOptions opts)
-    : ForwardOperator(triang, opts), matrix_(triang_.V, triang_.V) {
-  std::vector<Eigen::Triplet<double>> triplets;
-  triplets.reserve(triang_.elements().size() * 3);
-
-  auto &vertices = triang_.vertices();
-  for (const auto &elem : triang_.elements()) {
-    if (!elem->is_leaf()) continue;
-    auto &Vids = elem->vertices_view_idx_;
-    auto &&element_mat = ForwardOp::ElementMatrix(elem, opts);
-
-    for (size_t i = 0; i < 3; ++i) {
-      if (!IsDof(Vids[i])) continue;
-      for (size_t j = 0; j < 3; ++j) {
-        if (!IsDof(Vids[j])) continue;
-        triplets.emplace_back(Vids[i], Vids[j], element_mat(i, j));
-      }
-    }
-  }
-  matrix_.setFromTriplets(triplets.begin(), triplets.end());
-}
 
 template <typename ForwardOp>
 DirectInverse<ForwardOp>::DirectInverse(const TriangulationView &triang,
@@ -103,7 +46,7 @@ template <typename ForwardOp>
 MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
     const TriangulationView &triang, OperatorOptions opts)
     : BackwardOperator(triang, opts),
-      triang_mat_(ForwardOp(triang, opts).MatrixSingleScale()),
+      forward_op_(triang, opts),
       // Note that this will leave initial_triang_solver_ with dangling
       // reference, but it doesn't matter for our purpose..
       initial_triang_solver_(triang.InitialTriangulationView(), opts) {}
@@ -194,9 +137,12 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     // Part 1: Down-cycle, calculates corrections while coarsening.
     {
       // Initialize the residual vector with  a(f, \Phi) - a(u, \Phi).
-      Eigen::VectorXd residual = rhs - triang_mat_ * u;
+      Eigen::VectorXd residual = u;
+      forward_op_.ApplySingleScale(residual);
+      residual = rhs - residual;
 
-      // Store all the corrections found in this downward cycle in a vector.
+      // Store all the corrections found in this downward
+      // cycle in a vector.
       e.clear();
 
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
@@ -255,7 +201,9 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     // Part 2:  Do exact solve on coarest level and do an up cycle.
     {
       // Initialize the residual vector with  a(f, \Phi) - a(u, \Phi).
-      Eigen::VectorXd residual = rhs - triang_mat_ * u;
+      Eigen::VectorXd residual = u;
+      forward_op_.ApplySingleScale(residual);
+      residual = rhs - residual;
 
       // Step 1: Do a downward-cycle restrict the residual on the coarsest mesh.
       for (size_t vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex)
@@ -330,3 +278,8 @@ void XPreconditionerOperator<InverseOp>::ApplySingleScale(
 }
 
 }  // namespace space
+
+#ifdef COMPILE_WITH_EIGEN_DEBUG
+#undef EIGEN_NO_DEBUG
+#undef COMPILE_WITH_EIGEN_DEBUG
+#endif

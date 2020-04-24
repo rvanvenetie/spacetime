@@ -13,6 +13,9 @@ struct OperatorOptions {
   // Options for all operators.
   bool dirichlet_boundary_;
 
+  // Options for ForwardOperator.
+  bool cache_forward_mat_;
+
   // Options for stiff plus scaled mass operator.
   size_t time_level_;
   double alpha_;
@@ -65,37 +68,27 @@ class Operator {
   OperatorOptions opts_;
 };
 
+template <class ForwardOp>
 class ForwardOperator : public Operator {
  public:
-  using Operator::Operator;
+  ForwardOperator(const TriangulationView &triang,
+                  OperatorOptions opts = OperatorOptions());
 
   // Apply the operator in the hierarchical basis.
   virtual void Apply(Eigen::VectorXd &vec_in) const final;
 
   // Apply the operator in single scale, to be implemented by derived.
-  virtual void ApplySingleScale(Eigen::VectorXd &vec_SS) const = 0;
+  void ApplySingleScale(Eigen::VectorXd &vec_SS) const;
+
+  Eigen::SparseMatrix<double> MatrixSingleScale() const;
 
  protected:
   // Hierarhical Basis Transformations from HB to SS, and its transpose.
   void ApplyHierarchToSingle(Eigen::VectorXd &vec_HB) const;
   void ApplyTransposeHierarchToSingle(Eigen::VectorXd &vec_SS) const;
-};
 
-// ForwardOperator where apply is done using a sparse matrix.
-template <typename ForwardOp>
-class ForwardMatrix : public ForwardOperator {
- public:
-  ForwardMatrix(const TriangulationView &triang,
-                OperatorOptions opts = OperatorOptions());
+  Eigen::SparseMatrix<double> ComputeMatrixSingleScale() const;
 
-  virtual void ApplySingleScale(Eigen::VectorXd &vec_SS) const final {
-    vec_SS = matrix_ * vec_SS;
-  }
-  const Eigen::SparseMatrix<double> &MatrixSingleScale() const {
-    return matrix_;
-  }
-
- protected:
   Eigen::SparseMatrix<double> matrix_;
 };
 
@@ -123,31 +116,31 @@ class BackwardOperator : public Operator {
 /**
  *  Implementation of the actual operators.
  */
-class MassOperator : public ForwardMatrix<MassOperator> {
+class MassOperator : public ForwardOperator<MassOperator> {
  public:
   // Inherit constructor.
-  using ForwardMatrix<MassOperator>::ForwardMatrix;
+  using ForwardOperator::ForwardOperator;
 
   // Returns the element matrix for the given element.
   inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
                                               const OperatorOptions &opts);
 };
 
-class StiffnessOperator : public ForwardMatrix<StiffnessOperator> {
+class StiffnessOperator : public ForwardOperator<StiffnessOperator> {
  public:
   // Inherit constructor.
-  using ForwardMatrix<StiffnessOperator>::ForwardMatrix;
+  using ForwardOperator::ForwardOperator;
 
   // Returns the element matrix for the given element.
-  inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
-                                              const OperatorOptions &opts);
+  inline static const Eigen::Matrix3d &ElementMatrix(
+      const Element2DView *elem, const OperatorOptions &opts);
 };
 
 class StiffPlusScaledMassOperator
-    : public ForwardMatrix<StiffPlusScaledMassOperator> {
+    : public ForwardOperator<StiffPlusScaledMassOperator> {
  public:
   // Inherit constructor.
-  using ForwardMatrix<StiffPlusScaledMassOperator>::ForwardMatrix;
+  using ForwardOperator::ForwardOperator;
 
   // Returns the element matrix for the given element.
   inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
@@ -200,8 +193,8 @@ class MultigridPreconditioner : public BackwardOperator {
                         size_t vertex,
                         std::vector<std::pair<size_t, double>> &result) const;
 
-  // Matrix on the finest level.
-  Eigen::SparseMatrix<double> triang_mat_;
+  // Forward operator on the finest level.
+  ForwardOp forward_op_;
 
   // Solver on the coarsest level.
   DirectInverse<ForwardOp> initial_triang_solver_;
@@ -219,6 +212,10 @@ class XPreconditionerOperator : public BackwardOperator {
   StiffnessOperator stiff_op_;
   InverseOp<StiffPlusScaledMassOperator> inverse_op_;
 };
+
+extern template class ForwardOperator<MassOperator>;
+extern template class ForwardOperator<StiffnessOperator>;
+extern template class ForwardOperator<StiffPlusScaledMassOperator>;
 
 extern template class DirectInverse<MassOperator>;
 extern template class DirectInverse<StiffnessOperator>;
