@@ -7,11 +7,19 @@
 
 namespace tools::linalg {
 
+struct PCGdata {
+  double relative_residual;
+  size_t iterations;
+  bool converged;
+};
+
 // Loosely based off Eigen/ConjugateGradient.h.
 template <typename MatType, typename PrecondType>
-std::pair<Eigen::VectorXd, std::pair<double, int>> PCG(
-    const MatType &A, const Eigen::VectorXd &b, const PrecondType &M,
-    const Eigen::VectorXd &x0, int imax, double rtol) {
+std::pair<Eigen::VectorXd, PCGdata> PCG(const MatType &A,
+                                        const Eigen::VectorXd &b,
+                                        const PrecondType &M,
+                                        const Eigen::VectorXd &x0, int imax,
+                                        double rtol) {
   assert(A.rows() == A.cols());
   const int n = A.rows();
   Eigen::VectorXd x = Eigen::VectorXd::Zero(n);
@@ -48,7 +56,10 @@ std::pair<Eigen::VectorXd, std::pair<double, int>> PCG(
   }
   if (sq_res_norm > threshold) std::cout << "DID NOT CONVERGE" << std::endl;
 
-  return {x, {sqrt(sq_res_norm / sq_rhs_norm), i}};
+  return {x,
+          {.relative_residual = sqrt(sq_res_norm / sq_rhs_norm),
+           .iterations = i,
+           .converged = (sq_res_norm <= threshold)}};
 }
 
 template <typename MatType, typename PrecondType>
