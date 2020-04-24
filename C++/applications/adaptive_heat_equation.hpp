@@ -86,7 +86,6 @@ class AdaptiveHeatEquation {
   void Refine(const std::vector<TypeXNode *> &nodes_to_add);
 
   std::shared_ptr<TypeXVector> vec_Xd() { return vec_Xd_; }
-  std::shared_ptr<TypeXVector> vec_Xdd() { return vec_Xdd_; }
 
  protected:
   Eigen::VectorXd RHS(HeatEquation &heat);
