@@ -6,13 +6,15 @@
 
 namespace applications {
 AdaptiveHeatEquation::AdaptiveHeatEquation(
-    const TypeXDelta &X_delta, std::unique_ptr<TypeYLinForm> &&g_lin_form,
+    std::shared_ptr<TypeXVector> vec_Xd,
+    std::unique_ptr<TypeYLinForm> &&g_lin_form,
     std::unique_ptr<TypeXLinForm> &&u0_lin_form,
     const AdaptiveHeatEquationOptions &opts)
-    : vec_Xd_(new TypeXVector(X_delta.template DeepCopy<TypeXVector>())),
-      vec_Xdd_(new TypeXVector(GenerateXDeltaUnderscore(
+    : vec_Xd_(vec_Xd),
+      vec_Xdd_(std::make_shared<TypeXVector>(GenerateXDeltaUnderscore(
           *vec_Xd_, opts.estimate_saturation_layers_))),
-      vec_Ydd_(new TypeYVector(GenerateYDelta<DoubleTreeVector>(*vec_Xdd_))),
+      vec_Ydd_(std::make_shared<TypeYVector>(
+          GenerateYDelta<DoubleTreeVector>(*vec_Xdd_))),
       heat_d_dd_(std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts)),
       g_lin_form_(std::move(g_lin_form)),
       u0_lin_form_(std::move(u0_lin_form)),
@@ -102,10 +104,10 @@ void AdaptiveHeatEquation::Refine(
     const std::vector<TypeXNode *> &nodes_to_add) {
   vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
 
-  vec_Xdd_ = std::shared_ptr<TypeXVector>(new TypeXVector(
-      GenerateXDeltaUnderscore(*vec_Xd_, opts_.estimate_saturation_layers_)));
-  vec_Ydd_ = std::shared_ptr<TypeYVector>(
-      new TypeYVector(GenerateYDelta<DoubleTreeVector>(*vec_Xdd_)));
+  vec_Xdd_ = std::make_shared<TypeXVector>(
+      GenerateXDeltaUnderscore(*vec_Xd_, opts_.estimate_saturation_layers_));
+  vec_Ydd_ = std::make_shared<TypeYVector>(
+      GenerateYDelta<DoubleTreeVector>(*vec_Xdd_));
 
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
 }

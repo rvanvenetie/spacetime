@@ -67,7 +67,8 @@ class AdaptiveHeatEquation {
 
  public:
   AdaptiveHeatEquation(
-      const TypeXDelta &X_delta, std::unique_ptr<TypeYLinForm> &&g_lin_form,
+      std::shared_ptr<TypeXVector> vec_Xd,
+      std::unique_ptr<TypeYLinForm> &&g_lin_form,
       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 

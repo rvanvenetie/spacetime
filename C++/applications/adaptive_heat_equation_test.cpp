@@ -32,18 +32,19 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   auto space_g2 = [](double x, double y) { return (x - 1) * x * (y - 1) * y; };
   auto u0 = [](double x, double y) { return (1 - x) * x * (1 - y) * y; };
 
-  auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+  auto vec_Xd = std::make_shared<
+      DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
       B.three_point_tree.meta_root.get(),
       T.hierarch_basis_tree.meta_root.get());
-  X_delta.SparseRefine(1);
+  vec_Xd->SparseRefine(1);
 
   auto [g_lf, u0_lf] = SmoothProblem();
-  AdaptiveHeatEquation heat_eq(X_delta, std::move(g_lf), std::move(u0_lf),
+  AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf),
                                {.estimate_mean_zero_ = false});
 
   auto u = heat_eq.Solve();
-  heat_eq.vec_Xd()->FromVectorContainer(u);
-  auto u_nodes = heat_eq.vec_Xd()->Bfs();
+  vec_Xd->FromVectorContainer(u);
+  auto u_nodes = vec_Xd->Bfs();
   Eigen::VectorXd python_u(u_nodes.size());
   python_u << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.056793956002164525, 0.12413158640093236;
@@ -72,17 +73,17 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   ASSERT_EQ(marked_nodes.size(), python_data[0].first);
   ASSERT_NEAR(residual_norm, python_data[0].second, 1e-10);
 
-  heat_eq.vec_Xd()->FromVectorContainer(u);
+  vec_Xd->FromVectorContainer(u);
   heat_eq.Refine(marked_nodes);
 
   for (size_t iter = 1; iter < 5; iter++) {
-    u = heat_eq.Solve(heat_eq.vec_Xd()->ToVectorContainer());
+    u = heat_eq.Solve(vec_Xd->ToVectorContainer());
     auto [residual, norm] = heat_eq.Estimate(u);
     auto marked_nodes = heat_eq.Mark(residual);
     ASSERT_EQ(marked_nodes.size(), python_data[iter].first);
     ASSERT_NEAR(norm, python_data[iter].second, 1e-5);
 
-    heat_eq.vec_Xd()->FromVectorContainer(u);
+    vec_Xd->FromVectorContainer(u);
     heat_eq.Refine(marked_nodes);
   }
 }
