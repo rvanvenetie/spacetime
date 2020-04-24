@@ -40,7 +40,7 @@ const std::array<OrthonormalWaveletFn *, 2> &Element1D::RefinePsiOrthonormal() {
 
 std::pair<double, double> Element1D::Interval() const {
   assert(!is_metaroot());
-  double h = 1.0 / std::pow(2, level_);
+  double h = 1.0 / (2 << level_);
   return {h * index_, h * (index_ + 1)};
 }
 

@@ -118,9 +118,9 @@ class ScalingFn : public Function<I> {
   double Eval(double t, bool deriv = false) const {
     int l = this->level_;
     int n = this->index_;
-    double chain_rule_constant = deriv ? std::pow(2, l) : 1;
-    return chain_rule_constant * static_cast<const I &>(*this).EvalMother(
-                                     std::pow(2, l) * t - n, deriv);
+    double chain_rule_constant = deriv ? (2 << l) : 1;
+    return chain_rule_constant *
+           static_cast<const I &>(*this).EvalMother((2 << l) * t - n, deriv);
   }
 
   const SparseVector<WaveletType> &multi_scale() const { return multi_scale_; }
