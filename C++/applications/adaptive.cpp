@@ -98,8 +98,7 @@ int main(int argc, char* argv[]) {
                                std::move(problem_data.second), adapt_opts);
 
   size_t ndof = 0;
-  Eigen::VectorXd x0 =
-      Eigen::VectorXd::Zero(heat_eq.vec_Xd()->container().size());
+  Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
   while (ndof < max_dofs) {
     auto start = std::chrono::steady_clock::now();
     auto [solution, pcg_data] = heat_eq.Solve(x0);
