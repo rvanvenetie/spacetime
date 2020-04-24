@@ -232,12 +232,12 @@ TEST(HeatEquation, SchurPCG) {
     auto [result, data] =
         tools::linalg::PCG(*heat_eq.S(), v_in, *heat_eq.P_X(),
                            Eigen::VectorXd::Zero(v_in.rows()), 1000, 1e-5);
-    auto [residual, iter] = data;
     std::cout << B.ortho_tree.Bfs().size() << " "
               << B.three_point_tree.Bfs().size() << " "
               << T.hierarch_basis_tree.Bfs().size() << " "
-              << X_delta.Bfs().size() << " PCG:   #iterations: " << iter
-              << ", estimated error: " << residual << std::endl;
+              << X_delta.Bfs().size()
+              << " PCG:   #iterations: " << data.iterations
+              << ", estimated error: " << data.relative_residual << std::endl;
   }
 }
 

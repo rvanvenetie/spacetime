@@ -33,12 +33,12 @@ Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
   return rhs;
 }
 
-Eigen::VectorXd AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
+std::pair<Eigen::VectorXd, tools::linalg::SolverData>
+AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
   assert(heat_d_dd_);
-  auto [result, data] =
-      tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_), *heat_d_dd_->P_X(),
-                         x0, opts_.solve_maxit_, opts_.solve_rtol_);
-  return result;
+  return tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
+                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit_,
+                            opts_.solve_rtol_);
 }
 
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)

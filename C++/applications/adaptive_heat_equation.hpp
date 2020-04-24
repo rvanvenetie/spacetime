@@ -1,8 +1,9 @@
 #pragma once
-#include "../datastructures/double_tree_view.hpp"
-#include "../spacetime/basis.hpp"
-#include "../spacetime/linear_form.hpp"
-#include "heat_equation.hpp"
+#include "applications/heat_equation.hpp"
+#include "datastructures/double_tree_view.hpp"
+#include "spacetime/basis.hpp"
+#include "spacetime/linear_form.hpp"
+#include "tools/linalg.hpp"
 
 namespace applications {
 
@@ -72,8 +73,9 @@ class AdaptiveHeatEquation {
       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
-  Eigen::VectorXd Solve(const Eigen::VectorXd &x0);
-  Eigen::VectorXd Solve() {
+  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
+      const Eigen::VectorXd &x0);
+  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve() {
     return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
   }
 

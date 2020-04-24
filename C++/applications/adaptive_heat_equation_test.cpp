@@ -39,10 +39,12 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   vec_Xd->SparseRefine(1);
 
   auto [g_lf, u0_lf] = SmoothProblem();
-  AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf),
-                               {.estimate_mean_zero_ = false});
+  AdaptiveHeatEquationOptions opts = {.estimate_mean_zero_ = false};
+  opts.P_X_alpha_ = 0.35;
+  AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf), opts);
 
-  auto u = heat_eq.Solve();
+  std::vector<size_t> python_pcg_iters{2, 3, 5, 5, 5};
+  auto [u, pcg_data] = heat_eq.Solve();
   vec_Xd->FromVectorContainer(u);
   auto u_nodes = vec_Xd->Bfs();
   Eigen::VectorXd python_u(u_nodes.size());
@@ -50,6 +52,7 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
       0.056793956002164525, 0.12413158640093236;
   for (size_t i = 0; i < u_nodes.size(); i++)
     ASSERT_NEAR(u_nodes[i]->value(), python_u[i], 1e-5);
+  ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[0], 1);
 
   auto [residual, residual_norm] = heat_eq.Estimate(u);
   auto residual_nodes = residual->Bfs();
@@ -63,25 +66,27 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   for (size_t i = 0; i < residual_nodes.size(); i++)
     ASSERT_NEAR(residual_nodes[i]->value(), python_residual[i], 1e-5);
 
-  std::vector<std::pair<int, double>> python_data{{{1, 0.022990516747664815},
-                                                   {4, 0.016706324583205395},
-                                                   {10, 0.08984241341963645},
-                                                   {13, 0.07019458968270276},
-                                                   {26, 0.050368099941736744}}};
+  std::vector<std::pair<int, double>> python_mark_data{
+      {{1, 0.022990516747664815},
+       {4, 0.016706324583205395},
+       {10, 0.08984241341963645},
+       {13, 0.07019458968270276},
+       {26, 0.050368099941736744}}};
 
   auto marked_nodes = heat_eq.Mark(residual);
-  ASSERT_EQ(marked_nodes.size(), python_data[0].first);
-  ASSERT_NEAR(residual_norm, python_data[0].second, 1e-10);
+  ASSERT_EQ(marked_nodes.size(), python_mark_data[0].first);
+  ASSERT_NEAR(residual_norm, python_mark_data[0].second, 1e-10);
 
   vec_Xd->FromVectorContainer(u);
   heat_eq.Refine(marked_nodes);
 
   for (size_t iter = 1; iter < 5; iter++) {
-    u = heat_eq.Solve(vec_Xd->ToVectorContainer());
+    auto [u, pcg_data] = heat_eq.Solve(vec_Xd->ToVectorContainer());
     auto [residual, norm] = heat_eq.Estimate(u);
     auto marked_nodes = heat_eq.Mark(residual);
-    ASSERT_EQ(marked_nodes.size(), python_data[iter].first);
-    ASSERT_NEAR(norm, python_data[iter].second, 1e-5);
+    ASSERT_EQ(marked_nodes.size(), python_mark_data[iter].first);
+    ASSERT_NEAR(norm, python_mark_data[iter].second, 1e-5);
+    ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[iter], 1);
 
     vec_Xd->FromVectorContainer(u);
     heat_eq.Refine(marked_nodes);
