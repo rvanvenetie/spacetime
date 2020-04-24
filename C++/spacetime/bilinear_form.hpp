@@ -117,6 +117,65 @@ CreateBilinearForm(
       vec_in, vec_out, sigma, theta, use_cache);
 }
 
+template <template <typename, typename> class OperatorTime,
+          typename OperatorSpace, typename BasisTime>
+class SymmetricBilinearForm
+    : public std::enable_shared_from_this<
+          SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>>,
+      public BilinearFormBase<datastructures::DoubleTreeVector<
+                                  BasisTime, space::HierarchicalBasisFn>,
+                              datastructures::DoubleTreeVector<
+                                  BasisTime, space::HierarchicalBasisFn>> {
+ protected:
+  template <typename T0, typename T1>
+  using DoubleTreeVector = datastructures::DoubleTreeVector<T0, T1>;
+  using BasisSpace = space::HierarchicalBasisFn;
+
+ public:
+  // Friendly aliases.
+  using DblVec = DoubleTreeVector<BasisTime, BasisSpace>;
+
+  SymmetricBilinearForm(
+      DblVec *vec,
+      std::shared_ptr<DoubleTreeVector<BasisTime, BasisSpace>> sigma,
+      bool use_cache,
+      space::OperatorOptions space_opts = space::OperatorOptions());
+  SymmetricBilinearForm(
+      DblVec *vec, bool use_cache,
+      space::OperatorOptions space_opts = space::OperatorOptions())
+      : SymmetricBilinearForm(vec, GenerateSigma(*vec, *vec), use_cache,
+                              space_opts) {}
+
+  // Apply takes data from vec_in and writes it to vec_out.
+  Eigen::VectorXd Apply(const Eigen::VectorXd &v) final;
+  DblVec *vec_in() const final { return vec_; }
+  DblVec *vec_out() const final { return vec_; }
+
+  // ApplyTranspose takes data from *vec_out* and writes it to *vec_in*.
+  Eigen::VectorXd ApplyTranspose(const Eigen::VectorXd &v) { return Apply(v); }
+
+  auto Transpose() { return this->shared_from_this(); }
+  auto sigma() { return sigma_; }
+
+ protected:
+  DblVec *vec_;
+  std::shared_ptr<DoubleTreeVector<BasisTime, BasisSpace>> sigma_;
+
+  // Options.
+  bool use_cache_;
+  space::OperatorOptions space_opts_;
+
+  // Define frozen templates, useful for storing the bil forms.
+  template <size_t i>
+  using F = datastructures::FrozenDoubleNode<
+      datastructures::DoubleNodeVector<BasisTime, BasisSpace>, i>;
+
+  // Store (cached) bilinear forms in vectors.
+  bool is_cached_ = false;
+  std::vector<space::BilinearForm<OperatorSpace, F<1>, F<1>>> bil_space_low_;
+  std::vector<Time::BilinearForm<OperatorTime, F<0>, F<0>>> bil_time_low_;
+};
+
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 class BlockDiagonalBilinearForm
     : public BilinearFormBase<datastructures::DoubleTreeVector<

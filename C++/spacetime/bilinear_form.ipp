@@ -163,6 +163,115 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
   return v_lower + vec_in_->ToVectorContainer();
 }
 
+template <template <typename, typename> class OperatorTime,
+          typename OperatorSpace, typename BasisTime>
+SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::
+    SymmetricBilinearForm(
+        DblVec *vec,
+        std::shared_ptr<DoubleTreeVector<BasisTime, BasisSpace>> sigma,
+        bool use_cache, space::OperatorOptions space_opts)
+    : vec_(vec),
+      sigma_(sigma),
+      use_cache_(use_cache),
+      space_opts_(std::move(space_opts)) {
+  // If use cache, cache the bil forms here.
+  if (use_cache_) {
+    // Calculate R_sigma(Id x A_1)I_Lambda.
+    for (auto psi_in_labda : sigma_->Project_0()->Bfs()) {
+      auto fiber_in = vec_->Fiber_1(psi_in_labda->node());
+      auto fiber_out = psi_in_labda->FrozenOtherAxis();
+      if (fiber_out->children().empty()) continue;
+      auto bil_form = space::CreateBilinearForm<OperatorSpace>(
+          fiber_in, fiber_out, space_opts_);
+      bil_space_low_.emplace_back(std::move(bil_form));
+    }
+
+    // Calculate R_Lambda(L_0 x Id)I_Sigma.
+    for (auto psi_out_labda : vec_->Project_1()->Bfs()) {
+      auto fiber_in = sigma_->Fiber_0(psi_out_labda->node());
+      if (fiber_in->children().empty()) continue;
+      auto fiber_out = psi_out_labda->FrozenOtherAxis();
+      auto bil_form =
+          Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
+      bil_time_low_.emplace_back(std::move(bil_form));
+    }
+  }
+}
+
+template <template <typename, typename> class OperatorTime,
+          typename OperatorSpace, typename BasisTime>
+Eigen::VectorXd
+SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
+    const Eigen::VectorXd &v_in) {
+  sigma_->Reset();
+  Eigen::VectorXd v_lower;
+
+  // Store the input in the double tree.
+  vec_->FromVectorContainer(v_in);
+
+  if (use_cache_) {
+    // Apply the lower part using cached bil forms.
+    for (auto &bil_form : bil_space_low_) bil_form.Apply();
+    vec_->Reset();
+    for (auto &bil_form : bil_time_low_) bil_form.ApplyLow();
+
+    v_lower = vec_->ToVectorContainer();
+    vec_->FromVectorContainer(v_in);
+
+    // Apply the upper part using cached bil forms.
+    for (auto &bil_form : bil_time_low_) bil_form.Transpose().ApplyUpp();
+    vec_->Reset();
+    for (auto &bil_form : bil_space_low_) bil_form.Transpose().Apply();
+  } else {
+    // Calculate R_sigma(Id x A_1)I_Lambda.
+    for (auto psi_in_labda : sigma_->Project_0()->Bfs()) {
+      auto fiber_in = vec_->Fiber_1(psi_in_labda->node());
+      auto fiber_out = psi_in_labda->FrozenOtherAxis();
+      if (fiber_out->children().empty()) continue;
+      auto bil_form = space::CreateBilinearForm<OperatorSpace>(
+          fiber_in, fiber_out, space_opts_);
+      bil_form.Apply();
+    }
+
+    // Calculate R_Lambda(L_0 x Id)I_Sigma.
+    vec_->Reset();
+    for (auto psi_out_labda : vec_->Project_1()->Bfs()) {
+      auto fiber_in = sigma_->Fiber_0(psi_out_labda->node());
+      if (fiber_in->children().empty()) continue;
+      auto fiber_out = psi_out_labda->FrozenOtherAxis();
+      auto bil_form =
+          Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
+      bil_form.ApplyLow();
+    }
+
+    v_lower = vec_->ToVectorContainer();
+    vec_->FromVectorContainer(v_in);
+
+    // Calculate R_Sigma(U_1 x Id)I_Lambda.
+    for (auto psi_in_labda : vec_->Project_1()->Bfs()) {
+      auto fiber_out = sigma_->Fiber_0(psi_in_labda->node());
+      if (fiber_out->children().empty()) continue;
+      auto fiber_in = psi_in_labda->FrozenOtherAxis();
+      auto bil_form =
+          Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
+      bil_form.ApplyUpp();
+    }
+    vec_->Reset();
+    // Calculate R_Lambda(Id x A2)I_Sigma.
+    for (auto psi_out_labda : sigma_->Project_0()->Bfs()) {
+      auto fiber_out = vec_->Fiber_1(psi_out_labda->node());
+      auto fiber_in = psi_out_labda->FrozenOtherAxis();
+      if (fiber_in->children().empty()) continue;
+      auto bil_form = space::CreateBilinearForm<OperatorSpace>(
+          fiber_in, fiber_out, space_opts_);
+      bil_form.Apply();
+    }
+  }
+
+  // Return vectorized output.
+  return v_lower + vec_->ToVectorContainer();
+}
+
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 Eigen::VectorXd
 BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
