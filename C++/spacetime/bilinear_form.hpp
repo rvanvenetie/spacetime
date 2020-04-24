@@ -120,9 +120,7 @@ CreateBilinearForm(
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTime>
 class SymmetricBilinearForm
-    : public std::enable_shared_from_this<
-          SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>>,
-      public BilinearFormBase<datastructures::DoubleTreeVector<
+    : public BilinearFormBase<datastructures::DoubleTreeVector<
                                   BasisTime, space::HierarchicalBasisFn>,
                               datastructures::DoubleTreeVector<
                                   BasisTime, space::HierarchicalBasisFn>> {
@@ -136,30 +134,16 @@ class SymmetricBilinearForm
   using DblVec = DoubleTreeVector<BasisTime, BasisSpace>;
 
   SymmetricBilinearForm(
-      DblVec *vec,
-      std::shared_ptr<DoubleTreeVector<BasisTime, BasisSpace>> sigma,
-      bool use_cache,
-      space::OperatorOptions space_opts = space::OperatorOptions());
-  SymmetricBilinearForm(
       DblVec *vec, bool use_cache,
-      space::OperatorOptions space_opts = space::OperatorOptions())
-      : SymmetricBilinearForm(vec, GenerateSigma(*vec, *vec), use_cache,
-                              space_opts) {}
+      space::OperatorOptions space_opts = space::OperatorOptions());
 
   // Apply takes data from vec_in and writes it to vec_out.
   Eigen::VectorXd Apply(const Eigen::VectorXd &v) final;
   DblVec *vec_in() const final { return vec_; }
   DblVec *vec_out() const final { return vec_; }
 
-  // ApplyTranspose takes data from *vec_out* and writes it to *vec_in*.
-  Eigen::VectorXd ApplyTranspose(const Eigen::VectorXd &v) { return Apply(v); }
-
-  auto Transpose() { return this->shared_from_this(); }
-  auto sigma() { return sigma_; }
-
  protected:
   DblVec *vec_;
-  std::shared_ptr<DoubleTreeVector<BasisTime, BasisSpace>> sigma_;
 
   // Options.
   bool use_cache_;
