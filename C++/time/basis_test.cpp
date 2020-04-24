@@ -2,28 +2,26 @@
 #include <map>
 #include <set>
 
+#include "bases.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "haar_basis.hpp"
-#include "orthonormal_basis.hpp"
-#include "three_point_basis.hpp"
 
 namespace Time {
 using ::testing::ElementsAre;
 
 TEST(HaarBasis, functions) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
-  ASSERT_EQ(disc_cons_tree.meta_root->children().size(), 1);
-  ASSERT_EQ(haar_tree.meta_root->children().size(), 1);
+  ASSERT_EQ(B.disc_cons_tree.meta_root->children().size(), 1);
+  ASSERT_EQ(B.haar_tree.meta_root->children().size(), 1);
 
-  auto mother_scaling = disc_cons_tree.meta_root->children()[0];
+  auto mother_scaling = B.disc_cons_tree.meta_root->children()[0];
   ASSERT_EQ(mother_scaling->labda(), std::make_pair(0, 0));
   ASSERT_EQ(mother_scaling->Eval(0.25), 1.0);
   ASSERT_EQ(mother_scaling->Eval(0.85), 1.0);
 
-  auto mother_wavelet = haar_tree.meta_root->children()[0];
+  auto mother_wavelet = B.haar_tree.meta_root->children()[0];
   mother_wavelet->Refine();
   ASSERT_EQ(mother_wavelet->children().size(), 1);
   mother_wavelet = mother_wavelet->children()[0];
@@ -33,12 +31,12 @@ TEST(HaarBasis, functions) {
 
 TEST(HaarBasis, UniformRefinement) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
   int ml = 5;
 
-  haar_tree.UniformRefine(ml);
-  auto Lambda = haar_tree.NodesPerLevel();
-  auto Delta = disc_cons_tree.NodesPerLevel();
+  B.haar_tree.UniformRefine(ml);
+  auto Lambda = B.haar_tree.NodesPerLevel();
+  auto Delta = B.disc_cons_tree.NodesPerLevel();
 
   for (int l = 1; l <= ml; ++l) {
     ASSERT_EQ(Lambda[l].size(), std::pow(2, l - 1));
@@ -59,13 +57,13 @@ TEST(HaarBasis, UniformRefinement) {
 
 TEST(OrthonormalBasis, UniformRefinement) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 7;
 
-  ortho_tree.UniformRefine(ml);
-  auto Lambda = ortho_tree.NodesPerLevel();
-  auto Delta = disc_lin_tree.NodesPerLevel();
+  B.ortho_tree.UniformRefine(ml);
+  auto Lambda = B.ortho_tree.NodesPerLevel();
+  auto Delta = B.disc_lin_tree.NodesPerLevel();
   for (int l = 1; l <= ml; ++l) {
     ASSERT_EQ(Lambda[l].size(), std::pow(2, l));
     ASSERT_EQ(Delta[l].size(), std::pow(2, l + 1));
@@ -106,16 +104,16 @@ TEST(OrthonormalBasis, UniformRefinement) {
 
 TEST(OrthonormalBasis, LocalRefinement) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 15;
 
   // Refine towards t=0.
-  ortho_tree.DeepRefine([ml](auto node) {
+  B.ortho_tree.DeepRefine([ml](auto node) {
     return node->is_metaroot() || (node->level() < ml && node->index() == 0);
   });
-  auto Lambda = ortho_tree.NodesPerLevel();
-  auto Delta = disc_lin_tree.NodesPerLevel();
+  auto Lambda = B.ortho_tree.NodesPerLevel();
+  auto Delta = B.disc_lin_tree.NodesPerLevel();
 
   ASSERT_EQ(Lambda[0].size(), 2);
   ASSERT_EQ(Lambda[1].size(), 2);
@@ -128,16 +126,16 @@ TEST(OrthonormalBasis, LocalRefinement) {
 
 TEST(ThreePointBasis, UniformRefinement) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 7;
 
-  three_point_tree.UniformRefine(ml);
-  auto Lambda = three_point_tree.NodesPerLevel();
-  auto Delta = cont_lin_tree.NodesPerLevel();
+  B.three_point_tree.UniformRefine(ml);
+  auto Lambda = B.three_point_tree.NodesPerLevel();
+  auto Delta = B.cont_lin_tree.NodesPerLevel();
 
-  ASSERT_EQ(three_point_tree.meta_root->children().size(), 2);
-  ASSERT_EQ(cont_lin_tree.meta_root->children().size(), 2);
+  ASSERT_EQ(B.three_point_tree.meta_root->children().size(), 2);
+  ASSERT_EQ(B.cont_lin_tree.meta_root->children().size(), 2);
 
   for (int l = 1; l <= ml; ++l) {
     ASSERT_EQ(Lambda[l].size(), std::pow(2, l - 1));
@@ -174,15 +172,15 @@ TEST(ThreePointBasis, UniformRefinement) {
 
 TEST(ThreePointBasis, LocalRefinement) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
 
   int ml = 15;
   // First check what happens when we only refine near the origin.
-  three_point_tree.DeepRefine([ml](auto node) {
+  B.three_point_tree.DeepRefine([ml](auto node) {
     return node->is_metaroot() || (node->level() < ml && node->index() == 0);
   });
-  auto Lambda = three_point_tree.NodesPerLevel();
-  auto Delta = cont_lin_tree.NodesPerLevel();
+  auto Lambda = B.three_point_tree.NodesPerLevel();
+  auto Delta = B.cont_lin_tree.NodesPerLevel();
 
   ASSERT_EQ(Lambda[0].size(), 2);
   ASSERT_EQ(Lambda[1].size(), 1);
@@ -194,14 +192,14 @@ TEST(ThreePointBasis, LocalRefinement) {
   }
 
   // Now we check what happens when we also refine near the end points.
-  three_point_tree.DeepRefine([ml](auto node) {
+  B.three_point_tree.DeepRefine([ml](auto node) {
     return node->is_metaroot() ||
            (node->level() < ml &&
             (node->index() == 0 ||
              node->index() == (1 << (node->level() - 1)) - 1));
   });
-  Lambda = three_point_tree.NodesPerLevel();
-  Delta = cont_lin_tree.NodesPerLevel();
+  Lambda = B.three_point_tree.NodesPerLevel();
+  Delta = B.cont_lin_tree.NodesPerLevel();
   for (int l = 4; l <= ml; ++l) {
     ASSERT_EQ(Lambda[l].size(), 4);
     ASSERT_EQ(Delta[l].size(), 10);

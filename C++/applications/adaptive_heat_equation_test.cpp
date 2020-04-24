@@ -14,18 +14,17 @@ using spacetime::CreateZeroEvalLinearForm;
 using spacetime::GenerateYDelta;
 using spacetime::LinearForm;
 using spacetime::SumLinearForm;
-using Time::ortho_tree;
 using Time::OrthonormalWaveletFn;
-using Time::three_point_tree;
 using Time::ThreePointWaveletFn;
 
 namespace applications {
 
 TEST(AdaptiveHeatEquation, CompareToPython) {
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(1);
-  ortho_tree.UniformRefine(1);
-  three_point_tree.UniformRefine(1);
+  B.ortho_tree.UniformRefine(1);
+  B.three_point_tree.UniformRefine(1);
 
   auto time_g1 = [](double t) { return -2 * (1 + t * t); };
   auto space_g1 = [](double x, double y) { return (x - 1) * x + (y - 1) * y; };
@@ -34,7 +33,8 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   auto u0 = [](double x, double y) { return (1 - x) * x * (1 - y) * y; };
 
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root.get(),
+      T.hierarch_basis_tree.meta_root.get());
   X_delta.SparseRefine(1);
 
   auto [g_lf, u0_lf] = SmoothProblem();

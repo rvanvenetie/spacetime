@@ -4,12 +4,8 @@
 #include <memory>
 namespace Time {
 
-// Initialize static variables.
-datastructures::Tree<DiscConstantScalingFn> disc_cons_tree;
-datastructures::Tree<HaarWaveletFn> haar_tree;
-
 // Metaroot constructor.
-DiscConstantScalingFn::DiscConstantScalingFn()
+DiscConstantScalingFn::DiscConstantScalingFn(Element1D *mother_element)
     : ScalingFn<DiscConstantScalingFn>() {
   make_child(/* parent */ this, /* index */ 0, /* support */ mother_element);
 }
@@ -42,8 +38,8 @@ bool DiscConstantScalingFn::Refine() {
   return true;
 }
 
-HaarWaveletFn::HaarWaveletFn() : WaveletFn<HaarWaveletFn>() {
-  auto mother_scaling = disc_cons_tree.meta_root->children()[0];
+HaarWaveletFn::HaarWaveletFn(DiscConstantScalingFn *mother_scaling)
+    : WaveletFn<HaarWaveletFn>() {
   make_child(/* parent */ this, /* index */ 0,
              /* support */ std::vector{std::pair{mother_scaling, 1.0}});
 }

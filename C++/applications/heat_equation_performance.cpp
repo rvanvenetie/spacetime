@@ -28,14 +28,15 @@ constexpr int inner_iters = 10;
 constexpr bool use_cache = true;
 
 int main() {
+  auto B = Time::Bases();
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(::level);
-  ortho_tree.UniformRefine(::level);
-  three_point_tree.UniformRefine(::level);
+  B.ortho_tree.UniformRefine(::level);
+  B.three_point_tree.UniformRefine(::level);
 
   for (size_t j = 0; j < ::heateq_iters; ++j) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        three_point_tree.meta_root.get(),
+        B.three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(::level);
 

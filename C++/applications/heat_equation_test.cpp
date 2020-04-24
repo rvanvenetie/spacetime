@@ -11,8 +11,6 @@
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
 using spacetime::BilinearFormBase;
-using Time::ortho_tree;
-using Time::three_point_tree;
 
 namespace applications {
 
@@ -26,14 +24,15 @@ auto ValidateVector(const DblVec &vec) {
 }
 
 TEST(HeatEquation, SparseMatVec) {
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(6);
-  ortho_tree.UniformRefine(6);
-  three_point_tree.UniformRefine(6);
+  B.ortho_tree.UniformRefine(6);
+  B.three_point_tree.UniformRefine(6);
 
   for (int level = 1; level < 6; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        three_point_tree.meta_root.get(),
+        B.three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(level);
 
@@ -93,13 +92,15 @@ TEST(HeatEquation, SparseMatVec) {
 
 TEST(HeatEquation, CompareToPython) {
   int level = 6;
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root.get(),
+      T.hierarch_basis_tree.meta_root.get());
 
   T.hierarch_basis_tree.UniformRefine(level);
-  ortho_tree.UniformRefine(level);
-  three_point_tree.UniformRefine(level);
+  B.ortho_tree.UniformRefine(level);
+  B.three_point_tree.UniformRefine(level);
   X_delta.SparseRefine(level, {2, 1});
   HeatEquationOptions opts;
   opts.P_X_alpha_ = 1.0;
@@ -181,14 +182,15 @@ TEST(HeatEquation, CompareToPython) {
 
 TEST(HeatEquation, SchurCG) {
   int max_level = 7;
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
-  ortho_tree.UniformRefine(max_level);
-  three_point_tree.UniformRefine(max_level);
+  B.ortho_tree.UniformRefine(max_level);
+  B.three_point_tree.UniformRefine(max_level);
 
   for (int level = 1; level < max_level; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        three_point_tree.meta_root.get(),
+        B.three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(level);
 
@@ -272,14 +274,16 @@ TEST(HeatEquation, SchurCG) {
 
 TEST(HeatEquation, SchurPCG) {
   int max_level = 7;
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root.get(),
+      T.hierarch_basis_tree.meta_root.get());
 
   for (int level = 1; level < max_level; level++) {
     T.hierarch_basis_tree.UniformRefine(level);
-    ortho_tree.UniformRefine(level);
-    three_point_tree.UniformRefine(level);
+    B.ortho_tree.UniformRefine(level);
+    B.three_point_tree.UniformRefine(level);
     X_delta.SparseRefine(level, {2, 1});
     HeatEquation heat_eq(X_delta);
 
@@ -299,8 +303,9 @@ TEST(HeatEquation, SchurPCG) {
     auto [result, data] =
         tools::linalg::PCG(*heat_eq.S(), v_in, *heat_eq.P_X(),
                            Eigen::VectorXd::Zero(v_in.rows()), 1000, 1e-5);
-    std::cout << ortho_tree.Bfs().size() << " " << three_point_tree.Bfs().size()
-              << " " << T.hierarch_basis_tree.Bfs().size() << " "
+    std::cout << B.ortho_tree.Bfs().size() << " "
+              << B.three_point_tree.Bfs().size() << " "
+              << T.hierarch_basis_tree.Bfs().size() << " "
               << X_delta.Bfs().size()
               << " PCG:   #iterations: " << data.iterations
               << ", estimated error: " << data.relative_residual << std::endl;
@@ -309,15 +314,17 @@ TEST(HeatEquation, SchurPCG) {
 
 TEST(HeatEquation, LanczosDirectInverse) {
   int max_level = 12;
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root.get(),
+      T.hierarch_basis_tree.meta_root.get());
 
   for (int level = 1; level <= max_level; level++) {
     if (level % 2) continue;
     T.hierarch_basis_tree.UniformRefine(level);
-    ortho_tree.UniformRefine(level);
-    three_point_tree.UniformRefine(level);
+    B.ortho_tree.UniformRefine(level);
+    B.three_point_tree.UniformRefine(level);
     X_delta.SparseRefine(level, {2, 1});
     HeatEquation heat_eq(X_delta);
 
@@ -348,15 +355,17 @@ TEST(HeatEquation, LanczosDirectInverse) {
 
 TEST(HeatEquation, LanczosMG) {
   int max_level = 10;
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      three_point_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root.get(),
+      T.hierarch_basis_tree.meta_root.get());
 
   for (int level = 1; level <= max_level; level++) {
     if (level % 2) continue;
     T.hierarch_basis_tree.UniformRefine(level);
-    ortho_tree.UniformRefine(level);
-    three_point_tree.UniformRefine(level);
+    B.ortho_tree.UniformRefine(level);
+    B.three_point_tree.UniformRefine(level);
     X_delta.SparseRefine(level, {2, 1});
 
     HeatEquationOptions heat_eq_opts;

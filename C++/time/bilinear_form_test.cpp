@@ -5,12 +5,11 @@
 #include <set>
 #include <unordered_map>
 
-#include "../datastructures/multi_tree_vector.hpp"
+#include "bases.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "integration.hpp"
 #include "linear_operator.hpp"
-#include "three_point_basis.hpp"
 
 int bsd_rnd() {
   static unsigned int seed = 0;
@@ -122,17 +121,17 @@ void CheckMatrixQuadrature(const TreeVector<WaveletBasisIn>& vec_in,
 
 TEST(BilinearForm, FullTest) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
   int ml = 7;
-  three_point_tree.UniformRefine(ml);
-  ortho_tree.UniformRefine(ml);
+  B.three_point_tree.UniformRefine(ml);
+  B.ortho_tree.UniformRefine(ml);
 
   for (size_t j = 0; j < 20; ++j) {
     // Set up three-point tree.
     auto three_vec_in =
-        TreeVector<ThreePointWaveletFn>(three_point_tree.meta_root);
+        TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root);
     auto three_vec_out =
-        TreeVector<ThreePointWaveletFn>(three_point_tree.meta_root);
+        TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root);
     three_vec_in.DeepRefine(
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
@@ -145,8 +144,10 @@ TEST(BilinearForm, FullTest) {
     ASSERT_GT(three_vec_out.Bfs().size(), 0);
 
     // Set up orthonormal tree.
-    auto ortho_vec_in = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
-    auto ortho_vec_out = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
+    auto ortho_vec_in =
+        TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root);
+    auto ortho_vec_out =
+        TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root);
     ortho_vec_in.DeepRefine(
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 == 0;

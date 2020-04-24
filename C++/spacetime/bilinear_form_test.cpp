@@ -1,20 +1,19 @@
 #include "bilinear_form.hpp"
 
-#include "../space/initial_triangulation.hpp"
-#include "../space/integration.hpp"
-#include "../space/operators.hpp"
-#include "../time/integration.hpp"
-#include "../time/linear_operator.hpp"
 #include "basis.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "space/initial_triangulation.hpp"
+#include "space/integration.hpp"
+#include "space/operators.hpp"
+#include "time/bases.hpp"
+#include "time/integration.hpp"
+#include "time/linear_operator.hpp"
 
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
 using space::HierarchicalBasisFn;
-using Time::ortho_tree;
 using Time::OrthonormalWaveletFn;
-using Time::three_point_tree;
 using Time::ThreePointWaveletFn;
 
 namespace spacetime {
@@ -216,14 +215,15 @@ void TestSpacetimeQuadrature(
 }
 
 TEST(BilinearForm, SparseQuadrature) {
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(6);
-  ortho_tree.UniformRefine(6);
-  three_point_tree.UniformRefine(6);
+  B.ortho_tree.UniformRefine(6);
+  B.three_point_tree.UniformRefine(6);
 
   for (int level = 1; level < 6; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        three_point_tree.meta_root.get(),
+        B.three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(level);
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
@@ -268,14 +268,15 @@ TEST(BilinearForm, SparseQuadrature) {
   }
 }
 TEST(BilinearForm, Transpose) {
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(6);
-  ortho_tree.UniformRefine(6);
-  three_point_tree.UniformRefine(6);
+  B.ortho_tree.UniformRefine(6);
+  B.three_point_tree.UniformRefine(6);
 
   for (int level = 1; level < 6; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        three_point_tree.meta_root.get(),
+        B.three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(level);
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
@@ -320,14 +321,15 @@ TEST(BilinearForm, Transpose) {
 }
 
 TEST(BlockDiagonalBilinearForm, CanBeConstructed) {
+  auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(6);
-  ortho_tree.UniformRefine(6);
-  three_point_tree.UniformRefine(6);
+  B.ortho_tree.UniformRefine(6);
+  B.three_point_tree.UniformRefine(6);
 
   for (int level = 1; level < 6; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        three_point_tree.meta_root.get(),
+        B.three_point_tree.meta_root.get(),
         T.hierarch_basis_tree.meta_root.get());
     X_delta.SparseRefine(level);
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);

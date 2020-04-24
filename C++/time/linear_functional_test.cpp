@@ -2,25 +2,25 @@
 
 #include <functional>
 
+#include "bases.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "integration.hpp"
-#include "three_point_basis.hpp"
 
 namespace Time {
 TEST(LinearFunctional, ZeroEvalFunctional) {
-  ResetTrees();
+  Bases B;
 
   int ml = 6;
   // Now we check what happens when we also refine near the end points.
-  three_point_tree.UniformRefine(ml);
+  B.three_point_tree.UniformRefine(ml);
 
   auto zero_eval_func = ZeroEvalFunctional<ContLinearScalingFn>();
-  auto phis = cont_lin_tree.Bfs();
+  auto phis = B.cont_lin_tree.Bfs();
   for (auto phi : phis)
     ASSERT_NEAR(zero_eval_func.Eval(phi), phi->Eval(0.0), 1e-10);
 
-  auto Delta = cont_lin_tree.NodesPerLevel();
+  auto Delta = B.cont_lin_tree.NodesPerLevel();
   for (int l = 0; l < ml; l++) {
     auto vec =
         zero_eval_func.Eval(SparseIndices<ContLinearScalingFn>{Delta[l]});
@@ -31,15 +31,15 @@ TEST(LinearFunctional, ZeroEvalFunctional) {
 }
 
 TEST(LinearFunctional, QuadratureFunctional) {
-  ResetTrees();
+  Bases B;
 
   int ml = 6;
   // Now we check what happens when we also refine near the end points.
-  three_point_tree.UniformRefine(ml);
+  B.three_point_tree.UniformRefine(ml);
 
   std::function<double(double)> f([](double t) { return t * t; });
   auto quad_func = QuadratureFunctional<ContLinearScalingFn>(f, /*order*/ 2);
-  auto phis = cont_lin_tree.Bfs();
+  auto phis = B.cont_lin_tree.Bfs();
   for (auto phi : phis) {
     double ip = 0.0;
     for (auto elem : phi->support())
@@ -49,7 +49,7 @@ TEST(LinearFunctional, QuadratureFunctional) {
     ASSERT_NEAR(quad_func.Eval(phi), ip, 1e-10);
   }
 
-  auto Delta = cont_lin_tree.NodesPerLevel();
+  auto Delta = B.cont_lin_tree.NodesPerLevel();
   for (int l = 0; l < ml; l++) {
     auto vec = quad_func.Eval(SparseIndices<ContLinearScalingFn>{Delta[l]});
     ASSERT_EQ(vec.size(), Delta[l].size());
