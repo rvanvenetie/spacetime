@@ -372,7 +372,7 @@ TEST(SymmetricBilinearForm, Works) {
             G_normal(&vec_X, &vec_X, /* use_cache */ use_cache);
         SymmetricBilinearForm<Time::ZeroEvalOperator, space::MassOperator,
                               ThreePointWaveletFn>
-            G_symm(&vec_X, /* use_cache */ true);
+            G_symm(&vec_X, /* use_cache */ use_cache);
 
         // Put some random values into vec_Y.
         for (auto nv : vec_X.Bfs()) {
