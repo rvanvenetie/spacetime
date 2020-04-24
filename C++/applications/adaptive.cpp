@@ -100,7 +100,8 @@ int main(int argc, char* argv[]) {
   size_t ndof = 0;
   while (ndof < max_dofs) {
     auto start = std::chrono::steady_clock::now();
-    auto solution = heat_eq.Solve(heat_eq.vec_Xd_out()->ToVectorContainer());
+    auto [solution, pcg_data] =
+        heat_eq.Solve(heat_eq.vec_Xd_out()->ToVectorContainer());
     ndof = heat_eq.vec_Xd_out()->Bfs().size();  // A slight overestimate.
     auto [residual, residual_norm] = heat_eq.Estimate();
     auto end = std::chrono::steady_clock::now();
@@ -110,7 +111,7 @@ int main(int argc, char* argv[]) {
     std::cout << "XDelta-size: " << ndof << " residual-norm: " << residual_norm
               << " total-memory-kB: " << getmem()
               << " solve-estimate-time: " << elapsed_seconds.count()
-              << std::endl;
+              << " solve-PCG-steps: " << pcg_data.iterations << std::endl;
   }
 
   return 0;

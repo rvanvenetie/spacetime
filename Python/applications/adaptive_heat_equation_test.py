@@ -82,11 +82,11 @@ def test_initial_residual():
                                             theta=0.7)
     u_dd_d, solve_info = adaptive_heat_eq.solve_step(solver_tol=solver_tol)
     residual, mark_info = adaptive_heat_eq.mark_refine(u_dd_d=u_dd_d)
-    print(mark_info['n_marked'], mark_info['res_norm'])
+    print(solve_info, mark_info['n_marked'], mark_info['res_norm'])
     for i in range(1, 5):
         u_dd_d, solve_info = adaptive_heat_eq.solve_step(solver_tol=solver_tol)
         residual, mark_info = adaptive_heat_eq.mark_refine(u_dd_d=u_dd_d)
-        print(mark_info['n_marked'], mark_info['res_norm'])
+        print(solve_info, mark_info['n_marked'], mark_info['res_norm'])
 
 
 def test_heat_error_reduction():
