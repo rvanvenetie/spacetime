@@ -1,7 +1,5 @@
 #include "adaptive_heat_equation.hpp"
 
-#include <cmath>
-
 #include "../space/initial_triangulation.hpp"
 #include "../time/basis.hpp"
 #include "../tools/linalg.hpp"
@@ -52,7 +50,7 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
       0.056793956002164525, 0.12413158640093236;
   for (size_t i = 0; i < result_nodes.size(); i++)
     ASSERT_NEAR(result_nodes[i]->value(), python_result[i], 1e-5);
-  ASSERT_LE(std::abs<int>(pcg_data.iterations - python_pcg_iters[0]), 1);
+  ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[0], 1);
 
   auto [residual, residual_norm] = heat_eq.Estimate();
   auto residual_nodes = residual->Bfs();
@@ -84,7 +82,7 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     auto [errors, norm] = heat_eq.Estimate();
     auto marked_nodes = heat_eq.Mark();
     ASSERT_EQ(marked_nodes.size(), python_mark_data[iter].first);
-    ASSERT_LE(std::abs<int>(pcg_data.iterations - python_pcg_iters[iter]), 1);
+    ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[iter], 1);
     ASSERT_NEAR(norm, python_mark_data[iter].second, 1e-5);
     heat_eq.Refine(marked_nodes);
   }
