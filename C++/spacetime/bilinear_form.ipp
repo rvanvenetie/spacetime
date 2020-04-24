@@ -203,7 +203,6 @@ template <template <typename, typename> class OperatorTime,
 Eigen::VectorXd
 SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
     const Eigen::VectorXd &v_in) {
-  sigma_->Reset();
   Eigen::VectorXd v_lower;
 
   // Store the input in the double tree.
@@ -211,6 +210,7 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
 
   if (use_cache_) {
     // Apply the lower part using cached bil forms.
+    sigma_->Reset();
     for (auto &bil_form : bil_space_low_) bil_form.Apply();
     vec_->Reset();
     for (auto &bil_form : bil_time_low_) bil_form.ApplyLow();
@@ -219,11 +219,13 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
     vec_->FromVectorContainer(v_in);
 
     // Apply the upper part using cached bil forms.
+    sigma_->Reset();
     for (auto &bil_form : bil_time_low_) bil_form.Transpose().ApplyUpp();
     vec_->Reset();
     for (auto &bil_form : bil_space_low_) bil_form.Transpose().Apply();
   } else {
     // Calculate R_sigma(Id x A_1)I_Lambda.
+    sigma_->Reset();
     for (auto psi_in_labda : sigma_->Project_0()->Bfs()) {
       auto fiber_in = vec_->Fiber_1(psi_in_labda->node());
       auto fiber_out = psi_in_labda->FrozenOtherAxis();
@@ -248,6 +250,7 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
     vec_->FromVectorContainer(v_in);
 
     // Calculate R_Sigma(U_1 x Id)I_Lambda.
+    sigma_->Reset();
     for (auto psi_in_labda : vec_->Project_1()->Bfs()) {
       auto fiber_out = sigma_->Fiber_0(psi_in_labda->node());
       if (fiber_out->children().empty()) continue;
@@ -256,8 +259,8 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
           Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
       bil_form.ApplyUpp();
     }
-    vec_->Reset();
     // Calculate R_Lambda(Id x A2)I_Sigma.
+    vec_->Reset();
     for (auto psi_out_labda : sigma_->Project_0()->Bfs()) {
       auto fiber_out = vec_->Fiber_1(psi_out_labda->node());
       auto fiber_in = psi_out_labda->FrozenOtherAxis();
