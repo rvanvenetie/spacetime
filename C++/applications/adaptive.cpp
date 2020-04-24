@@ -49,6 +49,7 @@ int main(int argc, char* argv[]) {
       "AdaptiveHeatEquation options");
   adapt_optdesc.add_options()("use_cache",
                               po::value<bool>(&adapt_opts.use_cache_))(
+      "cache_space_mats", po::value<bool>(&adapt_opts.cache_space_mats_))(
       "solve_rtol", po::value<double>(&adapt_opts.solve_rtol_))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit_))(
       "estimate_saturation_layers",
@@ -61,9 +62,7 @@ int main(int argc, char* argv[]) {
       "PY_inv",
       po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.P_Y_inv_))(
       "PX_mg_cycles", po::value<size_t>(&adapt_opts.P_X_mg_cycles_))(
-      "PY_mg_cycles", po::value<size_t>(&adapt_opts.P_Y_mg_cycles_))(
-      "PX_mg_cache_fw", po::value<bool>(&adapt_opts.P_X_mg_cache_fw_))(
-      "PY_mg_cache_fw", po::value<bool>(&adapt_opts.P_Y_mg_cache_fw_));
+      "PY_mg_cycles", po::value<size_t>(&adapt_opts.P_Y_mg_cycles_));
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(problem_optdesc).add(adapt_optdesc);
 

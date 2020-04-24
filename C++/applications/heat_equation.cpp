@@ -86,7 +86,7 @@ void HeatEquation::InitializePrecondX() {
   space::OperatorOptions space_opts;
   space_opts.alpha_ = opts_.P_X_alpha_;
   space_opts.cycles_ = opts_.P_X_mg_cycles_;
-  space_opts.cache_forward_mat_ = opts_.P_X_mg_cache_fw_;
+  space_opts.cache_mat_ = opts_.cache_space_mats_;
   switch (opts_.P_X_inv_) {
     case HeatEquationOptions::SpaceInverse::DirectInverse:
       P_X_ = std::make_shared<spacetime::BlockDiagonalBilinearForm<
@@ -108,7 +108,7 @@ void HeatEquation::InitializePrecondX() {
 void HeatEquation::InitializePrecondY() {
   space::OperatorOptions space_opts;
   space_opts.cycles_ = opts_.P_Y_mg_cycles_;
-  space_opts.cache_forward_mat_ = opts_.P_Y_mg_cache_fw_;
+  space_opts.cache_mat_ = opts_.cache_space_mats_;
   switch (opts_.P_Y_inv_) {
     case HeatEquationOptions::SpaceInverse::DirectInverse:
       P_Y_ = std::make_shared<spacetime::BlockDiagonalBilinearForm<

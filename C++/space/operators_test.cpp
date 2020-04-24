@@ -49,6 +49,29 @@ TEST(Operator, InverseTimesForwardOpIsIdentity) {
   }
 }
 
+TEST(ForwardOperator, SingleScaleMatrix) {
+  auto T = InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(max_level);
+
+  // Create a subtree with only vertices lying below the diagonal.
+  auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
+  vertex_subtree.DeepRefine(/* call_filter */ [](const auto &vertex) {
+    return vertex->level() == 0 || (vertex->x + vertex->y <= 1.0);
+  });
+
+  TriangulationView triang(vertex_subtree);
+  MassOperator mass_op(triang);
+
+  for (int i = 0; i < 10; i++) {
+    Eigen::VectorXd vec = RandomVector(triang);
+    Eigen::VectorXd vec_copy = vec;
+    Eigen::VectorXd output = mass_op.MatrixSingleScale() * vec_copy;
+    mass_op.Apply(vec);
+    std::cout << vec.array() / output.array() << std::endl;
+    ASSERT_TRUE(vec.isApprox(output));
+  }
+}
+
 TEST(MultiGridOperator, RestrictProlongate) {
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);

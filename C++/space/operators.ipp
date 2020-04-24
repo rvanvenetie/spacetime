@@ -141,8 +141,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       forward_op_.ApplySingleScale(residual);
       residual = rhs - residual;
 
-      // Store all the corrections found in this downward
-      // cycle in a vector.
+      // Store all the corrections found in this downward cycle in a vector.
       e.clear();
 
       // Step 1: Do a down-cycle and calculate 3 corrections per level.

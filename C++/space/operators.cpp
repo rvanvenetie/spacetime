@@ -28,7 +28,9 @@ Eigen::MatrixXd Operator::ToMatrix() const {
 template <class ForwardOp>
 ForwardOperator<ForwardOp>::ForwardOperator(const TriangulationView &triang,
                                             OperatorOptions opts)
-    : Operator(triang, opts), matrix_(ComputeMatrixSingleScale()) {}
+    : Operator(triang, opts) {
+  if (opts_.cache_mat_) matrix_ = ComputeMatrixSingleScale();
+}
 
 template <class ForwardOp>
 void ForwardOperator<ForwardOp>::Apply(Eigen::VectorXd &v) const {
@@ -63,29 +65,31 @@ void ForwardOperator<ForwardOp>::ApplyTransposeHierarchToSingle(
 
 template <class ForwardOp>
 void ForwardOperator<ForwardOp>::ApplySingleScale(Eigen::VectorXd &v) const {
-  if (opts_.cache_forward_mat_) v = MatrixSingleScale() * v;
+  if (opts_.cache_mat_) {
+    v = MatrixSingleScale() * v;
+  } else {
+    auto &vertices = triang_.vertices();
+    Eigen::VectorXd result = Eigen::VectorXd::Zero(v.rows());
+    for (const auto &elem : triang_.elements()) {
+      if (!elem->is_leaf()) continue;
+      auto &Vids = elem->vertices_view_idx_;
+      auto &&element_mat = ForwardOp::ElementMatrix(elem, opts_);
 
-  auto &vertices = triang_.vertices();
-  Eigen::VectorXd result = Eigen::VectorXd::Zero(v.rows());
-  for (const auto &elem : triang_.elements()) {
-    if (!elem->is_leaf()) continue;
-    auto &Vids = elem->vertices_view_idx_;
-    auto &&element_mat = ForwardOp::ElementMatrix(elem, opts_);
-
-    for (size_t i = 0; i < 3; ++i)
-      if (IsDof(Vids[i]))
-        for (size_t j = 0; j < 3; ++j)
-          if (IsDof(Vids[j]))
-            result[Vids[i]] += v[Vids[j]] * element_mat.coeff(i, j);
+      for (size_t i = 0; i < 3; ++i)
+        if (IsDof(Vids[i]))
+          for (size_t j = 0; j < 3; ++j)
+            if (IsDof(Vids[j]))
+              result[Vids[i]] += v[Vids[j]] * element_mat.coeff(i, j);
+    }
+    v = result;
   }
-  v = result;
 }
 
 template <class ForwardOp>
 Eigen::SparseMatrix<double> ForwardOperator<ForwardOp>::MatrixSingleScale()
     const {
-  if (opts_.cache_forward_mat_) return matrix_;
-  return std::move(ComputeMatrixSingleScale());
+  if (opts_.cache_mat_) return matrix_;
+  return ComputeMatrixSingleScale();
 }
 
 template <class ForwardOp>

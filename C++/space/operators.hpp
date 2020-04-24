@@ -13,8 +13,8 @@ struct OperatorOptions {
   // Options for all operators.
   bool dirichlet_boundary_;
 
-  // Options for ForwardOperator.
-  bool cache_forward_mat_;
+  // Whether or not to cache the matrix for a forward operator.
+  bool cache_mat_ = true;
 
   // Options for stiff plus scaled mass operator.
   size_t time_level_;
