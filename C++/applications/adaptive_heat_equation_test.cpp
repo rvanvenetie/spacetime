@@ -38,9 +38,10 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   X_delta.SparseRefine(1);
 
   auto [g_lf, u0_lf] = SmoothProblem();
+  AdaptiveHeatEquationOptions opts = {.estimate_mean_zero_ = false};
+  opts.P_X_alpha_ = 0.35;
   AdaptiveHeatEquation heat_eq(std::move(X_delta), std::move(g_lf),
-                               std::move(u0_lf),
-                               {.estimate_mean_zero_ = false});
+                               std::move(u0_lf), opts);
 
   std::vector<size_t> python_pcg_iters{2, 3, 5, 5, 5};
   auto [result, pcg_data] = heat_eq.Solve();

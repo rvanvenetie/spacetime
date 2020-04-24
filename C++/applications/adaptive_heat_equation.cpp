@@ -41,7 +41,7 @@ Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
 }
 
 std::pair<DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *,
-          tools::linalg::PCGdata>
+          tools::linalg::SolverData>
 AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
   assert(heat_d_dd_);
   auto [result, pcg_data] =

@@ -72,9 +72,9 @@ class AdaptiveHeatEquation {
       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
-  std::pair<TypeXVector *, tools::linalg::PCGdata> Solve(
+  std::pair<TypeXVector *, tools::linalg::SolverData> Solve(
       const Eigen::VectorXd &x0);
-  std::pair<TypeXVector *, tools::linalg::PCGdata> Solve() {
+  std::pair<TypeXVector *, tools::linalg::SolverData> Solve() {
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd_in()->container().size());
     return Solve(x0);
   }
