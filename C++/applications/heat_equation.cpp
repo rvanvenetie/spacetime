@@ -29,7 +29,7 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
   InitializeBT();
 
   // Create trace operator.
-  G_ = std::make_shared<TypeG>(vec_X_.get(), vec_X_.get(), opts_.use_cache_);
+  G_ = std::make_shared<TypeG>(vec_X_.get(), opts_.use_cache_);
 
   // Create the negative trace operator.
   auto minus_G = std::make_shared<NegativeBilinearForm<TypeG>>(G_);
@@ -45,10 +45,9 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
 HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
                            std::shared_ptr<TypeYVector> vec_Y,
                            const HeatEquationOptions &opts)
-    : HeatEquation(
-          vec_X, vec_Y,
-          std::make_shared<TypeA>(vec_Y.get(), vec_Y.get(), opts.use_cache_),
-          nullptr, opts) {}
+    : HeatEquation(vec_X, vec_Y,
+                   std::make_shared<TypeA>(vec_Y.get(), opts.use_cache_),
+                   nullptr, opts) {}
 
 HeatEquation::HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta,
                            const HeatEquationOptions &opts)

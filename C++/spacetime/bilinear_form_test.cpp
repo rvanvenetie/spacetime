@@ -273,6 +273,7 @@ TEST(BilinearForm, SparseQuadrature) {
         /* deriv_time_out*/ false);
   }
 }
+
 TEST(BilinearForm, Transpose) {
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
@@ -320,6 +321,70 @@ TEST(BilinearForm, Transpose) {
     // Now check the transpose of the sum.
     auto BT = B.Transpose();
     ASSERT_TRUE((mat_A_s + mat_B_t).transpose().isApprox(ToMatrix(*BT)));
+  }
+}
+
+TEST(SymmetricBilinearForm, Works) {
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(6);
+  B.ortho_tree.UniformRefine(6);
+  B.three_point_tree.UniformRefine(6);
+
+  for (int level = 1; level < 6; level++) {
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        B.three_point_tree.meta_root.get(),
+        T.hierarch_basis_tree.meta_root.get());
+    X_delta.SparseRefine(level);
+    auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
+
+    auto vec_X = X_delta.template DeepCopy<
+        DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
+    auto vec_Y = Y_delta.template DeepCopy<
+        DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+
+    // Test the actual operators that we use.
+    for (bool use_cache : {true, false}) {
+      // A_s
+      {
+        BilinearForm<Time::MassOperator, space::StiffnessOperator,
+                     OrthonormalWaveletFn, OrthonormalWaveletFn>
+            A_normal(&vec_Y, &vec_Y, /* use_cache */ use_cache);
+        SymmetricBilinearForm<Time::MassOperator, space::StiffnessOperator,
+                              OrthonormalWaveletFn>
+            A_symm(&vec_Y, /* use_cache */ use_cache);
+
+        // Put some random values into vec_Y.
+        for (auto nv : vec_Y.Bfs()) {
+          if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
+          nv->set_random();
+        }
+        Eigen::VectorXd v_in = vec_Y.ToVectorContainer();
+
+        // Test that the results equal.
+        ASSERT_TRUE(A_normal.Apply(v_in).isApprox(A_symm.Apply(v_in)));
+      }
+
+      // G
+      {
+        BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
+                     ThreePointWaveletFn, ThreePointWaveletFn>
+            G_normal(&vec_X, &vec_X, /* use_cache */ use_cache);
+        SymmetricBilinearForm<Time::ZeroEvalOperator, space::MassOperator,
+                              ThreePointWaveletFn>
+            G_symm(&vec_X, /* use_cache */ use_cache);
+
+        // Put some random values into vec_Y.
+        for (auto nv : vec_X.Bfs()) {
+          if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
+          nv->set_random();
+        }
+        Eigen::VectorXd v_in = vec_X.ToVectorContainer();
+
+        // Test that the results equal.
+        ASSERT_TRUE(G_normal.Apply(v_in).isApprox(G_symm.Apply(v_in)));
+      }
+    }
   }
 }
 

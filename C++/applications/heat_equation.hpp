@@ -13,6 +13,7 @@ using spacetime::BlockDiagonalBilinearForm;
 using spacetime::NegativeBilinearForm;
 using spacetime::SchurBilinearForm;
 using spacetime::SumBilinearForm;
+using spacetime::SymmetricBilinearForm;
 using spacetime::TransposeBilinearForm;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
@@ -51,8 +52,9 @@ class HeatEquation {
       DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>;
 
   // The symmetric operator acting from Y_delta to Y_delta.
-  using TypeA = BilinearForm<Time::MassOperator, space::StiffnessOperator,
-                             OrthonormalWaveletFn, OrthonormalWaveletFn>;
+  using TypeA =
+      SymmetricBilinearForm<Time::MassOperator, space::StiffnessOperator,
+                            OrthonormalWaveletFn>;
   // The (transport) part of operator B acting from X_delta to Y_delta.
   using TypeB_t = BilinearForm<Time::TransportOperator, space::MassOperator,
                                ThreePointWaveletFn, OrthonormalWaveletFn>;
@@ -67,8 +69,8 @@ class HeatEquation {
   using TypeBT = BilinearFormBase<TypeYVector, TypeXVector>;
 
   // The trace operator maps between X_delta and X_delta.
-  using TypeG = BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
-                             ThreePointWaveletFn, ThreePointWaveletFn>;
+  using TypeG = SymmetricBilinearForm<Time::ZeroEvalOperator,
+                                      space::MassOperator, ThreePointWaveletFn>;
 
   // Preconditioners.
   using TypePrecondY = BilinearFormBase<TypeYVector, TypeYVector>;
