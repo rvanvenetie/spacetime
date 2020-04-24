@@ -22,7 +22,7 @@ inline const Eigen::Matrix3d &StiffnessOperator::ElementMatrix(
 inline Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
     const Element2DView *elem, const OperatorOptions &opts) {
   return opts.alpha_ * StiffnessOperator::ElementMatrix(elem, opts) +
-         pow(2.0, opts.time_level_) * MassOperator::ElementMatrix(elem, opts);
+         (1 << opts.time_level_) * MassOperator::ElementMatrix(elem, opts);
 }
 
 template <typename ForwardOp>
