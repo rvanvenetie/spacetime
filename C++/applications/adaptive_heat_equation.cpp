@@ -47,6 +47,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
   assert(heat_d_dd_);
   auto A = heat_d_dd_->A();
   auto P_Y = heat_d_dd_->P_Y();
+  // Invalidate heat_d_dd, we no longer need these bilinear forms.
   heat_d_dd_.reset();
   HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y, opts_);
 
@@ -102,13 +103,18 @@ auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
 
 void AdaptiveHeatEquation::Refine(
     const std::vector<TypeXNode *> &nodes_to_add) {
+  // Refine the solution vector, requires vec_Xdd_.
   vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
+
+  // Reset the objects that we no longer need, this will free the memory.
+  heat_d_dd_.reset();
+  vec_Xdd_.reset();
+  vec_Ydd_.reset();
 
   vec_Xdd_ = std::make_shared<TypeXVector>(
       GenerateXDeltaUnderscore(*vec_Xd_, opts_.estimate_saturation_layers_));
   vec_Ydd_ = std::make_shared<TypeYVector>(
       GenerateYDelta<DoubleTreeVector>(*vec_Xdd_));
-
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
 }
 
