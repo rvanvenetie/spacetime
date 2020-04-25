@@ -1,10 +1,5 @@
 #pragma once
-#include <memory>
-#include <tuple>
-#include <type_traits>
-#include <unordered_map>
-#include <vector>
-
+#include "includes.hpp"
 #include "multi_tree_vector.hpp"
 #include "multi_tree_view.hpp"
 

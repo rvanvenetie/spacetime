@@ -1,11 +1,5 @@
 #pragma once
-#include <algorithm>
-#include <memory>
-#include <queue>
-#include <utility>
-#include <vector>
-
-#include "cassert"
+#include "includes.hpp"
 
 namespace datastructures {
 // Below are two convenient lambda functions.
@@ -58,8 +52,11 @@ class Node : public NodeInterface<I> {
     children_.reserve(I::N_children);
     assert(parents.size());
     level_ = parents[0]->level() + 1;
+    container_ = parents[0]->container_;
+    assert(container_);
     for (const auto &parent : parents) {
       assert(parent->level() == level_ - 1);
+      assert(parent->container_ == container_);
     }
   }
 
@@ -98,15 +95,13 @@ class Node : public NodeInterface<I> {
   std::vector<I *> parents_;
   std::vector<I *> children_;
 
-  // If a node creates a child, it becomes the `owner` of this child.
-  std::vector<std::unique_ptr<I>> children_own_;
+  // Pointer to the deque that holds all the childen.
+  std::deque<I> *container_ = nullptr;
 
   template <typename... Args>
   inline I *make_child(Args &&... args) {
-    children_own_.emplace_back(
-        std::make_unique<I>(std::forward<Args>(args)...));
-    children_.emplace_back(children_own_.back().get());
-    return children_own_.back().get();
+    container_->emplace_back(std::forward<Args>(args)...);
+    return &container_->back();
   }
 
   Node() : level_(-1) {}
@@ -134,13 +129,14 @@ class BinaryNode : public Node<I> {
 template <typename I>
 class Tree {
  public:
-  std::unique_ptr<I> meta_root;
-
   // This constructs the tree with a single meta_root.
-  Tree(I *meta_root) : meta_root(meta_root) {}
-  Tree() : Tree(new I()) {}
+  Tree(I &&meta_root = I()) {
+    nodes_.emplace_back(std::move(meta_root));
+    meta_root_ = &nodes_.back();
+    meta_root_->container_ = &nodes_;
+  }
   template <typename... Args>
-  Tree(Args &&... args) : Tree(new I(std::forward<Args>(args)...)) {}
+  Tree(Args &&... args) : Tree(I(std::forward<Args>(args)...)) {}
 
   Tree(const Tree &) = delete;
   Tree<I> &operator=(Tree<I> &&) = default;
@@ -149,12 +145,12 @@ class Tree {
   std::vector<I *> Bfs(bool include_metaroot = false,
                        const Func &callback = func_noop,
                        bool return_nodes = true) {
-    return meta_root->Bfs(include_metaroot, callback, return_nodes);
+    return meta_root_->Bfs(include_metaroot, callback, return_nodes);
   }
 
   template <typename Func>
   void DeepRefine(const Func &refine_filter) {
-    meta_root->Bfs(true, [refine_filter](I *node) {
+    meta_root_->Bfs(true, [refine_filter](I *node) {
       if (refine_filter(node)) node->Refine();
     });
   }
@@ -165,7 +161,7 @@ class Tree {
   // This returns nodes in this tree, sliced by levels.
   std::vector<std::vector<I *>> NodesPerLevel() {
     std::vector<std::vector<I *>> result;
-    for (const auto &node : meta_root->Bfs()) {
+    for (const auto &node : meta_root_->Bfs()) {
       assert(node->level() >= 0 && node->level() <= result.size());
       if (node->level() == result.size()) {
         result.emplace_back();
@@ -174,6 +170,12 @@ class Tree {
     }
     return result;
   }
+
+  I *meta_root() { return meta_root_; }
+
+ protected:
+  I *meta_root_ = nullptr;
+  std::deque<I> nodes_;
 };
 
 }  // namespace datastructures

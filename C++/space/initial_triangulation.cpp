@@ -8,10 +8,10 @@ InitialTriangulation::InitialTriangulation(
     const std::vector<std::array<int, 3>> &elements)
     : vertex_tree(),
       elem_tree(),
-      hierarch_basis_tree(new HierarchicalBasisFn(vertex_tree.meta_root.get())),
-      vertex_meta_root(vertex_tree.meta_root.get()),
-      elem_meta_root(elem_tree.meta_root.get()),
-      hierarch_basis_meta_root(hierarch_basis_tree.meta_root.get()) {
+      hierarch_basis_tree(vertex_tree.meta_root()),
+      vertex_meta_root(vertex_tree.meta_root()),
+      elem_meta_root(elem_tree.meta_root()),
+      hierarch_basis_meta_root(hierarch_basis_tree.meta_root()) {
   // Convenient aliases.
   auto &vertex_roots = vertex_meta_root->children();
   auto &element_roots = elem_meta_root->children();

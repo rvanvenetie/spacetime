@@ -79,8 +79,7 @@ int main(int argc, char* argv[]) {
 
   auto vec_Xd = std::make_shared<
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
-      B.three_point_tree.meta_root.get(),
-      T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
   vec_Xd->SparseRefine(1);
 
   std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,

@@ -26,13 +26,13 @@ struct Bases {
 
   Bases()
       : elem_tree(),
-        mother_element(elem_tree.meta_root->children()[0]),
+        mother_element(elem_tree.meta_root()->children()[0]),
         disc_cons_tree(mother_element),
-        haar_tree(disc_cons_tree.meta_root->children()[0]),
+        haar_tree(disc_cons_tree.meta_root()->children()[0]),
         cont_lin_tree(mother_element),
-        three_point_tree(cont_lin_tree.meta_root->children()),
+        three_point_tree(cont_lin_tree.meta_root()->children()),
         disc_lin_tree(mother_element),
-        ortho_tree(disc_lin_tree.meta_root->children()) {}
+        ortho_tree(disc_lin_tree.meta_root()->children()) {}
 };
 
 }  // namespace Time

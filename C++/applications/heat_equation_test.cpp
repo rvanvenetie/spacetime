@@ -28,8 +28,7 @@ TEST(HeatEquation, CompareToPython) {
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      B.three_point_tree.meta_root.get(),
-      T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
 
   T.hierarch_basis_tree.UniformRefine(level);
   B.ortho_tree.UniformRefine(level);
@@ -123,8 +122,7 @@ TEST(HeatEquation, SchurCG) {
 
   for (int level = 1; level < max_level; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        B.three_point_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     X_delta.SparseRefine(level);
 
     HeatEquation heat_eq(X_delta);
@@ -206,8 +204,7 @@ TEST(HeatEquation, SchurPCG) {
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      B.three_point_tree.meta_root.get(),
-      T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
 
   for (int level = 1; level < max_level; level++) {
     T.hierarch_basis_tree.UniformRefine(level);
@@ -246,8 +243,7 @@ TEST(HeatEquation, LanczosDirectInverse) {
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      B.three_point_tree.meta_root.get(),
-      T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
 
   for (int level = 1; level <= max_level; level++) {
     if (level % 2) continue;
@@ -287,8 +283,7 @@ TEST(HeatEquation, LanczosMG) {
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      B.three_point_tree.meta_root.get(),
-      T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
 
   for (int level = 1; level <= max_level; level++) {
     if (level % 2) continue;

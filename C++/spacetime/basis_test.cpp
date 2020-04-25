@@ -24,15 +24,13 @@ TEST(GenerateYDelta, FullTensor) {
 
   for (int level = 0; level < 6; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        B.three_point_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     X_delta.UniformRefine(level);
 
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
     auto Y_delta_fulltensor =
         DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>(
-            B.ortho_tree.meta_root.get(),
-            T.hierarch_basis_tree.meta_root.get());
+            B.ortho_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     Y_delta_fulltensor.UniformRefine(level);
 
     auto found_nodes = Y_delta.Bfs();
@@ -54,15 +52,13 @@ TEST(GenerateYDelta, SparseTensor) {
 
   for (int level = 0; level < 6; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        B.three_point_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     X_delta.SparseRefine(level);
 
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
     auto Y_delta_fulltensor =
         DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>(
-            B.ortho_tree.meta_root.get(),
-            T.hierarch_basis_tree.meta_root.get());
+            B.ortho_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     Y_delta_fulltensor.SparseRefine(level);
 
     auto found_nodes = Y_delta.Bfs();
@@ -79,12 +75,10 @@ TEST(GenerateXDeltaUnderscore, EqualsSparseGrid) {
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   auto X_delta = DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
-      B.three_point_tree.meta_root.get(),
-      T.hierarch_basis_tree.meta_root.get());
+      B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
   auto X_delta_next =
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
-          B.three_point_tree.meta_root.get(),
-          T.hierarch_basis_tree.meta_root.get());
+          B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
   for (size_t level = 0; level < max_level; level++) {
     X_delta.SparseRefine(2 * level, {2, 1});
     auto X_delta_underscore = GenerateXDeltaUnderscore(X_delta);
@@ -100,13 +94,13 @@ TEST(GenerateSigma, SmallSigma) {
   B.haar_tree.UniformRefine(2);
 
   auto Lambda = DoubleTreeVector<HaarWaveletFn, HaarWaveletFn>(
-      B.haar_tree.meta_root.get(), B.haar_tree.meta_root.get());
+      B.haar_tree.meta_root(), B.haar_tree.meta_root());
   Lambda.UniformRefine(2);
   auto Sigma = GenerateSigma(Lambda, Lambda);
   auto sigma_nodes = Sigma->Bfs();
 
   auto test_dbltree = DoubleTreeVector<HaarWaveletFn, HaarWaveletFn>(
-      B.haar_tree.meta_root.get(), B.haar_tree.meta_root.get());
+      B.haar_tree.meta_root(), B.haar_tree.meta_root());
   test_dbltree.UniformRefine({2, 2});
   auto test_nodes = test_dbltree.Bfs();
 
@@ -125,13 +119,11 @@ TEST(GenerateSigma, FullTensorSigma) {
 
     auto Lambda_in =
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>(
-            B.ortho_tree.meta_root.get(),
-            T.hierarch_basis_tree.meta_root.get());
+            B.ortho_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     Lambda_in.UniformRefine(level);
     auto Lambda_out =
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
-            B.three_point_tree.meta_root.get(),
-            T.hierarch_basis_tree.meta_root.get());
+            B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     Lambda_out.UniformRefine(level);
 
     auto Sigma = GenerateSigma(Lambda_in, Lambda_out);
@@ -139,8 +131,7 @@ TEST(GenerateSigma, FullTensorSigma) {
 
     auto test_dbltree =
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>(
-            B.ortho_tree.meta_root.get(),
-            T.hierarch_basis_tree.meta_root.get());
+            B.ortho_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     test_dbltree.UniformRefine({level, level});
     auto test_nodes = test_dbltree.Bfs();
 
@@ -160,13 +151,11 @@ TEST(GenerateTheta, FullTensorTheta) {
 
     auto Lambda_in =
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>(
-            B.ortho_tree.meta_root.get(),
-            T.hierarch_basis_tree.meta_root.get());
+            B.ortho_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     Lambda_in.UniformRefine(level);
     auto Lambda_out =
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
-            B.three_point_tree.meta_root.get(),
-            T.hierarch_basis_tree.meta_root.get());
+            B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     Lambda_out.UniformRefine(level);
 
     auto Theta = GenerateTheta(Lambda_in, Lambda_out);
@@ -174,8 +163,7 @@ TEST(GenerateTheta, FullTensorTheta) {
 
     auto test_dbltree =
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
-            B.three_point_tree.meta_root.get(),
-            T.hierarch_basis_tree.meta_root.get());
+            B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     test_dbltree.UniformRefine(level);
     auto test_nodes = test_dbltree.Bfs();
 

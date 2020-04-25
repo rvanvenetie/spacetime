@@ -1,9 +1,5 @@
 #pragma once
-#include <Eigen/Dense>
-#include <iostream>
-#include <random>
-#include <vector>
-
+#include "includes.hpp"
 #include "multi_tree_view.hpp"
 
 namespace datastructures {

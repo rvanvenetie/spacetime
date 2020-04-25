@@ -1,14 +1,5 @@
 #pragma once
-#include <deque>
-#include <memory>
-#include <numeric>
-#include <queue>
-#include <string>
-#include <tuple>
-#include <utility>
-#include <vector>
-
-#include "boost.hpp"
+#include "includes.hpp"
 #include "tree.hpp"
 
 namespace datastructures {

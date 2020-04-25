@@ -13,15 +13,15 @@ TEST(HaarBasis, functions) {
   // Reset the persistent trees.
   Bases B;
 
-  ASSERT_EQ(B.disc_cons_tree.meta_root->children().size(), 1);
-  ASSERT_EQ(B.haar_tree.meta_root->children().size(), 1);
+  ASSERT_EQ(B.disc_cons_tree.meta_root()->children().size(), 1);
+  ASSERT_EQ(B.haar_tree.meta_root()->children().size(), 1);
 
-  auto mother_scaling = B.disc_cons_tree.meta_root->children()[0];
+  auto mother_scaling = B.disc_cons_tree.meta_root()->children()[0];
   ASSERT_EQ(mother_scaling->labda(), std::make_pair(0, 0));
   ASSERT_EQ(mother_scaling->Eval(0.25), 1.0);
   ASSERT_EQ(mother_scaling->Eval(0.85), 1.0);
 
-  auto mother_wavelet = B.haar_tree.meta_root->children()[0];
+  auto mother_wavelet = B.haar_tree.meta_root()->children()[0];
   mother_wavelet->Refine();
   ASSERT_EQ(mother_wavelet->children().size(), 1);
   mother_wavelet = mother_wavelet->children()[0];
@@ -134,8 +134,8 @@ TEST(ThreePointBasis, UniformRefinement) {
   auto Lambda = B.three_point_tree.NodesPerLevel();
   auto Delta = B.cont_lin_tree.NodesPerLevel();
 
-  ASSERT_EQ(B.three_point_tree.meta_root->children().size(), 2);
-  ASSERT_EQ(B.cont_lin_tree.meta_root->children().size(), 2);
+  ASSERT_EQ(B.three_point_tree.meta_root()->children().size(), 2);
+  ASSERT_EQ(B.cont_lin_tree.meta_root()->children().size(), 2);
 
   for (int l = 1; l <= ml; ++l) {
     ASSERT_EQ(Lambda[l].size(), std::pow(2, l - 1));

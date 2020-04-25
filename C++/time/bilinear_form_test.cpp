@@ -129,9 +129,9 @@ TEST(BilinearForm, FullTest) {
   for (size_t j = 0; j < 20; ++j) {
     // Set up three-point tree.
     auto three_vec_in =
-        TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root);
+        TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root());
     auto three_vec_out =
-        TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root);
+        TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root());
     three_vec_in.DeepRefine(
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
@@ -145,9 +145,9 @@ TEST(BilinearForm, FullTest) {
 
     // Set up orthonormal tree.
     auto ortho_vec_in =
-        TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root);
+        TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root());
     auto ortho_vec_out =
-        TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root);
+        TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root());
     ortho_vec_in.DeepRefine(
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 == 0;

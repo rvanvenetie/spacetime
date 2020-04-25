@@ -1,6 +1,7 @@
-
+// clang-format off
+#include "includes.hpp"
 #include "bilinear_form.hpp"
-
+// clang-format on
 namespace spacetime {
 
 // Template specializations for faster compile times.

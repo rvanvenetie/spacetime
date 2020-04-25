@@ -214,8 +214,7 @@ TEST(BilinearForm, SparseQuadrature) {
 
   for (int level = 1; level < 6; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        B.three_point_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     X_delta.SparseRefine(level);
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
@@ -283,8 +282,7 @@ TEST(BilinearForm, Transpose) {
 
   for (int level = 1; level < 6; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        B.three_point_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     X_delta.SparseRefine(level);
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
@@ -333,8 +331,7 @@ TEST(SymmetricBilinearForm, Works) {
 
   for (int level = 1; level < 6; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        B.three_point_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     X_delta.SparseRefine(level);
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
@@ -397,8 +394,7 @@ TEST(BlockDiagonalBilinearForm, CanBeConstructed) {
 
   for (int level = 1; level < 6; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        B.three_point_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     X_delta.SparseRefine(level);
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
