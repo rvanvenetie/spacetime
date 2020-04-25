@@ -239,7 +239,7 @@ template <>
 inline auto MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Column(
     DiscConstantScalingFn *phi_in) {
   return ArraySparseVector<DiscConstantScalingFn, 1>{
-      {{phi_in, 1.0 / (1 << phi_in->level())}}};
+      {{phi_in, 1. / (1 << phi_in->level())}}};
 }
 
 template <>
@@ -253,7 +253,7 @@ template <>
 inline auto MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
     DiscLinearScalingFn *phi_in) {
   return ArraySparseVector<DiscLinearScalingFn, 1>{
-      {{phi_in, 1.0 / (1 << phi_in->level())}}};
+      {{phi_in, 1. / (1 << phi_in->level())}}};
 }
 
 template <>
