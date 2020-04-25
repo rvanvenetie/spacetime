@@ -34,8 +34,7 @@ int main() {
   for (size_t j = 0; j < ::bilform_iters; ++j) {
     // Setup random X_delta
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        B.three_point_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     X_delta.SparseRefine(::level, {2, 1});
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 

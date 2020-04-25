@@ -6,8 +6,9 @@
 namespace Time {
 
 // Metaroot constructor.
-ContLinearScalingFn::ContLinearScalingFn(Element1D *mother_element)
-    : ScalingFn<ContLinearScalingFn>() {
+ContLinearScalingFn::ContLinearScalingFn(
+    std::deque<ContLinearScalingFn> *container, Element1D *mother_element)
+    : ScalingFn<ContLinearScalingFn>(container) {
   auto scaling_left = make_child(
       /* parents */ std::vector{this},
       /* index */ 0,
@@ -89,8 +90,9 @@ ContLinearScalingFn *ContLinearScalingFn::RefineLeft() {
 }
 
 ThreePointWaveletFn::ThreePointWaveletFn(
+    std::deque<ThreePointWaveletFn> *container,
     std::vector<ContLinearScalingFn *> mother_scalings)
-    : WaveletFn<ThreePointWaveletFn>() {
+    : WaveletFn<ThreePointWaveletFn>(container) {
   assert(mother_scalings.size() == 2);
   for (size_t i = 0; i < 2; ++i) {
     make_child(

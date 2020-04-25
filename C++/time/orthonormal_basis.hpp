@@ -52,7 +52,8 @@ class DiscLinearScalingFn : public ScalingFn<DiscLinearScalingFn> {
   }
 
   // Protected constructor for creating a metaroot.
-  DiscLinearScalingFn(Element1D *mother_element);
+  DiscLinearScalingFn(std::deque<DiscLinearScalingFn> *container,
+                      Element1D *mother_element);
 
   friend datastructures::Tree<DiscLinearScalingFn>;
   friend OrthonormalWaveletFn;
@@ -79,7 +80,8 @@ class OrthonormalWaveletFn : public WaveletFn<OrthonormalWaveletFn> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  OrthonormalWaveletFn(std::vector<DiscLinearScalingFn *> mother_scalings);
+  OrthonormalWaveletFn(std::deque<OrthonormalWaveletFn> *container,
+                       std::vector<DiscLinearScalingFn *> mother_scalings);
 
   friend datastructures::Tree<OrthonormalWaveletFn>;
 };

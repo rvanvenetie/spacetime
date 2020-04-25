@@ -101,10 +101,11 @@ class Node : public NodeInterface<I> {
   template <typename... Args>
   inline I *make_child(Args &&... args) {
     container_->emplace_back(std::forward<Args>(args)...);
+    children_.emplace_back(&container_->back());
     return &container_->back();
   }
 
-  Node() : level_(-1) {}
+  explicit Node(std::deque<I> *container) : level_(-1), container_(container) {}
 };
 
 template <typename I>
@@ -130,13 +131,11 @@ template <typename I>
 class Tree {
  public:
   // This constructs the tree with a single meta_root.
-  Tree(I &&meta_root = I()) {
-    nodes_.emplace_back(std::move(meta_root));
-    meta_root_ = &nodes_.back();
-    meta_root_->container_ = &nodes_;
-  }
   template <typename... Args>
-  Tree(Args &&... args) : Tree(I(std::forward<Args>(args)...)) {}
+  Tree(Args &&... args) {
+    nodes_.push_back(I(&nodes_, std::forward<Args>(args)...));
+    meta_root_ = &nodes_.back();
+  }
 
   Tree(const Tree &) = delete;
   Tree<I> &operator=(Tree<I> &&) = default;
@@ -171,7 +170,10 @@ class Tree {
     return result;
   }
 
-  I *meta_root() { return meta_root_; }
+  I *meta_root() {
+    assert(meta_root_);
+    return meta_root_;
+  }
 
  protected:
   I *meta_root_ = nullptr;
