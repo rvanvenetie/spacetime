@@ -151,7 +151,7 @@ bool ThreePointWaveletFn::Refine() {
 
     // First refine the left part.
     auto [l, n] = labda();
-    double scaling = pow(2, (l + 1) / 2.0);
+    double scaling = std::pow(2, (l + 1) / 2.0);
     std::vector<ContLinearScalingFn *> phi_children{phi_left->child_middle_,
                                                     phi_middle->child_left_,
                                                     phi_middle->child_middle_};

@@ -38,8 +38,8 @@ double DiscLinearScalingFn::EvalMother(double t, bool deriv) const {
 
 double DiscLinearScalingFn::Eval(double t, bool deriv) const {
   auto [l, n] = labda();
-  double chain_rule_constant = deriv ? (2 << l) : 1;
-  return chain_rule_constant * EvalMother((2 << l) * t - (n / 2), deriv);
+  double chain_rule_constant = deriv ? (1 << l) : 1;
+  return chain_rule_constant * EvalMother((1 << l) * t - (n / 2), deriv);
 }
 
 bool DiscLinearScalingFn::Refine() {
@@ -118,7 +118,7 @@ bool OrthonormalWaveletFn::Refine() {
     assert(labda() != nbr->labda());
 
     if (n % 2) return nbr->Refine();
-    auto s = pow(2.0, l / 2.0);
+    auto s = std::pow(2.0, l / 2.0);
     for (int i = 0; i < 2; i++) {
       auto phi = single_scale_[2 * i].first;
       phi->Refine();
