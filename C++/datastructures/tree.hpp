@@ -137,6 +137,8 @@ template <typename I>
 class Tree {
  public:
   // This constructs the tree with a single meta_root.
+  Tree() : nodes_(), meta_root_(&nodes_) {}
+
   template <typename... Args>
   Tree(Args &&... args)
       : nodes_(), meta_root_(&nodes_, std::forward<Args>(args)...) {}
