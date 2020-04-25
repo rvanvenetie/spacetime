@@ -1,8 +1,6 @@
 #pragma once
-// clang-format off
-#include "spacetime/includes.hpp"
+#include "datastructures/double_tree_view.hpp"
 #include "spacetime/bilinear_form.hpp"
-// clang-format on
 
 namespace applications {
 
