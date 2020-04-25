@@ -1,5 +1,13 @@
 #pragma once
-#include "includes.hpp"
+#include <utility>
+#include <vector>
+
+#include "../datastructures/double_tree_view.hpp"
+#include "../space/basis.hpp"
+#include "../space/bilinear_form.hpp"
+#include "../time/bilinear_form.hpp"
+#include "basis.hpp"
+#include "bilinear_form_linalg.hpp"
 
 namespace spacetime {
 

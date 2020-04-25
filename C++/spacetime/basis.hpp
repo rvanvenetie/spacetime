@@ -1,5 +1,8 @@
 #pragma once
-#include "includes.hpp"
+
+#include "datastructures/double_tree_view.hpp"
+#include "space/basis.hpp"
+#include "time/bases.hpp"
 
 namespace spacetime {
 template <template <typename, typename> class DblTreeIn,

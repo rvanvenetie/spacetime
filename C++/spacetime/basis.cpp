@@ -1,7 +1,6 @@
-// clang-format off
-#include "includes.hpp"
 #include "basis.hpp"
-// clang-format on
+
+#include <vector>
 
 namespace spacetime {
 using datastructures::DoubleTreeVector;
