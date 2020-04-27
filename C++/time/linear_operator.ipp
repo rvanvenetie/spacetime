@@ -216,13 +216,13 @@ inline auto MassOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
   double self_ip = 0;
   if (n > 0) {
     auto elem = phi_in->support()[0];
-    result.emplace_back(elem->RefineContLinear()[0], pow(2, -l) / 6.0);
-    self_ip += pow(2, -l) / 3.0;
+    result.emplace_back(elem->RefineContLinear()[0], 1. / ((1 << l) * 6.0));
+    self_ip += 1. / ((1 << l) * 3.0);
   }
   if (n < (1 << l)) {
     auto elem = phi_in->support().back();
-    result.emplace_back(elem->RefineContLinear()[1], pow(2, -l) / 6.0);
-    self_ip += pow(2, -l) / 3.0;
+    result.emplace_back(elem->RefineContLinear()[1], 1. / ((1 << l) * 6.0));
+    self_ip += 1. / ((1 << l) * 3.0);
   }
   result.emplace_back(phi_in, self_ip);
   return result;
@@ -239,7 +239,7 @@ template <>
 inline auto MassOperator<DiscConstantScalingFn, DiscConstantScalingFn>::Column(
     DiscConstantScalingFn *phi_in) {
   return ArraySparseVector<DiscConstantScalingFn, 1>{
-      {{phi_in, pow(2.0, -phi_in->level())}}};
+      {{phi_in, 1. / (1 << phi_in->level())}}};
 }
 
 template <>
@@ -253,7 +253,7 @@ template <>
 inline auto MassOperator<DiscLinearScalingFn, DiscLinearScalingFn>::Column(
     DiscLinearScalingFn *phi_in) {
   return ArraySparseVector<DiscLinearScalingFn, 1>{
-      {{phi_in, pow(2.0, -phi_in->level())}}};
+      {{phi_in, 1. / (1 << phi_in->level())}}};
 }
 
 template <>
@@ -268,17 +268,18 @@ inline auto ThreeInOrthoOut(ContLinearScalingFn *phi_in) {
   StaticSparseVector<DiscLinearScalingFn, 4> result;
 
   auto [l, n] = phi_in->labda();
+  const double s = 1. / (1 << (l + 1));  // s = pow(2, -(l+1)).
   if (n > 0) {
     const auto &[pdl0, pdl1] = phi_in->support().front()->PhiDiscLinear();
     assert(pdl0 != nullptr && pdl1 != nullptr);
-    result.emplace_back(pdl0, pow(2.0, -(l + 1)));
-    result.emplace_back(pdl1, pow(2.0, -(l + 1)) / sqrt(3));
+    result.emplace_back(pdl0, s);
+    result.emplace_back(pdl1, s / sqrt(3));
   }
   if (n < (1 << l)) {
     const auto &[pdl0, pdl1] = phi_in->support().back()->PhiDiscLinear();
     assert(pdl0 != nullptr && pdl1 != nullptr);
-    result.emplace_back(pdl0, pow(2.0, -(l + 1)));
-    result.emplace_back(pdl1, -pow(2.0, -(l + 1)) / sqrt(3));
+    result.emplace_back(pdl0, s);
+    result.emplace_back(pdl1, -s / sqrt(3));
   }
   return result;
 }
@@ -288,11 +289,11 @@ inline auto OrthoInThreeOut(DiscLinearScalingFn *phi_in) {
   auto [l, n] = phi_in->labda();
   const auto &[pcl0, pcl1] = phi_in->support()[0]->RefineContLinear();
   assert(pcl0 != nullptr && pcl1 != nullptr);
+  const double s = 1. / (1 << (l + 1));  // s = pow(2, -(l+1)).
   if (phi_in->pw_constant())
-    result = {{{pcl0, pow(2.0, -(l + 1))}, {pcl1, pow(2.0, -(l + 1))}}};
+    result = {{{pcl0, s}, {pcl1, s}}};
   else
-    result = {{{pcl0, -pow(2.0, -(l + 1)) / sqrt(3)},
-               {pcl1, pow(2.0, -(l + 1)) / sqrt(3)}}};
+    result = {{{pcl0, -s / sqrt(3)}, {pcl1, s / sqrt(3)}}};
   return result;
 }
 };  // namespace Mass
