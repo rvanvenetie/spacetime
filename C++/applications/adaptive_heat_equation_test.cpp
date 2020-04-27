@@ -87,6 +87,10 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     ASSERT_EQ(marked_nodes.size(), python_mark_data[iter].first);
     ASSERT_NEAR(norm, python_mark_data[iter].second, 1e-5);
     ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[iter], 1);
+    for (auto phi : heat_eq.vec_Xd()->Project_0()->Bfs())
+      ASSERT_GT(phi->FrozenOtherAxis()->Bfs().size(), 0);
+    for (auto phi : heat_eq.vec_Xd()->Project_1()->Bfs())
+      ASSERT_GT(phi->FrozenOtherAxis()->Bfs().size(), 0);
 
     vec_Xd->FromVectorContainer(u);
     heat_eq.Refine(marked_nodes);
