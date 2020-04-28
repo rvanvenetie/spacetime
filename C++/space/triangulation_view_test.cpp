@@ -29,7 +29,7 @@ TEST(TriangulationView, UniformRefine) {
     TriangulationView triang_view(vertex_view);
 
     // Lets see if this actually gives some fruitful results!
-    auto elements = triang_view.element_view().Bfs();
+    auto &elements = triang_view.elements();
     ASSERT_EQ(elements.size(), pow(2, level + 2) - 2);
 
     for (auto elem : elements) {
@@ -59,23 +59,23 @@ TEST(TriangulationView, VertexSubTree) {
   ASSERT_EQ(vertices_subtree.size(), T_view.vertices().size());
   // Check all nodes necessary for the elem subtree are
   // inside the vertices_subtree.
-  for (auto &elem : T_view.element_view().Bfs()) {
+  for (auto elem : T_view.elements()) {
     for (auto &vtx : elem->node()->vertices()) {
       ASSERT_TRUE(vertices_subtree.count(vtx));
     }
   }
 
   // And the other way around.
-  auto elements_view = T_view.element_view().Bfs();
+  auto &elements = T_view.elements();
   std::set<Element2D *> elements_subtree;
-  for (auto &nv : elements_view) {
+  for (auto &nv : elements) {
     elements_subtree.insert(nv->node());
   }
-  ASSERT_EQ(elements_subtree.size(), elements_view.size());
+  ASSERT_EQ(elements_subtree.size(), elements.size());
   // Check all nodes necessary for the elem subtree are
   // inside the elements_subtree.
   for (auto &vertex : T_view.vertices()) {
-    for (auto elem : vertex->patch) {
+    for (auto &elem : vertex->patch) {
       ASSERT_TRUE(elements_subtree.count(elem));
     }
   }
