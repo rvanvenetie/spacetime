@@ -19,6 +19,14 @@ using Time::ThreePointWaveletFn;
 
 namespace applications {
 
+template <typename DblVecTree>
+void TestNoEmptyFrozenAxes(std::shared_ptr<DblVecTree> vec) {
+  for (auto phi : vec->Project_0()->Bfs())
+    ASSERT_GT(phi->FrozenOtherAxis()->Bfs().size(), 0);
+  for (auto phi : vec->Project_1()->Bfs())
+    ASSERT_GT(phi->FrozenOtherAxis()->Bfs().size(), 0);
+}
+
 TEST(AdaptiveHeatEquation, CompareToPython) {
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
@@ -87,10 +95,9 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     ASSERT_EQ(marked_nodes.size(), python_mark_data[iter].first);
     ASSERT_NEAR(norm, python_mark_data[iter].second, 1e-5);
     ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[iter], 1);
-    for (auto phi : heat_eq.vec_Xd()->Project_0()->Bfs())
-      ASSERT_GT(phi->FrozenOtherAxis()->Bfs().size(), 0);
-    for (auto phi : heat_eq.vec_Xd()->Project_1()->Bfs())
-      ASSERT_GT(phi->FrozenOtherAxis()->Bfs().size(), 0);
+    TestNoEmptyFrozenAxes(heat_eq.vec_Xd());
+    TestNoEmptyFrozenAxes(heat_eq.vec_Xdd());
+    TestNoEmptyFrozenAxes(heat_eq.vec_Ydd());
 
     vec_Xd->FromVectorContainer(u);
     heat_eq.Refine(marked_nodes);
