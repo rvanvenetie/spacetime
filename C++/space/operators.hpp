@@ -178,16 +178,26 @@ class MultigridPreconditioner : public BackwardOperator {
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
-  inline void Prolongate(size_t vertex, Eigen::VectorXd &vec_SS) const;
-  inline void Restrict(size_t vertex, Eigen::VectorXd &vec_SS) const;
-  inline void RestrictInverse(size_t vertex, Eigen::VectorXd &vec_SS) const;
+  inline void Prolongate(size_t vertex, Eigen::VectorXd &vec_SS) const {
+    for (auto gp : triang_.Godparents(vertex))
+      vec_SS[vertex] += 0.5 * vec_SS[gp];
+  }
+
+  inline void Restrict(size_t vertex, Eigen::VectorXd &vec_SS) const {
+    for (auto gp : triang_.Godparents(vertex))
+      vec_SS[gp] += 0.5 * vec_SS[vertex];
+  }
+
+  inline void RestrictInverse(size_t vertex, Eigen::VectorXd &vec_SS) const {
+    for (auto gp : triang_.Godparents(vertex))
+      vec_SS[gp] -= 0.5 * vec_SS[vertex];
+  }
 
  protected:
   // Returns a row of the _forward_ matrix on the given multilevel triang.
   // NOTE: The result is not compressed.
-  inline void RowMatrix(const MultigridTriangulationView &mg_triang,
-                        size_t vertex,
-                        std::vector<std::pair<size_t, double>> &result) const;
+  void RowMatrix(const MultigridTriangulationView &mg_triang, size_t vertex,
+                 std::vector<std::pair<size_t, double>> &result) const;
 
   // Forward operator on the finest level.
   ForwardOp forward_op_;

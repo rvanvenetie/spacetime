@@ -228,25 +228,7 @@ MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
       initial_triang_solver_(triang.InitialTriangulationView(), opts) {}
 
 template <typename ForwardOp>
-inline void MultigridPreconditioner<ForwardOp>::Prolongate(
-    size_t vertex, Eigen::VectorXd &vec_SS) const {
-  for (auto gp : triang_.Godparents(vertex)) vec_SS[vertex] += 0.5 * vec_SS[gp];
-}
-
-template <typename ForwardOp>
-inline void MultigridPreconditioner<ForwardOp>::Restrict(
-    size_t vertex, Eigen::VectorXd &vec_SS) const {
-  for (auto gp : triang_.Godparents(vertex)) vec_SS[gp] += 0.5 * vec_SS[vertex];
-}
-
-template <typename ForwardOp>
-inline void MultigridPreconditioner<ForwardOp>::RestrictInverse(
-    size_t vertex, Eigen::VectorXd &vec_SS) const {
-  for (auto gp : triang_.Godparents(vertex)) vec_SS[gp] -= 0.5 * vec_SS[vertex];
-}
-
-template <typename ForwardOp>
-inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
+void MultigridPreconditioner<ForwardOp>::RowMatrix(
     const MultigridTriangulationView &mg_triang, size_t vertex,
     std::vector<std::pair<size_t, double>> &result) const {
   assert(mg_triang.ContainsVertex(vertex));
