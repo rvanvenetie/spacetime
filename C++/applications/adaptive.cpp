@@ -100,23 +100,53 @@ int main(int argc, char* argv[]) {
   size_t ndof = 0;
   Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
   while (ndof < max_dofs) {
+    // Solve - estimate.
     auto start = std::chrono::steady_clock::now();
     auto [solution, pcg_data] = heat_eq.Solve(x0);
-    ndof = vec_Xd->Bfs().size();  // A slight overestimate.
-    auto [residual, residual_norm] = heat_eq.Estimate(solution);
-    auto end = std::chrono::steady_clock::now();
-    auto marked_nodes = heat_eq.Mark(residual);
+    std::chrono::duration<double> duration_solve =
+        std::chrono::steady_clock::now() - start;
 
-    // Refine and prolongate the current solution.
+    std::cout << "XDelta-size: " << vec_Xd->Bfs().size()
+              << " total-memory-kB: " << getmem()
+              << " solve-PCG-steps: " << pcg_data.iterations
+              << " solve-time: " << duration_solve.count() << std::flush;
+
+    start = std::chrono::steady_clock::now();
+    auto [residual, residual_norm] = heat_eq.Estimate(solution);
+    std::chrono::duration<double> duration_estimate =
+        std::chrono::steady_clock::now() - start;
+
+    std::cout << " residual-norm: " << residual_norm
+              << " estimate-time: " << duration_estimate.count() << std::flush;
+
+#ifdef VERBOSE
+    std::cerr << std::endl << "Adaptive::Trees" << std::endl;
+    std::cerr << "  T.vertex:   #bfs =  " << T.vertex_tree.Bfs().size()
+              << std::endl;
+    std::cerr << "  T.element:  #bfs =  " << T.elem_tree.Bfs().size()
+              << std::endl;
+    std::cerr << "  T.hierarch: #bfs =  " << T.hierarch_basis_tree.Bfs().size()
+              << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "  B.elem:     #bfs =  " << B.elem_tree.Bfs().size()
+              << std::endl;
+    std::cerr << "  B.three_pt: #bfs =  " << B.three_point_tree.Bfs().size()
+              << std::endl;
+    std::cerr << "  B.ortho:    #bfs =  " << B.ortho_tree.Bfs().size()
+              << std::endl;
+#endif
+
+    // Mark - Refine.
+    auto marked_nodes = heat_eq.Mark(residual);
     vec_Xd->FromVectorContainer(solution);
+
+    start = std::chrono::steady_clock::now();
     heat_eq.Refine(marked_nodes);
+    std::chrono::duration<double> duration_refine =
+        std::chrono::steady_clock::now() - start;
     x0 = vec_Xd->ToVectorContainer();
 
-    std::chrono::duration<double> elapsed_seconds = end - start;
-    std::cout << "XDelta-size: " << ndof << " residual-norm: " << residual_norm
-              << " total-memory-kB: " << getmem()
-              << " solve-estimate-time: " << elapsed_seconds.count()
-              << " solve-PCG-steps: " << pcg_data.iterations << std::endl;
+    std::cout << " refine-time: " << duration_refine.count() << std::endl;
   }
 
   return 0;

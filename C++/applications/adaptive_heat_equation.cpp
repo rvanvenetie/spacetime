@@ -1,6 +1,7 @@
 #include "adaptive_heat_equation.hpp"
 
 #include <boost/range/adaptor/reversed.hpp>
+#include <iomanip>
 
 #include "../tools/linalg.hpp"
 
@@ -115,6 +116,19 @@ void AdaptiveHeatEquation::Refine(
       GenerateXDeltaUnderscore(*vec_Xd_, opts_.estimate_saturation_layers_));
   vec_Ydd_ = std::make_shared<TypeYVector>(
       GenerateYDelta<DoubleTreeVector>(*vec_Xdd_));
+
+#ifdef VERBOSE
+  std::cerr << std::left;
+  std::cerr << std::endl << "AdaptiveHeatEquation::Refine" << std::endl;
+  std::cerr << "  vec_Xd:  #bfs = " << std::setw(10) << vec_Xd_->Bfs().size()
+            << "#container = " << vec_Xd_->container().size() << std::endl;
+  std::cerr << "  vec_Xdd: #bfs = " << std::setw(10) << vec_Xdd_->Bfs().size()
+            << "#container = " << vec_Xdd_->container().size() << std::endl;
+  std::cerr << "  vec_Ydd: #bfs = " << std::setw(10) << vec_Ydd_->Bfs().size()
+            << "#container = " << vec_Ydd_->container().size() << std::endl;
+  std::cerr << std::right;
+#endif
+
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
 }
 
