@@ -81,8 +81,10 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
     // Store the lower output.
     v_lower = vec_out_->ToVectorContainer();
 
-    // Reset the input.
-    vec_in_->FromVectorContainer(v_in);
+    // Reset the input, if necessary.
+    if (vec_in_ == sigma_.get() ||
+        static_cast<void *>(vec_in_) == static_cast<void *>(vec_out_))
+      vec_in_->FromVectorContainer(v_in);
 
     // Calculate R_Theta(U_1 x Id)I_Lambda.
     for (auto psi_in_labda : theta_->Project_1()->Bfs()) {
@@ -115,8 +117,10 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
     // Store the lower output.
     v_lower = vec_out_->ToVectorContainer();
 
-    // Reset the input.
-    vec_in_->FromVectorContainer(v_in);
+    // Reset the input, if necessary.
+    if (vec_in_ == sigma_.get() ||
+        static_cast<void *>(vec_in_) == static_cast<void *>(vec_out_))
+      vec_in_->FromVectorContainer(v_in);
 
     // Apply the upper part using cached bil forms.
     for (auto &bil_form : bil_time_upp_) bil_form.ApplyUpp();
@@ -153,8 +157,10 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
   // Store the lower output.
   v_lower = vec_in_->ToVectorContainer();
 
-  // Reset the input.
-  vec_out_->FromVectorContainer(v_in);
+  // Reset the input, if necessary.
+  if (vec_out_ == theta_.get() ||
+      static_cast<void *>(vec_out_) == static_cast<void *>(vec_in_))
+    vec_out_->FromVectorContainer(v_in);
 
   // Apply the upper part using cached bil forms.
   for (auto &bil_form : bil_time_low_) bil_form.Transpose().ApplyUpp();
