@@ -11,24 +11,19 @@ namespace space {
 
 struct OperatorOptions {
   // Options for all operators.
-  bool dirichlet_boundary_;
+  bool dirichlet_boundary_ = true;
 
-  // Whether or not to cache the matrix for a forward operator.
-  bool cache_mat_ = true;
+  // Whether or not to build the matrix for a forward operator.
+  bool build_mat_ = true;
 
   // Options for stiff plus scaled mass operator.
-  size_t time_level_;
-  double alpha_;
+  size_t time_level_ = 0;
+  double alpha_ = 1;
 
   // Options for multigrid preconditioner.
-  size_t cycles_;
+  size_t cycles_ = 5;
 
-  OperatorOptions(bool dirichlet_boundary = true, size_t time_level = 0,
-                  double alpha = 1, size_t cycles = 5)
-      : dirichlet_boundary_(dirichlet_boundary),
-        time_level_(time_level),
-        alpha_(alpha),
-        cycles_(cycles) {}
+  OperatorOptions() = default;
 };
 
 class Operator {

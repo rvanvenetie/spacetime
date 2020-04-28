@@ -21,8 +21,8 @@ using Time::ThreePointWaveletFn;
 struct HeatEquationOptions {
   // Whether or not to cache the bilinear forms.
   bool use_cache_ = true;
-  // Whether or not to cache the forward matrices inside the space operators.
-  bool cache_space_mats_ = true;
+  // Whether or not to build the forward matrices inside the space operators.
+  bool build_space_mats_ = true;
 
   // The alpha used in the preconditioner on X.
   double P_X_alpha_ = 0.3;
@@ -32,9 +32,9 @@ struct HeatEquationOptions {
   SpaceInverse P_X_inv_ = SpaceInverse::DirectInverse;
   SpaceInverse P_Y_inv_ = SpaceInverse::DirectInverse;
 
-  // For multigrid Preconditioner, sets whether to cache the forward matrix.
-  bool P_X_mg_cache_fw_mat_ = true;
-  bool P_Y_mg_cache_fw_mat_ = true;
+  // For multigrid Preconditioner, sets whether to build the forward matrix.
+  bool P_X_mg_build_fw_mat_ = true;
+  bool P_Y_mg_build_fw_mat_ = true;
 
   // If a multigrid Preconditioner is chosen, this sets the number of cycles.
   size_t P_X_mg_cycles_ = 5;

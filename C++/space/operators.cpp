@@ -29,7 +29,7 @@ template <class ForwardOp>
 ForwardOperator<ForwardOp>::ForwardOperator(const TriangulationView &triang,
                                             OperatorOptions opts)
     : Operator(triang, opts) {
-  if (opts_.cache_mat_) matrix_ = ComputeMatrixSingleScale();
+  if (opts_.build_mat_) matrix_ = ComputeMatrixSingleScale();
 }
 
 template <class ForwardOp>
@@ -65,7 +65,7 @@ void ForwardOperator<ForwardOp>::ApplyTransposeHierarchToSingle(
 
 template <class ForwardOp>
 void ForwardOperator<ForwardOp>::ApplySingleScale(Eigen::VectorXd &v) const {
-  if (opts_.cache_mat_) {
+  if (opts_.build_mat_) {
     v = MatrixSingleScale() * v;
   } else {
     auto &vertices = triang_.vertices();
@@ -88,7 +88,7 @@ void ForwardOperator<ForwardOp>::ApplySingleScale(Eigen::VectorXd &v) const {
 template <class ForwardOp>
 Eigen::SparseMatrix<double> ForwardOperator<ForwardOp>::MatrixSingleScale()
     const {
-  if (opts_.cache_mat_) return matrix_;
+  if (opts_.build_mat_) return matrix_;
   return ComputeMatrixSingleScale();
 }
 
