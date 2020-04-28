@@ -100,23 +100,45 @@ int main(int argc, char* argv[]) {
   size_t ndof = 0;
   Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
   while (ndof < max_dofs) {
+    // Solve - estimate.
     auto start = std::chrono::steady_clock::now();
     auto [solution, pcg_data] = heat_eq.Solve(x0);
-    ndof = vec_Xd->Bfs().size();  // A slight overestimate.
     auto [residual, residual_norm] = heat_eq.Estimate(solution);
-    auto end = std::chrono::steady_clock::now();
-    auto marked_nodes = heat_eq.Mark(residual);
 
-    // Refine and prolongate the current solution.
+    std::chrono::duration<double> elapsed_seconds =
+        std::chrono::steady_clock::now() - start;
+
+#ifdef VERBOSE
+    std::cout << std::endl << "Adaptive::Trees" << std::endl;
+    std::cout << "  T.vertex:   #bfs =  " << T.vertex_tree.Bfs().size()
+              << std::endl;
+    std::cout << "  T.element:  #bfs =  " << T.elem_tree.Bfs().size()
+              << std::endl;
+    std::cout << "  T.hierarch: #bfs =  " << T.hierarch_basis_tree.Bfs().size()
+              << std::endl;
+    std::cout << std::endl;
+    std::cout << "  B.elem:     #bfs =  " << B.elem_tree.Bfs().size()
+              << std::endl;
+    std::cout << "  B.three_pt: #bfs =  " << B.three_point_tree.Bfs().size()
+              << std::endl;
+    std::cout << "  B.ortho:    #bfs =  " << B.ortho_tree.Bfs().size()
+              << std::endl;
+#endif
+
+    std::cout << std::endl
+              << "\033[32m"
+              << "XDelta-size: " << vec_Xd->Bfs().size()
+              << " residual-norm: " << residual_norm
+              << " total-memory-kB: " << getmem()
+              << " solve-estimate-time: " << elapsed_seconds.count()
+              << " solve-PCG-steps: " << pcg_data.iterations << "\033[0m"
+              << std::endl;
+
+    // Mark - Refine.
+    auto marked_nodes = heat_eq.Mark(residual);
     vec_Xd->FromVectorContainer(solution);
     heat_eq.Refine(marked_nodes);
     x0 = vec_Xd->ToVectorContainer();
-
-    std::chrono::duration<double> elapsed_seconds = end - start;
-    std::cout << "XDelta-size: " << ndof << " residual-norm: " << residual_norm
-              << " total-memory-kB: " << getmem()
-              << " solve-estimate-time: " << elapsed_seconds.count()
-              << " solve-PCG-steps: " << pcg_data.iterations << std::endl;
   }
 
   return 0;

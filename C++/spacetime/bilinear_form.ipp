@@ -1,4 +1,5 @@
 #include <boost/core/demangle.hpp>
+#include <iomanip>
 
 #include "basis.hpp"
 #include "bilinear_form.hpp"
@@ -13,16 +14,18 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
     : BilinearForm(vec_in, vec_out, GenerateSigma(*vec_in, *vec_out),
                    GenerateTheta(*vec_in, *vec_out), use_cache) {
 #ifdef VERBOSE
+  std::cout << std::left;
   std::cout << std::endl
             << boost::core::demangle(typeid(*this).name()) << std::endl;
-  std::cout << "\tvec_in: #bfs = " << vec_in_->Bfs().size()
-            << "\t #container = " << vec_in_->container().size() << std::endl;
-  std::cout << "\tvec_out: #bfs = " << vec_out_->Bfs().size()
-            << "\t #container = " << vec_out_->container().size() << std::endl;
-  std::cout << "\tsigma: #bfs = " << sigma_->Bfs().size()
-            << "\t #container = " << sigma_->container().size() << std::endl;
-  std::cout << "\ttheta: #bfs = " << theta_->Bfs().size()
-            << "\t #container = " << theta_->container().size() << std::endl;
+  std::cout << "  vec_in:  #bfs = " << std::setw(10) << vec_in_->Bfs().size()
+            << "#container = " << vec_in_->container().size() << std::endl;
+  std::cout << "  vec_out: #bfs = " << std::setw(10) << vec_out_->Bfs().size()
+            << "#container = " << vec_out_->container().size() << std::endl;
+  std::cout << "  sigma:   #bfs = " << std::setw(10) << sigma_->Bfs().size()
+            << "#container = " << sigma_->container().size() << std::endl;
+  std::cout << "  theta:   #bfs = " << std::setw(10) << theta_->Bfs().size()
+            << "#container = " << theta_->container().size() << std::endl;
+  std::cout << std::right;
 #endif
 }
 
