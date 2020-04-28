@@ -47,7 +47,8 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
   vec_Xd->SparseRefine(1);
 
   auto [g_lf, u0_lf] = SmoothProblem();
-  AdaptiveHeatEquationOptions opts = {.estimate_mean_zero_ = false};
+  AdaptiveHeatEquationOptions opts;
+  opts.estimate_mean_zero_ = false;
   opts.P_X_alpha_ = 0.35;
   AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf), opts);
 
@@ -98,6 +99,16 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     TestNoEmptyFrozenAxes(heat_eq.vec_Xd());
     TestNoEmptyFrozenAxes(heat_eq.vec_Xdd());
     TestNoEmptyFrozenAxes(heat_eq.vec_Ydd());
+
+    // Check that Ydd = GenerateTheta(Xdd, Ydd).
+    auto theta =
+        spacetime::GenerateTheta(*heat_eq.vec_Xdd(), *heat_eq.vec_Ydd());
+    auto theta_nodes = theta->Bfs();
+    auto ydd_nodes = heat_eq.vec_Ydd()->Bfs();
+    ASSERT_EQ(theta_nodes.size(), ydd_nodes.size());
+    ASSERT_EQ(theta->container().size(), heat_eq.vec_Ydd()->container().size());
+    for (int i = 0; i < theta_nodes.size(); i++)
+      ASSERT_EQ(theta_nodes[i]->nodes(), ydd_nodes[i]->nodes());
 
     vec_Xd->FromVectorContainer(u);
     heat_eq.Refine(marked_nodes);

@@ -50,7 +50,13 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
   auto P_Y = heat_d_dd_->P_Y();
   // Invalidate heat_d_dd, we no longer need these bilinear forms.
   heat_d_dd_.reset();
-  HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y, opts_);
+
+  // Create B_t making use of the fact that theta = vec_Ydd.
+  auto B_t = std::make_shared<HeatEquation::TypeB_t>(
+      vec_Xdd_.get(), vec_Ydd_.get(),
+      spacetime::GenerateSigma(*vec_Xdd_, *vec_Ydd_), vec_Ydd_,
+      opts_.use_cache_);
+  HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y, B_t, opts_);
 
   // Prolongate u_dd_d from X_d to X_dd.
   vec_Xd_->FromVectorContainer(u_dd_d);

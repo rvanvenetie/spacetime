@@ -75,9 +75,11 @@ class HeatEquation {
   using TypeS = SchurBilinearForm<TypePrecondY, TypeB, TypeBT, TypeG>;
 
   HeatEquation(std::shared_ptr<TypeXVector> vec_X,
+               std::shared_ptr<TypeYVector> vec_Y, std::shared_ptr<TypeA> A,
+               std::shared_ptr<TypePrecondY> P_Y, std::shared_ptr<TypeB_t> B_t,
+               const HeatEquationOptions &opts = HeatEquationOptions());
+  HeatEquation(std::shared_ptr<TypeXVector> vec_X,
                std::shared_ptr<TypeYVector> vec_Y,
-               std::shared_ptr<TypeA> A = nullptr,
-               std::shared_ptr<TypePrecondY> P_Y = nullptr,
                const HeatEquationOptions &opts = HeatEquationOptions());
   HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta,
                const HeatEquationOptions &opts = HeatEquationOptions());

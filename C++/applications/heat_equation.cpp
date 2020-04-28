@@ -16,13 +16,15 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
                            std::shared_ptr<TypeYVector> vec_Y,
                            std::shared_ptr<TypeA> A,
                            std::shared_ptr<TypePrecondY> P_Y,
+                           std::shared_ptr<TypeB_t> B_t,
                            const HeatEquationOptions &opts)
     : vec_X_(vec_X), vec_Y_(vec_Y), A_(A), P_Y_(P_Y), opts_(opts) {
   if (!A) A_ = std::make_shared<TypeA>(vec_Y.get(), opts.use_cache_);
 
   // Create two parts of B sharing sigma and theta.
-  auto B_t =
-      std::make_shared<TypeB_t>(vec_X_.get(), vec_Y_.get(), opts_.use_cache_);
+  if (!B_t)
+    B_t =
+        std::make_shared<TypeB_t>(vec_X_.get(), vec_Y_.get(), opts_.use_cache_);
   auto B_s = std::make_shared<TypeB_s>(vec_X_.get(), vec_Y_.get(), B_t->sigma(),
                                        B_t->theta(), opts_.use_cache_);
   B_ = std::make_shared<TypeB>(B_t, B_s);
@@ -43,6 +45,11 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
   // Create the Schur bilinear form.
   S_ = std::make_shared<TypeS>(P_Y_, B_, BT_, G_);
 }
+
+HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
+                           std::shared_ptr<TypeYVector> vec_Y,
+                           const HeatEquationOptions &opts)
+    : HeatEquation(vec_X, vec_Y, nullptr, nullptr, nullptr, opts) {}
 
 HeatEquation::HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta,
                            const HeatEquationOptions &opts)
