@@ -66,8 +66,7 @@ TEST(ForwardOperator, SingleScaleMatrix) {
     Eigen::VectorXd vec = RandomVector(triang);
     Eigen::VectorXd vec_copy = vec;
     Eigen::VectorXd output = mass_op.MatrixSingleScale() * vec_copy;
-    mass_op.Apply(vec);
-    std::cout << vec.array() / output.array() << std::endl;
+    mass_op.ApplySingleScale(vec);
     ASSERT_TRUE(vec.isApprox(output));
   }
 }

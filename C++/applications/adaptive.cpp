@@ -61,6 +61,8 @@ int main(int argc, char* argv[]) {
       po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.P_X_inv_))(
       "PY_inv",
       po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.P_Y_inv_))(
+      "PX_mg_cache_fw_mat", po::value<bool>(&adapt_opts.P_X_mg_cache_fw_mat))(
+      "PY_mg_cache_fw_mat", po::value<bool>(&adapt_opts.P_Y_mg_cache_fw_mat))(
       "PX_mg_cycles", po::value<size_t>(&adapt_opts.P_X_mg_cycles_))(
       "PY_mg_cycles", po::value<size_t>(&adapt_opts.P_Y_mg_cycles_));
   boost::program_options::options_description cmdline_options;
@@ -115,7 +117,7 @@ int main(int argc, char* argv[]) {
 
     std::chrono::duration<double> elapsed_seconds = end - start;
     std::cout << "XDelta-size: " << ndof << " residual-norm: " << residual_norm
-              << " total-memory-kB: " << getPeakRSS() / 1024
+              << " total-memory-kB: " << getmem()
               << " solve-estimate-time: " << elapsed_seconds.count()
               << " solve-PCG-steps: " << pcg_data.iterations << std::endl;
   }
