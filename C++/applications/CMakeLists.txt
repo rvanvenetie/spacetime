@@ -7,6 +7,7 @@ target_link_libraries(heat_equation_performance applications)
 
 add_executable(adaptive adaptive.cpp)
 target_link_libraries(adaptive applications BoostProgramOptions)
+target_compile_options(adaptive PUBLIC "-DVERBOSE")
 
 # Create tests
 package_add_test(heat_equation_test heat_equation_test.cpp)
