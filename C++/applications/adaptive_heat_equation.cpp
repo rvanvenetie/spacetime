@@ -51,7 +51,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
   heat_d_dd_.reset();
   {
     AdaptiveHeatEquationOptions estimate_opts = opts_;
-    estimate_opts.build_space_mats_ = false;
+    estimate_opts.use_cache_ = false;
     HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y, estimate_opts);
 
     // Prolongate u_dd_d from X_d to X_dd.

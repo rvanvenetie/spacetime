@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
       "AdaptiveHeatEquation options");
   adapt_optdesc.add_options()("use_cache",
                               po::value<bool>(&adapt_opts.use_cache_))(
-      "build_space_mats", po::value<bool>(&adapt_opts.build_space_mats_))(
+      (
       "solve_rtol", po::value<double>(&adapt_opts.solve_rtol_))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit_))(
       "estimate_saturation_layers",

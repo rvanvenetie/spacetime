@@ -61,14 +61,15 @@ TEST(ForwardOperator, SingleScaleMatrix) {
   });
 
   TriangulationView triang(vertex_subtree);
-  MassOperator mass_op(triang);
+  MassOperator mass_op_build(triang, {.build_mat_ = true});
+  MassOperator mass_op_nobuild(triang, {.build_mat_ = false});
 
   for (int i = 0; i < 10; i++) {
     Eigen::VectorXd vec = RandomVector(triang);
     Eigen::VectorXd vec_copy = vec;
-    Eigen::VectorXd output = mass_op.MatrixSingleScale() * vec_copy;
-    mass_op.ApplySingleScale(vec);
-    ASSERT_TRUE(vec.isApprox(output));
+    mass_op_build.ApplySingleScale(vec_copy);
+    mass_op_nobuild.ApplySingleScale(vec);
+    ASSERT_TRUE(vec.isApprox(vec_copy));
   }
 }
 

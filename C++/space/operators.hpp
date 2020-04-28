@@ -75,15 +75,16 @@ class ForwardOperator : public Operator {
   // Apply the operator in single scale, to be implemented by derived.
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const;
 
-  Eigen::SparseMatrix<double> MatrixSingleScale() const;
+  const Eigen::SparseMatrix<double> &MatrixSingleScale() const {
+    return matrix_;
+  }
 
  protected:
   // Hierarhical Basis Transformations from HB to SS, and its transpose.
   void ApplyHierarchToSingle(Eigen::VectorXd &vec_HB) const;
   void ApplyTransposeHierarchToSingle(Eigen::VectorXd &vec_SS) const;
 
-  Eigen::SparseMatrix<double> ComputeMatrixSingleScale() const;
-
+  void InitializeMatrixSingleScale();
   Eigen::SparseMatrix<double> matrix_;
 };
 
@@ -224,5 +225,3 @@ extern template class XPreconditionerOperator<DirectInverse>;
 extern template class XPreconditionerOperator<MultigridPreconditioner>;
 
 }  // namespace space
-
-#include "operators.ipp"

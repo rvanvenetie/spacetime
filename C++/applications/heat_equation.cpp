@@ -19,7 +19,7 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
                            const HeatEquationOptions &opts)
     : vec_X_(vec_X), vec_Y_(vec_Y), A_(A), P_Y_(P_Y), opts_(opts) {
   // Create two parts of B sharing sigma and theta.
-  space::OperatorOptions space_opts({.build_mat_ = opts_.build_space_mats_});
+  space::OperatorOptions space_opts({.build_mat_ = opts_.use_cache_});
   auto B_t = std::make_shared<TypeB_t>(vec_X_.get(), vec_Y_.get(),
                                        opts_.use_cache_, space_opts);
   auto B_s =
@@ -47,12 +47,11 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
 HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
                            std::shared_ptr<TypeYVector> vec_Y,
                            const HeatEquationOptions &opts)
-    : HeatEquation(
-          vec_X, vec_Y,
-          std::make_shared<TypeA>(
-              vec_Y.get(), opts.use_cache_,
-              space::OperatorOptions({.build_mat_ = opts.build_space_mats_})),
-          nullptr, opts) {}
+    : HeatEquation(vec_X, vec_Y,
+                   std::make_shared<TypeA>(
+                       vec_Y.get(), opts.use_cache_,
+                       space::OperatorOptions({.build_mat_ = opts.use_cache_})),
+                   nullptr, opts) {}
 
 HeatEquation::HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta,
                            const HeatEquationOptions &opts)
@@ -71,7 +70,7 @@ void HeatEquation::InitializeBT() {
   if (opts_.use_cache_) {
     BT_ = B_->Transpose();
   } else {
-    space::OperatorOptions space_opts({.build_mat_ = opts_.build_space_mats_});
+    space::OperatorOptions space_opts({.build_mat_ = opts_.use_cache_});
     auto BT_t = std::make_shared<
         BilinearForm<Time::TransportOperator, space::MassOperator,
                      OrthonormalWaveletFn, ThreePointWaveletFn>>(
