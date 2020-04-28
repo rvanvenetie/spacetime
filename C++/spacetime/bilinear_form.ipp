@@ -1,3 +1,5 @@
+#include <boost/core/demangle.hpp>
+
 #include "basis.hpp"
 #include "bilinear_form.hpp"
 namespace spacetime {
@@ -9,7 +11,20 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
                  DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
                  bool use_cache, space::OperatorOptions space_opts)
     : BilinearForm(vec_in, vec_out, GenerateSigma(*vec_in, *vec_out),
-                   GenerateTheta(*vec_in, *vec_out), use_cache) {}
+                   GenerateTheta(*vec_in, *vec_out), use_cache) {
+#ifdef VERBOSE
+  std::cout << std::endl
+            << boost::core::demangle(typeid(*this).name()) << std::endl;
+  std::cout << "\tvec_in: #bfs = " << vec_in_->Bfs().size()
+            << "\t #container = " << vec_in_->container().size() << std::endl;
+  std::cout << "\tvec_out: #bfs = " << vec_out_->Bfs().size()
+            << "\t #container = " << vec_out_->container().size() << std::endl;
+  std::cout << "\tsigma: #bfs = " << sigma_->Bfs().size()
+            << "\t #container = " << sigma_->container().size() << std::endl;
+  std::cout << "\ttheta: #bfs = " << theta_->Bfs().size()
+            << "\t #container = " << theta_->container().size() << std::endl;
+#endif
+}
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>

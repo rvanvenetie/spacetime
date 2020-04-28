@@ -115,6 +115,17 @@ void AdaptiveHeatEquation::Refine(
       GenerateXDeltaUnderscore(*vec_Xd_, opts_.estimate_saturation_layers_));
   vec_Ydd_ = std::make_shared<TypeYVector>(
       GenerateYDelta<DoubleTreeVector>(*vec_Xdd_));
+
+#ifdef VERBOSE
+  std::cout << std::endl << "AdaptiveHeatEquation::Refine" << std::endl;
+  std::cout << "\tvec_Xd: #bfs = " << vec_Xd_->Bfs().size()
+            << "\t #container = " << vec_Xd_->container().size() << std::endl;
+  std::cout << "\tvec_Xdd: #bfs = " << vec_Xdd_->Bfs().size()
+            << "\t #container = " << vec_Xdd_->container().size() << std::endl;
+  std::cout << "\tvec_Ydd: #bfs = " << vec_Ydd_->Bfs().size()
+            << "\t #container = " << vec_Ydd_->container().size() << std::endl;
+#endif
+
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
 }
 
