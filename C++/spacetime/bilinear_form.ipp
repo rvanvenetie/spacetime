@@ -12,22 +12,7 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
                  DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
                  bool use_cache, space::OperatorOptions space_opts)
     : BilinearForm(vec_in, vec_out, GenerateSigma(*vec_in, *vec_out),
-                   GenerateTheta(*vec_in, *vec_out), use_cache) {
-#ifdef VERBOSE
-  std::cerr << std::left;
-  std::cerr << std::endl
-            << boost::core::demangle(typeid(*this).name()) << std::endl;
-  std::cerr << "  vec_in:  #bfs = " << std::setw(10) << vec_in_->Bfs().size()
-            << "#container = " << vec_in_->container().size() << std::endl;
-  std::cerr << "  vec_out: #bfs = " << std::setw(10) << vec_out_->Bfs().size()
-            << "#container = " << vec_out_->container().size() << std::endl;
-  std::cerr << "  sigma:   #bfs = " << std::setw(10) << sigma_->Bfs().size()
-            << "#container = " << sigma_->container().size() << std::endl;
-  std::cerr << "  theta:   #bfs = " << std::setw(10) << theta_->Bfs().size()
-            << "#container = " << theta_->container().size() << std::endl;
-  std::cerr << std::right;
-#endif
-}
+                   GenerateTheta(*vec_in, *vec_out), use_cache) {}
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
@@ -43,7 +28,22 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
       sigma_(sigma),
       theta_(theta),
       use_cache_(use_cache),
-      space_opts_(std::move(space_opts)) {}
+      space_opts_(std::move(space_opts)) {
+#ifdef VERBOSE
+  std::cerr << std::left;
+  std::cerr << std::endl
+            << boost::core::demangle(typeid(*this).name()) << std::endl;
+  std::cerr << "  vec_in:  #bfs = " << std::setw(10) << vec_in_->Bfs().size()
+            << "#container = " << vec_in_->container().size() << std::endl;
+  std::cerr << "  vec_out: #bfs = " << std::setw(10) << vec_out_->Bfs().size()
+            << "#container = " << vec_out_->container().size() << std::endl;
+  std::cerr << "  sigma:   #bfs = " << std::setw(10) << sigma_->Bfs().size()
+            << "#container = " << sigma_->container().size() << std::endl;
+  std::cerr << "  theta:   #bfs = " << std::setw(10) << theta_->Bfs().size()
+            << "#container = " << theta_->container().size() << std::endl;
+  std::cerr << std::right;
+#endif
+}
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
