@@ -100,15 +100,15 @@ int main(int argc, char* argv[]) {
   size_t ndof = 0;
   Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
   while (ndof < max_dofs) {
+    std::cout << "XDelta-size: " << vec_Xd->Bfs().size()
+              << " total-memory-kB: " << getmem() << std::flush;
+
     // Solve - estimate.
     auto start = std::chrono::steady_clock::now();
     auto [solution, pcg_data] = heat_eq.Solve(x0);
     std::chrono::duration<double> duration_solve =
         std::chrono::steady_clock::now() - start;
-
-    std::cout << "XDelta-size: " << vec_Xd->Bfs().size()
-              << " total-memory-kB: " << getmem()
-              << " solve-PCG-steps: " << pcg_data.iterations
+    std::cout << " solve-PCG-steps: " << pcg_data.iterations
               << " solve-time: " << duration_solve.count() << std::flush;
 
     start = std::chrono::steady_clock::now();
