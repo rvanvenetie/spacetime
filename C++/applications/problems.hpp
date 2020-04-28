@@ -6,8 +6,8 @@ namespace applications {
 
 using spacetime::CreateQuadratureLinearForm;
 using spacetime::CreateZeroEvalLinearForm;
+using spacetime::NoOpLinearForm;
 using spacetime::SumLinearForm;
-using spacetime::ZeroLinearForm;
 
 // Solution u = (1 + t^2) x (1-x) y (1-y) on unit square.
 std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
@@ -33,7 +33,7 @@ std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
 SingularProblem() {
   auto u0 = [](double x, double y) { return 1.0; };
 
-  return {std::make_unique<ZeroLinearForm<Time::OrthonormalWaveletFn>>(),
+  return {std::make_unique<NoOpLinearForm<Time::OrthonormalWaveletFn>>(),
           CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(u0, 1)};
 }
 }  // namespace applications

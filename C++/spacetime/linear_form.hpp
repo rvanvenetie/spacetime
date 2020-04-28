@@ -68,11 +68,11 @@ class LinearForm : public LinearFormBase<TimeBasis> {
 };
 
 template <typename TimeBasis>
-class ZeroLinearForm : public LinearFormBase<TimeBasis> {
+class NoOpLinearForm : public LinearFormBase<TimeBasis> {
  public:
   using DblVec = typename LinearFormBase<TimeBasis>::DblVec;
 
-  ZeroLinearForm() = default;
+  NoOpLinearForm() = default;
   Eigen::VectorXd Apply(DblVec *vec) final {
     Eigen::VectorXd result = Eigen::VectorXd::Zero(vec->container().size());
     vec->FromVectorContainer(result);
