@@ -91,7 +91,7 @@ void HeatEquation::InitializeBT() {
 
 void HeatEquation::InitializePrecondX() {
   space::OperatorOptions space_opts({
-      .build_mat_ = opts_.P_X_mg_build_fw_mat_,
+      .build_mat_ = opts_.P_XY_mg_build_fw_mat_,
       .alpha_ = opts_.P_X_alpha_,
       .cycles_ = opts_.P_X_mg_cycles_,
   });
@@ -115,7 +115,7 @@ void HeatEquation::InitializePrecondX() {
 
 void HeatEquation::InitializePrecondY() {
   space::OperatorOptions space_opts({
-      .build_mat_ = opts_.P_Y_mg_build_fw_mat_,
+      .build_mat_ = opts_.P_XY_mg_build_fw_mat_,
       .cycles_ = opts_.P_Y_mg_cycles_,
   });
   switch (opts_.P_Y_inv_) {

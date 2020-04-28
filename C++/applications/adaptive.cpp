@@ -60,8 +60,8 @@ int main(int argc, char* argv[]) {
       po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.P_X_inv_))(
       "PY_inv",
       po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.P_Y_inv_))(
-      "PX_mg_build_fw_mat", po::value<bool>(&adapt_opts.P_X_mg_build_fw_mat_))(
-      "PY_mg_build_fw_mat", po::value<bool>(&adapt_opts.P_Y_mg_build_fw_mat_))(
+      "PXY_mg_build_fw_mat",
+      po::value<bool>(&adapt_opts.P_XY_mg_build_fw_mat_))(
       "PX_mg_cycles", po::value<size_t>(&adapt_opts.P_X_mg_cycles_))(
       "PY_mg_cycles", po::value<size_t>(&adapt_opts.P_Y_mg_cycles_));
   boost::program_options::options_description cmdline_options;
