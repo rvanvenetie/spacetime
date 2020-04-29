@@ -45,11 +45,6 @@ class MultigridTriangulationView {
     return element_view_;
   }
 
-  // Debug function that sorts all patches.
-  void Sort() {
-    for (auto &patch : patches_) std::sort(patch.begin(), patch.end());
-  }
-
   // Total number of vertices.
   const size_t V;
 

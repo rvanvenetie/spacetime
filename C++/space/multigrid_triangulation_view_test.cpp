@@ -29,6 +29,8 @@ std::vector<std::vector<Element2D *>> Transform(
     result.emplace_back();
     for (const auto &elem : patch) result.back().emplace_back(elem->node());
   }
+  // Sort the patches.
+  for (auto &patch : result) std::sort(patch.begin(), patch.end());
   return result;
 }
 
@@ -52,20 +54,18 @@ TEST(MultigridTriangulationView, CoarseToFine) {
     // test a single Refine and Coarsen.
     coarse.Refine();
     coarse.Coarsen();
-    assert(Transform(coarse.patches()) ==
-           Transform(
-               MultigridTriangulationView(vertices,
-                                          /* initialize_finest_level */ false)
-                   .patches()));
+    ASSERT_EQ(Transform(coarse.patches()),
+              Transform(MultigridTriangulationView(
+                            vertices,
+                            /* initialize_finest_level */ false)
+                            .patches()));
 
     // Now refine all.
     while (coarse.CanRefine()) coarse.Refine();
     auto fine = MultigridTriangulationView(vertices,
                                            /* initialize_finest_level */ true);
 
-    fine.Sort();
-    coarse.Sort();
-    assert(Transform(fine.patches()) == Transform(coarse.patches()));
+    ASSERT_EQ(Transform(fine.patches()), Transform(coarse.patches()));
   }
 }
 
@@ -90,15 +90,13 @@ TEST(MultigridTriangulationView, FineToCoarse) {
 
     auto fine_copy = MultigridTriangulationView(
         vertices, /* initialize_finest_level */ true);
-    fine.Sort();
-    fine_copy.Sort();
-    assert(Transform(fine.patches()) == Transform(fine_copy.patches()));
+    ASSERT_EQ(Transform(fine.patches()), Transform(fine_copy.patches()));
 
     // Coarsen all.
     while (fine.CanCoarsen()) fine.Coarsen();
     auto coarse = MultigridTriangulationView(
         vertices, /* initialize_finest_level */ false);
-    assert(Transform(fine.patches()) == Transform(coarse.patches()));
+    ASSERT_EQ(Transform(fine.patches()), Transform(coarse.patches()));
   }
 }
 
