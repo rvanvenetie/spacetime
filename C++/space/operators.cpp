@@ -72,7 +72,7 @@ void ForwardOperator<ForwardOp>::ApplySingleScale(Eigen::VectorXd &v) const {
     Eigen::VectorXd result = Eigen::VectorXd::Zero(v.rows());
     for (const auto &elem : triang_.elements()) {
       if (!elem->is_leaf()) continue;
-      auto &Vids = elem->vertices_view_idx_;
+      const auto &Vids = elem->vertices_view_idx_;
       auto &&element_mat = ForwardOp::ElementMatrix(elem, opts_);
 
       for (size_t i = 0; i < 3; ++i)
@@ -93,7 +93,7 @@ void ForwardOperator<ForwardOp>::InitializeMatrixSingleScale() {
   auto &vertices = triang_.vertices();
   for (const auto &elem : triang_.elements()) {
     if (!elem->is_leaf()) continue;
-    auto &Vids = elem->vertices_view_idx_;
+    const auto &Vids = elem->vertices_view_idx_;
     auto &&element_mat = ForwardOp::ElementMatrix(elem, opts_);
 
     for (size_t i = 0; i < 3; ++i)
