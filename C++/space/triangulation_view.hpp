@@ -3,30 +3,76 @@
 #include <utility>
 #include <vector>
 
-#include "../datastructures/multi_tree_vector.hpp"
-#include "../datastructures/multi_tree_view.hpp"
 #include "basis.hpp"
+#include "datastructures/multi_tree_vector.hpp"
+#include "datastructures/multi_tree_view.hpp"
 #include "triangulation.hpp"
 
 namespace space {
 
-class Element2DView
-    : public datastructures::MultiNodeViewBase<Element2DView, Element2D> {
- public:
-  using datastructures::MultiNodeViewBase<Element2DView,
-                                          Element2D>::MultiNodeViewBase;
-
-  size_t NewestVertex() const { return vertices_view_idx_[0]; }
-  inline std::array<size_t, 2> RefinementEdge() const {
-    return {vertices_view_idx_[1], vertices_view_idx_[2]};
-  }
-
-  std::array<size_t, 3> vertices_view_idx_;
-};
-
 class TriangulationView {
  public:
-  TriangulationView(std::vector<Vertex *> &&vertices);
+  TriangulationView(std::vector<Vertex *> &&vertices)
+      : V(vertices.size()),
+        vertices_(std::move(vertices)),
+        on_boundary_(V),
+        godparents_(V, {0, 0}) {
+    assert(V >= 3);
+
+    // First, we mark all vertices.
+    std::vector<size_t> indices(V);
+    initial_vertices_ = 0;
+    for (size_t i = 0; i < V; ++i) {
+      auto vtx = vertices_[i];
+      on_boundary_[i] = vtx->on_domain_boundary;
+      indices[i] = i;
+      vertices_[i]->set_data(&indices[i]);
+
+      // Find the first vertex that is not of level 0.
+      if (vertices_[i]->level() > 0 && initial_vertices_ == 0)
+        initial_vertices_ = i;
+      assert((vertices_[i]->level() > 0) == (initial_vertices_ > 0));
+
+      // Store link to the Godparents.
+      if (vtx->parent_elements.size()) {
+        const auto &parent_vertices = vtx->parent_elements[0]->vertices();
+        for (int gp = 1; gp < 3; gp++)
+          godparents_[i][gp - 1] =
+              *parent_vertices[gp]->template data<size_t>();
+      }
+    }
+
+    // If we only have initial vertices, set the total.
+    if (initial_vertices_ == 0) initial_vertices_ = V;
+
+    // Figure out all the element leaves.
+    Element2D *elem_meta_root = vertices_[0]->patch[0]->parents()[0];
+    assert(elem_meta_root->is_metaroot());
+
+    std::queue<Element2D *> queue;
+    element_leaves_.reserve(V * 2);
+    for (auto root : elem_meta_root->children()) queue.emplace(root);
+    while (!queue.empty()) {
+      auto elem = queue.front();
+      queue.pop();
+      bool is_leaf = true;
+      for (const auto &child : elem->children())
+        if (child->newest_vertex()->has_data()) {
+          queue.emplace(child);
+          is_leaf = false;
+        }
+      if (is_leaf) {
+        std::array<size_t, 3> Vids;
+        for (size_t i = 0; i < 3; ++i)
+          Vids[i] = *elem->vertices()[i]->template data<size_t>();
+        element_leaves_.emplace_back(elem, std::move(Vids));
+      }
+    }
+
+    // Unset the data stored in the vertices.
+    for (auto nv : vertices_) nv->reset_data();
+  }
+
   template <typename Iterable>
   TriangulationView(const Iterable &vertices)
       : TriangulationView(Transform(vertices)) {}
@@ -45,35 +91,28 @@ class TriangulationView {
   const size_t V;
 
   // Does the given vertex lie on the domain boundary?
-  inline bool OnBoundary(size_t v) const {
-    return vertices_.at(v)->on_domain_boundary;
-  }
+  inline bool OnBoundary(size_t v) const { return on_boundary_.at(v); }
 
   // Number of initial vertices.
   inline size_t InitialVertices() const { return initial_vertices_; }
 
   // Grandparents
-  inline const std::array<size_t, 2> Godparents(size_t vi) const {
-    const auto &hist = history(vi);
-    assert(!hist.empty());
-    return hist[0]->RefinementEdge();
+  inline const std::array<size_t, 2> &Godparents(size_t vi) const {
+    return godparents_.at(vi);
   }
 
   // Access data members.
-  inline const std::vector<Vertex *> &vertices() const { return vertices_; }
-  inline const std::vector<Element2DView *> &element_leaves() const {
-    return leaves_;
+  inline const std::vector<std::pair<Element2D *, std::array<size_t, 3>>>
+      &element_leaves() const {
+    return element_leaves_;
   }
-  inline const StaticVector<Element2DView *, 2> &history(int i) const {
-    return history_.at(i);
-  }
-  inline const auto &element_view() const { return element_view_; }
+  const std::vector<Vertex *> &vertices() const { return vertices_; }
 
  protected:
-  datastructures::MultiTreeView<Element2DView> element_view_;
   std::vector<Vertex *> vertices_;
-  std::vector<Element2DView *> leaves_;
-  std::vector<StaticVector<Element2DView *, 2>> history_;
+  std::vector<bool> on_boundary_;
+  std::vector<std::array<size_t, 2>> godparents_;
+  std::vector<std::pair<Element2D *, std::array<size_t, 3>>> element_leaves_;
   size_t initial_vertices_;
 
   // A convenient helper function for the constructor.

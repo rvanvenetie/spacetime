@@ -11,7 +11,7 @@ using namespace datastructures;
 
 constexpr int max_level = 6;
 
-Eigen::VectorXd RandomVector(const TriangulationViewNew &triang,
+Eigen::VectorXd RandomVector(const TriangulationView &triang,
                              bool dirichlet_boundary = true) {
   Eigen::VectorXd vec(triang.V);
   vec.setRandom();
@@ -29,7 +29,7 @@ TEST(Operator, InverseTimesForwardOpIsIdentity) {
     vertex_view.UniformRefine(level);
 
     // Now create the corresponding element tree
-    TriangulationViewNew triang(vertex_view);
+    TriangulationView triang(vertex_view);
     for (bool dirichlet_boundary : {true, false}) {
       auto forward_op = StiffPlusScaledMassOperator(
           triang, {.dirichlet_boundary_ = dirichlet_boundary});
@@ -60,7 +60,7 @@ TEST(ForwardOperator, SingleScaleMatrix) {
     return vertex->level() == 0 || (vertex->x + vertex->y <= 1.0);
   });
 
-  TriangulationViewNew triang(vertex_subtree);
+  TriangulationView triang(vertex_subtree);
   MassOperator mass_op_build(triang, {.build_mat_ = true});
   MassOperator mass_op_nobuild(triang, {.build_mat_ = false});
 
@@ -83,7 +83,7 @@ TEST(MultiGridOperator, RestrictProlongate) {
     return vertex->level() == 0 || (vertex->x + vertex->y <= 1.0);
   });
 
-  TriangulationViewNew triang(vertex_subtree);
+  TriangulationView triang(vertex_subtree);
   auto mg_op = MultigridPreconditioner<MassOperator>(triang);
   size_t V = triang.V;
 
@@ -167,7 +167,7 @@ void TestMultigridOperator(bool dirichlet_boundary, size_t time_level = 0) {
       auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
       vertex_subtree.UniformRefine(0);
 
-      TriangulationViewNew triang(vertex_subtree);
+      TriangulationView triang(vertex_subtree);
       auto mg_op = MultigridPreconditioner<ForwardOp>(
           triang, {.dirichlet_boundary_ = dirichlet_boundary,
                    .time_level_ = time_level});
@@ -200,7 +200,7 @@ void TestMultigridOperator(bool dirichlet_boundary, size_t time_level = 0) {
 
     auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
     vertex_subtree.DeepRefine();
-    TriangulationViewNew triang(vertex_subtree);
+    TriangulationView triang(vertex_subtree);
 
     auto mass_op = ForwardOp(triang, {.dirichlet_boundary_ = dirichlet_boundary,
                                       .time_level_ = time_level,
@@ -234,7 +234,7 @@ void TestMultigridOperator(bool dirichlet_boundary, size_t time_level = 0) {
       return vertex->level() == 0 || (vertex->x + vertex->y <= 1.0);
     });
 
-    TriangulationViewNew triang(vertex_subtree);
+    TriangulationView triang(vertex_subtree);
 
     for (size_t cycles = 1; cycles < 5; cycles++) {
       auto mg_op = MultigridPreconditioner<ForwardOp>(

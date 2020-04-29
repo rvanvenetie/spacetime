@@ -5,7 +5,7 @@
 
 #include "basis.hpp"
 #include "multigrid_triangulation_view.hpp"
-#include "triangulation_view_new.hpp"
+#include "triangulation_view.hpp"
 
 namespace space {
 
@@ -28,7 +28,7 @@ struct OperatorOptions {
 
 class Operator {
  public:
-  Operator(const TriangulationViewNew &triang,
+  Operator(const TriangulationView &triang,
            OperatorOptions opts = OperatorOptions())
       : triang_(triang), opts_(std::move(opts)) {}
 
@@ -59,14 +59,14 @@ class Operator {
   Eigen::MatrixXd ToMatrix() const;
 
  protected:
-  const TriangulationViewNew &triang_;
+  const TriangulationView &triang_;
   OperatorOptions opts_;
 };
 
 template <class ForwardOp>
 class ForwardOperator : public Operator {
  public:
-  ForwardOperator(const TriangulationViewNew &triang,
+  ForwardOperator(const TriangulationView &triang,
                   OperatorOptions opts = OperatorOptions());
 
   // Apply the operator in the hierarchical basis.
@@ -91,7 +91,7 @@ class ForwardOperator : public Operator {
 
 class BackwardOperator : public Operator {
  public:
-  BackwardOperator(const TriangulationViewNew &triang,
+  BackwardOperator(const TriangulationView &triang,
                    OperatorOptions opts = OperatorOptions());
 
   // Apply the operator in the hierarchical basis.
@@ -147,7 +147,7 @@ class StiffPlusScaledMassOperator
 template <typename ForwardOp>
 class DirectInverse : public BackwardOperator {
  public:
-  DirectInverse(const TriangulationViewNew &triang,
+  DirectInverse(const TriangulationView &triang,
                 OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
@@ -160,7 +160,7 @@ class DirectInverse : public BackwardOperator {
 template <typename ForwardOp>
 class CGInverse : public BackwardOperator {
  public:
-  CGInverse(const TriangulationViewNew &triang,
+  CGInverse(const TriangulationView &triang,
             OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
@@ -174,7 +174,7 @@ class CGInverse : public BackwardOperator {
 template <typename ForwardOp>
 class MultigridPreconditioner : public BackwardOperator {
  public:
-  MultigridPreconditioner(const TriangulationViewNew &triang,
+  MultigridPreconditioner(const TriangulationView &triang,
                           OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
@@ -210,7 +210,7 @@ class MultigridPreconditioner : public BackwardOperator {
 template <template <typename> class InverseOp>
 class XPreconditionerOperator : public BackwardOperator {
  public:
-  XPreconditionerOperator(const TriangulationViewNew &triang,
+  XPreconditionerOperator(const TriangulationView &triang,
                           OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;

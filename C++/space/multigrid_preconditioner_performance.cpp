@@ -19,7 +19,7 @@ int bsd_rnd() {
 using namespace space;
 using namespace datastructures;
 
-Eigen::VectorXd RandomVector(const TriangulationViewNew &triang,
+Eigen::VectorXd RandomVector(const TriangulationView &triang,
                              bool dirichlet_boundary = true) {
   Eigen::VectorXd vec(triang.V);
   vec.setRandom();
@@ -47,7 +47,7 @@ int main() {
     std::cout << vertex_subtree.Bfs().size() << "/"
               << T.vertex_meta_root->Bfs().size() << std::endl;
 
-    auto T_view = TriangulationViewNew(vertex_subtree.Bfs());
+    auto T_view = TriangulationView(vertex_subtree.Bfs());
     auto mg_op = MultigridPreconditioner<StiffnessOperator>(T_view);
     auto v = RandomVector(T_view);
     for (size_t k = 0; k < apply_iters; k++) {

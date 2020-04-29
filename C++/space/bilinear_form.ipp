@@ -25,7 +25,7 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
 
   // If this applicator is symmetric, there is not a lot to do.
   if (symmetric_) {
-    triang_ = std::make_shared<TriangulationViewNew>(nodes_vec_in);
+    triang_ = std::make_shared<TriangulationView>(nodes_vec_in);
     nodes_vec_in_ =
         std::make_shared<std::vector<I_in*>>(std::move(nodes_vec_in));
     nodes_vec_out_ =
@@ -40,7 +40,7 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
     nodes_vec_union_ = std::make_shared<
         std::vector<datastructures::NodeVector<HierarchicalBasisFn>*>>(
         vec_union_->Bfs());
-    triang_ = std::make_shared<TriangulationViewNew>(*nodes_vec_union_);
+    triang_ = std::make_shared<TriangulationView>(*nodes_vec_union_);
   }
   operator_ = std::make_shared<Operator>(*triang_, opts);
 }

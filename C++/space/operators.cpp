@@ -26,7 +26,7 @@ Eigen::MatrixXd Operator::ToMatrix() const {
 }
 
 template <class ForwardOp>
-ForwardOperator<ForwardOp>::ForwardOperator(const TriangulationViewNew &triang,
+ForwardOperator<ForwardOp>::ForwardOperator(const TriangulationView &triang,
                                             OperatorOptions opts)
     : Operator(triang, opts) {
   if (opts_.build_mat_) InitializeMatrixSingleScale();
@@ -120,7 +120,7 @@ inline Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
          (1 << opts.time_level_) * MassOperator::ElementMatrix(elem, opts);
 }
 
-BackwardOperator::BackwardOperator(const TriangulationViewNew &triang,
+BackwardOperator::BackwardOperator(const TriangulationView &triang,
                                    OperatorOptions opts)
     : Operator(triang, opts) {
   std::vector<int> dof_mapping;
@@ -171,7 +171,7 @@ void BackwardOperator::Apply(Eigen::VectorXd &v) const {
 }
 
 template <typename ForwardOp>
-DirectInverse<ForwardOp>::DirectInverse(const TriangulationViewNew &triang,
+DirectInverse<ForwardOp>::DirectInverse(const TriangulationView &triang,
                                         OperatorOptions opts)
     : BackwardOperator(triang, opts) {
   if (transform_.cols() > 0) {
@@ -193,7 +193,7 @@ void DirectInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 }
 
 template <typename ForwardOp>
-CGInverse<ForwardOp>::CGInverse(const TriangulationViewNew &triang,
+CGInverse<ForwardOp>::CGInverse(const TriangulationView &triang,
                                 OperatorOptions opts)
     : BackwardOperator(triang, opts) {
   OperatorOptions force_build = opts;
@@ -212,7 +212,7 @@ void CGInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 
 template <typename ForwardOp>
 MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
-    const TriangulationViewNew &triang, OperatorOptions opts)
+    const TriangulationView &triang, OperatorOptions opts)
     : BackwardOperator(triang, opts),
       forward_op_(triang, opts),
       // Note that this will leave initial_triang_solver_ with dangling
@@ -265,11 +265,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
   // First, initialize the row matrix variables.
   {
-    std::vector<Vertex *> vertices(triang_.vertices().begin(),
-                                   triang_.vertices().end());
-    TriangulationView triang_old(std::move(vertices));
-    auto mg_triang =
-        MultigridTriangulationView::FromFinestTriangulation(triang_old);
+    auto mg_triang = MultigridTriangulationView(
+        triang_.vertices(), /* initialize_finest_level */ true);
     row_mat.resize(V * 3);
     size_t idx = 0;
     for (size_t vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
@@ -416,7 +413,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
 template <template <typename> class InverseOp>
 XPreconditionerOperator<InverseOp>::XPreconditionerOperator(
-    const TriangulationViewNew &triang, OperatorOptions opts)
+    const TriangulationView &triang, OperatorOptions opts)
     : BackwardOperator(triang, opts),
       stiff_op_(triang, opts),
       inverse_op_(triang, opts) {}
