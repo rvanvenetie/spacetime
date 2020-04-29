@@ -12,7 +12,23 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
                  DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
                  bool use_cache, space::OperatorOptions space_opts)
     : BilinearForm(vec_in, vec_out, GenerateSigma(*vec_in, *vec_out),
-                   GenerateTheta(*vec_in, *vec_out), use_cache) {
+                   GenerateTheta(*vec_in, *vec_out), use_cache) {}
+
+template <template <typename, typename> class OperatorTime,
+          typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
+BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
+    BilinearForm(
+        DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
+        DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
+        std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma,
+        std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta,
+        bool use_cache, space::OperatorOptions space_opts)
+    : vec_in_(vec_in),
+      vec_out_(vec_out),
+      sigma_(sigma),
+      theta_(theta),
+      use_cache_(use_cache),
+      space_opts_(std::move(space_opts)) {
 #ifdef VERBOSE
   std::cerr << std::left;
   std::cerr << std::endl
@@ -31,26 +47,8 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
-BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
-    BilinearForm(
-        DoubleTreeVector<BasisTimeIn, BasisSpace> *vec_in,
-        DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
-        std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma,
-        std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta,
-        bool use_cache, space::OperatorOptions space_opts)
-    : vec_in_(vec_in),
-      vec_out_(vec_out),
-      sigma_(sigma),
-      theta_(theta),
-      use_cache_(use_cache),
-      space_opts_(std::move(space_opts)) {}
-
-template <template <typename, typename> class OperatorTime,
-          typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
                              BasisTimeOut>::Apply(const Eigen::VectorXd &v_in) {
-  sigma_->Reset();
-  theta_->Reset();
   Eigen::VectorXd v_lower;
 
   // Store the input in the double tree.
@@ -69,9 +67,6 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       if (use_cache_) bil_space_low_.emplace_back(std::move(bil_form));
     }
 
-    // Reset the output.
-    vec_out_->Reset();
-
     // Calculate R_Lambda(L_0 x Id)I_Sigma.
     for (auto psi_out_labda : vec_out_->Project_1()->Bfs()) {
       auto fiber_in = sigma_->Fiber_0(psi_out_labda->node());
@@ -87,8 +82,9 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
     v_lower = vec_out_->ToVectorContainer();
 
     // Reset the input, if necessary.
-    if constexpr (std::is_same_v<BasisTimeIn, BasisTimeOut>)
-      if (vec_in_ == vec_out_) vec_in_->FromVectorContainer(v_in);
+    if (vec_in_ == sigma_.get() ||
+        static_cast<void *>(vec_in_) == static_cast<void *>(vec_out_))
+      vec_in_->FromVectorContainer(v_in);
 
     // Calculate R_Theta(U_1 x Id)I_Lambda.
     for (auto psi_in_labda : theta_->Project_1()->Bfs()) {
@@ -101,9 +97,6 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       if (use_cache_) bil_time_upp_.emplace_back(std::move(bil_form));
     }
 
-    // Reset the output.
-    vec_out_->Reset();
-
     // Calculate R_Lambda(Id x A2)I_Theta.
     for (auto psi_out_labda : vec_out_->Project_0()->Bfs()) {
       auto fiber_in = theta_->Fiber_1(psi_out_labda->node());
@@ -114,23 +107,23 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       bil_form.Apply();
       if (use_cache_) bil_space_upp_.emplace_back(std::move(bil_form));
     }
+
     is_cached_ = true;
   } else {
     // Apply the lower part using cached bil forms.
     for (auto &bil_form : bil_space_low_) bil_form.Apply();
-    vec_out_->Reset();
     for (auto &bil_form : bil_time_low_) bil_form.ApplyLow();
 
     // Store the lower output.
     v_lower = vec_out_->ToVectorContainer();
 
     // Reset the input, if necessary.
-    if constexpr (std::is_same_v<BasisTimeIn, BasisTimeOut>)
-      if (vec_in_ == vec_out_) vec_in_->FromVectorContainer(v_in);
+    if (vec_in_ == sigma_.get() ||
+        static_cast<void *>(vec_in_) == static_cast<void *>(vec_out_))
+      vec_in_->FromVectorContainer(v_in);
 
     // Apply the upper part using cached bil forms.
     for (auto &bil_form : bil_time_upp_) bil_form.ApplyUpp();
-    vec_out_->Reset();
     for (auto &bil_form : bil_space_upp_) bil_form.Apply();
   }
 
@@ -146,9 +139,6 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
   // ApplyTranspose only works with if we have cached the bil forms.
   assert(use_cache_ && is_cached_);
 
-  // Reset the necessary DoubleTrees.
-  sigma_->Reset();
-  theta_->Reset();
   Eigen::VectorXd v_lower;
 
   // Store the input in the double tree.
@@ -162,19 +152,18 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
 
   // Apply the lower part using cached bil forms.
   for (auto &bil_form : bil_space_upp_) bil_form.Transpose().Apply();
-  vec_in_->Reset();
   for (auto &bil_form : bil_time_upp_) bil_form.Transpose().ApplyLow();
 
   // Store the lower output.
   v_lower = vec_in_->ToVectorContainer();
 
   // Reset the input, if necessary.
-  if constexpr (std::is_same_v<BasisTimeIn, BasisTimeOut>)
-    if (vec_in_ == vec_out_) vec_out_->FromVectorContainer(v_in);
+  if (vec_out_ == theta_.get() ||
+      static_cast<void *>(vec_out_) == static_cast<void *>(vec_in_))
+    vec_out_->FromVectorContainer(v_in);
 
   // Apply the upper part using cached bil forms.
   for (auto &bil_form : bil_time_low_) bil_form.Transpose().ApplyUpp();
-  vec_in_->Reset();
   for (auto &bil_form : bil_space_low_) bil_form.Transpose().Apply();
 
   // Return vectorized output.
