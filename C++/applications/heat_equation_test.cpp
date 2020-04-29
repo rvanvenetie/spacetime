@@ -24,93 +24,96 @@ auto ValidateVector(const DblVec &vec) {
 }
 
 TEST(HeatEquation, CompareToPython) {
-  int level = 6;
-  auto B = Time::Bases();
-  auto T = space::InitialTriangulation::UnitSquare();
-  auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-      B.three_point_tree.meta_root.get(),
-      T.hierarch_basis_tree.meta_root.get());
+  for (bool use_cache : {true, false}) {
+    int level = 6;
+    auto B = Time::Bases();
+    auto T = space::InitialTriangulation::UnitSquare();
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        B.three_point_tree.meta_root.get(),
+        T.hierarch_basis_tree.meta_root.get());
 
-  T.hierarch_basis_tree.UniformRefine(level);
-  B.ortho_tree.UniformRefine(level);
-  B.three_point_tree.UniformRefine(level);
-  X_delta.SparseRefine(level, {2, 1});
-  HeatEquationOptions opts;
-  opts.P_X_alpha_ = 1.0;
-  HeatEquation heat_eq(X_delta, opts);
+    T.hierarch_basis_tree.UniformRefine(level);
+    B.ortho_tree.UniformRefine(level);
+    B.three_point_tree.UniformRefine(level);
+    X_delta.SparseRefine(level, {2, 1});
+    HeatEquationOptions opts;
+    opts.use_cache_ = use_cache;
+    opts.P_X_alpha_ = 1.0;
+    HeatEquation heat_eq(X_delta, opts);
 
-  // Set double-tree vectors
-  auto X_vec = heat_eq.vec_X();
-  auto Y_vec = heat_eq.vec_Y();
-  auto X_bfs = X_vec->Bfs();
-  auto Y_bfs = Y_vec->Bfs();
-  for (size_t i = 0; i < X_bfs.size(); i++)
-    if (X_bfs[i]->node_1()->on_domain_boundary())
-      X_bfs[i]->set_value(0);
-    else
-      X_bfs[i]->set_value(i);
-  for (size_t i = 0; i < Y_bfs.size(); i++)
-    if (Y_bfs[i]->node_1()->on_domain_boundary())
-      Y_bfs[i]->set_value(0);
-    else
-      Y_bfs[i]->set_value(i);
+    // Set double-tree vectors
+    auto X_vec = heat_eq.vec_X();
+    auto Y_vec = heat_eq.vec_Y();
+    auto X_bfs = X_vec->Bfs();
+    auto Y_bfs = Y_vec->Bfs();
+    for (size_t i = 0; i < X_bfs.size(); i++)
+      if (X_bfs[i]->node_1()->on_domain_boundary())
+        X_bfs[i]->set_value(0);
+      else
+        X_bfs[i]->set_value(i);
+    for (size_t i = 0; i < Y_bfs.size(); i++)
+      if (Y_bfs[i]->node_1()->on_domain_boundary())
+        Y_bfs[i]->set_value(0);
+      else
+        Y_bfs[i]->set_value(i);
 
-  auto X_in = heat_eq.vec_X()->ToVectorContainer();
-  auto Y_in = heat_eq.vec_Y()->ToVectorContainer();
+    auto X_in = heat_eq.vec_X()->ToVectorContainer();
+    auto Y_in = heat_eq.vec_Y()->ToVectorContainer();
 
 // Load the vectors in Python format.
 #include "heat_equation_python.ipp"
 
-  // Create a little compare function.
-  auto compare = [&](auto bfs, auto res_py) {
-    ASSERT_EQ(bfs.size(), res_py.size());
-    for (size_t i = 0; i < bfs.size(); i++) {
-      auto [level, index, x, y] = res_py[i].first;
-      double value = res_py[i].second;
-      ASSERT_EQ(bfs[i]->node_0()->level(), level);
-      ASSERT_EQ(bfs[i]->node_0()->index(), index);
-      ASSERT_EQ(bfs[i]->node_1()->vertex()->x, x);
-      ASSERT_EQ(bfs[i]->node_1()->vertex()->y, y);
-      ASSERT_NEAR(bfs[i]->value(), value, 1e-8);
-    }
-  };
+    // Create a little compare function.
+    auto compare = [&](auto bfs, auto res_py) {
+      ASSERT_EQ(bfs.size(), res_py.size());
+      for (size_t i = 0; i < bfs.size(); i++) {
+        auto [level, index, x, y] = res_py[i].first;
+        double value = res_py[i].second;
+        ASSERT_EQ(bfs[i]->node_0()->level(), level);
+        ASSERT_EQ(bfs[i]->node_0()->index(), index);
+        ASSERT_EQ(bfs[i]->node_1()->vertex()->x, x);
+        ASSERT_EQ(bfs[i]->node_1()->vertex()->y, y);
+        ASSERT_NEAR(bfs[i]->value(), value, 1e-8);
+      }
+    };
 
-  // Compare the results in C++ to the Python format.
+    // Compare the results in C++ to the Python format.
 
-  // For A * v.
-  std::cout << "Comparing A" << std::endl;
-  Y_vec->FromVectorContainer(heat_eq.A()->Apply(Y_in));
-  compare(Y_bfs, A_py);
+    // For A * v.
+    std::cout << "Comparing A" << std::endl;
+    Y_vec->FromVectorContainer(heat_eq.A()->Apply(Y_in));
+    compare(Y_bfs, A_py);
 
-  // For B * v.
-  std::cout << "Comparing B" << std::endl;
-  Y_vec->FromVectorContainer(heat_eq.B()->Apply(X_in));
-  compare(Y_bfs, B_py);
+    // For B * v.
+    std::cout << "Comparing B" << std::endl;
+    Y_vec->FromVectorContainer(heat_eq.B()->Apply(X_in));
+    compare(Y_bfs, B_py);
 
-  // For B.T * v.
-  std::cout << "Comparing B.T" << std::endl;
-  X_vec->FromVectorContainer(heat_eq.BT()->Apply(Y_in));
-  compare(X_bfs, BT_py);
+    // For B.T * v.
+    std::cout << "Comparing B.T" << std::endl;
+    X_vec->FromVectorContainer(heat_eq.BT()->Apply(Y_in));
+    compare(X_bfs, BT_py);
 
-  // For G * v
-  std::cout << "Comparing G" << std::endl;
-  X_vec->FromVectorContainer(heat_eq.G()->Apply(X_in));
-  compare(X_bfs, G_py);
+    // For G * v
+    std::cout << "Comparing G" << std::endl;
+    X_vec->FromVectorContainer(heat_eq.G()->Apply(X_in));
+    compare(X_bfs, G_py);
 
-  // For P_Y * v
-  std::cout << "Comparing P_Y" << std::endl;
-  Y_vec->FromVectorContainer(heat_eq.P_Y()->Apply(Y_in));
-  compare(Y_bfs, A_inv_py);
+    // For P_Y * v
+    std::cout << "Comparing P_Y" << std::endl;
+    Y_vec->FromVectorContainer(heat_eq.P_Y()->Apply(Y_in));
+    compare(Y_bfs, A_inv_py);
 
-  // For precond_X * v
-  std::cout << "Comparing P_X" << std::endl;
-  X_vec->FromVectorContainer(heat_eq.P_X()->Apply(X_in));
-  compare(X_bfs, precond_X_py);
+    // For precond_X * v
+    std::cout << "Comparing P_X" << std::endl;
+    X_vec->FromVectorContainer(heat_eq.P_X()->Apply(X_in));
+    compare(X_bfs, precond_X_py);
 
-  // For schur_mat * v
-  std::cout << "Comparing schur_mat" << std::endl;
-  X_vec->FromVectorContainer(heat_eq.S()->Apply(X_in));
-  compare(X_bfs, schur_mat_py);
+    // For schur_mat * v
+    std::cout << "Comparing schur_mat" << std::endl;
+    X_vec->FromVectorContainer(heat_eq.S()->Apply(X_in));
+    compare(X_bfs, schur_mat_py);
+  }
 }
 
 TEST(HeatEquation, SchurCG) {

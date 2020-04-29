@@ -64,6 +64,7 @@ GenerateXDeltaUnderscore(
                                     num_repeats - 1);
   DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>
       X_delta_underscore = X_delta.DeepCopy();
+
   std::vector<typename decltype(X_delta_underscore)::DNType *> time_leaves,
       space_leaves;
   for (auto &dblnode : X_delta_underscore.container()) {

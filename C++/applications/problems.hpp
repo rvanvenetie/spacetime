@@ -6,6 +6,7 @@ namespace applications {
 
 using spacetime::CreateQuadratureLinearForm;
 using spacetime::CreateZeroEvalLinearForm;
+using spacetime::NoOpLinearForm;
 using spacetime::SumLinearForm;
 
 // Solution u = (1 + t^2) x (1-x) y (1-y) on unit square.
@@ -30,12 +31,9 @@ SmoothProblem() {
 std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
           std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
 SingularProblem() {
-  auto time_g = [](double t) { return 0; };
-  auto space_g = [](double x, double y) { return 0; };
   auto u0 = [](double x, double y) { return 1.0; };
 
-  return {CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(time_g,
-                                                                 space_g, 0, 0),
+  return {std::make_unique<NoOpLinearForm<Time::OrthonormalWaveletFn>>(),
           CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(u0, 1)};
 }
 }  // namespace applications
