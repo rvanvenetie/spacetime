@@ -50,18 +50,20 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
   auto P_Y = heat_d_dd_->P_Y();
   // Invalidate heat_d_dd, we no longer need these bilinear forms.
   heat_d_dd_.reset();
+  {
+    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y,
+                            /* Ydd_is_GenerateYDelta_Xdd */ true, opts_);
 
-  HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y,
-                          /* Ydd_is_GenerateYDelta_Xdd */ true, opts_);
+    // Prolongate u_dd_d from X_d to X_dd.
+    vec_Xd_->FromVectorContainer(u_dd_d);
+    vec_Xdd_->FromVector(*vec_Xd_);
+    Eigen::VectorXd u_dd_dd = vec_Xdd_->ToVectorContainer();
 
-  // Prolongate u_dd_d from X_d to X_dd.
-  vec_Xd_->FromVectorContainer(u_dd_d);
-  vec_Xdd_->FromVector(*vec_Xd_);
-  Eigen::VectorXd u_dd_dd = vec_Xdd_->ToVectorContainer();
-
-  // Calculate the residual and store inside the dbltree.
-  Eigen::VectorXd residual = RHS(heat_dd_dd) - heat_dd_dd.S()->Apply(u_dd_dd);
-  vec_Xdd_->FromVectorContainer(residual);
+    // Calculate the residual and store inside the dbltree.
+    Eigen::VectorXd residual = RHS(heat_dd_dd) - heat_dd_dd.S()->Apply(u_dd_dd);
+    vec_Xdd_->FromVectorContainer(residual);
+    // Let heat_dd_dd go out of scope..
+  }
   if (opts_.estimate_mean_zero_) ApplyMeanZero(vec_Xdd_.get());
 
   // Get the X_d nodes *inside* X_dd.
