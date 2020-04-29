@@ -61,17 +61,18 @@ class TriangulationView {
 
   // Access data members.
   inline const std::vector<Vertex *> &vertices() const { return vertices_; }
-  inline const std::vector<Element2DView *> &elements() const {
-    return elements_;
+  inline const std::vector<Element2DView *> &element_leaves() const {
+    return leaves_;
   }
   inline const StaticVector<Element2DView *, 2> &history(int i) const {
     return history_.at(i);
   }
+  inline const auto &element_view() const { return element_view_; }
 
  protected:
   datastructures::MultiTreeView<Element2DView> element_view_;
   std::vector<Vertex *> vertices_;
-  std::vector<Element2DView *> elements_;
+  std::vector<Element2DView *> leaves_;
   std::vector<StaticVector<Element2DView *, 2>> history_;
   size_t initial_vertices_;
 

@@ -31,11 +31,10 @@ ForwardMatrix<ForwardOp>::ForwardMatrix(const TriangulationView &triang,
                                         OperatorOptions opts)
     : ForwardOperator(triang, opts), matrix_(triang_.V, triang_.V) {
   std::vector<Eigen::Triplet<double>> triplets;
-  triplets.reserve(triang_.elements().size() * 3);
+  triplets.reserve(triang_.element_leaves().size() * 3);
 
   auto &vertices = triang_.vertices();
-  for (const auto &elem : triang_.elements()) {
-    if (!elem->is_leaf()) continue;
+  for (const auto &elem : triang_.element_leaves()) {
     auto &Vids = elem->vertices_view_idx_;
     auto &&element_mat = ForwardOp::ElementMatrix(elem, opts);
 

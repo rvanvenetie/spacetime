@@ -9,8 +9,7 @@ void LinearForm::Apply(I *root) {
   auto triang = TriangulationView(root->Bfs());
   const auto &vertices = triang.vertices();
   Eigen::VectorXd vec = Eigen::VectorXd::Zero(vertices.size());
-  for (const auto &elem : triang.elements()) {
-    if (!elem->is_leaf()) continue;
+  for (const auto &elem : triang.element_leaves()) {
     auto &Vids = elem->vertices_view_idx_;
     auto eval = functional_->Eval(elem->node());
     for (size_t i = 0; i < 3; ++i) vec[Vids[i]] += eval[i];

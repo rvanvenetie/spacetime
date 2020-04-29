@@ -49,8 +49,8 @@ MultigridTriangulationView
 MultigridTriangulationView::FromCoarsestTriangulation(
     const TriangulationView &triang) {
   MultigridTriangulationView result(triang);
-  for (const auto &elem : triang.elements()) {
-    if (elem->level()) continue;
+  for (const auto &elem : triang.element_view().root()->children(0)) {
+    assert(elem->level() == 0);
     for (int vi : elem->vertices_view_idx_) result.Insert(vi, elem);
   }
   result.vi_ = triang.InitialVertices();
@@ -60,8 +60,7 @@ MultigridTriangulationView::FromCoarsestTriangulation(
 MultigridTriangulationView MultigridTriangulationView::FromFinestTriangulation(
     const TriangulationView &triang) {
   MultigridTriangulationView result(triang);
-  for (const auto &elem : triang.elements()) {
-    if (!elem->is_leaf()) continue;
+  for (const auto &elem : triang.element_leaves()) {
     for (int vi : elem->vertices_view_idx_) result.Insert(vi, elem);
   }
   result.vi_ = triang.vertices().size();

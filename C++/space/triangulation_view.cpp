@@ -43,9 +43,11 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
   history_.resize(V);
 
   // Create and fill in the history object.
-  elements_ = element_view_.Bfs();
-  history_.reserve(elements_.size());
-  for (auto elem : elements_) {
+  auto elements = element_view_.Bfs();
+  history_.reserve(elements.size());
+  leaves_.reserve(elements.size() / 2);
+  for (auto elem : elements) {
+    if (elem->is_leaf()) leaves_.emplace_back(elem);
     if (elem->children(0).size() == 0) continue;
     assert(elem->children(0).size() == 2);
     // Get the index of the created vertex by checking a child.
