@@ -2,7 +2,7 @@
 #include <utility>
 
 #include "operators.hpp"
-#include "triangulation_view.hpp"
+#include "triangulation_view_new.hpp"
 
 namespace space {
 
@@ -41,7 +41,7 @@ class BilinearForm {
   I_in* vec_in_;
   I_out* vec_out_;
   bool symmetric_;
-  std::shared_ptr<TriangulationView> triang_;
+  std::shared_ptr<TriangulationViewNew> triang_;
   std::shared_ptr<Operator> operator_;
 
   // If symmetric, a flattened bfs view of input/output vectors.

@@ -5,7 +5,7 @@
 
 #include "basis.hpp"
 #include "multigrid_triangulation_view.hpp"
-#include "triangulation_view.hpp"
+#include "triangulation_view_new.hpp"
 
 namespace space {
 
@@ -28,7 +28,7 @@ struct OperatorOptions {
 
 class Operator {
  public:
-  Operator(const TriangulationView &triang,
+  Operator(const TriangulationViewNew &triang,
            OperatorOptions opts = OperatorOptions())
       : triang_(triang), opts_(std::move(opts)) {}
 
@@ -59,14 +59,14 @@ class Operator {
   Eigen::MatrixXd ToMatrix() const;
 
  protected:
-  const TriangulationView &triang_;
+  const TriangulationViewNew &triang_;
   OperatorOptions opts_;
 };
 
 template <class ForwardOp>
 class ForwardOperator : public Operator {
  public:
-  ForwardOperator(const TriangulationView &triang,
+  ForwardOperator(const TriangulationViewNew &triang,
                   OperatorOptions opts = OperatorOptions());
 
   // Apply the operator in the hierarchical basis.
@@ -91,7 +91,7 @@ class ForwardOperator : public Operator {
 
 class BackwardOperator : public Operator {
  public:
-  BackwardOperator(const TriangulationView &triang,
+  BackwardOperator(const TriangulationViewNew &triang,
                    OperatorOptions opts = OperatorOptions());
 
   // Apply the operator in the hierarchical basis.
@@ -119,7 +119,7 @@ class MassOperator : public ForwardOperator<MassOperator> {
   using ForwardOperator::ForwardOperator;
 
   // Returns the element matrix for the given element.
-  inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+  inline static Eigen::Matrix3d ElementMatrix(const Element2D *elem,
                                               const OperatorOptions &opts);
 };
 
@@ -130,7 +130,7 @@ class StiffnessOperator : public ForwardOperator<StiffnessOperator> {
 
   // Returns the element matrix for the given element.
   inline static const Eigen::Matrix3d &ElementMatrix(
-      const Element2DView *elem, const OperatorOptions &opts);
+      const Element2D *elem, const OperatorOptions &opts);
 };
 
 class StiffPlusScaledMassOperator
@@ -140,14 +140,14 @@ class StiffPlusScaledMassOperator
   using ForwardOperator::ForwardOperator;
 
   // Returns the element matrix for the given element.
-  inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+  inline static Eigen::Matrix3d ElementMatrix(const Element2D *elem,
                                               const OperatorOptions &opts);
 };
 
 template <typename ForwardOp>
 class DirectInverse : public BackwardOperator {
  public:
-  DirectInverse(const TriangulationView &triang,
+  DirectInverse(const TriangulationViewNew &triang,
                 OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
@@ -160,7 +160,7 @@ class DirectInverse : public BackwardOperator {
 template <typename ForwardOp>
 class CGInverse : public BackwardOperator {
  public:
-  CGInverse(const TriangulationView &triang,
+  CGInverse(const TriangulationViewNew &triang,
             OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
@@ -174,7 +174,7 @@ class CGInverse : public BackwardOperator {
 template <typename ForwardOp>
 class MultigridPreconditioner : public BackwardOperator {
  public:
-  MultigridPreconditioner(const TriangulationView &triang,
+  MultigridPreconditioner(const TriangulationViewNew &triang,
                           OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
@@ -210,7 +210,7 @@ class MultigridPreconditioner : public BackwardOperator {
 template <template <typename> class InverseOp>
 class XPreconditionerOperator : public BackwardOperator {
  public:
-  XPreconditionerOperator(const TriangulationView &triang,
+  XPreconditionerOperator(const TriangulationViewNew &triang,
                           OperatorOptions opts = OperatorOptions());
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;

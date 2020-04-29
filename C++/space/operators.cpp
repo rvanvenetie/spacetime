@@ -26,7 +26,7 @@ Eigen::MatrixXd Operator::ToMatrix() const {
 }
 
 template <class ForwardOp>
-ForwardOperator<ForwardOp>::ForwardOperator(const TriangulationView &triang,
+ForwardOperator<ForwardOp>::ForwardOperator(const TriangulationViewNew &triang,
                                             OperatorOptions opts)
     : Operator(triang, opts) {
   if (opts_.build_mat_) InitializeMatrixSingleScale();
@@ -68,10 +68,8 @@ void ForwardOperator<ForwardOp>::ApplySingleScale(Eigen::VectorXd &v) const {
   if (opts_.build_mat_) {
     v = matrix_ * v;
   } else {
-    auto &vertices = triang_.vertices();
     Eigen::VectorXd result = Eigen::VectorXd::Zero(v.rows());
-    for (const auto &elem : triang_.element_leaves()) {
-      const auto &Vids = elem->vertices_view_idx_;
+    for (const auto &[elem, Vids] : triang_.element_leaves()) {
       auto &&element_mat = ForwardOp::ElementMatrix(elem, opts_);
 
       for (size_t i = 0; i < 3; ++i)
@@ -87,11 +85,9 @@ void ForwardOperator<ForwardOp>::ApplySingleScale(Eigen::VectorXd &v) const {
 template <class ForwardOp>
 void ForwardOperator<ForwardOp>::InitializeMatrixSingleScale() {
   std::vector<Eigen::Triplet<double>> triplets;
-  triplets.reserve(triang_.elements().size() * 3);
+  triplets.reserve(triang_.element_leaves().size() * 3);
 
-  auto &vertices = triang_.vertices();
-  for (const auto &elem : triang_.element_leaves()) {
-    const auto &Vids = elem->vertices_view_idx_;
+  for (const auto &[elem, Vids] : triang_.element_leaves()) {
     auto &&element_mat = ForwardOp::ElementMatrix(elem, opts_);
 
     for (size_t i = 0; i < 3; ++i)
@@ -106,31 +102,30 @@ void ForwardOperator<ForwardOp>::InitializeMatrixSingleScale() {
 }
 
 inline Eigen::Matrix3d MassOperator::ElementMatrix(
-    const Element2DView *elem, const OperatorOptions &opts) {
+    const Element2D *elem, const OperatorOptions &opts) {
   static Eigen::Matrix3d elem_mat =
       (Eigen::Matrix3d() << 2, 1, 1, 1, 2, 1, 1, 1, 2).finished();
-  return elem->node()->area() / 12.0 * elem_mat;
+  return elem->area() / 12.0 * elem_mat;
 }
 
 inline const Eigen::Matrix3d &StiffnessOperator::ElementMatrix(
-    const Element2DView *elem, const OperatorOptions &opts) {
-  return elem->node()->StiffnessMatrix();
+    const Element2D *elem, const OperatorOptions &opts) {
+  return elem->StiffnessMatrix();
 }
 
 inline Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
-    const Element2DView *elem, const OperatorOptions &opts) {
+    const Element2D *elem, const OperatorOptions &opts) {
   // alpha * Stiff + 2^|labda| * Mass.
   return opts.alpha_ * StiffnessOperator::ElementMatrix(elem, opts) +
          (1 << opts.time_level_) * MassOperator::ElementMatrix(elem, opts);
 }
 
-BackwardOperator::BackwardOperator(const TriangulationView &triang,
+BackwardOperator::BackwardOperator(const TriangulationViewNew &triang,
                                    OperatorOptions opts)
     : Operator(triang, opts) {
   std::vector<int> dof_mapping;
-  auto &vertices = triang.vertices();
-  dof_mapping.reserve(vertices.size());
-  for (int i = 0; i < vertices.size(); i++)
+  dof_mapping.reserve(triang_.V);
+  for (int i = 0; i < triang_.V; i++)
     if (IsDof(i)) dof_mapping.push_back(i);
   if (dof_mapping.size() == 0) return;
 
@@ -141,10 +136,9 @@ BackwardOperator::BackwardOperator(const TriangulationView &triang,
     triplets.emplace_back(i, dof_mapping[i], 1.0);
     tripletsT.emplace_back(dof_mapping[i], i, 1.0);
   }
-  transform_ = Eigen::SparseMatrix<double>(dof_mapping.size(), vertices.size());
+  transform_ = Eigen::SparseMatrix<double>(dof_mapping.size(), triang_.V);
   transform_.setFromTriplets(triplets.begin(), triplets.end());
-  transformT_ =
-      Eigen::SparseMatrix<double>(vertices.size(), dof_mapping.size());
+  transformT_ = Eigen::SparseMatrix<double>(triang_.V, dof_mapping.size());
   transformT_.setFromTriplets(tripletsT.begin(), tripletsT.end());
 }
 
@@ -177,7 +171,7 @@ void BackwardOperator::Apply(Eigen::VectorXd &v) const {
 }
 
 template <typename ForwardOp>
-DirectInverse<ForwardOp>::DirectInverse(const TriangulationView &triang,
+DirectInverse<ForwardOp>::DirectInverse(const TriangulationViewNew &triang,
                                         OperatorOptions opts)
     : BackwardOperator(triang, opts) {
   if (transform_.cols() > 0) {
@@ -199,7 +193,7 @@ void DirectInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 }
 
 template <typename ForwardOp>
-CGInverse<ForwardOp>::CGInverse(const TriangulationView &triang,
+CGInverse<ForwardOp>::CGInverse(const TriangulationViewNew &triang,
                                 OperatorOptions opts)
     : BackwardOperator(triang, opts) {
   OperatorOptions force_build = opts;
@@ -218,7 +212,7 @@ void CGInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 
 template <typename ForwardOp>
 MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
-    const TriangulationView &triang, OperatorOptions opts)
+    const TriangulationViewNew &triang, OperatorOptions opts)
     : BackwardOperator(triang, opts),
       forward_op_(triang, opts),
       // Note that this will leave initial_triang_solver_ with dangling
@@ -237,7 +231,7 @@ void MultigridPreconditioner<ForwardOp>::RowMatrix(
   result.reserve(patch.size() * 3);
   for (auto elem : patch) {
     const auto &Vids = elem->vertices_view_idx_;
-    const auto &elem_mat = ForwardOp::ElementMatrix(elem, opts_);
+    const auto &elem_mat = ForwardOp::ElementMatrix(elem->node(), opts_);
     for (size_t i = 0; i < 3; ++i)
       if (Vids[i] == vertex)
         for (size_t j = 0; j < 3; ++j)
@@ -271,8 +265,11 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
   // First, initialize the row matrix variables.
   {
+    std::vector<Vertex *> vertices(triang_.vertices_.begin(),
+                                   triang_.vertices_.end());
+    TriangulationView triang_old(std::move(vertices));
     auto mg_triang =
-        MultigridTriangulationView::FromFinestTriangulation(triang_);
+        MultigridTriangulationView::FromFinestTriangulation(triang_old);
     row_mat.resize(V * 3);
     size_t idx = 0;
     for (size_t vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
@@ -419,7 +416,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
 template <template <typename> class InverseOp>
 XPreconditionerOperator<InverseOp>::XPreconditionerOperator(
-    const TriangulationView &triang, OperatorOptions opts)
+    const TriangulationViewNew &triang, OperatorOptions opts)
     : BackwardOperator(triang, opts),
       stiff_op_(triang, opts),
       inverse_op_(triang, opts) {}

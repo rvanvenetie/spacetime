@@ -6,7 +6,8 @@
 #include <memory>
 #include <vector>
 
-#include "../datastructures/tree.hpp"
+#include "datastructures/boost.hpp"
+#include "datastructures/tree.hpp"
 
 namespace space {
 
@@ -23,7 +24,10 @@ class Vertex : public datastructures::Node<Vertex> {
 
   const double x, y;
   bool on_domain_boundary;
-  std::vector<Element2D *> patch;
+  StaticVector<Element2D *, 4> patch;
+
+  // This are the (two) elements that are bisected to create the current vertex.
+  StaticVector<Element2D *, 2> parent_elements;
 
   // Constructor given parents.
   Vertex(const std::vector<Vertex *> &parents, double x, double y,
