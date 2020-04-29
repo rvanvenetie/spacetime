@@ -76,6 +76,7 @@ class ForwardOperator : public Operator {
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const;
 
   const Eigen::SparseMatrix<double> &MatrixSingleScale() const {
+    assert(matrix_.nonZeros());
     return matrix_;
   }
 
