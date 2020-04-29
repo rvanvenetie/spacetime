@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
   boost::program_options::options_description problem_optdesc(
       "Problem options");
   problem_optdesc.add_options()(
-      "problem", po::value<std::string>(&problem)->default_value("smooth"))(
+      "problem", po::value<std::string>(&problem)->default_value("singular"))(
       "initial_refines", po::value<size_t>(&initial_refines))(
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()));
@@ -60,6 +60,8 @@ int main(int argc, char* argv[]) {
       po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.P_X_inv_))(
       "PY_inv",
       po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.P_Y_inv_))(
+      "PXY_mg_build_fw_mat",
+      po::value<bool>(&adapt_opts.P_XY_mg_build_fw_mat_))(
       "PX_mg_cycles", po::value<size_t>(&adapt_opts.P_X_mg_cycles_))(
       "PY_mg_cycles", po::value<size_t>(&adapt_opts.P_Y_mg_cycles_));
   boost::program_options::options_description cmdline_options;
