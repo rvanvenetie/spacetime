@@ -18,7 +18,7 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
   bool Refine();
   bool is_full() const;
   Vertex *vertex() const { return vertex_; }
-  const StaticVector<Element2D *, 4> &support() const { return vertex_->patch; }
+  const SmallVector<Element2D *, 4> &support() const { return vertex_->patch; }
   inline bool on_domain_boundary() const { return vertex_->on_domain_boundary; }
 
   double Volume() const;

@@ -265,8 +265,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
   // First, initialize the row matrix variables.
   {
-    std::vector<Vertex *> vertices(triang_.vertices_.begin(),
-                                   triang_.vertices_.end());
+    std::vector<Vertex *> vertices(triang_.vertices().begin(),
+                                   triang_.vertices().end());
     TriangulationView triang_old(std::move(vertices));
     auto mg_triang =
         MultigridTriangulationView::FromFinestTriangulation(triang_old);

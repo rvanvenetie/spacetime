@@ -49,15 +49,12 @@ class TriangulationViewNew {
     Element2D *elem_meta_root = vertices_[0]->patch[0]->parents()[0];
     assert(elem_meta_root->is_metaroot());
 
-    std::vector<Element2D *> elements;
     std::queue<Element2D *> queue;
-    elements.reserve(V * 4);
     element_leaves_.reserve(V * 2);
     for (auto root : elem_meta_root->children()) queue.emplace(root);
     while (!queue.empty()) {
       auto elem = queue.front();
       queue.pop();
-      elements.emplace_back(elem);
       bool is_leaf = true;
       for (const auto &child : elem->children())
         if (child->newest_vertex()->has_data()) {
@@ -109,10 +106,10 @@ class TriangulationViewNew {
       &element_leaves() const {
     return element_leaves_;
   }
-
-  std::vector<Vertex *> vertices_;
+  const std::vector<Vertex *> &vertices() const { return vertices_; }
 
  protected:
+  std::vector<Vertex *> vertices_;
   std::vector<bool> on_boundary_;
   std::vector<std::array<size_t, 2>> godparents_;
   std::vector<std::pair<Element2D *, std::array<size_t, 3>>> element_leaves_;
