@@ -17,11 +17,11 @@ struct OperatorOptions {
   bool build_mat_ = true;
 
   // Options for stiff plus scaled mass operator.
-  size_t time_level_ = 0;
+  uint time_level_ = 0;
   double alpha_ = 1;
 
   // Options for multigrid preconditioner.
-  size_t cycles_ = 5;
+  uint cycles_ = 5;
 
   OperatorOptions() = default;
 };
@@ -38,7 +38,7 @@ class Operator {
   virtual void Apply(Eigen::VectorXd &vec_in) const = 0;
 
   // Does the given vertex correspond to a dof?
-  inline bool IsDof(size_t vertex) const {
+  inline bool IsDof(uint vertex) const {
     return !triang_.OnBoundary(vertex) || !opts_.dirichlet_boundary_;
   }
 
@@ -52,8 +52,8 @@ class Operator {
     Apply(result);
     return result;
   }
-  size_t rows() const { return triang_.V; }
-  size_t cols() const { return triang_.V; }
+  uint rows() const { return triang_.V; }
+  uint cols() const { return triang_.V; }
 
   // Debug function for turning this operator into a mtrix.
   Eigen::MatrixXd ToMatrix() const;
@@ -179,17 +179,17 @@ class MultigridPreconditioner : public BackwardOperator {
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
-  inline void Prolongate(size_t vertex, Eigen::VectorXd &vec_SS) const {
+  inline void Prolongate(uint vertex, Eigen::VectorXd &vec_SS) const {
     for (auto gp : triang_.Godparents(vertex))
       vec_SS[vertex] += 0.5 * vec_SS[gp];
   }
 
-  inline void Restrict(size_t vertex, Eigen::VectorXd &vec_SS) const {
+  inline void Restrict(uint vertex, Eigen::VectorXd &vec_SS) const {
     for (auto gp : triang_.Godparents(vertex))
       vec_SS[gp] += 0.5 * vec_SS[vertex];
   }
 
-  inline void RestrictInverse(size_t vertex, Eigen::VectorXd &vec_SS) const {
+  inline void RestrictInverse(uint vertex, Eigen::VectorXd &vec_SS) const {
     for (auto gp : triang_.Godparents(vertex))
       vec_SS[gp] -= 0.5 * vec_SS[vertex];
   }
@@ -197,8 +197,8 @@ class MultigridPreconditioner : public BackwardOperator {
  protected:
   // Returns a row of the _forward_ matrix on the given multilevel triang.
   // NOTE: The result is not compressed.
-  void RowMatrix(const MultigridTriangulationView &mg_triang, size_t vertex,
-                 std::vector<std::pair<size_t, double>> &result) const;
+  void RowMatrix(const MultigridTriangulationView &mg_triang, uint vertex,
+                 std::vector<std::pair<uint, double>> &result) const;
 
   // Forward operator on the finest level.
   ForwardOp forward_op_;

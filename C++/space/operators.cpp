@@ -51,14 +51,14 @@ void ForwardOperator<ForwardOp>::Apply(Eigen::VectorXd &v) const {
 
 template <class ForwardOp>
 void ForwardOperator<ForwardOp>::ApplyHierarchToSingle(VectorXd &w) const {
-  for (size_t vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
+  for (uint vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
     for (auto gp : triang_.Godparents(vi)) w[vi] = w[vi] + 0.5 * w[gp];
 }
 
 template <class ForwardOp>
 void ForwardOperator<ForwardOp>::ApplyTransposeHierarchToSingle(
     VectorXd &w) const {
-  for (size_t vi = triang_.V - 1; vi >= triang_.InitialVertices(); --vi)
+  for (uint vi = triang_.V - 1; vi >= triang_.InitialVertices(); --vi)
     for (auto gp : triang_.Godparents(vi))
       if (IsDof(gp)) w[gp] = w[gp] + 0.5 * w[vi];
 }
@@ -72,9 +72,9 @@ void ForwardOperator<ForwardOp>::ApplySingleScale(Eigen::VectorXd &v) const {
     for (const auto &[elem, Vids] : triang_.element_leaves()) {
       auto &&element_mat = ForwardOp::ElementMatrix(elem, opts_);
 
-      for (size_t i = 0; i < 3; ++i)
+      for (uint i = 0; i < 3; ++i)
         if (IsDof(Vids[i]))
-          for (size_t j = 0; j < 3; ++j)
+          for (uint j = 0; j < 3; ++j)
             if (IsDof(Vids[j]))
               result[Vids[i]] += v[Vids[j]] * element_mat.coeff(i, j);
     }
@@ -90,9 +90,9 @@ void ForwardOperator<ForwardOp>::InitializeMatrixSingleScale() {
   for (const auto &[elem, Vids] : triang_.element_leaves()) {
     auto &&element_mat = ForwardOp::ElementMatrix(elem, opts_);
 
-    for (size_t i = 0; i < 3; ++i)
+    for (uint i = 0; i < 3; ++i)
       if (IsDof(Vids[i]))
-        for (size_t j = 0; j < 3; ++j)
+        for (uint j = 0; j < 3; ++j)
           if (IsDof(Vids[j]))
             triplets.emplace_back(Vids[i], Vids[j], element_mat(i, j));
   }
@@ -143,13 +143,13 @@ BackwardOperator::BackwardOperator(const TriangulationView &triang,
 }
 
 void BackwardOperator::ApplyInverseHierarchToSingle(VectorXd &w) const {
-  for (size_t vi = triang_.V - 1; vi >= triang_.InitialVertices(); --vi)
+  for (uint vi = triang_.V - 1; vi >= triang_.InitialVertices(); --vi)
     for (auto gp : triang_.Godparents(vi)) w[vi] = w[vi] - 0.5 * w[gp];
 }
 
 void BackwardOperator::ApplyTransposeInverseHierarchToSingle(
     VectorXd &w) const {
-  for (size_t vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
+  for (uint vi = triang_.InitialVertices(); vi < triang_.V; ++vi)
     for (auto gp : triang_.Godparents(vi))
       if (IsDof(gp)) w[gp] = w[gp] - 0.5 * w[vi];
 }
@@ -221,8 +221,8 @@ MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
 
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::RowMatrix(
-    const MultigridTriangulationView &mg_triang, size_t vertex,
-    std::vector<std::pair<size_t, double>> &result) const {
+    const MultigridTriangulationView &mg_triang, uint vertex,
+    std::vector<std::pair<uint, double>> &result) const {
   assert(mg_triang.ContainsVertex(vertex));
   assert(IsDof(vertex));
 
@@ -232,18 +232,19 @@ void MultigridPreconditioner<ForwardOp>::RowMatrix(
   for (auto elem : patch) {
     const auto &Vids = elem->Vids();
     const auto &elem_mat = ForwardOp::ElementMatrix(elem->node(), opts_);
-    for (size_t i = 0; i < 3; ++i)
+    for (uint i = 0; i < 3; ++i)
       if (Vids[i] == vertex)
-        for (size_t j = 0; j < 3; ++j)
+        for (uint j = 0; j < 3; ++j)
           if (IsDof(Vids[j]))
             result.emplace_back(Vids[j], elem_mat.coeff(i, j));
   }
   std::sort(
       result.begin(), result.end(),
-      [](const std::pair<size_t, double> &p1,
-         const std::pair<size_t, double> &p2) { return p1.first < p2.first; });
-  size_t j = 0;
-  for (size_t i = 1; i < result.size(); i++) {
+      [](const std::pair<uint, double> &p1, const std::pair<uint, double> &p2) {
+        return p1.first < p2.first;
+      });
+  uint j = 0;
+  for (uint i = 1; i < result.size(); i++) {
     if (result[i].first == result[j].first)
       result[j].second += result[i].second;
     else
@@ -256,10 +257,10 @@ template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     Eigen::VectorXd &rhs) const {
   // Shortcut.
-  const size_t V = triang_.V;
+  const uint V = triang_.V;
 
   // Reuse a static variable for storing the row of a matrix.
-  static std::vector<std::vector<std::pair<size_t, double>>> row_mat;
+  static std::vector<std::vector<std::pair<uint, double>>> row_mat;
   static std::vector<double> e;
   e.reserve(V * 3);
 
@@ -268,10 +269,10 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     auto mg_triang = MultigridTriangulationView(
         triang_.vertices(), /* initialize_finest_level */ true);
     row_mat.resize(V * 3);
-    size_t idx = 0;
-    for (size_t vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
+    uint idx = 0;
+    for (uint vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
       const auto godparents = triang_.Godparents(vertex);
-      for (size_t vi : {godparents[1], godparents[0], vertex}) {
+      for (uint vi : {godparents[1], godparents[0], vertex}) {
         if (IsDof(vi)) RowMatrix(mg_triang, vi, row_mat[idx++]);
       }
       mg_triang.Coarsen();
@@ -283,7 +284,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
   Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
 
   // Do a V-cycle.
-  for (size_t cycle = 0; cycle < opts_.cycles_; cycle++) {
+  for (uint cycle = 0; cycle < opts_.cycles_; cycle++) {
     // Part 1: Down-cycle, calculates corrections while coarsening.
     {
       // Initialize the residual vector with  a(f, \Phi) - a(u, \Phi).
@@ -295,13 +296,12 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       e.clear();
 
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
-      size_t idx = 0;
-      for (size_t vertex = V - 1; vertex >= triang_.InitialVertices();
-           --vertex) {
+      uint idx = 0;
+      for (uint vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
         const auto godparents = triang_.Godparents(vertex);
 
         // Step 2: Calculate corrections for these three vertices.
-        for (size_t vi : {godparents[1], godparents[0], vertex}) {
+        for (uint vi : {godparents[1], godparents[0], vertex}) {
           // If this vertex is on the boundary, we can simply skip the
           // correction.
           if (!IsDof(vi)) continue;
@@ -329,12 +329,12 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       Eigen::VectorXd e_SS = Eigen::VectorXd::Zero(V);
       idx = e.size();
       assert(e.size() == row_mat.size());
-      for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
+      for (uint vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
         // Prolongate the current correction to the next level.
         Prolongate(vertex, e_SS);
 
         const auto godparents = triang_.Godparents(vertex);
-        for (size_t vi : {vertex, godparents[0], godparents[1]}) {
+        for (uint vi : {vertex, godparents[0], godparents[1]}) {
           if (!IsDof(vi)) continue;
 
           // Add the the correction we have calculated in the above loop, in
@@ -355,7 +355,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       residual = rhs - residual;
 
       // Step 1: Do a downward-cycle restrict the residual on the coarsest mesh.
-      for (size_t vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex)
+      for (uint vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex)
         Restrict(vertex, residual);
 
       // Step 2: Solve on coarsest level.
@@ -367,8 +367,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       e_SS.head(triang_.InitialVertices()) = e_0;
 
       // Step 3: Walk back up and do 1-dimensional corrections.
-      size_t idx = row_mat.size();
-      for (size_t vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
+      uint idx = row_mat.size();
+      for (uint vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
         // Prolongate the current correction to the next level.
         Prolongate(vertex, e_SS);
 
@@ -379,7 +379,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         const auto godparents = triang_.Godparents(vertex);
 
         // Step 4: Calculate corrections for these three vertices.
-        for (size_t vi : {vertex, godparents[0], godparents[1]}) {
+        for (uint vi : {vertex, godparents[0], godparents[1]}) {
           // There is no correction if its not a dof.
           if (!IsDof(vi)) continue;
 

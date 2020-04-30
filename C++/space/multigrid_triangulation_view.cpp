@@ -57,9 +57,9 @@ MultigridTriangulationView::MultigridTriangulationView(
     const std::vector<Vertex *> &vertices, bool initialize_finest_level)
     : V(vertices.size()) {
   // First, we store a reference to this object in the underlying tree.
-  std::vector<size_t> indices(V);
+  std::vector<uint> indices(V);
   initial_vertices_ = 0;
-  for (size_t i = 0; i < V; ++i) {
+  for (uint i = 0; i < V; ++i) {
     indices[i] = i;
     vertices[i]->set_data(&indices[i]);
 
@@ -106,7 +106,7 @@ MultigridTriangulationView::MultigridTriangulationView(
     if (elem.children().size() == 0) continue;
     assert(elem.children().size() == 2);
     // Get the index of the created vertex by checking a child.
-    size_t newest_vertex = elem.children()[0]->NewestVertex();
+    uint newest_vertex = elem.children()[0]->NewestVertex();
     auto &vertex = vertices[newest_vertex];
     assert(vertex->level() == elem.level() + 1);
     auto &hist = history_[newest_vertex];

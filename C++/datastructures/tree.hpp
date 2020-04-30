@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "boost.hpp"
 #include "cassert"
 
 namespace datastructures {
@@ -17,40 +18,7 @@ using T_func_true = decltype(func_true);
 using T_func_false = decltype(func_false);
 
 template <typename I>
-class NodeInterface {
- public:
-  template <typename Func = T_func_noop>
-  std::vector<I *> Bfs(bool include_metaroot = false,
-                       const Func &callback = func_noop,
-                       bool return_nodes = true) {
-    std::vector<I *> nodes;
-    std::queue<I *> queue;
-    queue.emplace(static_cast<I *>(this));
-    while (!queue.empty()) {
-      auto node = queue.front();
-      queue.pop();
-      if (node->marked()) continue;
-      nodes.emplace_back(node);
-      node->set_marked(true);
-      callback(node);
-      for (const auto &child : node->children()) queue.emplace(child);
-    }
-    for (const auto &node : nodes) {
-      node->set_marked(false);
-    }
-    if (!return_nodes) return {};
-    if (!include_metaroot) {
-      nodes.erase(
-          std::remove_if(nodes.begin(), nodes.end(),
-                         [](const I *node) { return node->is_metaroot(); }),
-          nodes.end());
-    }
-    return nodes;
-  }
-};
-
-template <typename I>
-class Node : public NodeInterface<I> {
+class Node {
  public:
   // The implementation must publish constexpr N_parents and N_children. This
   // will give us possible optimalisations :-).
@@ -88,6 +56,35 @@ class Node : public NodeInterface<I> {
     data_ = nullptr;
   }
   bool has_data() { return data_ != nullptr; }
+
+  template <typename Func = T_func_noop>
+  std::vector<I *> Bfs(bool include_metaroot = false,
+                       const Func &callback = func_noop,
+                       bool return_nodes = true) {
+    std::vector<I *> nodes;
+    std::queue<I *> queue;
+    queue.emplace(static_cast<I *>(this));
+    while (!queue.empty()) {
+      auto node = queue.front();
+      queue.pop();
+      if (node->marked()) continue;
+      nodes.emplace_back(node);
+      node->set_marked(true);
+      callback(node);
+      for (const auto &child : node->children()) queue.emplace(child);
+    }
+    for (const auto &node : nodes) {
+      node->set_marked(false);
+    }
+    if (!return_nodes) return {};
+    if (!include_metaroot) {
+      nodes.erase(
+          std::remove_if(nodes.begin(), nodes.end(),
+                         [](const I *node) { return node->is_metaroot(); }),
+          nodes.end());
+    }
+    return nodes;
+  }
 
  protected:
   int level_;
