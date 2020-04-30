@@ -6,7 +6,7 @@ namespace Time {
 
 // Metaroot constructor.
 DiscConstantScalingFn::DiscConstantScalingFn(
-    std::deque<DiscConstantScalingFn> *container, Element1D *mother_element)
+    Deque<DiscConstantScalingFn> *container, Element1D *mother_element)
     : ScalingFn<DiscConstantScalingFn>(container) {
   make_child(/* parent */ this, /* index */ 0, /* support */ mother_element);
 }
@@ -39,7 +39,7 @@ bool DiscConstantScalingFn::Refine() {
   return true;
 }
 
-HaarWaveletFn::HaarWaveletFn(std::deque<HaarWaveletFn> *container,
+HaarWaveletFn::HaarWaveletFn(Deque<HaarWaveletFn> *container,
                              DiscConstantScalingFn *mother_scaling)
     : WaveletFn<HaarWaveletFn>(container) {
   make_child(/* parent */ this, /* index */ 0,
