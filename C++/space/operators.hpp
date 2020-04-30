@@ -119,7 +119,7 @@ class MassOperator : public ForwardOperator<MassOperator> {
   using ForwardOperator::ForwardOperator;
 
   // Returns the element matrix for the given element.
-  inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+  inline static Eigen::Matrix3d ElementMatrix(const Element2D *elem,
                                               const OperatorOptions &opts);
 };
 
@@ -130,7 +130,7 @@ class StiffnessOperator : public ForwardOperator<StiffnessOperator> {
 
   // Returns the element matrix for the given element.
   inline static const Eigen::Matrix3d &ElementMatrix(
-      const Element2DView *elem, const OperatorOptions &opts);
+      const Element2D *elem, const OperatorOptions &opts);
 };
 
 class StiffPlusScaledMassOperator
@@ -140,7 +140,7 @@ class StiffPlusScaledMassOperator
   using ForwardOperator::ForwardOperator;
 
   // Returns the element matrix for the given element.
-  inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+  inline static Eigen::Matrix3d ElementMatrix(const Element2D *elem,
                                               const OperatorOptions &opts);
 };
 

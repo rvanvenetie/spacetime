@@ -13,11 +13,11 @@ constexpr int max_level = 6;
 
 Eigen::VectorXd RandomVector(const TriangulationView &triang,
                              bool dirichlet_boundary = true) {
-  Eigen::VectorXd vec(triang.vertices().size());
+  Eigen::VectorXd vec(triang.V);
   vec.setRandom();
   if (dirichlet_boundary)
-    for (int v = 0; v < triang.vertices().size(); v++)
-      if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+    for (int v = 0; v < triang.V; v++)
+      if (triang.OnBoundary(v)) vec[v] = 0.0;
   return vec;
 }
 
@@ -85,7 +85,7 @@ TEST(MultiGridOperator, RestrictProlongate) {
 
   TriangulationView triang(vertex_subtree);
   auto mg_op = MultigridPreconditioner<MassOperator>(triang);
-  size_t V = triang.vertices().size();
+  size_t V = triang.V;
 
   // Test that prolongate of constant function remains constant.
   for (int i = 0; i < 10; i++) {
@@ -137,7 +137,7 @@ TEST(MultiGridOperator, RestrictProlongate) {
 
   // Test that restriction & restrictioninverse is the identity.
   for (int i = 0; i < 10; i++) {
-    Eigen::VectorXd vec(triang.vertices().size());
+    Eigen::VectorXd vec(triang.V);
     vec.setRandom();
     Eigen::VectorXd vec_copy = vec;
 
@@ -174,7 +174,7 @@ void TestMultigridOperator(bool dirichlet_boundary, size_t time_level = 0) {
       auto mass_op =
           ForwardOp(triang, {.dirichlet_boundary_ = dirichlet_boundary,
                              .time_level_ = time_level});
-      size_t V = triang.vertices().size();
+      size_t V = triang.V;
 
       for (int i = 0; i < 10; i++) {
         Eigen::VectorXd vec = RandomVector(triang);

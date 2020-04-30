@@ -21,11 +21,11 @@ using namespace datastructures;
 
 Eigen::VectorXd RandomVector(const TriangulationView &triang,
                              bool dirichlet_boundary = true) {
-  Eigen::VectorXd vec(triang.vertices().size());
+  Eigen::VectorXd vec(triang.V);
   vec.setRandom();
   if (dirichlet_boundary)
-    for (int v = 0; v < triang.vertices().size(); v++)
-      if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+    for (int v = 0; v < triang.V; v++)
+      if (triang.OnBoundary(v)) vec[v] = 0.0;
   return vec;
 }
 
@@ -47,7 +47,7 @@ int main() {
     std::cout << vertex_subtree.Bfs().size() << "/"
               << T.vertex_meta_root->Bfs().size() << std::endl;
 
-    auto T_view = TriangulationView(vertex_subtree);
+    auto T_view = TriangulationView(vertex_subtree.Bfs());
     auto mg_op = MultigridPreconditioner<StiffnessOperator>(T_view);
     auto v = RandomVector(T_view);
     for (size_t k = 0; k < apply_iters; k++) {

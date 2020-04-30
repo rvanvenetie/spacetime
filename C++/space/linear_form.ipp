@@ -9,17 +9,14 @@ void LinearForm::Apply(I *root) {
   auto triang = TriangulationView(root->Bfs());
   const auto &vertices = triang.vertices();
   Eigen::VectorXd vec = Eigen::VectorXd::Zero(vertices.size());
-  for (const auto &elem : triang.elements()) {
-    if (!elem->is_leaf()) continue;
-    auto &Vids = elem->vertices_view_idx_;
-    auto eval = functional_->Eval(elem->node());
+  for (const auto &[elem, Vids] : triang.element_leaves()) {
+    auto eval = functional_->Eval(elem);
     for (size_t i = 0; i < 3; ++i) vec[Vids[i]] += eval[i];
   }
 
   int vi = triang.vertices().size() - 1;
   for (; vi >= triang.InitialVertices(); --vi)
-    for (auto gp : triang.history(vi)[0]->RefinementEdge())
-      vec[gp] = vec[gp] + 0.5 * vec[vi];
+    for (auto gp : triang.Godparents(vi)) vec[gp] = vec[gp] + 0.5 * vec[vi];
 
   if (dirichlet_boundary_)
     for (int i = 0; i < vertices.size(); ++i)

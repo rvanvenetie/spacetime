@@ -25,15 +25,17 @@ TEST(TriangulationView, UniformRefine) {
     auto vertex_view = TreeView<Vertex>(T.vertex_meta_root);
     vertex_view.UniformRefine(level);
 
+    std::vector<Vertex *> vertices;
+    for (auto vtx : vertex_view.Bfs()) vertices.emplace_back(vtx->node());
+
     // Now create the corresponding element tree
-    TriangulationView triang_view(vertex_view);
+    TriangulationView triang_view(std::move(vertices));
 
     // Lets see if this actually gives some fruitful results!
-    auto &elements = triang_view.elements();
-    ASSERT_EQ(elements.size(), pow(2, level + 2) - 2);
+    ASSERT_EQ(triang_view.element_leaves().size(), pow(2, level + 1));
 
-    for (auto elem : elements) {
-      ASSERT_TRUE(elem->level() <= level);
+    for (const auto &[elem, _] : triang_view.element_leaves()) {
+      ASSERT_TRUE(elem->level() == level);
     }
   }
 }
@@ -59,24 +61,9 @@ TEST(TriangulationView, VertexSubTree) {
   ASSERT_EQ(vertices_subtree.size(), T_view.vertices().size());
   // Check all nodes necessary for the elem subtree are
   // inside the vertices_subtree.
-  for (auto elem : T_view.elements()) {
-    for (auto &vtx : elem->node()->vertices()) {
+  for (const auto &[elem, _] : T_view.element_leaves()) {
+    for (auto &vtx : elem->vertices()) {
       ASSERT_TRUE(vertices_subtree.count(vtx));
-    }
-  }
-
-  // And the other way around.
-  auto &elements = T_view.elements();
-  std::set<Element2D *> elements_subtree;
-  for (auto &nv : elements) {
-    elements_subtree.insert(nv->node());
-  }
-  ASSERT_EQ(elements_subtree.size(), elements.size());
-  // Check all nodes necessary for the elem subtree are
-  // inside the elements_subtree.
-  for (auto &vertex : T_view.vertices()) {
-    for (auto &elem : vertex->patch) {
-      ASSERT_TRUE(elements_subtree.count(elem));
     }
   }
 }
