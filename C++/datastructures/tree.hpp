@@ -90,13 +90,13 @@ class Node {
   }
 
  protected:
-  int level_;
   bool marked_ = false;
+  int level_;
   void *data_ = nullptr;
 
-  // Store parents/children as raw pointers.
-  StaticVector<I *, NodeTrait<I>::N_parents> parents_;
+  // Store children/parents as raw pointers.
   SmallVector<I *, NodeTrait<I>::N_children> children_;
+  StaticVector<I *, NodeTrait<I>::N_parents> parents_;
 
   // If a node creates a child, it becomes the `owner` of this child.
   std::vector<std::unique_ptr<I>> children_own_;

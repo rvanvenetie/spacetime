@@ -220,9 +220,9 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   bool marked_ = false;
   TupleNodes nodes_;
 
-  // Store parents/children as raw pointers.
-  TParents parents_;
+  // Store children/parents as raw pointers.
   TChildren children_;
+  TParents parents_;
 
   // Pointer to the deque that holds all the childen.
   std::deque<I>* container_;
