@@ -10,8 +10,8 @@ template <typename I, size_t N>
 using StaticVector = boost::container::static_vector<I, N>;
 
 // Boost deque container with default block size N. (REQUIRES LATEST BOOST).
-template <typename I, size_t N = 128>
-using Deque =
-    boost::container::deque<I, void,
-                            typename boost::container::deque_options<
-                                boost::container::block_size<N>>::type>;
+// template <typename I, size_t N = 128>
+// using BoostDeque =
+//     boost::container::deque<I, void,
+//                             typename boost::container::deque_options<
+//                                 boost::container::block_size<N>>::type>;

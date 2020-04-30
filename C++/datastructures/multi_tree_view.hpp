@@ -167,16 +167,16 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
 
  public:
   // Constructor for a node.
-  explicit MultiNodeViewBase(Deque<I>* container, const TupleNodes& nodes,
+  explicit MultiNodeViewBase(std::deque<I>* container, const TupleNodes& nodes,
                              const TParents& parents)
       : container_(container), nodes_(nodes), parents_(parents) {
     assert(container);
   }
 
   // Constructors for root.
-  explicit MultiNodeViewBase(Deque<I>* container, const TupleNodes& nodes)
+  explicit MultiNodeViewBase(std::deque<I>* container, const TupleNodes& nodes)
       : MultiNodeViewBase(container, nodes, {}) {}
-  explicit MultiNodeViewBase(Deque<I>* container, T*... nodes)
+  explicit MultiNodeViewBase(std::deque<I>* container, T*... nodes)
       : MultiNodeViewBase(container, TupleNodes(nodes...)) {
     assert(this->is_root());
   }
@@ -225,7 +225,7 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   TParents parents_;
 
   // Pointer to the deque that holds all the childen.
-  Deque<I>* container_;
+  std::deque<I>* container_;
 };
 
 template <typename... T>
@@ -242,8 +242,8 @@ class MultiTreeView {
 
   I* root() { return root_; }
   I* root() const { return root_; }
-  const Deque<I>& container() const { return multi_nodes_; }
-  Deque<I>& container() { return multi_nodes_; }
+  const std::deque<I>& container() const { return multi_nodes_; }
+  std::deque<I>& container() { return multi_nodes_; }
 
   // This constructs the tree with a single meta_root.
   template <typename... T>
@@ -306,7 +306,7 @@ class MultiTreeView {
   // Store the root.
   I* root_;
 
-  Deque<I> multi_nodes_;
+  std::deque<I> multi_nodes_;
 };
 
 template <typename T0>
