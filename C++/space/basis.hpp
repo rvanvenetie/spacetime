@@ -40,8 +40,7 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
   Vertex *vertex_;
 
   // Protected constructor for creating a metaroot.
-  HierarchicalBasisFn(std::deque<HierarchicalBasisFn> *container,
-                      Vertex *vertex)
+  HierarchicalBasisFn(Deque<HierarchicalBasisFn> *container, Vertex *vertex)
       : Node(container), vertex_(vertex) {
     assert(vertex->is_metaroot());
   }

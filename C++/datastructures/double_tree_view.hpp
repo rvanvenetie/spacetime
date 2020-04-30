@@ -110,17 +110,17 @@ class DoubleNodeBase : public Base<DoubleNodeBase<Base, T...>, T...> {
   using T1 = std::tuple_element_t<1, Types>;
 
   // Constructor for a node.
-  explicit DoubleNodeBase(std::deque<I>* container, const TupleNodes& nodes,
+  explicit DoubleNodeBase(Deque<I>* container, const TupleNodes& nodes,
                           const TParents& parents)
       : Super(container, nodes, parents), frozen_double_nodes_(this, this) {}
 
   // // Constructor for a root.
-  explicit DoubleNodeBase(std::deque<I>* container,
+  explicit DoubleNodeBase(Deque<I>* container,
                           const typename Super::TupleNodes& nodes)
       : DoubleNodeBase(container, nodes, {}) {
     assert(this->is_root());
   }
-  explicit DoubleNodeBase(std::deque<I>* container, T*... nodes)
+  explicit DoubleNodeBase(Deque<I>* container, T*... nodes)
       : DoubleNodeBase(container, typename Super::TupleNodes(nodes...)) {}
 
   template <size_t i>
