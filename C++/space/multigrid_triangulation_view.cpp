@@ -129,7 +129,7 @@ MultigridTriangulationView::MultigridTriangulationView(
     }
     vi_ = V;
   } else {
-    // Initialize with the triangulation on the coarest level.
+    // Initialize with the triangulation on the coarsest level.
     for (auto &elem : elements_) {
       if (elem.level()) break;
       for (int vi : elem.Vids()) Insert(vi, &elem);
