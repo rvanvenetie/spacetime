@@ -5,8 +5,6 @@
 #include "basis.hpp"
 
 namespace Time {
-class DiscLinearScalingFn;
-class OrthonormalWaveletFn;
 
 template <>
 struct FunctionTrait<DiscLinearScalingFn> {
@@ -22,8 +20,6 @@ class DiscLinearScalingFn : public ScalingFn<DiscLinearScalingFn> {
  public:
   constexpr static size_t order = 1;
   constexpr static bool continuous = false;
-  constexpr static size_t N_children = 4;
-  constexpr static size_t N_parents = 2;
   constexpr static const char *name = "DLS";
 
   explicit DiscLinearScalingFn(const std::vector<DiscLinearScalingFn *> parents,
@@ -60,8 +56,6 @@ class DiscLinearScalingFn : public ScalingFn<DiscLinearScalingFn> {
 
 class OrthonormalWaveletFn : public WaveletFn<OrthonormalWaveletFn> {
  public:
-  constexpr static size_t N_children = 4;
-  constexpr static size_t N_parents = 2;
   constexpr static const char *name = "Ortho";
 
   explicit OrthonormalWaveletFn(
@@ -79,7 +73,11 @@ class OrthonormalWaveletFn : public WaveletFn<OrthonormalWaveletFn> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  OrthonormalWaveletFn(std::vector<DiscLinearScalingFn *> mother_scalings);
+  OrthonormalWaveletFn(
+      const SmallVector<
+          DiscLinearScalingFn *,
+          datastructures::NodeTrait<DiscLinearScalingFn>::N_children>
+          &mother_scalings);
 
   friend datastructures::Tree<OrthonormalWaveletFn>;
 };

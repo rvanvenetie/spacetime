@@ -5,8 +5,6 @@
 #include "basis.hpp"
 
 namespace Time {
-class DiscConstantScalingFn;
-class HaarWaveletFn;
 
 template <>
 struct FunctionTrait<DiscConstantScalingFn> {
@@ -22,8 +20,6 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
  public:
   constexpr static size_t order = 0;
   constexpr static bool continuous = false;
-  constexpr static size_t N_children = 2;
-  constexpr static size_t N_parents = 1;
   constexpr static const char *name = "DCS";
 
   explicit DiscConstantScalingFn(DiscConstantScalingFn *parent, int index,
@@ -53,8 +49,6 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
 
 class HaarWaveletFn : public WaveletFn<HaarWaveletFn> {
  public:
-  constexpr static size_t N_children = 2;
-  constexpr static size_t N_parents = 1;
   constexpr static const char *name = "Haar";
 
   explicit HaarWaveletFn(HaarWaveletFn *parent, int index,
@@ -70,5 +64,4 @@ class HaarWaveletFn : public WaveletFn<HaarWaveletFn> {
 
   friend datastructures::Tree<HaarWaveletFn>;
 };
-
 }  // namespace Time

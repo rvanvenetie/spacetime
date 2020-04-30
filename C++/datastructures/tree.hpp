@@ -18,12 +18,15 @@ using T_func_true = decltype(func_true);
 using T_func_false = decltype(func_false);
 
 template <typename I>
+struct NodeTrait;  // This should define N_children and N_parents.
+
+template <typename I>
 class Node {
  public:
   // The implementation must publish constexpr N_parents and N_children. This
   // will give us possible optimalisations :-).
-  explicit Node(const std::vector<I *> &parents) : parents_(parents) {
-    children_.reserve(I::N_children);
+  explicit Node(const std::vector<I *> &parents)
+      : parents_(parents.begin(), parents.end()) {
     assert(parents.size());
     level_ = parents[0]->level() + 1;
     for (const auto &parent : parents) {
@@ -36,8 +39,8 @@ class Node {
   void set_marked(bool value) { marked_ = value; }
   bool is_leaf() const { return children_.size() == 0; }
   inline bool is_metaroot() const { return (level_ == -1); }
-  const std::vector<I *> &parents() const { return parents_; }
-  const std::vector<I *> &children() const { return children_; }
+  const auto &parents() const { return parents_; }
+  const auto &children() const { return children_; }
 
   // General data field for universal storage.
   template <typename T>
@@ -92,8 +95,8 @@ class Node {
   void *data_ = nullptr;
 
   // Store parents/children as raw pointers.
-  std::vector<I *> parents_;
-  std::vector<I *> children_;
+  StaticVector<I *, NodeTrait<I>::N_parents> parents_;
+  SmallVector<I *, NodeTrait<I>::N_children> children_;
 
   // If a node creates a child, it becomes the `owner` of this child.
   std::vector<std::unique_ptr<I>> children_own_;
@@ -112,8 +115,6 @@ class Node {
 template <typename I>
 class BinaryNode : public Node<I> {
  public:
-  static constexpr size_t N_parents = 1;
-  static constexpr size_t N_children = 2;
   explicit BinaryNode(I *parent) : Node<I>({parent}) {}
 
   I *parent() const { return parents_[0]; }

@@ -89,7 +89,10 @@ ContLinearScalingFn *ContLinearScalingFn::RefineLeft() {
 }
 
 ThreePointWaveletFn::ThreePointWaveletFn(
-    std::vector<ContLinearScalingFn *> mother_scalings)
+    const SmallVector<
+        ContLinearScalingFn *,
+        datastructures::NodeTrait<ContLinearScalingFn>::N_children>
+        &mother_scalings)
     : WaveletFn<ThreePointWaveletFn>() {
   assert(mother_scalings.size() == 2);
   for (size_t i = 0; i < 2; ++i) {

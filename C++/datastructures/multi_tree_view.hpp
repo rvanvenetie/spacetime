@@ -161,9 +161,9 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   using MultiNodeViewInterface<I, T...>::dim;
   using typename MultiNodeViewInterface<I, T...>::TupleNodes;
   using TParents =
-      std::array<StaticVector<I*, std::max({T::N_parents...})>, dim>;
+      std::array<StaticVector<I*, std::max({NodeTrait<T>::N_parents...})>, dim>;
   using TChildren =
-      std::array<SmallVector<I*, std::max({T::N_children...})>, dim>;
+      std::array<SmallVector<I*, std::max({NodeTrait<T>::N_children...})>, dim>;
 
  public:
   // Constructor for a node.

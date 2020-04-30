@@ -10,18 +10,29 @@
 #include "datastructures/tree.hpp"
 
 namespace space {
-
 // Forward some class names.
 class Vertex;
 class Element2D;
 class InitialTriangulation;
 class HierarchicalBasisFn;
+}  // namespace space
 
-class Vertex : public datastructures::Node<Vertex> {
- public:
+namespace datastructures {
+template <>
+struct NodeTrait<space::Vertex> {
   static constexpr size_t N_parents = 2;
   static constexpr size_t N_children = 4;
+};
+template <>
+struct NodeTrait<space::Element2D> {
+  static constexpr size_t N_parents = 1;
+  static constexpr size_t N_children = 2;
+};
+}  // namespace datastructures
 
+namespace space {
+class Vertex : public datastructures::Node<Vertex> {
+ public:
   const double x, y;
   bool on_domain_boundary;
   SmallVector<Element2D *, 4> patch;
