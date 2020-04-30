@@ -17,11 +17,11 @@ struct OperatorOptions {
   bool build_mat_ = true;
 
   // Options for stiff plus scaled mass operator.
-  uint time_level_ = 0;
+  size_t time_level_ = 0;
   double alpha_ = 1;
 
   // Options for multigrid preconditioner.
-  uint cycles_ = 5;
+  size_t cycles_ = 5;
 
   OperatorOptions() = default;
 };
@@ -52,8 +52,8 @@ class Operator {
     Apply(result);
     return result;
   }
-  uint rows() const { return triang_.V; }
-  uint cols() const { return triang_.V; }
+  size_t rows() const { return triang_.V; }
+  size_t cols() const { return triang_.V; }
 
   // Debug function for turning this operator into a mtrix.
   Eigen::MatrixXd ToMatrix() const;

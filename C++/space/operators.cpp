@@ -284,7 +284,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
   Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
 
   // Do a V-cycle.
-  for (uint cycle = 0; cycle < opts_.cycles_; cycle++) {
+  for (size_t cycle = 0; cycle < opts_.cycles_; cycle++) {
     // Part 1: Down-cycle, calculates corrections while coarsening.
     {
       // Initialize the residual vector with  a(f, \Phi) - a(u, \Phi).
