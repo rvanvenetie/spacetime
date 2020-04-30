@@ -24,6 +24,22 @@ constexpr int level = 10;
 constexpr int iters = 300;
 
 int main() {
+  std::cout << "Sizeof comparison" << std::endl;
+  std::cout << "unsigned int : " << sizeof(unsigned int) << std::endl;
+  std::cout << "int : " << sizeof(int) << std::endl;
+  std::cout << "uint : " << sizeof(uint) << std::endl;
+  std::cout << "size_t : " << sizeof(size_t) << std::endl;
+  std::cout << "Vertex * : " << sizeof(Vertex *) << std::endl;
+  std::cout << "std::vector<Vertex *> : " << sizeof(std::vector<Vertex *>)
+            << std::endl;
+  std::cout << "SmallVector<Vertex *,4> : " << sizeof(SmallVector<Vertex *, 4>)
+            << std::endl;
+  std::cout << "SmallVector<Vertex *,8> : " << sizeof(SmallVector<Vertex *, 8>)
+            << std::endl;
+  std::cout << "StaticVector<Vertex *,4> : "
+            << sizeof(StaticVector<Vertex *, 4>) << std::endl;
+  std::cout << "std::array<Vertex *, 4> : " << sizeof(std::array<Vertex *, 4>)
+            << std::endl;
   auto T = InitialTriangulation::UnitSquare();
   T.elem_tree.UniformRefine(::level);
 
