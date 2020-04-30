@@ -16,20 +16,35 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
                            std::shared_ptr<TypeYVector> vec_Y,
                            std::shared_ptr<TypeA> A,
                            std::shared_ptr<TypePrecondY> P_Y,
+                           bool Yd_is_GenerateYDelta_Xd,
                            const HeatEquationOptions &opts)
     : vec_X_(vec_X), vec_Y_(vec_Y), A_(A), P_Y_(P_Y), opts_(opts) {
-  // Create two parts of B sharing sigma and theta.
-  auto B_t =
-      std::make_shared<TypeB_t>(vec_X_.get(), vec_Y_.get(), opts_.use_cache_);
-  auto B_s = std::make_shared<TypeB_s>(vec_X_.get(), vec_Y_.get(), B_t->sigma(),
-                                       B_t->theta(), opts_.use_cache_);
+  space::OperatorOptions space_opts({.build_mat_ = opts_.use_cache_});
+  if (!A)
+    A_ = std::make_shared<TypeA>(vec_Y.get(), opts.use_cache_, space_opts);
+
+  // Create first part of B.
+  std::shared_ptr<TypeB_t> B_t;
+  if (Yd_is_GenerateYDelta_Xd)
+    // Create B_t making use of the fact that theta = vec_Ydd.
+    B_t = std::make_shared<HeatEquation::TypeB_t>(
+        vec_X_.get(), vec_Y_.get(), spacetime::GenerateSigma(*vec_X_, *vec_Y_),
+        vec_Y_, opts_.use_cache_, space_opts);
+  else
+    B_t = std::make_shared<TypeB_t>(vec_X_.get(), vec_Y_.get(),
+                                    opts_.use_cache_, space_opts);
+
+  // Create B_s sharing sigma and theta.
+  auto B_s =
+      std::make_shared<TypeB_s>(vec_X_.get(), vec_Y_.get(), B_t->sigma(),
+                                B_t->theta(), opts_.use_cache_, space_opts);
   B_ = std::make_shared<TypeB>(B_t, B_s);
 
   // Create transpose of B sharing data with B.
   InitializeBT();
 
   // Create trace operator.
-  G_ = std::make_shared<TypeG>(vec_X_.get(), opts_.use_cache_);
+  G_ = std::make_shared<TypeG>(vec_X_.get(), opts_.use_cache_, space_opts);
 
   // Create the negative trace operator.
   auto minus_G = std::make_shared<NegativeBilinearForm<TypeG>>(G_);
@@ -45,9 +60,7 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
 HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
                            std::shared_ptr<TypeYVector> vec_Y,
                            const HeatEquationOptions &opts)
-    : HeatEquation(vec_X, vec_Y,
-                   std::make_shared<TypeA>(vec_Y.get(), opts.use_cache_),
-                   nullptr, opts) {}
+    : HeatEquation(vec_X, vec_Y, nullptr, nullptr, false, opts) {}
 
 HeatEquation::HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta,
                            const HeatEquationOptions &opts)
@@ -55,7 +68,7 @@ HeatEquation::HeatEquation(const TypeXDelta &X_delta, const TypeYDelta &Y_delta,
                        X_delta.template DeepCopy<TypeXVector>()),
                    std::make_shared<TypeYVector>(
                        Y_delta.template DeepCopy<TypeYVector>()),
-                   opts) {}
+                   nullptr, nullptr, true, opts) {}
 
 HeatEquation::HeatEquation(
     const DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn> &X_delta,
@@ -66,14 +79,17 @@ void HeatEquation::InitializeBT() {
   if (opts_.use_cache_) {
     BT_ = B_->Transpose();
   } else {
+    space::OperatorOptions space_opts({.build_mat_ = opts_.use_cache_});
     auto BT_t = std::make_shared<
         BilinearForm<Time::TransportOperator, space::MassOperator,
                      OrthonormalWaveletFn, ThreePointWaveletFn>>(
-        vec_Y_.get(), vec_X_.get(), B_->theta(), B_->sigma(), opts_.use_cache_);
+        vec_Y_.get(), vec_X_.get(), B_->theta(), B_->sigma(), opts_.use_cache_,
+        space_opts);
     auto BT_s = std::make_shared<
         BilinearForm<Time::MassOperator, space::StiffnessOperator,
                      OrthonormalWaveletFn, ThreePointWaveletFn>>(
-        vec_Y_.get(), vec_X_.get(), B_->theta(), B_->sigma(), opts_.use_cache_);
+        vec_Y_.get(), vec_X_.get(), B_->theta(), B_->sigma(), opts_.use_cache_,
+        space_opts);
     BT_ = std::make_shared<SumBilinearForm<
         BilinearForm<Time::TransportOperator, space::MassOperator,
                      OrthonormalWaveletFn, ThreePointWaveletFn>,
@@ -83,9 +99,11 @@ void HeatEquation::InitializeBT() {
 }
 
 void HeatEquation::InitializePrecondX() {
-  space::OperatorOptions space_opts;
-  space_opts.alpha_ = opts_.P_X_alpha_;
-  space_opts.cycles_ = opts_.P_X_mg_cycles_;
+  space::OperatorOptions space_opts({
+      .build_mat_ = opts_.P_XY_mg_build_fw_mat_,
+      .alpha_ = opts_.P_X_alpha_,
+      .cycles_ = opts_.P_X_mg_cycles_,
+  });
   switch (opts_.P_X_inv_) {
     case HeatEquationOptions::SpaceInverse::DirectInverse:
       P_X_ = std::make_shared<spacetime::BlockDiagonalBilinearForm<
@@ -105,8 +123,10 @@ void HeatEquation::InitializePrecondX() {
 }
 
 void HeatEquation::InitializePrecondY() {
-  space::OperatorOptions space_opts;
-  space_opts.cycles_ = opts_.P_Y_mg_cycles_;
+  space::OperatorOptions space_opts({
+      .build_mat_ = opts_.P_XY_mg_build_fw_mat_,
+      .cycles_ = opts_.P_Y_mg_cycles_,
+  });
   switch (opts_.P_Y_inv_) {
     case HeatEquationOptions::SpaceInverse::DirectInverse:
       P_Y_ = std::make_shared<spacetime::BlockDiagonalBilinearForm<

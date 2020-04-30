@@ -23,7 +23,7 @@ HierarchicalBasisFn *Vertex::RefineHierarchicalBasisFn() {
 Element2D::Element2D(Element2D *parent, const std::array<Vertex *, 3> &vertices,
                      double area)
     : BinaryNode(parent), area_(area), vertices_(vertices) {
-  // Calculate the stiffness element matrix.
+  // Calculate the element stiffness matrix.
   Eigen::Vector2d v0, v1, v2;
   v0 << vertices[0]->x, vertices[0]->y;
   v1 << vertices[1]->x, vertices[1]->y;
@@ -131,6 +131,9 @@ std::array<Element2D *, 2> Element2D::Bisect(Vertex *new_vertex) {
   assert(child1->edge(2) == child2->reversed_edge(1));
   new_vertex->patch.push_back(child1);
   new_vertex->patch.push_back(child2);
+  if (new_vertex->godparents.empty())
+    for (int gp = 1; gp < 3; gp++)
+      new_vertex->godparents.emplace_back(vertices_[gp]);
 
   if (neighbours[2]) {
     for (int i = 0; i < 3; ++i) {

@@ -13,11 +13,11 @@ constexpr int max_level = 6;
 
 Eigen::VectorXd RandomVector(const TriangulationView &triang,
                              bool dirichlet_boundary = true) {
-  Eigen::VectorXd vec(triang.vertices().size());
+  Eigen::VectorXd vec(triang.V);
   vec.setRandom();
   if (dirichlet_boundary)
-    for (int v = 0; v < triang.vertices().size(); v++)
-      if (triang.vertices()[v]->on_domain_boundary) vec[v] = 0.0;
+    for (int v = 0; v < triang.V; v++)
+      if (triang.OnBoundary(v)) vec[v] = 0.0;
   return vec;
 }
 
@@ -31,9 +31,10 @@ TEST(Operator, InverseTimesForwardOpIsIdentity) {
     // Now create the corresponding element tree
     TriangulationView triang(vertex_view);
     for (bool dirichlet_boundary : {true, false}) {
-      auto forward_op = StiffPlusScaledMassOperator(triang, dirichlet_boundary);
+      auto forward_op = StiffPlusScaledMassOperator(
+          triang, {.dirichlet_boundary_ = dirichlet_boundary});
       auto backward_op = DirectInverse<StiffPlusScaledMassOperator>(
-          triang, dirichlet_boundary);
+          triang, {.dirichlet_boundary_ = dirichlet_boundary});
       for (int i = 0; i < 10; i++) {
         Eigen::VectorXd vec = RandomVector(triang, dirichlet_boundary);
         Eigen::VectorXd vec2 = vec;
@@ -49,6 +50,29 @@ TEST(Operator, InverseTimesForwardOpIsIdentity) {
   }
 }
 
+TEST(ForwardOperator, SingleScaleMatrix) {
+  auto T = InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(max_level);
+
+  // Create a subtree with only vertices lying below the diagonal.
+  auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
+  vertex_subtree.DeepRefine(/* call_filter */ [](const auto &vertex) {
+    return vertex->level() == 0 || (vertex->x + vertex->y <= 1.0);
+  });
+
+  TriangulationView triang(vertex_subtree);
+  MassOperator mass_op_build(triang, {.build_mat_ = true});
+  MassOperator mass_op_nobuild(triang, {.build_mat_ = false});
+
+  for (int i = 0; i < 10; i++) {
+    Eigen::VectorXd vec = RandomVector(triang);
+    Eigen::VectorXd vec_copy = vec;
+    mass_op_build.ApplySingleScale(vec_copy);
+    mass_op_nobuild.ApplySingleScale(vec);
+    ASSERT_TRUE(vec.isApprox(vec_copy));
+  }
+}
+
 TEST(MultiGridOperator, RestrictProlongate) {
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
@@ -61,7 +85,7 @@ TEST(MultiGridOperator, RestrictProlongate) {
 
   TriangulationView triang(vertex_subtree);
   auto mg_op = MultigridPreconditioner<MassOperator>(triang);
-  size_t V = triang.vertices().size();
+  size_t V = triang.V;
 
   // Test that prolongate of constant function remains constant.
   for (int i = 0; i < 10; i++) {
@@ -78,8 +102,10 @@ TEST(MultiGridOperator, RestrictProlongate) {
   }
 
   // Check that prolongation & restriction work in bilinear forms.
-  auto mat_fine = MassOperator(triang, false).MatrixSingleScale();
-  auto mat_coarse = MassOperator(triang.InitialTriangulationView(), false)
+  auto mat_fine =
+      MassOperator(triang, {.dirichlet_boundary_ = false}).MatrixSingleScale();
+  auto mat_coarse = MassOperator(triang.InitialTriangulationView(),
+                                 {.dirichlet_boundary_ = false})
                         .MatrixSingleScale();
   for (int i = 0; i < 10; i++) {
     // Calculate vector on coarsest mesh and apply M_coarse.
@@ -111,7 +137,7 @@ TEST(MultiGridOperator, RestrictProlongate) {
 
   // Test that restriction & restrictioninverse is the identity.
   for (int i = 0; i < 10; i++) {
-    Eigen::VectorXd vec(triang.vertices().size());
+    Eigen::VectorXd vec(triang.V);
     vec.setRandom();
     Eigen::VectorXd vec_copy = vec;
 
@@ -143,9 +169,12 @@ void TestMultigridOperator(bool dirichlet_boundary, size_t time_level = 0) {
 
       TriangulationView triang(vertex_subtree);
       auto mg_op = MultigridPreconditioner<ForwardOp>(
-          triang, {dirichlet_boundary, time_level});
-      auto mass_op = ForwardOp(triang, {dirichlet_boundary, time_level});
-      size_t V = triang.vertices().size();
+          triang, {.dirichlet_boundary_ = dirichlet_boundary,
+                   .time_level_ = time_level});
+      auto mass_op =
+          ForwardOp(triang, {.dirichlet_boundary_ = dirichlet_boundary,
+                             .time_level_ = time_level});
+      size_t V = triang.V;
 
       for (int i = 0; i < 10; i++) {
         Eigen::VectorXd vec = RandomVector(triang);
@@ -173,12 +202,16 @@ void TestMultigridOperator(bool dirichlet_boundary, size_t time_level = 0) {
     vertex_subtree.DeepRefine();
     TriangulationView triang(vertex_subtree);
 
-    auto mass_op =
-        ForwardOp(triang, {dirichlet_boundary, time_level, /* alpha */ 1.0});
+    auto mass_op = ForwardOp(triang, {.dirichlet_boundary_ = dirichlet_boundary,
+                                      .time_level_ = time_level,
+                                      .alpha_ = 1.0});
     double prev_cond = 99999999;
     for (size_t cycles = 1; cycles < 5; cycles++) {
       auto mg_op = MultigridPreconditioner<ForwardOp>(
-          triang, {dirichlet_boundary, time_level, /* alpha */ 1.0, cycles});
+          triang, {.dirichlet_boundary_ = dirichlet_boundary,
+                   .time_level_ = time_level,
+                   .alpha_ = 1.0,
+                   .cycles_ = cycles});
 
       // Evaluate condition number.
       tools::linalg::Lanczos lanczos(mass_op, mg_op,
@@ -205,7 +238,10 @@ void TestMultigridOperator(bool dirichlet_boundary, size_t time_level = 0) {
 
     for (size_t cycles = 1; cycles < 5; cycles++) {
       auto mg_op = MultigridPreconditioner<ForwardOp>(
-          triang, {dirichlet_boundary, time_level, /* alpha */ 1.0, cycles});
+          triang, {.dirichlet_boundary_ = dirichlet_boundary,
+                   .time_level_ = time_level,
+                   .alpha_ = 1.0,
+                   .cycles_ = cycles});
       auto mg_mat = mg_op.ToMatrix();
 
       // Verify that the matrix is symmetric.

@@ -4,7 +4,7 @@ project(SpaceTime)
 
 # Set the compile type to debug.
 set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "-O3")
+set(CMAKE_CXX_FLAGS "-O3 -DVERBOSE")
 #set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 # Compiler properties.

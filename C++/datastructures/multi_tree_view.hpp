@@ -161,9 +161,9 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   using MultiNodeViewInterface<I, T...>::dim;
   using typename MultiNodeViewInterface<I, T...>::TupleNodes;
   using TParents =
-      std::array<StaticVector<I*, std::max({T::N_parents...})>, dim>;
+      std::array<StaticVector<I*, std::max({NodeTrait<T>::N_parents...})>, dim>;
   using TChildren =
-      std::array<SmallVector<I*, std::max({T::N_children...})>, dim>;
+      std::array<SmallVector<I*, std::max({NodeTrait<T>::N_children...})>, dim>;
 
  public:
   // Constructor for a node.
@@ -220,9 +220,9 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   bool marked_ = false;
   TupleNodes nodes_;
 
-  // Store parents/children as raw pointers.
-  TParents parents_;
+  // Store children/parents as raw pointers.
   TChildren children_;
+  TParents parents_;
 
   // Pointer to the deque that holds all the childen.
   std::deque<I>* container_;

@@ -39,8 +39,8 @@ double DiscLinearScalingFn::EvalMother(double t, bool deriv) const {
 
 double DiscLinearScalingFn::Eval(double t, bool deriv) const {
   auto [l, n] = labda();
-  double chain_rule_constant = deriv ? std::pow(2, l) : 1;
-  return chain_rule_constant * EvalMother(std::pow(2, l) * t - (n / 2), deriv);
+  double chain_rule_constant = deriv ? (1 << l) : 1;
+  return chain_rule_constant * EvalMother((1 << l) * t - (n / 2), deriv);
 }
 
 bool DiscLinearScalingFn::Refine() {
@@ -73,7 +73,10 @@ bool DiscLinearScalingFn::Refine() {
 
 OrthonormalWaveletFn::OrthonormalWaveletFn(
     std::deque<OrthonormalWaveletFn>* container,
-    std::vector<DiscLinearScalingFn*> mother_scalings)
+    const SmallVector<
+        DiscLinearScalingFn*,
+        datastructures::NodeTrait<DiscLinearScalingFn>::N_children>&
+        mother_scalings)
     : WaveletFn<OrthonormalWaveletFn>(container) {
   assert(mother_scalings.size() == 2);
   for (size_t i = 0; i < 2; ++i) {
@@ -120,7 +123,7 @@ bool OrthonormalWaveletFn::Refine() {
     assert(labda() != nbr->labda());
 
     if (n % 2) return nbr->Refine();
-    auto s = pow(2.0, l / 2.0);
+    auto s = std::pow(2.0, l / 2.0);
     for (int i = 0; i < 2; i++) {
       auto phi = single_scale_[2 * i].first;
       phi->Refine();

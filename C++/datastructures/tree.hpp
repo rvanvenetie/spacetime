@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "boost.hpp"
 #include "cassert"
 
 namespace datastructures {
@@ -17,8 +18,51 @@ using T_func_true = decltype(func_true);
 using T_func_false = decltype(func_false);
 
 template <typename I>
-class NodeInterface {
+struct NodeTrait;  // This should define N_children and N_parents.
+
+template <typename I>
+class Node {
  public:
+  // The implementation must publish constexpr N_parents and N_children. This
+  // will give us possible optimalisations :-).
+  explicit Node(const std::vector<I *> &parents)
+      : parents_(parents.begin(), parents.end()) {
+    assert(parents.size());
+    level_ = parents[0]->level() + 1;
+    container_ = parents[0]->container_;
+    assert(container_);
+    for (const auto &parent : parents) {
+      assert(parent->level() == level_ - 1);
+      assert(parent->container_ == container_);
+    }
+  }
+
+  int level() const { return level_; }
+  bool marked() const { return marked_; }
+  void set_marked(bool value) { marked_ = value; }
+  bool is_leaf() const { return children_.size() == 0; }
+  inline bool is_metaroot() const { return (level_ == -1); }
+  const auto &parents() const { return parents_; }
+  const auto &children() const { return children_; }
+
+  // General data field for universal storage.
+  template <typename T>
+  T *data() {
+    assert(data_ != nullptr);
+    return static_cast<T *>(data_);
+  }
+
+  template <typename T>
+  void set_data(T *value) {
+    assert(data_ == nullptr);
+    data_ = static_cast<void *>(value);
+  }
+  void reset_data() {
+    assert(data_ != nullptr);
+    data_ = nullptr;
+  }
+  bool has_data() { return data_ != nullptr; }
+
   template <typename Func = T_func_noop>
   std::vector<I *> Bfs(bool include_metaroot = false,
                        const Func &callback = func_noop,
@@ -47,59 +91,15 @@ class NodeInterface {
     }
     return nodes;
   }
-};
-
-template <typename I>
-class Node : public NodeInterface<I> {
- public:
-  // The implementation must publish constexpr N_parents and N_children. This
-  // will give us possible optimalisations :-).
-  explicit Node(const std::vector<I *> &parents) : parents_(parents) {
-    children_.reserve(I::N_children);
-    assert(parents.size());
-    level_ = parents[0]->level() + 1;
-    container_ = parents[0]->container_;
-    assert(container_);
-    for (const auto &parent : parents) {
-      assert(parent->level() == level_ - 1);
-      assert(parent->container_ == container_);
-    }
-  }
-
-  int level() const { return level_; }
-  bool marked() const { return marked_; }
-  void set_marked(bool value) { marked_ = value; }
-  bool is_leaf() const { return children_.size() == 0; }
-  inline bool is_metaroot() const { return (level_ == -1); }
-  const std::vector<I *> &parents() const { return parents_; }
-  const std::vector<I *> &children() const { return children_; }
-
-  // General data field for universal storage.
-  template <typename T>
-  T *data() {
-    assert(data_ != nullptr);
-    return static_cast<T *>(data_);
-  }
-
-  template <typename T>
-  void set_data(T *value) {
-    assert(data_ == nullptr);
-    data_ = static_cast<void *>(value);
-  }
-  void reset_data() {
-    assert(data_ != nullptr);
-    data_ = nullptr;
-  }
-  bool has_data() { return data_ != nullptr; }
 
  protected:
-  int level_;
   bool marked_ = false;
+  int level_;
   void *data_ = nullptr;
 
-  // Store parents/children as raw pointers.
-  std::vector<I *> parents_;
-  std::vector<I *> children_;
+  // Store children/parents as raw pointers.
+  SmallVector<I *, NodeTrait<I>::N_children> children_;
+  StaticVector<I *, NodeTrait<I>::N_parents> parents_;
 
   // Pointer to the deque that holds all the childen.
   std::deque<I> *container_ = nullptr;
@@ -117,8 +117,6 @@ class Node : public NodeInterface<I> {
 template <typename I>
 class BinaryNode : public Node<I> {
  public:
-  static constexpr size_t N_parents = 1;
-  static constexpr size_t N_children = 2;
   explicit BinaryNode(I *parent) : Node<I>({parent}) {}
 
   I *parent() const { return parents_[0]; }

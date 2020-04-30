@@ -30,6 +30,9 @@ struct HeatEquationOptions {
   SpaceInverse P_X_inv_ = SpaceInverse::DirectInverse;
   SpaceInverse P_Y_inv_ = SpaceInverse::DirectInverse;
 
+  // For multigrid Preconditioner, sets whether to build the forward matrix.
+  bool P_XY_mg_build_fw_mat_ = true;
+
   // If a multigrid Preconditioner is chosen, this sets the number of cycles.
   size_t P_X_mg_cycles_ = 5;
   size_t P_Y_mg_cycles_ = 5;
@@ -76,7 +79,8 @@ class HeatEquation {
 
   HeatEquation(std::shared_ptr<TypeXVector> vec_X,
                std::shared_ptr<TypeYVector> vec_Y, std::shared_ptr<TypeA> A,
-               std::shared_ptr<TypePrecondY> P_Y = nullptr,
+               std::shared_ptr<TypePrecondY> P_Y,
+               bool Yd_is_GenerateYDelta_Xd = false,
                const HeatEquationOptions &opts = HeatEquationOptions());
   HeatEquation(std::shared_ptr<TypeXVector> vec_X,
                std::shared_ptr<TypeYVector> vec_Y,

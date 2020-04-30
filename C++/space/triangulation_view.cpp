@@ -2,18 +2,19 @@
 
 namespace space {
 
-using datastructures::TreeVector;
-using datastructures::TreeView;
-
 TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
     : V(vertices.size()),
       vertices_(std::move(vertices)),
-      element_view_(vertices[0]->patch[0]->parents()[0]) {
+      on_boundary_(V),
+      godparents_(V, {0, 0}) {
   assert(V >= 3);
-  // First, we store a reference to this object in the underlying tree.
-  std::vector<size_t> indices(V);
+
+  // First, we mark all vertices.
+  std::vector<uint> indices(V);
   initial_vertices_ = 0;
-  for (size_t i = 0; i < V; ++i) {
+  for (uint i = 0; i < V; ++i) {
+    auto vtx = vertices_[i];
+    on_boundary_[i] = vtx->on_domain_boundary;
     indices[i] = i;
     vertices_[i]->set_data(&indices[i]);
 
@@ -21,44 +22,42 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
     if (vertices_[i]->level() > 0 && initial_vertices_ == 0)
       initial_vertices_ = i;
     assert((vertices_[i]->level() > 0) == (initial_vertices_ > 0));
+
+    // Store link to the Godparents.
+    if (vtx->godparents.size())
+      for (int gp = 0; gp < 2; gp++)
+        godparents_[i][gp] = *vtx->godparents[gp]->template data<uint>();
   }
 
   // If we only have initial vertices, set the total.
   if (initial_vertices_ == 0) initial_vertices_ = V;
 
-  // Now create the associated element tree
-  element_view_.DeepRefine(
-      /* call_filter */
-      [](auto &&node) { return node->newest_vertex()->has_data(); },
-      /* call_postprocess */
-      [](auto nv) {
-        if (nv->is_root()) return;
-        for (size_t i = 0; i < 3; ++i)
-          nv->vertices_view_idx_[i] =
-              *nv->node()->vertices()[i]->template data<size_t>();
-      });
+  // Figure out all the element leaves.
+  Element2D *elem_meta_root = vertices_[0]->patch[0]->parents()[0];
+  assert(elem_meta_root->is_metaroot());
 
-  // For every new vertex introduced, we store the elements touching
-  // the refinement edge.
-  history_.resize(V);
-
-  // Create and fill in the history object.
-  elements_ = element_view_.Bfs();
-  history_.reserve(elements_.size());
-  for (auto elem : elements_) {
-    if (elem->children(0).size() == 0) continue;
-    assert(elem->children(0).size() == 2);
-    // Get the index of the created vertex by checking a child.
-    size_t newest_vertex = elem->children(0)[0]->NewestVertex();
-    auto &vertex = vertices_[newest_vertex];
-    assert(vertex->level() == elem->level() + 1);
-    auto &hist = history_[newest_vertex];
-    assert(hist.size() < 2);
-    hist.push_back(elem);
+  std::queue<Element2D *> queue;
+  element_leaves_.reserve(V * 2);
+  for (auto root : elem_meta_root->children()) queue.emplace(root);
+  while (!queue.empty()) {
+    auto elem = queue.front();
+    queue.pop();
+    bool is_leaf = true;
+    for (auto child : elem->children())
+      if (child->newest_vertex()->has_data()) {
+        queue.emplace(child);
+        is_leaf = false;
+      }
+    if (is_leaf) {
+      std::array<uint, 3> Vids;
+      for (uint i = 0; i < 3; ++i)
+        Vids[i] = *elem->vertices()[i]->template data<uint>();
+      element_leaves_.emplace_back(elem, std::move(Vids));
+    }
   }
 
   // Unset the data stored in the vertices.
-  for (auto &nv : vertices_) nv->reset_data();
+  for (auto nv : vertices_) nv->reset_data();
 }
 
 }  // namespace space

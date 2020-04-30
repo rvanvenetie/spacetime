@@ -91,7 +91,10 @@ ContLinearScalingFn *ContLinearScalingFn::RefineLeft() {
 
 ThreePointWaveletFn::ThreePointWaveletFn(
     std::deque<ThreePointWaveletFn> *container,
-    std::vector<ContLinearScalingFn *> mother_scalings)
+    const SmallVector<
+        ContLinearScalingFn *,
+        datastructures::NodeTrait<ContLinearScalingFn>::N_children>
+        &mother_scalings)
     : WaveletFn<ThreePointWaveletFn>(container) {
   assert(mother_scalings.size() == 2);
   for (size_t i = 0; i < 2; ++i) {
@@ -153,7 +156,7 @@ bool ThreePointWaveletFn::Refine() {
 
     // First refine the left part.
     auto [l, n] = labda();
-    double scaling = pow(2, (l + 1) / 2.0);
+    double scaling = std::pow(2, (l + 1) / 2.0);
     std::vector<ContLinearScalingFn *> phi_children{phi_left->child_middle_,
                                                     phi_middle->child_left_,
                                                     phi_middle->child_middle_};

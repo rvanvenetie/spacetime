@@ -11,21 +11,19 @@ namespace space {
 
 struct OperatorOptions {
   // Options for all operators.
-  bool dirichlet_boundary_;
+  bool dirichlet_boundary_ = true;
+
+  // Whether or not to build the matrix for a forward operator.
+  bool build_mat_ = true;
 
   // Options for stiff plus scaled mass operator.
-  size_t time_level_;
-  double alpha_;
+  size_t time_level_ = 0;
+  double alpha_ = 1;
 
   // Options for multigrid preconditioner.
-  size_t cycles_;
+  size_t cycles_ = 5;
 
-  OperatorOptions(bool dirichlet_boundary = true, size_t time_level = 0,
-                  double alpha = 1, size_t cycles = 5)
-      : dirichlet_boundary_(dirichlet_boundary),
-        time_level_(time_level),
-        alpha_(alpha),
-        cycles_(cycles) {}
+  OperatorOptions() = default;
 };
 
 class Operator {
@@ -40,7 +38,7 @@ class Operator {
   virtual void Apply(Eigen::VectorXd &vec_in) const = 0;
 
   // Does the given vertex correspond to a dof?
-  inline bool IsDof(size_t vertex) const {
+  inline bool IsDof(uint vertex) const {
     return !triang_.OnBoundary(vertex) || !opts_.dirichlet_boundary_;
   }
 
@@ -65,37 +63,29 @@ class Operator {
   OperatorOptions opts_;
 };
 
+template <class ForwardOp>
 class ForwardOperator : public Operator {
  public:
-  using Operator::Operator;
+  ForwardOperator(const TriangulationView &triang,
+                  OperatorOptions opts = OperatorOptions());
 
   // Apply the operator in the hierarchical basis.
   virtual void Apply(Eigen::VectorXd &vec_in) const final;
 
   // Apply the operator in single scale, to be implemented by derived.
-  virtual void ApplySingleScale(Eigen::VectorXd &vec_SS) const = 0;
+  void ApplySingleScale(Eigen::VectorXd &vec_SS) const;
+
+  const Eigen::SparseMatrix<double> &MatrixSingleScale() const {
+    assert(matrix_.nonZeros());
+    return matrix_;
+  }
 
  protected:
   // Hierarhical Basis Transformations from HB to SS, and its transpose.
   void ApplyHierarchToSingle(Eigen::VectorXd &vec_HB) const;
   void ApplyTransposeHierarchToSingle(Eigen::VectorXd &vec_SS) const;
-};
 
-// ForwardOperator where apply is done using a sparse matrix.
-template <typename ForwardOp>
-class ForwardMatrix : public ForwardOperator {
- public:
-  ForwardMatrix(const TriangulationView &triang,
-                OperatorOptions opts = OperatorOptions());
-
-  virtual void ApplySingleScale(Eigen::VectorXd &vec_SS) const final {
-    vec_SS = matrix_ * vec_SS;
-  }
-  const Eigen::SparseMatrix<double> &MatrixSingleScale() const {
-    return matrix_;
-  }
-
- protected:
+  void InitializeMatrixSingleScale();
   Eigen::SparseMatrix<double> matrix_;
 };
 
@@ -123,34 +113,34 @@ class BackwardOperator : public Operator {
 /**
  *  Implementation of the actual operators.
  */
-class MassOperator : public ForwardMatrix<MassOperator> {
+class MassOperator : public ForwardOperator<MassOperator> {
  public:
   // Inherit constructor.
-  using ForwardMatrix<MassOperator>::ForwardMatrix;
+  using ForwardOperator::ForwardOperator;
 
   // Returns the element matrix for the given element.
-  inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+  inline static Eigen::Matrix3d ElementMatrix(const Element2D *elem,
                                               const OperatorOptions &opts);
 };
 
-class StiffnessOperator : public ForwardMatrix<StiffnessOperator> {
+class StiffnessOperator : public ForwardOperator<StiffnessOperator> {
  public:
   // Inherit constructor.
-  using ForwardMatrix<StiffnessOperator>::ForwardMatrix;
+  using ForwardOperator::ForwardOperator;
 
   // Returns the element matrix for the given element.
   inline static const Eigen::Matrix3d &ElementMatrix(
-      const Element2DView *elem, const OperatorOptions &opts);
+      const Element2D *elem, const OperatorOptions &opts);
 };
 
 class StiffPlusScaledMassOperator
-    : public ForwardMatrix<StiffPlusScaledMassOperator> {
+    : public ForwardOperator<StiffPlusScaledMassOperator> {
  public:
   // Inherit constructor.
-  using ForwardMatrix<StiffPlusScaledMassOperator>::ForwardMatrix;
+  using ForwardOperator::ForwardOperator;
 
   // Returns the element matrix for the given element.
-  inline static Eigen::Matrix3d ElementMatrix(const Element2DView *elem,
+  inline static Eigen::Matrix3d ElementMatrix(const Element2D *elem,
                                               const OperatorOptions &opts);
 };
 
@@ -189,19 +179,29 @@ class MultigridPreconditioner : public BackwardOperator {
 
   void ApplySingleScale(Eigen::VectorXd &vec_SS) const final;
 
-  inline void Prolongate(size_t vertex, Eigen::VectorXd &vec_SS) const;
-  inline void Restrict(size_t vertex, Eigen::VectorXd &vec_SS) const;
-  inline void RestrictInverse(size_t vertex, Eigen::VectorXd &vec_SS) const;
+  inline void Prolongate(uint vertex, Eigen::VectorXd &vec_SS) const {
+    for (auto gp : triang_.Godparents(vertex))
+      vec_SS[vertex] += 0.5 * vec_SS[gp];
+  }
+
+  inline void Restrict(uint vertex, Eigen::VectorXd &vec_SS) const {
+    for (auto gp : triang_.Godparents(vertex))
+      vec_SS[gp] += 0.5 * vec_SS[vertex];
+  }
+
+  inline void RestrictInverse(uint vertex, Eigen::VectorXd &vec_SS) const {
+    for (auto gp : triang_.Godparents(vertex))
+      vec_SS[gp] -= 0.5 * vec_SS[vertex];
+  }
 
  protected:
   // Returns a row of the _forward_ matrix on the given multilevel triang.
   // NOTE: The result is not compressed.
-  inline void RowMatrix(const MultigridTriangulationView &mg_triang,
-                        size_t vertex,
-                        std::vector<std::pair<size_t, double>> &result) const;
+  void RowMatrix(const MultigridTriangulationView &mg_triang, uint vertex,
+                 std::vector<std::pair<uint, double>> &result) const;
 
-  // Matrix on the finest level.
-  Eigen::SparseMatrix<double> triang_mat_;
+  // Forward operator on the finest level.
+  ForwardOp forward_op_;
 
   // Solver on the coarsest level.
   DirectInverse<ForwardOp> initial_triang_solver_;
@@ -220,6 +220,10 @@ class XPreconditionerOperator : public BackwardOperator {
   InverseOp<StiffPlusScaledMassOperator> inverse_op_;
 };
 
+extern template class ForwardOperator<MassOperator>;
+extern template class ForwardOperator<StiffnessOperator>;
+extern template class ForwardOperator<StiffPlusScaledMassOperator>;
+
 extern template class DirectInverse<MassOperator>;
 extern template class DirectInverse<StiffnessOperator>;
 extern template class DirectInverse<StiffPlusScaledMassOperator>;
@@ -232,5 +236,3 @@ extern template class XPreconditionerOperator<DirectInverse>;
 extern template class XPreconditionerOperator<MultigridPreconditioner>;
 
 }  // namespace space
-
-#include "operators.ipp"

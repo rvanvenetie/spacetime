@@ -1,6 +1,7 @@
 #include "adaptive_heat_equation.hpp"
 
 #include <boost/range/adaptor/reversed.hpp>
+#include <iomanip>
 
 #include "../tools/linalg.hpp"
 
@@ -49,16 +50,20 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
   auto P_Y = heat_d_dd_->P_Y();
   // Invalidate heat_d_dd, we no longer need these bilinear forms.
   heat_d_dd_.reset();
-  HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y, opts_);
+  {
+    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y,
+                            /* Ydd_is_GenerateYDelta_Xdd */ true, opts_);
 
-  // Prolongate u_dd_d from X_d to X_dd.
-  vec_Xd_->FromVectorContainer(u_dd_d);
-  vec_Xdd_->FromVector(*vec_Xd_);
-  Eigen::VectorXd u_dd_dd = vec_Xdd_->ToVectorContainer();
+    // Prolongate u_dd_d from X_d to X_dd.
+    vec_Xd_->FromVectorContainer(u_dd_d);
+    vec_Xdd_->FromVector(*vec_Xd_);
+    Eigen::VectorXd u_dd_dd = vec_Xdd_->ToVectorContainer();
 
-  // Calculate the residual and store inside the dbltree.
-  Eigen::VectorXd residual = RHS(heat_dd_dd) - heat_dd_dd.S()->Apply(u_dd_dd);
-  vec_Xdd_->FromVectorContainer(residual);
+    // Calculate the residual and store inside the dbltree.
+    Eigen::VectorXd residual = RHS(heat_dd_dd) - heat_dd_dd.S()->Apply(u_dd_dd);
+    vec_Xdd_->FromVectorContainer(residual);
+    // Let heat_dd_dd go out of scope..
+  }
   if (opts_.estimate_mean_zero_) ApplyMeanZero(vec_Xdd_.get());
 
   // Get the X_d nodes *inside* X_dd.
@@ -115,6 +120,19 @@ void AdaptiveHeatEquation::Refine(
       GenerateXDeltaUnderscore(*vec_Xd_, opts_.estimate_saturation_layers_));
   vec_Ydd_ = std::make_shared<TypeYVector>(
       GenerateYDelta<DoubleTreeVector>(*vec_Xdd_));
+
+#ifdef VERBOSE
+  std::cerr << std::left;
+  std::cerr << std::endl << "AdaptiveHeatEquation::Refine" << std::endl;
+  std::cerr << "  vec_Xd:  #bfs = " << std::setw(10) << vec_Xd_->Bfs().size()
+            << "#container = " << vec_Xd_->container().size() << std::endl;
+  std::cerr << "  vec_Xdd: #bfs = " << std::setw(10) << vec_Xdd_->Bfs().size()
+            << "#container = " << vec_Xdd_->container().size() << std::endl;
+  std::cerr << "  vec_Ydd: #bfs = " << std::setw(10) << vec_Ydd_->Bfs().size()
+            << "#container = " << vec_Ydd_->container().size() << std::endl;
+  std::cerr << std::right;
+#endif
+
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
 }
 

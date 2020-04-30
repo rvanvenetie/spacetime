@@ -22,7 +22,7 @@ inline std::vector<I*> MultiNodeViewInterface<I, T...>::Bfs(
     nodes.emplace_back(node);
     callback(node);
     static_for<dim>([&queue, &node](auto i) {
-      for (const auto& child : node->children(i))
+      for (auto child : node->children(i))
         if (!child->marked()) {
           child->set_marked(true);
           queue.emplace(child);
@@ -296,13 +296,14 @@ void MultiTreeView<I>::ConformingRefinement(
       for (const auto& super_parent : super_mltnode->parents(i)) {
         if (!super_parent->marked()) {
           if (super_parent->is_root()) assert(super_parent == supertree.root());
-          if (super_parent->is_metaroot())
-            for (const auto& super_child : super_parent->children(i))
-              if (!super_child->marked()) {
-                queue.emplace(super_child);
-                super_child->set_marked(true);
-                marked.push_back(super_child);
+          if (std::get<i>(super_parent->nodes())->is_metaroot()) {
+            for (const auto& super_brother : super_parent->children(i))
+              if (!super_brother->marked()) {
+                queue.emplace(super_brother);
+                super_brother->set_marked(true);
+                marked.push_back(super_brother);
               }
+          }
           queue.emplace(super_parent);
           super_parent->set_marked(true);
           marked.push_back(super_parent);
