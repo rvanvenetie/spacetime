@@ -230,7 +230,7 @@ void MultigridPreconditioner<ForwardOp>::RowMatrix(
   result.clear();
   result.reserve(patch.size() * 3);
   for (auto elem : patch) {
-    const auto &Vids = elem->vertices_view_idx_;
+    const auto &Vids = elem->Vids();
     const auto &elem_mat = ForwardOp::ElementMatrix(elem->node(), opts_);
     for (size_t i = 0; i < 3; ++i)
       if (Vids[i] == vertex)

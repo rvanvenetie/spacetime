@@ -3,23 +3,36 @@
 #include <set>
 #include <vector>
 
-#include "datastructures/multi_tree_vector.hpp"
-#include "datastructures/multi_tree_view.hpp"
 #include "triangulation.hpp"
 
 namespace space {
 
-class Element2DView
-    : public datastructures::MultiNodeViewBase<Element2DView, Element2D> {
+class Element2DView {
  public:
-  using datastructures::MultiNodeViewBase<Element2DView,
-                                          Element2D>::MultiNodeViewBase;
+  Element2DView(Element2D *node) : node_(node) {
+    for (size_t i = 0; i < 3; ++i)
+      vertices_view_idx_[i] = *node->vertices()[i]->template data<size_t>();
+  }
 
+  // The element this view represents.
+  Element2D *node() const { return node_; }
+  int level() const { return node_->level(); }
+  bool is_leaf() const { return children_.empty(); }
+
+  StaticVector<Element2DView *, 2> &children() { return children_; }
+  const StaticVector<Element2DView *, 2> &children() const { return children_; }
+
+  inline const std::array<size_t, 3> &Vids() const {
+    return vertices_view_idx_;
+  }
   size_t NewestVertex() const { return vertices_view_idx_[0]; }
   inline std::array<size_t, 2> RefinementEdge() const {
     return {vertices_view_idx_[1], vertices_view_idx_[2]};
   }
 
+ protected:
+  Element2D *node_;
+  StaticVector<Element2DView *, 2> children_;
   std::array<size_t, 3> vertices_view_idx_;
 };
 
@@ -41,34 +54,22 @@ class MultigridTriangulationView {
     return patches_;
   }
 
-  const datastructures::MultiTreeView<Element2DView> &element_view() const {
-    return element_view_;
-  }
+  const std::deque<Element2DView> &elements() const { return elements_; }
 
   // Total number of vertices.
   const size_t V;
 
  protected:
-  datastructures::MultiTreeView<Element2DView> element_view_;
+  std::deque<Element2DView> elements_;
+
   std::vector<StaticVector<Element2DView *, 2>> history_;
   std::vector<std::vector<Element2DView *>> patches_;
   int vi_;
   size_t initial_vertices_;
 
   // Erase/insert element into the patch.
-  inline bool Erase(int v, Element2DView *elem) {
-    auto &patch = patches_.at(v);
-    for (int e = 0; e < patch.size(); e++)
-      if (patch[e] == elem) {
-        patch[e] = patch.back();
-        patch.resize(patch.size() - 1);
-        return true;
-      }
-    return false;
-  }
-  inline void Insert(int v, Element2DView *elem) {
-    patches_[v].emplace_back(elem);
-  }
+  inline bool Erase(int v, Element2DView *elem);
+  inline void Insert(int v, Element2DView *elem);
 };
 
 }  // namespace space

@@ -26,8 +26,8 @@ class Vertex : public datastructures::Node<Vertex> {
   bool on_domain_boundary;
   SmallVector<Element2D *, 4> patch;
 
-  // This are the (two) elements that are bisected to create the current vertex.
-  StaticVector<Element2D *, 2> parent_elements;
+  // This are the vertices that are bisected to create the current vertex.
+  StaticVector<Vertex *, 2> godparents;
 
   // Constructor given parents.
   Vertex(const std::vector<Vertex *> &parents, double x, double y,

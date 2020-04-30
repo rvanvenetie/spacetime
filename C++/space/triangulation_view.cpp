@@ -24,11 +24,9 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
     assert((vertices_[i]->level() > 0) == (initial_vertices_ > 0));
 
     // Store link to the Godparents.
-    if (vtx->parent_elements.size()) {
-      const auto &parent_vertices = vtx->parent_elements[0]->vertices();
-      for (int gp = 1; gp < 3; gp++)
-        godparents_[i][gp - 1] = *parent_vertices[gp]->template data<size_t>();
-    }
+    if (vtx->godparents.size())
+      for (int gp = 0; gp < 2; gp++)
+        godparents_[i][gp] = *vtx->godparents[gp]->template data<size_t>();
   }
 
   // If we only have initial vertices, set the total.

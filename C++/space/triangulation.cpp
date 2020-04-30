@@ -131,7 +131,9 @@ std::array<Element2D *, 2> Element2D::Bisect(Vertex *new_vertex) {
   assert(child1->edge(2) == child2->reversed_edge(1));
   new_vertex->patch.push_back(child1);
   new_vertex->patch.push_back(child2);
-  new_vertex->parent_elements.push_back(this);
+  if (new_vertex->godparents.empty())
+    for (int gp = 1; gp < 3; gp++)
+      new_vertex->godparents.emplace_back(vertices_[gp]);
 
   if (neighbours[2]) {
     for (int i = 0; i < 3; ++i) {
