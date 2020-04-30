@@ -10,9 +10,9 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
   assert(V >= 3);
 
   // First, we mark all vertices.
-  std::vector<size_t> indices(V);
+  std::vector<uint> indices(V);
   initial_vertices_ = 0;
-  for (size_t i = 0; i < V; ++i) {
+  for (uint i = 0; i < V; ++i) {
     auto vtx = vertices_[i];
     on_boundary_[i] = vtx->on_domain_boundary;
     indices[i] = i;
@@ -26,7 +26,7 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
     // Store link to the Godparents.
     if (vtx->godparents.size())
       for (int gp = 0; gp < 2; gp++)
-        godparents_[i][gp] = *vtx->godparents[gp]->template data<size_t>();
+        godparents_[i][gp] = *vtx->godparents[gp]->template data<uint>();
   }
 
   // If we only have initial vertices, set the total.
@@ -49,9 +49,9 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
         is_leaf = false;
       }
     if (is_leaf) {
-      std::array<size_t, 3> Vids;
-      for (size_t i = 0; i < 3; ++i)
-        Vids[i] = *elem->vertices()[i]->template data<size_t>();
+      std::array<uint, 3> Vids;
+      for (uint i = 0; i < 3; ++i)
+        Vids[i] = *elem->vertices()[i]->template data<uint>();
       element_leaves_.emplace_back(elem, std::move(Vids));
     }
   }

@@ -29,21 +29,21 @@ class TriangulationView {
   };
 
   // Total number of vertices.
-  const size_t V;
+  const uint V;
 
   // Does the given vertex lie on the domain boundary?
-  inline bool OnBoundary(size_t v) const { return on_boundary_.at(v); }
+  inline bool OnBoundary(uint v) const { return on_boundary_.at(v); }
 
   // Number of initial vertices.
-  inline size_t InitialVertices() const { return initial_vertices_; }
+  inline uint InitialVertices() const { return initial_vertices_; }
 
   // Grandparents
-  inline const std::array<size_t, 2> &Godparents(size_t vi) const {
+  inline const std::array<uint, 2> &Godparents(uint vi) const {
     return godparents_.at(vi);
   }
 
   // Access data members.
-  inline const std::vector<std::pair<Element2D *, std::array<size_t, 3>>>
+  inline const std::vector<std::pair<Element2D *, std::array<uint, 3>>>
       &element_leaves() const {
     return element_leaves_;
   }
@@ -52,9 +52,9 @@ class TriangulationView {
  protected:
   std::vector<Vertex *> vertices_;
   std::vector<bool> on_boundary_;
-  std::vector<std::array<size_t, 2>> godparents_;
-  std::vector<std::pair<Element2D *, std::array<size_t, 3>>> element_leaves_;
-  size_t initial_vertices_;
+  std::vector<std::array<uint, 2>> godparents_;
+  std::vector<std::pair<Element2D *, std::array<uint, 3>>> element_leaves_;
+  uint initial_vertices_;
 
   // A convenient helper function for the constructor.
   inline static Vertex *ToVertex(Vertex *v) { return v; }

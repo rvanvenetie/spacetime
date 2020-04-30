@@ -10,8 +10,8 @@ namespace space {
 class Element2DView {
  public:
   Element2DView(Element2D *node) : node_(node) {
-    for (size_t i = 0; i < 3; ++i)
-      vertices_view_idx_[i] = *node->vertices()[i]->template data<size_t>();
+    for (uint i = 0; i < 3; ++i)
+      vertices_view_idx_[i] = *node->vertices()[i]->template data<uint>();
   }
 
   // The element this view represents.
@@ -22,18 +22,16 @@ class Element2DView {
   StaticVector<Element2DView *, 2> &children() { return children_; }
   const StaticVector<Element2DView *, 2> &children() const { return children_; }
 
-  inline const std::array<size_t, 3> &Vids() const {
-    return vertices_view_idx_;
-  }
-  size_t NewestVertex() const { return vertices_view_idx_[0]; }
-  inline std::array<size_t, 2> RefinementEdge() const {
+  inline const std::array<uint, 3> &Vids() const { return vertices_view_idx_; }
+  uint NewestVertex() const { return vertices_view_idx_[0]; }
+  inline std::array<uint, 2> RefinementEdge() const {
     return {vertices_view_idx_[1], vertices_view_idx_[2]};
   }
 
  protected:
   Element2D *node_;
   StaticVector<Element2DView *, 2> children_;
-  std::array<size_t, 3> vertices_view_idx_;
+  std::array<uint, 3> vertices_view_idx_;
 };
 
 class MultigridTriangulationView {
@@ -47,7 +45,7 @@ class MultigridTriangulationView {
 
   inline bool CanRefine() const { return vi_ < V; }
   inline bool CanCoarsen() const { return vi_ > initial_vertices_; }
-  inline bool ContainsVertex(size_t vertex) const { return vertex < vi_; }
+  inline bool ContainsVertex(uint vertex) const { return vertex < vi_; }
 
   // Return the patches as currently stored inside this object.
   const std::vector<std::vector<Element2DView *>> &patches() const {
@@ -57,7 +55,7 @@ class MultigridTriangulationView {
   const std::deque<Element2DView> &elements() const { return elements_; }
 
   // Total number of vertices.
-  const size_t V;
+  const uint V;
 
  protected:
   std::deque<Element2DView> elements_;
@@ -65,7 +63,7 @@ class MultigridTriangulationView {
   std::vector<StaticVector<Element2DView *, 2>> history_;
   std::vector<std::vector<Element2DView *>> patches_;
   int vi_;
-  size_t initial_vertices_;
+  uint initial_vertices_;
 
   // Erase/insert element into the patch.
   inline bool Erase(int v, Element2DView *elem);
