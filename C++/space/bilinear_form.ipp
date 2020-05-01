@@ -7,67 +7,90 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
                                                   I_out* root_vec_out,
                                                   const OperatorOptions& opts)
     : vec_in_(root_vec_in), vec_out_(root_vec_out) {
-  assert(root_vec_in->is_root());
-  assert(root_vec_out->is_root());
-  auto nodes_vec_in = vec_in_->Bfs();
-  auto nodes_vec_out = vec_out_->Bfs();
+  assert(vec_in_->is_root());
+  assert(vec_out_->is_root());
+  nodes_vec_in_ = std::make_shared<std::vector<I_in*>>(vec_in_->Bfs());
+  nodes_vec_out_ = std::make_shared<std::vector<I_out*>>(vec_out_->Bfs());
+  const auto& nodes_vec_in = *nodes_vec_in_;
+  const auto& nodes_vec_out = *nodes_vec_out_;
   assert(nodes_vec_in.size());
   assert(nodes_vec_out.size());
 
-  // Determine whether the input and output vector coincide.
-  symmetric_ = (nodes_vec_in.size() == nodes_vec_out.size());
-  if (symmetric_)
+  // Determine the inclusion relation.
+  if (nodes_vec_in.size() < nodes_vec_out.size())
+    inclusion_type_ = Subset;  // vec_in < vec_out.
+  else if (nodes_vec_in.size() > nodes_vec_out.size())
+    inclusion_type_ = Superset;  // vec_in > vec_out.
+  else {
+    inclusion_type_ = Equal;  // vec_in == vec_out.
+
+    // It might be the case that the ordering vectors differs, then
+    // simply make this a Subset Type.
     for (size_t i = 0; i < nodes_vec_in.size(); ++i)
       if (nodes_vec_in[i]->node() != nodes_vec_out[i]->node()) {
-        symmetric_ = false;
+        inclusion_type_ = InclusionType::Subset;
         break;
       }
-
-  // If this applicator is symmetric, there is not a lot to do.
-  if (symmetric_) {
-    triang_ = std::make_shared<TriangulationView>(nodes_vec_in);
-    nodes_vec_in_ =
-        std::make_shared<std::vector<I_in*>>(std::move(nodes_vec_in));
-    nodes_vec_out_ =
-        std::make_shared<std::vector<I_out*>>(std::move(nodes_vec_out));
-  } else {
-    // This operator is not symmetric, calculate a union.
-    vec_union_ =
-        std::make_unique<datastructures::TreeVector<HierarchicalBasisFn>>(
-            vec_in_->node());
-    vec_union_->root()->Union(vec_in_);
-    vec_union_->root()->Union(vec_out_);
-    nodes_vec_union_ = std::make_shared<
-        std::vector<datastructures::NodeVector<HierarchicalBasisFn>*>>(
-        vec_union_->Bfs());
-    triang_ = std::make_shared<TriangulationView>(*nodes_vec_union_);
   }
+
+  switch (inclusion_type_) {
+    case Subset:
+      // Assert that vec_out_ is a refinement of vec_in_.
+      assert((vec_out_->Union(vec_in_), vec_out_->Bfs().size()) ==
+             nodes_vec_out.size());
+    case Equal:
+      // For both equal and subset, make a triangulation based on output nodes.
+      triang_ = std::make_shared<TriangulationView>(nodes_vec_out);
+      break;
+    case Superset:
+      // Assert that vec_in is a refinement of vec_out.
+      assert((vec_out_->Union(vec_out_), vec_out_->Bfs().size()) ==
+             nodes_vec_out.size());
+      triang_ = std::make_shared<TriangulationView>(nodes_vec_in);
+      break;
+    default:
+      assert(false);
+  }
+
   operator_ = std::make_shared<Operator>(*triang_, opts);
 }
 
 template <typename Operator, typename I_in, typename I_out>
 void BilinearForm<Operator, I_in, I_out>::Apply() {
-  if (symmetric_) {
-    // Apply the operator in SS.
+  if (inclusion_type_ == InclusionType::Equal) {
+    // vec_in == vec_out.
     auto v = ToVector(*nodes_vec_in_);
     operator_->Apply(v);
     FromVector(*nodes_vec_out_, v);
     return;
   }
 
-  // Not symmetric, we must do some magic tricks.
+  // Not symmetric. But one is a refinement of the other, copy the
+  // data correspondingly.
   auto lambda_copy = [](const auto& new_node, const auto& old_node) {
     new_node->set_value(old_node->value());
   };
-  vec_union_->Reset();
-  vec_union_->root()->Union(vec_in_, datastructures::func_false, lambda_copy);
+  if (inclusion_type_ == InclusionType::Subset) {
+    // vec_in < vec_out.
 
-  // Apply the operator in SS.
-  auto v = ToVector(*nodes_vec_union_);
-  operator_->Apply(v);
-  FromVector(*nodes_vec_union_, v);
-  // Copy the results from the union vector back to the output vector.
-  vec_out_->Union(vec_union_->root(), datastructures::func_false, lambda_copy);
+    // Abuse the output vector for storing the input temporarily.
+    vec_out_->Reset();
+    vec_out_->Union(vec_in_, datastructures::func_false, lambda_copy);
+
+    Eigen::VectorXd v_out = ToVector(*nodes_vec_out_);
+    operator_->Apply(v_out);
+    FromVector(*nodes_vec_out_, v_out);
+  } else if (inclusion_type_ == InclusionType::Superset) {
+    // vec_in > vec_out.
+    Eigen::VectorXd v_in = ToVector(*nodes_vec_in_);
+    Eigen::VectorXd v_out = v_in;
+    operator_->Apply(v_out);
+
+    // Abuse the input vector for storing the outpt temporarily.
+    FromVector(*nodes_vec_in_, v_out);
+    vec_out_->Union(vec_in_, datastructures::func_false, lambda_copy);
+    FromVector(*nodes_vec_in_, v_in);
+  }
 }
 
 template <typename Operator, typename I_in, typename I_out>
