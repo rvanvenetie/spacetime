@@ -7,8 +7,8 @@
 
 namespace Time {
 
-DiscLinearScalingFn::DiscLinearScalingFn(
-    std::deque<DiscLinearScalingFn>* container, Element1D* mother_element)
+DiscLinearScalingFn::DiscLinearScalingFn(Deque<DiscLinearScalingFn>* container,
+                                         Element1D* mother_element)
     : ScalingFn<DiscLinearScalingFn>(container) {
   auto scaling_left = make_child(
       /* parents */ std::vector{this},
@@ -72,7 +72,7 @@ bool DiscLinearScalingFn::Refine() {
 }
 
 OrthonormalWaveletFn::OrthonormalWaveletFn(
-    std::deque<OrthonormalWaveletFn>* container,
+    Deque<OrthonormalWaveletFn>* container,
     const SmallVector<
         DiscLinearScalingFn*,
         datastructures::NodeTrait<DiscLinearScalingFn>::N_children>&

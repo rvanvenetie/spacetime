@@ -55,7 +55,7 @@ class Vertex : public datastructures::Node<Vertex> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  Vertex(std::deque<Vertex> *container)
+  Vertex(Deque<Vertex> *container)
       : Node(container), x(NAN), y(NAN), on_domain_boundary(false) {}
 
   // There is a mapping between a vertex and a basis function.
@@ -108,8 +108,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   Eigen::Matrix3d stiff_mat_;
 
   // Protected constructor for creating a metaroot.
-  Element2D(std::deque<Element2D> *container)
-      : BinaryNode(container), area_(-1) {}
+  Element2D(Deque<Element2D> *container) : BinaryNode(container), area_(-1) {}
 
   // Refinement methods.
   Vertex *CreateNewVertex(Element2D *nbr = nullptr);

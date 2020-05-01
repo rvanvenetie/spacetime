@@ -34,7 +34,7 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  DiscConstantScalingFn(std::deque<DiscConstantScalingFn> *container,
+  DiscConstantScalingFn(Deque<DiscConstantScalingFn> *container,
                         Element1D *mother_element);
   inline bool is_full() const {
     if (is_metaroot())
@@ -61,7 +61,7 @@ class HaarWaveletFn : public WaveletFn<HaarWaveletFn> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  HaarWaveletFn(std::deque<HaarWaveletFn> *container,
+  HaarWaveletFn(Deque<HaarWaveletFn> *container,
                 DiscConstantScalingFn *mother_scaling);
 
   friend datastructures::Tree<HaarWaveletFn>;

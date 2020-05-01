@@ -102,7 +102,7 @@ class Node {
   StaticVector<I *, NodeTrait<I>::N_parents> parents_;
 
   // Pointer to the deque that holds all the childen.
-  std::deque<I> *container_ = nullptr;
+  Deque<I> *container_ = nullptr;
 
   template <typename... Args>
   inline I *make_child(Args &&... args) {
@@ -111,7 +111,7 @@ class Node {
     return &container_->back();
   }
 
-  explicit Node(std::deque<I> *container) : level_(-1), container_(container) {}
+  explicit Node(Deque<I> *container) : level_(-1), container_(container) {}
 };
 
 template <typename I>
@@ -177,7 +177,7 @@ class Tree {
   I *meta_root() { return &meta_root_; }
 
  protected:
-  std::deque<I> nodes_;
+  Deque<I> nodes_;
   I meta_root_;
 };
 
