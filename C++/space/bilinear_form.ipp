@@ -75,7 +75,9 @@ void BilinearForm<Operator, I_in, I_out>::Apply() {
 
     // Abuse the output vector for storing the input temporarily.
     for (const auto& nv : *nodes_vec_out_) nv->set_value(0);
-    vec_out_->Union(vec_in_, datastructures::func_false, lambda_copy);
+    size_t s = vec_out_->Union(vec_in_, datastructures::func_false, lambda_copy)
+                   .size();
+    assert(s == nodes_vec_in_->size() + 1);
 
     Eigen::VectorXd v_out = ToVector(*nodes_vec_out_);
     operator_->Apply(v_out);
@@ -88,7 +90,9 @@ void BilinearForm<Operator, I_in, I_out>::Apply() {
 
     // Abuse the input vector for storing the outpt temporarily.
     FromVector(*nodes_vec_in_, v_out);
-    vec_out_->Union(vec_in_, datastructures::func_false, lambda_copy);
+    size_t s = vec_out_->Union(vec_in_, datastructures::func_false, lambda_copy)
+                   .size();
+    assert(s == nodes_vec_in_->size() + 1);
     FromVector(*nodes_vec_in_, v_in);
   }
 }
