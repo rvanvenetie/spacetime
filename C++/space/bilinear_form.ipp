@@ -92,7 +92,7 @@ void BilinearForm<Operator, I_in, I_out>::Apply() {
     FromVector(*nodes_vec_in_, v_out);
     size_t s = vec_out_->Union(vec_in_, datastructures::func_false, lambda_copy)
                    .size();
-    assert(s == nodes_vec_in_->size() + 1);
+    assert(s == nodes_vec_out_->size() + 1);
     FromVector(*nodes_vec_in_, v_in);
   }
 }
