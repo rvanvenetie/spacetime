@@ -4,13 +4,17 @@
 #include "../datastructures/tree.hpp"
 #include "triangulation.hpp"
 
-namespace space {
-
-class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
- public:
+namespace datastructures {
+template <>
+struct NodeTrait<space::HierarchicalBasisFn> {
   static constexpr size_t N_parents = 2;
   static constexpr size_t N_children = 4;
+};
+}  // namespace datastructures
 
+namespace space {
+class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
+ public:
   HierarchicalBasisFn(const std::vector<HierarchicalBasisFn *> &parents,
                       Vertex *vertex)
       : Node(parents), vertex_(vertex) {}
@@ -36,7 +40,8 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
   Vertex *vertex_;
 
   // Protected constructor for creating a metaroot.
-  HierarchicalBasisFn(Vertex *vertex) : Node(), vertex_(vertex) {
+  HierarchicalBasisFn(Deque<HierarchicalBasisFn> *container, Vertex *vertex)
+      : Node(container), vertex_(vertex) {
     assert(vertex->is_metaroot());
   }
 

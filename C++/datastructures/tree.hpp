@@ -18,16 +18,22 @@ using T_func_true = decltype(func_true);
 using T_func_false = decltype(func_false);
 
 template <typename I>
+struct NodeTrait;  // This should define N_children and N_parents.
+
+template <typename I>
 class Node {
  public:
   // The implementation must publish constexpr N_parents and N_children. This
   // will give us possible optimalisations :-).
-  explicit Node(const std::vector<I *> &parents) : parents_(parents) {
-    children_.reserve(I::N_children);
+  explicit Node(const std::vector<I *> &parents)
+      : parents_(parents.begin(), parents.end()) {
     assert(parents.size());
     level_ = parents[0]->level() + 1;
+    container_ = parents[0]->container_;
+    assert(container_);
     for (const auto &parent : parents) {
       assert(parent->level() == level_ - 1);
+      assert(parent->container_ == container_);
     }
   }
 
@@ -36,8 +42,8 @@ class Node {
   void set_marked(bool value) { marked_ = value; }
   bool is_leaf() const { return children_.size() == 0; }
   inline bool is_metaroot() const { return (level_ == -1); }
-  const std::vector<I *> &parents() const { return parents_; }
-  const std::vector<I *> &children() const { return children_; }
+  const auto &parents() const { return parents_; }
+  const auto &children() const { return children_; }
 
   // General data field for universal storage.
   template <typename T>
@@ -87,33 +93,30 @@ class Node {
   }
 
  protected:
-  int level_;
   bool marked_ = false;
+  int level_;
   void *data_ = nullptr;
 
-  // Store parents/children as raw pointers.
-  std::vector<I *> parents_;
-  std::vector<I *> children_;
+  // Store children/parents as raw pointers.
+  SmallVector<I *, NodeTrait<I>::N_children> children_;
+  StaticVector<I *, NodeTrait<I>::N_parents> parents_;
 
-  // If a node creates a child, it becomes the `owner` of this child.
-  std::vector<std::unique_ptr<I>> children_own_;
+  // Pointer to the deque that holds all the childen.
+  Deque<I> *container_ = nullptr;
 
   template <typename... Args>
   inline I *make_child(Args &&... args) {
-    children_own_.emplace_back(
-        std::make_unique<I>(std::forward<Args>(args)...));
-    children_.emplace_back(children_own_.back().get());
-    return children_own_.back().get();
+    container_->emplace_back(std::forward<Args>(args)...);
+    children_.emplace_back(&container_->back());
+    return &container_->back();
   }
 
-  Node() : level_(-1) {}
+  explicit Node(Deque<I> *container) : level_(-1), container_(container) {}
 };
 
 template <typename I>
 class BinaryNode : public Node<I> {
  public:
-  static constexpr size_t N_parents = 1;
-  static constexpr size_t N_children = 2;
   explicit BinaryNode(I *parent) : Node<I>({parent}) {}
 
   I *parent() const { return parents_[0]; }
@@ -131,13 +134,12 @@ class BinaryNode : public Node<I> {
 template <typename I>
 class Tree {
  public:
-  std::unique_ptr<I> meta_root;
-
   // This constructs the tree with a single meta_root.
-  Tree(I *meta_root) : meta_root(meta_root) {}
-  Tree() : Tree(new I()) {}
+  Tree() : nodes_(), meta_root_(&nodes_) {}
+
   template <typename... Args>
-  Tree(Args &&... args) : Tree(new I(std::forward<Args>(args)...)) {}
+  Tree(Args &&... args)
+      : nodes_(), meta_root_(&nodes_, std::forward<Args>(args)...) {}
 
   Tree(const Tree &) = delete;
   Tree<I> &operator=(Tree<I> &&) = default;
@@ -146,12 +148,12 @@ class Tree {
   std::vector<I *> Bfs(bool include_metaroot = false,
                        const Func &callback = func_noop,
                        bool return_nodes = true) {
-    return meta_root->Bfs(include_metaroot, callback, return_nodes);
+    return meta_root_.Bfs(include_metaroot, callback, return_nodes);
   }
 
   template <typename Func>
   void DeepRefine(const Func &refine_filter) {
-    meta_root->Bfs(true, [refine_filter](I *node) {
+    meta_root_.Bfs(true, [refine_filter](I *node) {
       if (refine_filter(node)) node->Refine();
     });
   }
@@ -162,7 +164,7 @@ class Tree {
   // This returns nodes in this tree, sliced by levels.
   std::vector<std::vector<I *>> NodesPerLevel() {
     std::vector<std::vector<I *>> result;
-    for (const auto &node : meta_root->Bfs()) {
+    for (const auto &node : meta_root_.Bfs()) {
       assert(node->level() >= 0 && node->level() <= result.size());
       if (node->level() == result.size()) {
         result.emplace_back();
@@ -171,6 +173,12 @@ class Tree {
     }
     return result;
   }
+
+  I *meta_root() { return &meta_root_; }
+
+ protected:
+  Deque<I> nodes_;
+  I meta_root_;
 };
 
 }  // namespace datastructures

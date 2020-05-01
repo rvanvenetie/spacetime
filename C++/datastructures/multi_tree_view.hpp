@@ -161,22 +161,22 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   using MultiNodeViewInterface<I, T...>::dim;
   using typename MultiNodeViewInterface<I, T...>::TupleNodes;
   using TParents =
-      std::array<StaticVector<I*, std::max({T::N_parents...})>, dim>;
+      std::array<StaticVector<I*, std::max({NodeTrait<T>::N_parents...})>, dim>;
   using TChildren =
-      std::array<SmallVector<I*, std::max({T::N_children...})>, dim>;
+      std::array<SmallVector<I*, std::max({NodeTrait<T>::N_children...})>, dim>;
 
  public:
   // Constructor for a node.
-  explicit MultiNodeViewBase(std::deque<I>* container, const TupleNodes& nodes,
+  explicit MultiNodeViewBase(Deque<I>* container, const TupleNodes& nodes,
                              const TParents& parents)
       : container_(container), nodes_(nodes), parents_(parents) {
     assert(container);
   }
 
   // Constructors for root.
-  explicit MultiNodeViewBase(std::deque<I>* container, const TupleNodes& nodes)
+  explicit MultiNodeViewBase(Deque<I>* container, const TupleNodes& nodes)
       : MultiNodeViewBase(container, nodes, {}) {}
-  explicit MultiNodeViewBase(std::deque<I>* container, T*... nodes)
+  explicit MultiNodeViewBase(Deque<I>* container, T*... nodes)
       : MultiNodeViewBase(container, TupleNodes(nodes...)) {
     assert(this->is_root());
   }
@@ -220,12 +220,12 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   bool marked_ = false;
   TupleNodes nodes_;
 
-  // Store parents/children as raw pointers.
-  TParents parents_;
+  // Store children/parents as raw pointers.
   TChildren children_;
+  TParents parents_;
 
   // Pointer to the deque that holds all the childen.
-  std::deque<I>* container_;
+  Deque<I>* container_;
 };
 
 template <typename... T>
@@ -242,8 +242,8 @@ class MultiTreeView {
 
   I* root() { return root_; }
   I* root() const { return root_; }
-  const std::deque<I>& container() const { return multi_nodes_; }
-  std::deque<I>& container() { return multi_nodes_; }
+  const Deque<I>& container() const { return multi_nodes_; }
+  Deque<I>& container() { return multi_nodes_; }
 
   // This constructs the tree with a single meta_root.
   template <typename... T>
@@ -306,7 +306,7 @@ class MultiTreeView {
   // Store the root.
   I* root_;
 
-  std::deque<I> multi_nodes_;
+  Deque<I> multi_nodes_;
 };
 
 template <typename T0>

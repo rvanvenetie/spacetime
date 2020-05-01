@@ -1,4 +1,3 @@
-
 #include "bilinear_form.hpp"
 
 namespace spacetime {

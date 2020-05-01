@@ -43,7 +43,7 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
     auto elem = queue.front();
     queue.pop();
     bool is_leaf = true;
-    for (const auto &child : elem->children())
+    for (auto child : elem->children())
       if (child->newest_vertex()->has_data()) {
         queue.emplace(child);
         is_leaf = false;

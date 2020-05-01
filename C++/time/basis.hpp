@@ -7,13 +7,56 @@
 #include "../datastructures/tree.hpp"
 #include "sparse_vector.hpp"
 
+// Forward all the class declarations.
 namespace Time {
-
+class Element1D;
 class DiscConstantScalingFn;
-class ContLinearScalingFn;
+class HaarWaveletFn;
 class DiscLinearScalingFn;
 class OrthonormalWaveletFn;
+class ContLinearScalingFn;
+class ThreePointWaveletFn;
+}  // namespace Time
 
+namespace datastructures {
+template <>
+struct NodeTrait<Time::Element1D> {
+  static constexpr size_t N_parents = 1;
+  static constexpr size_t N_children = 2;
+};
+template <>
+struct NodeTrait<Time::DiscConstantScalingFn> {
+  static constexpr size_t N_parents = 1;
+  static constexpr size_t N_children = 2;
+};
+template <>
+struct NodeTrait<Time::HaarWaveletFn> {
+  static constexpr size_t N_parents = 1;
+  static constexpr size_t N_children = 2;
+};
+template <>
+struct NodeTrait<Time::DiscLinearScalingFn> {
+  static constexpr size_t N_parents = 2;
+  static constexpr size_t N_children = 4;
+};
+template <>
+struct NodeTrait<Time::OrthonormalWaveletFn> {
+  static constexpr size_t N_parents = 2;
+  static constexpr size_t N_children = 4;
+};
+template <>
+struct NodeTrait<Time::ContLinearScalingFn> {
+  static constexpr size_t N_parents = 2;
+  static constexpr size_t N_children = 3;
+};
+template <>
+struct NodeTrait<Time::ThreePointWaveletFn> {
+  static constexpr size_t N_parents = 2;
+  static constexpr size_t N_children = 2;
+};
+}  // namespace datastructures
+
+namespace Time {
 class Element1D : public datastructures::BinaryNode<Element1D> {
  public:
   // Constructors given the parent.
@@ -51,7 +94,7 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  Element1D() : BinaryNode(), index_(0) {
+  Element1D(Deque<Element1D> *container) : BinaryNode(container), index_(0) {
     make_child(/* parent */ this, /* index */ 0);
   }
 
@@ -95,7 +138,8 @@ class Function : public datastructures::Node<I> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  Function() : datastructures::Node<I>(), index_(0) {}
+  Function(Deque<I> *container)
+      : datastructures::Node<I>(container), index_(0) {}
 
   // The index inside this level.
   int index_;
@@ -188,5 +232,4 @@ class WaveletFn : public Function<I> {
   // This maps a wavelet to its single scale representation.
   SparseVector<ScalingType> single_scale_;
 };
-
 }  // namespace Time

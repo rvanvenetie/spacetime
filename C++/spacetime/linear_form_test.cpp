@@ -22,7 +22,7 @@ TEST(LinearForm, Quadrature) {
   for (int level = 1; level < max_level; level++) {
     auto vec = datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
                                                 space::HierarchicalBasisFn>(
-        B.ortho_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+        B.ortho_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     vec.SparseRefine(level);
     linform->Apply(&vec);
     for (auto phi : vec.Bfs())
@@ -44,7 +44,7 @@ TEST(LinearForm, ZeroEval) {
   for (int level = 1; level < max_level; level++) {
     auto vec = datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
                                                 space::HierarchicalBasisFn>(
-        B.ortho_tree.meta_root.get(), T.hierarch_basis_tree.meta_root.get());
+        B.ortho_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     vec.SparseRefine(level);
     linform->Apply(&vec);
     ASSERT_NE(vec.ToVector().sum(), 0.0);

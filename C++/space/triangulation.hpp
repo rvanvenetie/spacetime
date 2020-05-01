@@ -10,18 +10,29 @@
 #include "datastructures/tree.hpp"
 
 namespace space {
-
 // Forward some class names.
 class Vertex;
 class Element2D;
 class InitialTriangulation;
 class HierarchicalBasisFn;
+}  // namespace space
 
-class Vertex : public datastructures::Node<Vertex> {
- public:
+namespace datastructures {
+template <>
+struct NodeTrait<space::Vertex> {
   static constexpr size_t N_parents = 2;
   static constexpr size_t N_children = 4;
+};
+template <>
+struct NodeTrait<space::Element2D> {
+  static constexpr size_t N_parents = 1;
+  static constexpr size_t N_children = 2;
+};
+}  // namespace datastructures
 
+namespace space {
+class Vertex : public datastructures::Node<Vertex> {
+ public:
   const double x, y;
   bool on_domain_boundary;
   SmallVector<Element2D *, 4> patch;
@@ -44,7 +55,8 @@ class Vertex : public datastructures::Node<Vertex> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  Vertex() : Node(), x(NAN), y(NAN), on_domain_boundary(false) {}
+  Vertex(Deque<Vertex> *container)
+      : Node(container), x(NAN), y(NAN), on_domain_boundary(false) {}
 
   // There is a mapping between a vertex and a basis function.
   HierarchicalBasisFn *phi_ = nullptr;
@@ -96,7 +108,7 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   Eigen::Matrix3d stiff_mat_;
 
   // Protected constructor for creating a metaroot.
-  Element2D() : BinaryNode(), area_(-1) {}
+  Element2D(Deque<Element2D> *container) : BinaryNode(container), area_(-1) {}
 
   // Refinement methods.
   Vertex *CreateNewVertex(Element2D *nbr = nullptr);
