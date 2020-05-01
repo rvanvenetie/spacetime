@@ -17,7 +17,7 @@ TEST(SparseVector, BLAS) {
 
   int ml = 7;
   B.three_point_tree.UniformRefine(ml);
-  auto nodes = B.cont_lin_tree.meta_root->Bfs();
+  auto nodes = B.cont_lin_tree.meta_root()->Bfs();
 
   // First sum up two disjoint subsets.
   SparseVector<ContLinearScalingFn> vec1, vec2, vecsum;

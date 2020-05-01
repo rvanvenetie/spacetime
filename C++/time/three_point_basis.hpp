@@ -54,7 +54,8 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
   ContLinearScalingFn *child_right_ = nullptr;
 
   // Protected constructor for creating a metaroot.
-  ContLinearScalingFn(Element1D *mother_element);
+  ContLinearScalingFn(Deque<ContLinearScalingFn> *container,
+                      Element1D *mother_element);
 
   friend datastructures::Tree<ContLinearScalingFn>;
   friend ThreePointWaveletFn;
@@ -76,6 +77,7 @@ class ThreePointWaveletFn : public WaveletFn<ThreePointWaveletFn> {
  protected:
   // Protected constructor for creating a metaroot.
   ThreePointWaveletFn(
+      Deque<ThreePointWaveletFn> *container,
       const SmallVector<
           ContLinearScalingFn *,
           datastructures::NodeTrait<ContLinearScalingFn>::N_children>

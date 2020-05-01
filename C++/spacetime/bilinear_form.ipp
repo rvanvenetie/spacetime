@@ -1,3 +1,4 @@
+#pragma once
 #include <boost/core/demangle.hpp>
 #include <iomanip>
 

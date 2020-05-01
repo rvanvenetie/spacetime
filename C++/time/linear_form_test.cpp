@@ -19,7 +19,8 @@ TEST(LinearForm, ThreePointQuadratureTest) {
   auto linear_form = LinearForm<ThreePointWaveletFn>(
       std::make_unique<QuadratureFunctional<ContLinearScalingFn>>(f,
                                                                   /*order*/ 2));
-  auto vec_out = TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root);
+  auto vec_out =
+      TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root());
   vec_out.DeepRefine();
 
   linear_form.Apply(vec_out.root());
@@ -45,7 +46,8 @@ TEST(LinearForm, ThreePointZeroEvalTest) {
 
   auto linear_form = LinearForm<ThreePointWaveletFn>(
       std::make_unique<ZeroEvalFunctional<ContLinearScalingFn>>());
-  auto vec_out = TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root);
+  auto vec_out =
+      TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root());
   vec_out.DeepRefine();
 
   linear_form.Apply(vec_out.root());
@@ -65,7 +67,7 @@ TEST(LinearForm, OrthoQuadratureTest) {
   auto linear_form = LinearForm<OrthonormalWaveletFn>(
       std::make_unique<QuadratureFunctional<DiscLinearScalingFn>>(f,
                                                                   /*order*/ 3));
-  auto vec_out = TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root);
+  auto vec_out = TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root());
   vec_out.DeepRefine();
 
   linear_form.Apply(vec_out.root());
