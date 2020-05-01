@@ -22,7 +22,7 @@ inline std::vector<I*> MultiNodeViewInterface<I, T...>::Bfs(
     nodes.emplace_back(node);
     callback(node);
     static_for<dim>([&queue, &node](auto i) {
-      for (auto child : node->children(i))
+      for (const auto& child : node->children(i))
         if (!child->marked()) {
           child->set_marked(true);
           queue.emplace(child);
