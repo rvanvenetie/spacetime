@@ -36,16 +36,16 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
   switch (inclusion_type_) {
     case Subset:
       // Assert that vec_out_ is a refinement of vec_in_.
-      assert((vec_out_->Union(vec_in_), vec_out_->Bfs().size()) ==
-             nodes_vec_out.size());
+      // assert((vec_out_->Union(vec_in_), vec_out_->Bfs().size()) ==
+      //       nodes_vec_out.size());
     case Equal:
       // For both equal and subset, make a triangulation based on output nodes.
       triang_ = std::make_shared<TriangulationView>(nodes_vec_out);
       break;
     case Superset:
       // Assert that vec_in is a refinement of vec_out.
-      assert((vec_out_->Union(vec_out_), vec_out_->Bfs().size()) ==
-             nodes_vec_out.size());
+      // assert((vec_out_->Union(vec_out_), vec_out_->Bfs().size()) ==
+      //       nodes_vec_out.size());
       triang_ = std::make_shared<TriangulationView>(nodes_vec_in);
       break;
     default:
@@ -74,7 +74,7 @@ void BilinearForm<Operator, I_in, I_out>::Apply() {
     // vec_in < vec_out.
 
     // Abuse the output vector for storing the input temporarily.
-    vec_out_->Reset();
+    for (const auto& nv : *nodes_vec_out_) nv->set_value(0);
     vec_out_->Union(vec_in_, datastructures::func_false, lambda_copy);
 
     Eigen::VectorXd v_out = ToVector(*nodes_vec_out_);
