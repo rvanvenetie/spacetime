@@ -298,19 +298,20 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       // Now we must coarsen.
       const auto &hist = vertices[vertex]->parents_element;
       for (const auto &elem : hist) {
-        // We must remove the children of elem from the existing patches.
-        for (const auto &child : elem->children())
-          for (auto vi : Vids(child)) {
-            auto &patch = patches[vi];
+        const auto Vids = space::Vids(elem);
+        for (auto vi : Vids) {
+          // We must remove the children of elem from the existing patches.
+          auto &patch = patches[vi];
+          for (const auto &child : elem->children())
             for (int e = 0; e < patch.size(); e++)
-              if (patch[e] == elem) {
+              if (patch[e] == child) {
                 patch[e] = patch.back();
                 patch.resize(patch.size() - 1);
                 break;
               }
-          }
-        // .. and update it with the parent elements.
-        for (auto vi : Vids(elem)) patches[vi].emplace_back(elem);
+          // .. and update it with the parent elements.
+          patch.emplace_back(elem);
+        }
       }
     }
     row_mat.resize(idx);
