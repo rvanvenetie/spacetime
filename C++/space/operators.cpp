@@ -219,19 +219,24 @@ MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
       // reference, but it doesn't matter for our purpose..
       initial_triang_solver_(triang.InitialTriangulationView(), opts) {}
 
+inline std::array<uint, 3> Vids(Element2D *elem) {
+  return {*elem->vertices()[0]->template data<uint>(),
+          *elem->vertices()[1]->template data<uint>(),
+          *elem->vertices()[2]->template data<uint>()};
+}
+
 template <typename ForwardOp>
-void MultigridPreconditioner<ForwardOp>::RowMatrix(
-    const MultigridTriangulationView &mg_triang, uint vertex,
+inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
+    const std::vector<std::vector<Element2D *>> &patches, uint vertex,
     std::vector<std::pair<uint, double>> &result) const {
-  assert(mg_triang.ContainsVertex(vertex));
   assert(IsDof(vertex));
 
-  const auto &patch = mg_triang.patches()[vertex];
+  const auto &patch = patches[vertex];
   result.clear();
   result.reserve(patch.size() * 3);
   for (auto elem : patch) {
-    const auto &Vids = elem->Vids();
-    const auto &elem_mat = ForwardOp::ElementMatrix(elem->node(), opts_);
+    const auto Vids = space::Vids(elem);
+    const auto &elem_mat = ForwardOp::ElementMatrix(elem, opts_);
     for (uint i = 0; i < 3; ++i)
       if (Vids[i] == vertex)
         for (uint j = 0; j < 3; ++j)
@@ -261,23 +266,58 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
   // Reuse a static variable for storing the row of a matrix.
   static std::vector<std::vector<std::pair<uint, double>>> row_mat;
+  static std::vector<std::vector<Element2D *>> patches;
   static std::vector<double> e;
   e.reserve(V * 3);
 
   // First, initialize the row matrix variables.
   {
-    auto mg_triang = MultigridTriangulationView(
-        triang_.vertices(), /* initialize_finest_level */ true);
+    patches.resize(V);
     row_mat.resize(V * 3);
+
+    // Store indices in the tree.
+    std::vector<uint> indices(V);
+    const std::vector<Vertex *> &vertices = triang_.vertices();
+    for (uint i = 0; i < V; ++i) {
+      indices[i] = i;
+      vertices[i]->set_data(&indices[i]);
+      patches[i].clear();
+    }
+
+    // Initialize patches with the triangulation on the finest level.
+    for (const auto &[elem, Vids] : triang_.element_leaves())
+      for (int vi : Vids) patches[vi].emplace_back(elem);
+
     uint idx = 0;
     for (uint vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
       const auto godparents = triang_.Godparents(vertex);
       for (uint vi : {godparents[1], godparents[0], vertex}) {
-        if (IsDof(vi)) RowMatrix(mg_triang, vi, row_mat[idx++]);
+        if (IsDof(vi)) RowMatrix(patches, vi, row_mat[idx++]);
       }
-      mg_triang.Coarsen();
+
+      // Now we must coarsen.
+      const auto &hist = vertices[vertex]->parents_element;
+      for (const auto &elem : hist) {
+        const auto Vids = space::Vids(elem);
+        for (auto vi : Vids) {
+          // We must remove the children of elem from the existing patches.
+          auto &patch = patches[vi];
+          for (const auto &child : elem->children())
+            for (int e = 0; e < patch.size(); e++)
+              if (patch[e] == child) {
+                patch[e] = patch.back();
+                patch.resize(patch.size() - 1);
+                break;
+              }
+          // .. and update it with the parent elements.
+          patch.emplace_back(elem);
+        }
+      }
     }
     row_mat.resize(idx);
+
+    // Unset the data stored in the vertices.
+    for (auto nv : vertices) nv->reset_data();
   }
 
   // Take zero vector as initial guess.
@@ -325,7 +365,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
         Restrict(vertex, residual);
       }
 
-      // Step 3: Do an upward cycle to calculate the correction on finest mesh.
+      // Step 3: Do an upward cycle to calculate the correction on finest
+      // mesh.
       Eigen::VectorXd e_SS = Eigen::VectorXd::Zero(V);
       idx = e.size();
       assert(e.size() == row_mat.size());
@@ -354,7 +395,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       forward_op_.ApplySingleScale(residual);
       residual = rhs - residual;
 
-      // Step 1: Do a downward-cycle restrict the residual on the coarsest mesh.
+      // Step 1: Do a downward-cycle restrict the residual on the coarsest
+      // mesh.
       for (uint vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex)
         Restrict(vertex, residual);
 

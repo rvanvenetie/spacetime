@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "basis.hpp"
-#include "multigrid_triangulation_view.hpp"
 #include "triangulation_view.hpp"
 
 namespace space {
@@ -24,6 +23,18 @@ struct OperatorOptions {
   size_t mg_cycles = 5;
 
   OperatorOptions() = default;
+
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const OperatorOptions &opts) {
+    os << "OperatorOptions:" << std::endl;
+    os << "\tdirichlet_boundary: "
+       << (opts.dirichlet_boundary_ ? "true" : "false") << std::endl;
+    os << "\tbuild_mat: " << (opts.build_mat_ ? "true" : "false") << std::endl;
+    os << "\ttime_level: " << opts.time_level_ << std::endl;
+    os << "\talpha: " << opts.alpha_ << std::endl;
+    os << "\tcycles: " << opts.cycles_ << std::endl;
+    return os;
+  }
 };
 
 class Operator {
@@ -197,8 +208,9 @@ class MultigridPreconditioner : public BackwardOperator {
  protected:
   // Returns a row of the _forward_ matrix on the given multilevel triang.
   // NOTE: The result is not compressed.
-  void RowMatrix(const MultigridTriangulationView &mg_triang, uint vertex,
-                 std::vector<std::pair<uint, double>> &result) const;
+  inline void RowMatrix(const std::vector<std::vector<Element2D *>> &patches,
+                        uint vertex,
+                        std::vector<std::pair<uint, double>> &result) const;
 
   // Forward operator on the finest level.
   ForwardOp forward_op_;
