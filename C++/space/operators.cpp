@@ -84,7 +84,6 @@ void ForwardOperator<ForwardOp>::ApplySingleScale(Eigen::VectorXd &v) const {
 
 template <class ForwardOp>
 void ForwardOperator<ForwardOp>::InitializeMatrixSingleScale() {
-  assert(false);
   std::vector<Eigen::Triplet<double>> triplets;
   triplets.reserve(triang_.element_leaves().size() * 3);
 
