@@ -71,7 +71,7 @@ Eigen::MatrixXd MatrixQuad(const TreeVector<HierarchicalBasisFn>& tree_in,
   return mat;
 }
 
-constexpr int max_level = 3;
+constexpr int max_level = 5;
 
 TEST(BilinearForm, SymmetricQuadrature) {
   auto T = InitialTriangulation::UnitSquare();
@@ -113,46 +113,55 @@ TEST(BilinearForm, SymmetricQuadrature) {
 TEST(BilinearForm, UnsymmetricQuadrature) {
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(max_level);
-  for (size_t j = 0; j < 20; ++j) {
-    auto vec_in = TreeVector<HierarchicalBasisFn>(T.hierarch_basis_meta_root);
-    auto vec_out = TreeVector<HierarchicalBasisFn>(T.hierarch_basis_meta_root);
-    vec_in.DeepRefine(
-        /* call_filter */ [](auto&& nv) {
-          return nv->level() <= 0 || bsd_rnd() % 3 != 0;
-        });
-    vec_out.DeepRefine(
-        /* call_filter */ [](auto&& nv) {
-          return nv->level() <= 0 || bsd_rnd() % 3 != 0;
-        });
-    auto mass_bil_form = CreateBilinearForm<MassOperator>(vec_in, vec_out);
-    auto mass_mat = mass_bil_form.ToMatrix();
-    auto mass_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ false);
-    ASSERT_TRUE(mass_mat.isApprox(mass_quad));
 
-    // Check that the transpose is correct
-    auto mass_tmat = mass_bil_form.Transpose().ToMatrix();
-    ASSERT_TRUE(mass_mat.transpose().isApprox(mass_tmat));
+  for (bool subset : {true, false}) {
+    for (size_t j = 0; j < 20; ++j) {
+      auto vec_in = TreeVector<HierarchicalBasisFn>(T.hierarch_basis_meta_root);
+      auto vec_out =
+          TreeVector<HierarchicalBasisFn>(T.hierarch_basis_meta_root);
+      vec_in.DeepRefine(
+          /* call_filter */ [](auto&& nv) {
+            return nv->level() <= 0 || bsd_rnd() % 3 != 0;
+          });
+      vec_out.DeepRefine(
+          /* call_filter */ [](auto&& nv) {
+            return nv->level() <= 0 || bsd_rnd() % 3 != 0;
+          });
+      if (subset)
+        vec_out.Union(vec_in);
+      else
+        vec_in.Union(vec_out);
 
-    // Check also the apply of a random vector.
-    Eigen::VectorXd v = RandomVector(vec_in);
-    vec_in.FromVector(v);
-    mass_bil_form.Apply();
-    ASSERT_TRUE(vec_out.ToVector().isApprox(mass_quad * v));
+      auto mass_bil_form = CreateBilinearForm<MassOperator>(vec_in, vec_out);
+      auto mass_mat = mass_bil_form.ToMatrix();
+      auto mass_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ false);
+      ASSERT_TRUE(mass_mat.isApprox(mass_quad));
 
-    auto stiff_bil_form =
-        CreateBilinearForm<StiffnessOperator>(vec_in, vec_out);
-    auto stiff_mat = stiff_bil_form.ToMatrix();
-    auto stiff_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ true);
-    ASSERT_TRUE(stiff_mat.isApprox(stiff_quad));
+      // Check that the transpose is correct
+      auto mass_tmat = mass_bil_form.Transpose().ToMatrix();
+      ASSERT_TRUE(mass_mat.transpose().isApprox(mass_tmat));
 
-    // Check that the transpose is correct
-    auto stiff_tmat = stiff_bil_form.Transpose().ToMatrix();
-    ASSERT_TRUE(stiff_mat.transpose().isApprox(stiff_tmat));
+      // Check also the apply of a random vector.
+      Eigen::VectorXd v = RandomVector(vec_in);
+      vec_in.FromVector(v);
+      mass_bil_form.Apply();
+      ASSERT_TRUE(vec_out.ToVector().isApprox(mass_quad * v));
 
-    // Check also the apply of a random vector.
-    v = RandomVector(vec_in);
-    vec_in.FromVector(v);
-    stiff_bil_form.Apply();
-    ASSERT_TRUE(vec_out.ToVector().isApprox(stiff_quad * v));
+      auto stiff_bil_form =
+          CreateBilinearForm<StiffnessOperator>(vec_in, vec_out);
+      auto stiff_mat = stiff_bil_form.ToMatrix();
+      auto stiff_quad = MatrixQuad(vec_in, vec_out, /*deriv*/ true);
+      ASSERT_TRUE(stiff_mat.isApprox(stiff_quad));
+
+      // Check that the transpose is correct
+      auto stiff_tmat = stiff_bil_form.Transpose().ToMatrix();
+      ASSERT_TRUE(stiff_mat.transpose().isApprox(stiff_tmat));
+
+      // Check also the apply of a random vector.
+      v = RandomVector(vec_in);
+      vec_in.FromVector(v);
+      stiff_bil_form.Apply();
+      ASSERT_TRUE(vec_out.ToVector().isApprox(stiff_quad * v));
+    }
   }
 }

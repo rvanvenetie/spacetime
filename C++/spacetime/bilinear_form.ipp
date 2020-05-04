@@ -13,7 +13,7 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
                  DoubleTreeVector<BasisTimeOut, BasisSpace> *vec_out,
                  bool use_cache, space::OperatorOptions space_opts)
     : BilinearForm(vec_in, vec_out, GenerateSigma(*vec_in, *vec_out),
-                   GenerateTheta(*vec_in, *vec_out), use_cache) {}
+                   GenerateTheta(*vec_in, *vec_out), use_cache, space_opts) {}
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
@@ -34,6 +34,7 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
   std::cerr << std::left;
   std::cerr << std::endl
             << boost::core::demangle(typeid(*this).name()) << std::endl;
+  std::cerr << space_opts << std::endl;
   std::cerr << "  vec_in:  #bfs = " << std::setw(10) << vec_in_->Bfs().size()
             << "#container = " << vec_in_->container().size() << std::endl;
   std::cerr << "  vec_out: #bfs = " << std::setw(10) << vec_out_->Bfs().size()
