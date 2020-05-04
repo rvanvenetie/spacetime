@@ -79,7 +79,8 @@ class AdaptiveHeatEquation {
     return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
   }
 
-  std::pair<TypeXVector *, double> Estimate(const Eigen::VectorXd &u_dd_d);
+  std::pair<TypeXVector *, std::pair<double, double>> Estimate(
+      const Eigen::VectorXd &u_dd_d);
   std::vector<TypeXNode *> Mark(TypeXVector *residual);
 
   // Refines the grid and prolongates a solution living on Xd_.

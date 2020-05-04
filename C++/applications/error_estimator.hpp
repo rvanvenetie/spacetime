@@ -36,10 +36,11 @@ class XEquivalentErrorEstimator {
             .Functional());
     auto u0 = u0_functional->Function();
     double u0_norm_sq = 0.0;
-    for (auto &[elem, _vids] :
-         space::TriangulationView(heat.vec_X()->Project_1()->Bfs())
-             .InitialTriangulationView()
-             .element_leaves())
+    auto initial_leaves =
+        space::TriangulationView(heat.vec_X()->Project_1()->Bfs())
+            .InitialTriangulationView()
+            .element_leaves();
+    for (auto &[elem, _vids] : initial_leaves)
       u0_norm_sq += space::Integrate(
           [&u0](double x, double y) { return u0(x, y) * u0(x, y); }, *elem,
           2 * u0_functional->Order());
