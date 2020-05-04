@@ -29,7 +29,7 @@ template <class ForwardOp>
 ForwardOperator<ForwardOp>::ForwardOperator(const TriangulationView &triang,
                                             OperatorOptions opts)
     : Operator(triang, opts) {
-  if (opts_.build_mat_) InitializeMatrixSingleScale();
+  if (opts_.build_mat) InitializeMatrixSingleScale();
 }
 
 template <class ForwardOp>
@@ -65,7 +65,7 @@ void ForwardOperator<ForwardOp>::ApplyTransposeHierarchToSingle(
 
 template <class ForwardOp>
 void ForwardOperator<ForwardOp>::ApplySingleScale(Eigen::VectorXd &v) const {
-  if (opts_.build_mat_) {
+  if (opts_.build_mat) {
     v = matrix_ * v;
   } else {
     Eigen::VectorXd result = Eigen::VectorXd::Zero(v.rows());
@@ -116,8 +116,8 @@ inline const Eigen::Matrix3d &StiffnessOperator::ElementMatrix(
 inline Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
     const Element2D *elem, const OperatorOptions &opts) {
   // alpha * Stiff + 2^|labda| * Mass.
-  return opts.alpha_ * StiffnessOperator::ElementMatrix(elem, opts) +
-         (1 << opts.time_level_) * MassOperator::ElementMatrix(elem, opts);
+  return opts.alpha * StiffnessOperator::ElementMatrix(elem, opts) +
+         (1 << opts.time_level) * MassOperator::ElementMatrix(elem, opts);
 }
 
 BackwardOperator::BackwardOperator(const TriangulationView &triang,
@@ -176,7 +176,7 @@ DirectInverse<ForwardOp>::DirectInverse(const TriangulationView &triang,
     : BackwardOperator(triang, opts) {
   if (transform_.cols() > 0) {
     OperatorOptions force_build = opts;
-    force_build.build_mat_ = true;
+    force_build.build_mat = true;
     auto matrix = ForwardOp(triang, force_build).MatrixSingleScale();
     matrix = transform_ * matrix * transformT_;
     solver_.analyzePattern(matrix);
@@ -197,7 +197,7 @@ CGInverse<ForwardOp>::CGInverse(const TriangulationView &triang,
                                 OperatorOptions opts)
     : BackwardOperator(triang, opts) {
   OperatorOptions force_build = opts;
-  force_build.build_mat_ = true;
+  force_build.build_mat = true;
   auto matrix = ForwardOp(triang, force_build).MatrixSingleScale();
   solver_.compute(transform_ * matrix * transformT_);
 }
@@ -284,7 +284,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
   Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
 
   // Do a V-cycle.
-  for (size_t cycle = 0; cycle < opts_.cycles_; cycle++) {
+  for (size_t cycle = 0; cycle < opts_.mg_cycles; cycle++) {
     // Part 1: Down-cycle, calculates corrections while coarsening.
     {
       // Initialize the residual vector with  a(f, \Phi) - a(u, \Phi).

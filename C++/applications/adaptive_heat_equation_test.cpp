@@ -52,9 +52,9 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     vec_Xd->SparseRefine(1);
 
     AdaptiveHeatEquationOptions opts;
-    opts.estimate_mean_zero_ = false;
-    opts.use_cache_ = use_cache;
-    opts.P_X_alpha_ = 0.35;
+    opts.estimate_mean_zero = false;
+    opts.use_cache = use_cache;
+    opts.PX_alpha = 0.35;
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf),
                                  opts);
 

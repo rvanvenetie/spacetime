@@ -11,17 +11,17 @@ namespace space {
 
 struct OperatorOptions {
   // Options for all operators.
-  bool dirichlet_boundary_ = true;
+  bool dirichlet_boundary = true;
 
   // Whether or not to build the matrix for a forward operator.
-  bool build_mat_ = true;
+  bool build_mat = true;
 
   // Options for stiff plus scaled mass operator.
-  size_t time_level_ = 0;
-  double alpha_ = 1;
+  size_t time_level = 0;
+  double alpha = 1;
 
   // Options for multigrid preconditioner.
-  size_t cycles_ = 5;
+  size_t mg_cycles = 5;
 
   OperatorOptions() = default;
 };
@@ -39,12 +39,12 @@ class Operator {
 
   // Does the given vertex correspond to a dof?
   inline bool IsDof(uint vertex) const {
-    return !triang_.OnBoundary(vertex) || !opts_.dirichlet_boundary_;
+    return !triang_.OnBoundary(vertex) || !opts_.dirichlet_boundary;
   }
 
   // Verify that the given vector satisfy the boundary conditions.
   bool FeasibleVector(const Eigen::VectorXd &vec) const;
-  inline bool DirichletBoundary() const { return opts_.dirichlet_boundary_; }
+  inline bool DirichletBoundary() const { return opts_.dirichlet_boundary; }
 
   // Overloads required to for Eigen.
   Eigen::VectorXd operator*(const Eigen::VectorXd &vec_in) const {

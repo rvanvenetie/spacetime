@@ -283,7 +283,7 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
       if (fiber_in->children().empty()) continue;
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
       // Set the level of the time wavelet.
-      space_opts_.time_level_ = std::get<0>(psi_out_labda->nodes())->level();
+      space_opts_.time_level = std::get<0>(psi_out_labda->nodes())->level();
       auto bil_form = space::CreateBilinearForm<OperatorSpace>(
           fiber_in, fiber_out, space_opts_);
       bil_form.Apply();

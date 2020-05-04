@@ -12,8 +12,8 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
     std::unique_ptr<TypeXLinForm> &&u0_lin_form,
     const AdaptiveHeatEquationOptions &opts)
     : vec_Xd_(vec_Xd),
-      vec_Xdd_(std::make_shared<TypeXVector>(GenerateXDeltaUnderscore(
-          *vec_Xd_, opts.estimate_saturation_layers_))),
+      vec_Xdd_(std::make_shared<TypeXVector>(
+          GenerateXDeltaUnderscore(*vec_Xd_, opts.estimate_saturation_layers))),
       vec_Ydd_(std::make_shared<TypeYVector>(
           GenerateYDelta<DoubleTreeVector>(*vec_Xdd_))),
       heat_d_dd_(std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts)),
@@ -22,7 +22,7 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
       opts_(opts) {}
 
 Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
-  if (opts_.use_cache_)
+  if (opts_.use_cache)
     heat.B()->Apply(Eigen::VectorXd::Zero(
         heat.B()->cols()));  // This is actually only needed to initialize BT()
 
@@ -38,8 +38,8 @@ std::pair<Eigen::VectorXd, tools::linalg::SolverData>
 AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
   assert(heat_d_dd_);
   return tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
-                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit_,
-                            opts_.solve_rtol_);
+                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit,
+                            opts_.solve_rtol);
 }
 
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
@@ -64,7 +64,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     vec_Xdd_->FromVectorContainer(residual);
     // Let heat_dd_dd go out of scope..
   }
-  if (opts_.estimate_mean_zero_) ApplyMeanZero(vec_Xdd_.get());
+  if (opts_.estimate_mean_zero) ApplyMeanZero(vec_Xdd_.get());
 
   // Get the X_d nodes *inside* X_dd.
   auto vec_Xd_nodes =
@@ -100,7 +100,7 @@ auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
   size_t last_idx = 0;
   for (; last_idx < nodes.size(); last_idx++) {
     cur_sq_norm += nodes[last_idx]->value() * nodes[last_idx]->value();
-    if (cur_sq_norm >= opts_.mark_theta_ * opts_.mark_theta_ * sq_norm) break;
+    if (cur_sq_norm >= opts_.mark_theta * opts_.mark_theta * sq_norm) break;
   }
   nodes.resize(last_idx + 1);
   return nodes;
@@ -117,7 +117,7 @@ void AdaptiveHeatEquation::Refine(
   vec_Ydd_.reset();
 
   vec_Xdd_ = std::make_shared<TypeXVector>(
-      GenerateXDeltaUnderscore(*vec_Xd_, opts_.estimate_saturation_layers_));
+      GenerateXDeltaUnderscore(*vec_Xd_, opts_.estimate_saturation_layers));
   vec_Ydd_ = std::make_shared<TypeYVector>(
       GenerateYDelta<DoubleTreeVector>(*vec_Xdd_));
 
