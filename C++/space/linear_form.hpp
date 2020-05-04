@@ -19,6 +19,9 @@ class QuadratureFunctional : public LinearFunctional {
       : f_(f), order_(order) {}
   std::array<double, 3> Eval(Element2D *elem) const final;
 
+  std::function<double(double, double)> Function() const { return f_; }
+  size_t Order() const { return order_; }
+
  protected:
   std::function<double(double, double)> f_;
   size_t order_;
@@ -33,6 +36,8 @@ class LinearForm {
 
   template <typename I>
   void Apply(I *root);
+
+  LinearFunctional *Functional() { return functional_.get(); }
 
  protected:
   std::unique_ptr<LinearFunctional> functional_;

@@ -115,11 +115,13 @@ int main(int argc, char* argv[]) {
               << " solve-memory: " << getmem() << std::flush;
 
     start = std::chrono::steady_clock::now();
-    auto [residual, residual_norm] = heat_eq.Estimate(solution);
+    auto [residual, norms] = heat_eq.Estimate(solution);
+    auto [residual_norm, x_equiv_norm] = norms;
     std::chrono::duration<double> duration_estimate =
         std::chrono::steady_clock::now() - start;
 
     std::cout << " residual-norm: " << residual_norm
+              << " x-equiv-norm: " << x_equiv_norm
               << " estimate-time: " << duration_estimate.count()
               << " estimate-memory: " << getmem() << std::flush;
 
