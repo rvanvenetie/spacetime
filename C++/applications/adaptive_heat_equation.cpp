@@ -69,7 +69,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
   }
 
   double residual_error = ResidualErrorEstimator::ComputeLocalErrors(
-      vec_Xdd_.get(), opts_.estimate_mean_zero_);
+      vec_Xdd_.get(), opts_.estimate_mean_zero);
 
   // We know that the residual on Xd should be small, so set it zero explicitly.
   auto vec_Xd_nodes =
