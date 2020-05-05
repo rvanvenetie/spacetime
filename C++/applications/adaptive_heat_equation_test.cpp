@@ -69,7 +69,8 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
       ASSERT_NEAR(u_nodes[i]->value(), python_u[i], 1e-5);
     ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[0], 1);
 
-    auto [residual, residual_norm] = heat_eq.Estimate(u);
+    auto [residual, norms] = heat_eq.Estimate(u);
+    auto [residual_norm, x_equiv_norm] = norms;
     auto residual_nodes = residual->Bfs();
     Eigen::VectorXd python_residual(residual_nodes.size());
     python_residual << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -82,26 +83,29 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     for (size_t i = 0; i < residual_nodes.size(); i++)
       ASSERT_NEAR(residual_nodes[i]->value(), python_residual[i], 1e-5);
 
-    std::vector<std::pair<int, double>> python_mark_data{
-        {{1, 0.022990516747664815},
-         {4, 0.016706324583205395},
-         {10, 0.08984241341963645},
-         {13, 0.07019458968270276},
-         {26, 0.050368099941736744}}};
+    std::vector<std::pair<int, std::pair<double, double>>> python_mark_data{
+        {{1, {0.022990516747664815, 0.020106102575435606}},
+         {4, {0.016706324583205395, 0.015609386578623811}},
+         {10, {0.08984241341963645, 0.07872609720998812}},
+         {13, {0.07019458968270276, 0.059311900122128475}},
+         {26, {0.050368099941736744, 0.04315894614947385}}}};
 
     auto marked_nodes = heat_eq.Mark(residual);
     ASSERT_EQ(marked_nodes.size(), python_mark_data[0].first);
-    ASSERT_NEAR(residual_norm, python_mark_data[0].second, 1e-10);
+    ASSERT_NEAR(residual_norm, python_mark_data[0].second.first, 1e-10);
+    ASSERT_NEAR(x_equiv_norm, python_mark_data[0].second.second, 1e-10);
 
     vec_Xd->FromVectorContainer(u);
     heat_eq.Refine(marked_nodes);
 
     for (size_t iter = 1; iter < 5; iter++) {
       auto [u, pcg_data] = heat_eq.Solve(vec_Xd->ToVectorContainer());
-      auto [residual, norm] = heat_eq.Estimate(u);
+      auto [residual, norms] = heat_eq.Estimate(u);
+      auto [residual_norm, x_equiv_norm] = norms;
       auto marked_nodes = heat_eq.Mark(residual);
       ASSERT_EQ(marked_nodes.size(), python_mark_data[iter].first);
-      ASSERT_NEAR(norm, python_mark_data[iter].second, 1e-5);
+      ASSERT_NEAR(residual_norm, python_mark_data[iter].second.first, 1e-5);
+      ASSERT_NEAR(x_equiv_norm, python_mark_data[iter].second.second, 1e-5);
       ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[iter], 1);
       TestNoEmptyFrozenAxes(heat_eq.vec_Xd());
       TestNoEmptyFrozenAxes(heat_eq.vec_Xdd());
