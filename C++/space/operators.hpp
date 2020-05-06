@@ -24,6 +24,18 @@ struct OperatorOptions {
   size_t cycles_ = 5;
 
   OperatorOptions() = default;
+
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const OperatorOptions &opts) {
+    os << "OperatorOptions:" << std::endl;
+    os << "\tdirichlet_boundary: "
+       << (opts.dirichlet_boundary_ ? "true" : "false") << std::endl;
+    os << "\tbuild_mat: " << (opts.build_mat_ ? "true" : "false") << std::endl;
+    os << "\ttime_level: " << opts.time_level_ << std::endl;
+    os << "\talpha: " << opts.alpha_ << std::endl;
+    os << "\tcycles: " << opts.cycles_ << std::endl;
+    return os;
+  }
 };
 
 class Operator {
