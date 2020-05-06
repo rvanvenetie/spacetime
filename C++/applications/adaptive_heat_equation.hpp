@@ -19,36 +19,40 @@ using Time::ThreePointWaveletFn;
 
 struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   // Solve-step parameters.
-  double solve_rtol_ = 1e-5;
-  size_t solve_maxit_ = 100;
+  double solve_rtol = 1e-5;
+  size_t solve_maxit = 100;
 
   // Residual estimation parameter.
-  size_t estimate_saturation_layers_ = 1;
-  bool estimate_mean_zero_ = true;
+  size_t estimate_saturation_layers = 1;
+  bool estimate_mean_zero = true;
 
   // Dorfler marking parameter.
-  double mark_theta_ = 0.7;
+  double mark_theta = 0.7;
 
   friend std::ostream &operator<<(std::ostream &os,
                                   const AdaptiveHeatEquationOptions &opts) {
     os << "Adaptive heat equation options:" << std::endl;
-    os << "\tUse cache: " << (opts.use_cache_ ? "true" : "false") << std::endl;
-    os << "\tSolve options -- rtol: " << opts.solve_rtol_
-       << "; maxit: " << opts.solve_maxit_ << std::endl;
+    os << "\tUse cache: " << (opts.use_cache ? "true" : "false") << std::endl;
+    os << "\tBuild space matrices: "
+       << (opts.build_space_mats ? "true" : "false") << std::endl;
+    os << "\tSolve options -- rtol: " << opts.solve_rtol
+       << "; maxit: " << opts.solve_maxit << std::endl;
     os << "\tEstimate options -- saturation layers: "
-       << opts.estimate_saturation_layers_
-       << "; mean-zero: " << opts.estimate_mean_zero_ << std::endl;
-    os << "\tMarking options -- theta: " << opts.mark_theta_ << std::endl;
+       << opts.estimate_saturation_layers
+       << "; mean-zero: " << opts.estimate_mean_zero << std::endl;
+    os << "\tMarking options -- theta: " << opts.mark_theta << std::endl;
     os << "\tPreconditioner options:" << std::endl;
-    if (opts.P_X_inv_ == HeatEquationOptions::SpaceInverse::DirectInverse)
+    if (opts.PX_inv == HeatEquationOptions::SpaceInverse::DirectInverse)
       os << "\t\tPX: type DirectInverse";
-    else if (opts.P_X_inv_ == HeatEquationOptions::SpaceInverse::Multigrid)
-      os << "\t\tPX: type Multigrid; cycles " << opts.P_X_mg_cycles_;
-    os << "; alpha " << opts.P_X_alpha_ << std::endl;
-    if (opts.P_Y_inv_ == HeatEquationOptions::SpaceInverse::DirectInverse)
+    else if (opts.PX_inv == HeatEquationOptions::SpaceInverse::Multigrid)
+      os << "\t\tPX: type Multigrid; cycles " << opts.PX_mg_cycles
+         << "; build FW matrix " << (opts.PXY_mg_build ? "true" : "false");
+    os << "; alpha " << opts.PX_alpha << std::endl;
+    if (opts.PY_inv == HeatEquationOptions::SpaceInverse::DirectInverse)
       os << "\t\tPY: type DirectInverse";
-    else if (opts.P_Y_inv_ == HeatEquationOptions::SpaceInverse::Multigrid)
-      os << "\t\tPY: type Multigrid; cycles " << opts.P_Y_mg_cycles_;
+    else if (opts.PY_inv == HeatEquationOptions::SpaceInverse::Multigrid)
+      os << "\t\tPY: type Multigrid; cycles " << opts.PY_mg_cycles
+         << "; build FW matrix " << (opts.PXY_mg_build ? "true" : "false");
     os << std::endl;
     return os;
   }
@@ -79,6 +83,7 @@ class AdaptiveHeatEquation {
     return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
   }
 
+  double EstimateGlobalError(const Eigen::VectorXd &u_dd_d);
   std::pair<TypeXVector *, double> Estimate(const Eigen::VectorXd &u_dd_d);
   std::vector<TypeXNode *> Mark(TypeXVector *residual);
 
@@ -91,7 +96,6 @@ class AdaptiveHeatEquation {
 
  protected:
   Eigen::VectorXd RHS(HeatEquation &heat);
-  void ApplyMeanZero(TypeXVector *vec);
 
   std::shared_ptr<TypeXVector> vec_Xd_, vec_Xdd_;
   std::shared_ptr<TypeYVector> vec_Ydd_;

@@ -62,6 +62,9 @@ class LinearForm : public LinearFormBase<TimeBasis> {
     return vec->ToVectorContainer();
   }
 
+  Time::LinearForm<TimeBasis> &TimeLF() { return time_linform_; }
+  space::LinearForm &SpaceLF() { return space_linform_; }
+
  protected:
   Time::LinearForm<TimeBasis> time_linform_;
   space::LinearForm space_linform_;

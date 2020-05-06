@@ -75,6 +75,10 @@ def test_initial_residual():
     # Create rhs functionals
     g_functional, u0_functional = example_rhs_functional(HeatEquation(X_delta))
 
+    # Create auxiliary error estimator.
+    aux_error_estimator = AuxiliaryErrorEstimator(g_functional, u0_functional,
+                                                  *example_u0_data())
+
     # Create adaptive heat equation object.
     adaptive_heat_eq = AdaptiveHeatEquation(X_init=X_delta,
                                             g_functional=g_functional,
@@ -82,11 +86,16 @@ def test_initial_residual():
                                             theta=0.7)
     u_dd_d, solve_info = adaptive_heat_eq.solve_step(solver_tol=solver_tol)
     residual, mark_info = adaptive_heat_eq.mark_refine(u_dd_d=u_dd_d)
-    print(solve_info, mark_info['n_marked'], mark_info['res_norm'])
+    aux_error, _ = aux_error_estimator.estimate(adaptive_heat_eq.heat_dd_d,
+                                                u_dd_d)
+    print(solve_info, mark_info['n_marked'], mark_info['res_norm'], aux_error)
     for i in range(1, 5):
         u_dd_d, solve_info = adaptive_heat_eq.solve_step(solver_tol=solver_tol)
         residual, mark_info = adaptive_heat_eq.mark_refine(u_dd_d=u_dd_d)
-        print(solve_info, mark_info['n_marked'], mark_info['res_norm'])
+        aux_error, _ = aux_error_estimator.estimate(adaptive_heat_eq.heat_dd_d,
+                                                    u_dd_d)
+        print(solve_info, mark_info['n_marked'], mark_info['res_norm'],
+              aux_error)
 
 
 def test_heat_error_reduction():
