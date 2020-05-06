@@ -1,4 +1,4 @@
-add_library(applications STATIC heat_equation.cpp adaptive_heat_equation.cpp)
+add_library(applications STATIC heat_equation.cpp adaptive_heat_equation.cpp error_estimator.cpp)
 target_precompile_headers(applications PUBLIC heat_equation.hpp)
 target_link_libraries(applications spacetime)
 
