@@ -13,14 +13,14 @@ struct OperatorOptions {
   bool dirichlet_boundary = true;
 
   // Whether or not to build the matrix for a forward operator.
-  bool build_mat = true;
+  bool build_mat = false;
 
   // Options for stiff plus scaled mass operator.
   size_t time_level = 0;
   double alpha = 1;
 
   // Options for multigrid preconditioner.
-  size_t mg_cycles = 5;
+  size_t mg_cycles = 3;
 
   OperatorOptions() = default;
 

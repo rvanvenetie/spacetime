@@ -19,7 +19,7 @@ using Time::ThreePointWaveletFn;
 
 struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   // Solve-step parameters.
-  double solve_rtol = 1e-5;
+  double solve_rtol = 1e-4;
   size_t solve_maxit = 100;
 
   // Residual estimation parameter.
@@ -27,7 +27,7 @@ struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   bool estimate_mean_zero = true;
 
   // Dorfler marking parameter.
-  double mark_theta = 0.7;
+  double mark_theta = 0.9;
 
   friend std::ostream &operator<<(std::ostream &os,
                                   const AdaptiveHeatEquationOptions &opts) {
