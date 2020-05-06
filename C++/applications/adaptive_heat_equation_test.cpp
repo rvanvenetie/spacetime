@@ -45,7 +45,7 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     };
     auto u0 = [](double x, double y) { return (1 - x) * x * (1 - y) * y; };
 
-    auto [g_lf, u0_lf] = SmoothProblem();
+    auto [gY_lf, gX_lf, u0_lf] = SmoothProblem();
     auto vec_Xd = std::make_shared<
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
         B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
@@ -55,8 +55,8 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     opts.estimate_mean_zero = false;
     opts.use_cache = use_cache;
     opts.PX_alpha = 0.35;
-    AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf),
-                                 opts);
+    AdaptiveHeatEquation heat_eq(vec_Xd, std::move(gY_lf), std::move(gX_lf),
+                                 std::move(u0_lf), opts);
 
     std::vector<size_t> python_pcg_iters{2, 3, 5, 5, 5};
     auto [u, pcg_data] = heat_eq.Solve();

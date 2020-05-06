@@ -45,9 +45,6 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
   // Create trace operator.
   G0_ = std::make_shared<TypeG>(vec_X_.get(), opts_.use_cache, space_opts);
 
-  // Create the negative trace operator.
-  auto minus_G = std::make_shared<NegativeBilinearForm<TypeG>>(G0_);
-
   // Initialize preconditioners (if necessary).
   if (!P_Y_) InitializePrecondY();
   InitializePrecondX();
@@ -155,8 +152,14 @@ NewMethodHeatEquation::NewMethodHeatEquation(std::shared_ptr<TypeXVector> vec_X,
     space::OperatorOptions space_opts({.build_mat = opts_.build_space_mats});
     if (!AY)
       AY_ = std::make_shared<TypeAY>(vec_Y_.get(), opts.use_cache, space_opts);
-    C_ = std::make_shared<TypeC>(vec_X_.get(), vec_Y_.get(), opts_.use_cache,
-                                 space_opts);
+    if (Yd_is_GenerateYDelta_Xd)
+      // Create C making use of the fact that theta = vec_Ydd.
+      C_ = std::make_shared<TypeC>(vec_X_.get(), vec_Y_.get(),
+                                   spacetime::GenerateSigma(*vec_X_, *vec_Y_),
+                                   vec_Y_, opts_.use_cache, space_opts);
+    else
+      C_ = std::make_shared<TypeC>(vec_X_.get(), vec_Y_.get(), opts_.use_cache,
+                                   space_opts);
     if (opts_.use_cache) {
       CT_ = C_->Transpose();
     } else {

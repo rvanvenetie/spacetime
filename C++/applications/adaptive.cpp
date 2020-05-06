@@ -84,8 +84,9 @@ int main(int argc, char* argv[]) {
       B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
   vec_Xd->SparseRefine(1);
 
-  std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
-            std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
+  std::tuple<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
+             std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>,
+             std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
       problem_data;
   if (problem == "smooth")
     problem_data = SmoothProblem();
@@ -95,8 +96,10 @@ int main(int argc, char* argv[]) {
     std::cout << "problem not recognized :-(" << std::endl;
     return 1;
   }
-  AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
-                               std::move(problem_data.second), adapt_opts);
+  AdaptiveHeatEquation heat_eq(vec_Xd, std::move(std::get<0>(problem_data)),
+                               std::move(std::get<1>(problem_data)),
+                               std::move(std::get<2>(problem_data)),
+                               adapt_opts);
 
   size_t ndof = 0;
   Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());

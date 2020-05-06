@@ -204,7 +204,9 @@ class NewSchurBilinearForm
 
   Eigen::VectorXd Apply(const Eigen::VectorXd &v) final {
     Eigen::VectorXd result;
+    std::cout << c_->rows() << " " << c_->cols() << std::endl;
     result = c_->Apply(v);
+    std::cout << a_inv_->rows() << std::endl;
     result = a_inv_->Apply(result);
     result = ct_->Apply(result);
 

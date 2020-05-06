@@ -8,7 +8,8 @@
 namespace applications {
 AdaptiveHeatEquation::AdaptiveHeatEquation(
     std::shared_ptr<TypeXVector> vec_Xd,
-    std::unique_ptr<TypeYLinForm> &&g_lin_form,
+    std::unique_ptr<TypeYLinForm> &&gY_lin_form,
+    std::unique_ptr<TypeXLinForm> &&gX_lin_form,
     std::unique_ptr<TypeXLinForm> &&u0_lin_form,
     const AdaptiveHeatEquationOptions &opts)
     : vec_Xd_(vec_Xd),
@@ -18,7 +19,8 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
           GenerateYDelta<DoubleTreeVector>(*vec_Xdd_))),
       heat_d_dd_(
           std::make_unique<NewMethodHeatEquation>(vec_Xd_, vec_Ydd_, opts)),
-      g_lin_form_(std::move(g_lin_form)),
+      gY_lin_form_(std::move(gY_lin_form)),
+      gX_lin_form_(std::move(gX_lin_form)),
       u0_lin_form_(std::move(u0_lin_form)),
       opts_(opts) {}
 
@@ -26,11 +28,9 @@ Eigen::VectorXd AdaptiveHeatEquation::RHS(NewMethodHeatEquation &heat) {
   if (opts_.use_cache)
     heat.C()->Apply(Eigen::VectorXd::Zero(
         heat.C()->cols()));  // This is actually only needed to initialize BT()
-
-  Eigen::VectorXd rhs = heat.P_Y()->Apply(g_lin_form_->Apply(heat.vec_Y()));
-  rhs = rhs;
-  rhs = heat.BT()->Apply(rhs);
-
+  Eigen::VectorXd rhs = heat.P_Y()->Apply(gY_lin_form_->Apply(heat.vec_Y()));
+  rhs = heat.CT()->Apply(rhs);
+  rhs += gX_lin_form_->Apply(heat.vec_X());
   rhs += u0_lin_form_->Apply(heat.vec_X());
   return rhs;
 }
@@ -45,17 +45,15 @@ AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
 
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     -> std::pair<TypeXVector *, std::pair<double, double>> {
-  double Xequiv_error = XEquivalentErrorEstimator::ComputeGlobalError(
-      *heat_d_dd_, *g_lin_form_, *u0_lin_form_, u_dd_d);
   {
     assert(heat_d_dd_);
-    auto A = heat_d_dd_->A();
+    auto AY = heat_d_dd_->AY();
     auto P_Y = heat_d_dd_->P_Y();
     // Invalidate heat_d_dd, we no longer need these bilinear forms.
     heat_d_dd_.reset();
 
     // Create heat equation with X_dd and Y_dd.
-    NewMethodHeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y,
+    NewMethodHeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, AY, P_Y,
                                      /* Ydd_is_GenerateYDelta_Xdd */ true,
                                      opts_);
 
@@ -84,7 +82,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     dblnode->set_value(0.0);
   }
   return {vec_Xdd_.get(),
-          {sqrt(residual_error * residual_error - sum_Xd), Xequiv_error}};
+          {sqrt(residual_error * residual_error - sum_Xd), 0.0}};
 }
 
 auto AdaptiveHeatEquation::Mark(TypeXVector *residual)

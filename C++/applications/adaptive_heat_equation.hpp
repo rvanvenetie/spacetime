@@ -73,7 +73,8 @@ class AdaptiveHeatEquation {
  public:
   AdaptiveHeatEquation(
       std::shared_ptr<TypeXVector> vec_Xd,
-      std::unique_ptr<TypeYLinForm> &&g_lin_form,
+      std::unique_ptr<TypeYLinForm> &&gY_lin_form,
+      std::unique_ptr<TypeXLinForm> &&gX_lin_form,
       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
@@ -100,7 +101,8 @@ class AdaptiveHeatEquation {
   std::shared_ptr<TypeXVector> vec_Xd_, vec_Xdd_;
   std::shared_ptr<TypeYVector> vec_Ydd_;
   std::unique_ptr<NewMethodHeatEquation> heat_d_dd_;
-  std::unique_ptr<TypeYLinForm> g_lin_form_;
+  std::unique_ptr<TypeYLinForm> gY_lin_form_;
+  std::unique_ptr<TypeXLinForm> gX_lin_form_;
   std::unique_ptr<TypeXLinForm> u0_lin_form_;
 
   AdaptiveHeatEquationOptions opts_;
