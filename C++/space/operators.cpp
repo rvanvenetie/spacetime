@@ -242,23 +242,24 @@ inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
           if (IsDof(elem_Vids[j]))
             result.emplace_back(elem_Vids[j], elem_mat.coeff(i, j));
   }
-  std::sort(
-      result.begin(), result.end(),
-      [](const std::pair<uint, double> &p1, const std::pair<uint, double> &p2) {
-        return p1.first < p2.first;
-      });
-  uint j = 0;
-  for (uint i = 1; i < result.size(); i++) {
-    if (result[i].first == result[j].first)
-      result[j].second += result[i].second;
-    else
-      result[++j] = result[i];
-  }
-  result.resize(j + 1);
+  //  std::sort(
+  //      result.begin(), result.end(),
+  //      [](const std::pair<uint, double> &p1, const std::pair<uint, double>
+  //      &p2) {
+  //        return p1.first < p2.first;
+  //      });
+  //  uint j = 0;
+  //  for (uint i = 1; i < result.size(); i++) {
+  //    if (result[i].first == result[j].first)
+  //      result[j].second += result[i].second;
+  //    else
+  //      result[++j] = result[i];
+  //  }
+  //  result.resize(j + 1);
 }
 
 template <typename ForwardOp>
-void MultigridPreconditioner<ForwardOp>::InitializeRowMatrix() {
+void MultigridPreconditioner<ForwardOp>::InitializeMultigridMatrix() const {
   const uint V = triang_.V;
   patches.resize(V);
   row_mat.resize(V * 3);
@@ -272,7 +273,7 @@ void MultigridPreconditioner<ForwardOp>::InitializeRowMatrix() {
     patches[i].clear();
   }
 
-  // Initialize patches with the triangulation on the finest level.
+  // Initialize patches var with the triangulation on the finest level.
   for (const auto &[elem, Vids] : triang_.element_leaves())
     for (int vi : Vids) patches[vi].emplace_back(elem);
 
@@ -282,7 +283,7 @@ void MultigridPreconditioner<ForwardOp>::InitializeRowMatrix() {
     for (uint vi : {godparents[1], godparents[0], vertex})
       if (IsDof(vi)) RowMatrix(vi, row_mat[idx++]);
 
-    // Now we must coarsen.
+    // Coarsen this vertex, i.e. update the patches var.
     const auto &hist = vertices[vertex]->parents_element;
     for (const auto &elem : hist) {
       const auto elem_Vids = Vids(elem);
@@ -317,8 +318,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
   static std::vector<double> e;
   e.reserve(V * 3);
 
-  // First, initialize the row matrix variables.
-  {}
+  // Initialize the multigrid matrix (row_mat).
+  InitializeMultigridMatrix();
 
   // Take zero vector as initial guess.
   Eigen::VectorXd u = Eigen::VectorXd::Zero(V);

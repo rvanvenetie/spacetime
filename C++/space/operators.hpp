@@ -206,8 +206,8 @@ class MultigridPreconditioner : public BackwardOperator {
   }
 
  protected:
-  // Initializes the multiscale matrix with the correct values.
-  void InitializeRowMatrix();
+  // Initializes the static variable row_mat.
+  void InitializeMultigridMatrix() const;
 
   // Returns a row of the _forward_ matrix on the given multilevel triang.
   // NOTE: The result might not be compressed.
@@ -220,7 +220,7 @@ class MultigridPreconditioner : public BackwardOperator {
   // Solver on the coarsest level.
   DirectInverse<ForwardOp> initial_triang_solver_;
 
-  // (Static) variables reused for calculation of the multiscale matrix.
+  // (Static) variables reused for calculation of the multigrid matrix.
   static std::vector<std::vector<std::pair<uint, double>>> row_mat;
   static std::vector<std::vector<Element2D *>> patches;
 };
