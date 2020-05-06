@@ -28,46 +28,30 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in *root_vec_in,
       nodes_vec_in_(std::make_shared<std::vector<std::vector<I_in *>>>(
           vec_in_->NodesPerLevel())),
       nodes_vec_out_(std::make_shared<std::vector<std::vector<I_out *>>>(
-          vec_out_->NodesPerLevel())) {
-  InitializeOutput();
+          vec_out_->NodesPerLevel())) {}
+
+template <template <typename, typename> class Operator, typename I_in,
+          typename I_out>
+auto BilinearForm<Operator, I_in, I_out>::LevelVectorInput(size_t l) const
+    -> SparseVector<WaveletBasisIn> {
+  SparseVector<WaveletBasisIn> result;
+  if (l >= nodes_vec_in_->size()) return result;
+  const auto &nodes_lvl = (*nodes_vec_in_)[l];
+  result.reserve(nodes_lvl.size());
+  for (const auto &nv : nodes_lvl) result.emplace_back(nv->node(), nv->value());
+  return result;
 }
 
 template <template <typename, typename> class Operator, typename I_in,
           typename I_out>
-void BilinearForm<Operator, I_in, I_out>::InitializeOutput() {
-  assert(vec_out_->is_root());
-  assert(nodes_vec_out_);
-  assert(lvl_ind_out_.empty());
-
-  // Initialize lvl_ind_out using nodes_vec_out.
-  lvl_ind_out_.resize(nodes_vec_out_->size());
-  for (int lvl = 0; lvl < nodes_vec_out_->size(); ++lvl) {
-    lvl_ind_out_[lvl].reserve((*nodes_vec_out_)[lvl].size());
-    for (auto node : (*nodes_vec_out_)[lvl])
-      lvl_ind_out_[lvl].emplace_back(node->node());
-  }
-
-  assert(lvl_ind_out_.size());
-  assert(lvl_ind_out_[0].size());
-}
-
-template <template <typename, typename> class Operator, typename I_in,
-          typename I_out>
-void BilinearForm<Operator, I_in, I_out>::InitializeInput() {
-  assert(vec_in_->is_root());
-  assert(nodes_vec_in_);
-
-  // Initialize lvl_vec_in using nodes_vec_in.
-  lvl_vec_in_.resize(nodes_vec_in_->size());
-  for (int lvl = 0; lvl < nodes_vec_in_->size(); ++lvl) {
-    auto &nodes_lvl = (*nodes_vec_in_)[lvl];
-    lvl_vec_in_[lvl].resize(nodes_lvl.size());
-    for (int i = 0; i < nodes_lvl.size(); ++i)
-      lvl_vec_in_[lvl][i] = {nodes_lvl[i]->node(), nodes_lvl[i]->value()};
-  }
-
-  assert(lvl_vec_in_.size());
-  assert(lvl_vec_in_[0].size());
+auto BilinearForm<Operator, I_in, I_out>::LevelIndicesOutput(size_t l) const
+    -> SparseIndices<WaveletBasisOut> {
+  SparseIndices<WaveletBasisOut> result;
+  if (l >= nodes_vec_out_->size()) return result;
+  const auto &nodes_lvl = (*nodes_vec_out_).at(l);
+  result.reserve(nodes_lvl.size());
+  for (const auto &nv : nodes_lvl) result.emplace_back(nv->node());
+  return result;
 }
 
 template <template <typename, typename> class Operator, typename I_in,
@@ -116,11 +100,8 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyRecur(
     size_t l, SparseIndices<ScalingBasisOut> &&Pi_out,
     const SparseVector<ScalingBasisIn> &d)
     -> std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>> {
-  const SparseVector<WaveletBasisIn> &c =
-      l < lvl_vec_in_.size() ? lvl_vec_in_[l] : empty_vec_in_;
-
-  const SparseIndices<WaveletBasisOut> &Lambda_l_out =
-      l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
+  SparseVector<WaveletBasisIn> c = LevelVectorInput(l);
+  SparseIndices<WaveletBasisOut> Lambda_l_out = LevelIndicesOutput(l);
 
   if ((Pi_out.size() + Lambda_l_out.size()) > 0 && (d.size() + c.size()) > 0) {
     auto [Pi_B_out, Pi_A_out] = ConstructPiOut(std::move(Pi_out));
@@ -151,11 +132,8 @@ auto BilinearForm<Operator, I_in, I_out>::ApplyUppRecur(
     size_t l, SparseIndices<ScalingBasisOut> &&Pi_out,
     const SparseVector<ScalingBasisIn> &d)
     -> std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>> {
-  const SparseVector<WaveletBasisIn> &c =
-      l < lvl_vec_in_.size() ? lvl_vec_in_[l] : empty_vec_in_;
-
-  const SparseIndices<WaveletBasisOut> &Lambda_l_out =
-      l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
+  SparseVector<WaveletBasisIn> c = LevelVectorInput(l);
+  SparseIndices<WaveletBasisOut> Lambda_l_out = LevelIndicesOutput(l);
 
   if ((Pi_out.size() + Lambda_l_out.size()) > 0 && (d.size() + c.size()) > 0) {
     auto d_bar = WaveletToScaling<WaveletBasisIn>().MatVec(c);
@@ -183,11 +161,8 @@ template <template <typename, typename> class Operator, typename I_in,
 auto BilinearForm<Operator, I_in, I_out>::ApplyLowRecur(
     size_t l, const SparseVector<ScalingBasisIn> &d)
     -> SparseVector<WaveletBasisOut> {
-  const SparseVector<WaveletBasisIn> &c =
-      l < lvl_vec_in_.size() ? lvl_vec_in_[l] : empty_vec_in_;
-
-  const SparseIndices<WaveletBasisOut> &Lambda_l_out =
-      l < lvl_ind_out_.size() ? lvl_ind_out_[l] : empty_ind_out_;
+  SparseVector<WaveletBasisIn> c = LevelVectorInput(l);
+  SparseIndices<WaveletBasisOut> Lambda_l_out = LevelIndicesOutput(l);
 
   if (Lambda_l_out.size() > 0 && (d.size() + c.size()) > 0) {
     auto Pi_B_in = ConstructPiBIn(d.Indices(), {});
@@ -214,13 +189,13 @@ auto BilinearForm<Operator, I_in, I_out>::ConstructPiOut(
   if (Pi_out.empty()) return {{}, {}};
 
   int level = Pi_out[0]->level();
-  if (level + 1 >= lvl_vec_in_.size() || lvl_vec_in_[level + 1].empty())
+  if (level + 1 >= nodes_vec_in_->size() || (*nodes_vec_in_)[level + 1].empty())
     return {{}, std::move(Pi_out)};
 
   // Mark the support of wavelets psi, on one level higher.
-  const auto &wavelets = lvl_vec_in_.at(level + 1);
-  for (const auto &[psi, _] : wavelets)
-    for (auto elem : psi->support()) elem->parent()->set_marked(true);
+  const auto &wavelets = (*nodes_vec_in_)[level + 1];
+  for (const auto &psi : wavelets)
+    for (auto elem : psi->node()->support()) elem->parent()->set_marked(true);
 
   SparseIndices<ScalingBasisOut> Pi_B_out, Pi_A_out;
   Pi_B_out.reserve(Pi_out.size());
@@ -235,8 +210,8 @@ auto BilinearForm<Operator, I_in, I_out>::ConstructPiOut(
       Pi_A_out.emplace_back(phi);
 
   // Unmark.
-  for (const auto &[psi, _] : wavelets)
-    for (auto elem : psi->support()) elem->parent()->set_marked(false);
+  for (const auto &psi : wavelets)
+    for (auto elem : psi->node()->support()) elem->parent()->set_marked(false);
 
   return {std::move(Pi_B_out), std::move(Pi_A_out)};
 }
@@ -251,10 +226,9 @@ auto BilinearForm<Operator, I_in, I_out>::ConstructPiBIn(
   int level = Pi_in[0]->level();
 
   // Mark the support of wavelets psi, on one level higher.
-  SparseIndices<WaveletBasisOut> wavelets;
-  if (level + 1 < lvl_ind_out_.size()) wavelets = lvl_ind_out_.at(level + 1);
-  for (auto psi : wavelets)
-    for (auto elem : psi->support()) elem->parent()->set_marked(true);
+  if (level + 1 < nodes_vec_out_->size())
+    for (auto psi : (*nodes_vec_out_)[level + 1])
+      for (auto elem : psi->node()->support()) elem->parent()->set_marked(true);
 
   // Mark the support of scaling functions in Pi_B_out.
   for (auto phi : Pi_B_out)
@@ -273,8 +247,10 @@ auto BilinearForm<Operator, I_in, I_out>::ConstructPiBIn(
                 Pi_B_in.end());
 
   // Unmark.
-  for (auto psi : wavelets)
-    for (auto elem : psi->support()) elem->parent()->set_marked(false);
+  if (level + 1 < nodes_vec_out_->size())
+    for (auto psi : (*nodes_vec_out_)[level + 1])
+      for (auto elem : psi->node()->support())
+        elem->parent()->set_marked(false);
   for (auto phi : Pi_B_out)
     for (auto elem : phi->support()) elem->set_marked(false);
 

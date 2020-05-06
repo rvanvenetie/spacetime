@@ -66,7 +66,7 @@ class TriangulationView {
     std::vector<Vertex *> result;
     assert(nodes.size());
     result.reserve(nodes.size());
-    for (const auto nv : nodes) result.emplace_back(ToVertex(nv->node()));
+    for (const auto &nv : nodes) result.emplace_back(ToVertex(nv->node()));
     return result;
   }
 };

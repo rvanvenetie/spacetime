@@ -27,19 +27,16 @@ class BilinearForm {
   BilinearForm(I_in *root_vec_in, I_out *root_vec_out);
 
   void Apply() {
-    InitializeInput();
     auto [_, f] = ApplyRecur(0, {}, {});
     FinalizeOutput(f);
   }
 
   void ApplyUpp() {
-    InitializeInput();
     auto [_, f] = ApplyUppRecur(0, {}, {});
     FinalizeOutput(f);
   }
 
   void ApplyLow() {
-    InitializeInput();
     auto f = ApplyLowRecur(0, {});
     FinalizeOutput(f);
   }
@@ -50,7 +47,6 @@ class BilinearForm {
     transpose.vec_out_ = vec_in_;
     transpose.nodes_vec_in_ = nodes_vec_out_;
     transpose.nodes_vec_out_ = nodes_vec_in_;
-    transpose.InitializeOutput();
     return transpose;
   }
 
@@ -70,17 +66,13 @@ class BilinearForm {
   std::shared_ptr<std::vector<std::vector<I_in *>>> nodes_vec_in_;
   std::shared_ptr<std::vector<std::vector<I_out *>>> nodes_vec_out_;
 
-  // Another flattened (levelwise) view of the vectors, in another data format.
-  std::vector<SparseVector<WaveletBasisIn>> lvl_vec_in_;
-  std::vector<SparseIndices<WaveletBasisOut>> lvl_ind_out_;
-
   // Helper variables.
   SparseVector<WaveletBasisIn> empty_vec_in_;
   SparseIndices<WaveletBasisOut> empty_ind_out_;
 
   // Helper function to set the levelwise input/output vector.
-  void InitializeOutput();
-  void InitializeInput();
+  SparseVector<WaveletBasisIn> LevelVectorInput(size_t l) const;
+  SparseIndices<WaveletBasisOut> LevelIndicesOutput(size_t l) const;
   void FinalizeOutput(const SparseVector<WaveletBasisOut> &f);
 
   // Recursive apply.
