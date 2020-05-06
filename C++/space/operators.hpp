@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "basis.hpp"
-#include "multigrid_triangulation_view.hpp"
 #include "triangulation_view.hpp"
 
 namespace space {
@@ -207,16 +206,23 @@ class MultigridPreconditioner : public BackwardOperator {
   }
 
  protected:
+  // Initializes the static variable row_mat.
+  void InitializeMultigridMatrix() const;
+
   // Returns a row of the _forward_ matrix on the given multilevel triang.
-  // NOTE: The result is not compressed.
-  void RowMatrix(const MultigridTriangulationView &mg_triang, uint vertex,
-                 std::vector<std::pair<uint, double>> &result) const;
+  // NOTE: The result might not be compressed.
+  inline void RowMatrix(uint vertex,
+                        std::vector<std::pair<uint, double>> &result) const;
 
   // Forward operator on the finest level.
   ForwardOp forward_op_;
 
   // Solver on the coarsest level.
   DirectInverse<ForwardOp> initial_triang_solver_;
+
+  // (Static) variables reused for calculation of the multigrid matrix.
+  static std::vector<std::vector<std::pair<uint, double>>> row_mat;
+  static std::vector<std::vector<Element2D *>> patches;
 };
 
 template <template <typename> class InverseOp>

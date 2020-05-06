@@ -19,9 +19,8 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
     vertices_[i]->set_data(&indices[i]);
 
     // Find the first vertex that is not of level 0.
-    if (vertices_[i]->level() > 0 && initial_vertices_ == 0)
+    if (initial_vertices_ == 0 && vertices_[i]->level() > 0)
       initial_vertices_ = i;
-    assert((vertices_[i]->level() > 0) == (initial_vertices_ > 0));
 
     // Store link to the Godparents.
     if (vtx->godparents.size())

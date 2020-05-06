@@ -39,6 +39,7 @@ class Vertex : public datastructures::Node<Vertex> {
 
   // This are the vertices that are bisected to create the current vertex.
   StaticVector<Vertex *, 2> godparents;
+  StaticVector<Element2D *, 2> parents_element;
 
   // Constructor given parents.
   Vertex(const std::vector<Vertex *> &parents, double x, double y,
