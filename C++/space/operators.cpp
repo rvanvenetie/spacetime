@@ -281,6 +281,7 @@ void MultigridPreconditioner<ForwardOp>::InitializeMultigridMatrix() const {
     indices[i] = i;
     vertices[i]->set_data(&indices[i]);
     patches[i].clear();
+    patches[i].reserve(4);
   }
 
   // Initialize patches var with the triangulation on the finest level.
@@ -359,7 +360,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
           // Calculate a(phi_vi, phi_vi).
           double a_phi_vi_phi_vi = 0;
-          for (auto [vj, val] : row_mat[idx])
+          for (const auto &[vj, val] : row_mat[idx])
             if (vj == vi) a_phi_vi_phi_vi += val;
 
           // Calculate the correction in phi_vi.
@@ -369,7 +370,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           e.emplace_back(e_vi);
 
           // Update the residual with this new correction  a(e_vi, \cdot).
-          for (auto [vj, val] : row_mat[idx++]) residual[vj] -= e_vi * val;
+          for (const auto &[vj, val] : row_mat[idx++])
+            residual[vj] -= e_vi * val;
         }
 
         // Coarsen mesh, and restrict the residual calculated thus far.
@@ -439,7 +441,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           // Calculate a(phi_vi, phi_vi) and a(e_SS, phi_vi).
           double a_phi_vi_phi_vi = 0;
           double a_e_phi_vi = 0;
-          for (auto [vj, val] : row_mat[--idx]) {
+          for (const auto &[vj, val] : row_mat[--idx]) {
             // Calculate the inner product with itself.
             if (vj == vi) a_phi_vi_phi_vi += 1 * val;
 
