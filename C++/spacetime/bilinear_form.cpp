@@ -19,6 +19,8 @@ template class SymmetricBilinearForm<
     Time::MassOperator, space::StiffnessOperator, Time::OrthonormalWaveletFn>;
 template class SymmetricBilinearForm<
     Time::ZeroEvalOperator, space::MassOperator, Time::ThreePointWaveletFn>;
+template class SymmetricBilinearForm<Time::OneEvalOperator, space::MassOperator,
+                                     Time::ThreePointWaveletFn>;
 template class BlockDiagonalBilinearForm<
     space::DirectInverse<space::StiffnessOperator>, Time::OrthonormalWaveletFn,
     Time::OrthonormalWaveletFn>;

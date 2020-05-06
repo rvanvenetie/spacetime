@@ -97,7 +97,7 @@ class HeatEquation {
   auto A() { return A_; }
   auto B() { return B_; };
   auto BT() { return BT_; }
-  auto G() { return G_; }
+  auto G() { return G0_; }
 
   auto P_Y() { return P_Y_; }
   auto P_X() { return P_X_; }
@@ -114,7 +114,7 @@ class HeatEquation {
   std::shared_ptr<TypeA> A_;
   std::shared_ptr<TypeB> B_;
   std::shared_ptr<TypeBT> BT_;
-  std::shared_ptr<TypeG> G_;
+  std::shared_ptr<TypeG> G0_;
 
   // Preconditioners.
   std::shared_ptr<TypePrecondY> P_Y_;
@@ -133,6 +133,99 @@ class HeatEquation {
   // Constructors for preconditioners.
   void InitializePrecondX();
   void InitializePrecondY();
+};
+
+class NewMethodHeatEquation {
+ public:
+  // DoubleTreeView/DoubleTreeVectors.
+  using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
+  using TypeYDelta = DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>;
+  using TypeXVector =
+      DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>;
+  using TypeYVector =
+      DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>;
+
+  // The symmetric operator acting from Y_delta to Y_delta.
+  using TypeAY =
+      SymmetricBilinearForm<Time::MassOperator, space::StiffnessOperator,
+                            OrthonormalWaveletFn>;
+  // The operator C acting from X_delta to Y_delta.
+  using TypeC = BilinearForm<Time::TransportOperator, space::MassOperator,
+                             ThreePointWaveletFn, OrthonormalWaveletFn>;
+
+  // The transpose of C.
+  using TypeCT = BilinearFormBase<TypeYVector, TypeXVector>;
+
+  // The trace operator maps between X_delta and X_delta.
+  using TypeAX =
+      SymmetricBilinearForm<Time::MassOperator, space::StiffnessOperator,
+                            ThreePointWaveletFn>;
+
+  // The trace operator maps between X_delta and X_delta.
+  using TypeGT =
+      SymmetricBilinearForm<Time::OneEvalOperator, space::MassOperator,
+                            ThreePointWaveletFn>;
+
+  // Preconditioners.
+  using TypePrecondY = BilinearFormBase<TypeYVector, TypeYVector>;
+  using TypePrecondX = BilinearFormBase<TypeXVector, TypeXVector>;
+
+  // Schur complement.
+  using TypeS = spacetime::NewSchurBilinearForm<TypePrecondY, TypeC, TypeCT,
+                                                TypeAX, TypeGT>;
+
+  NewMethodHeatEquation(
+      std::shared_ptr<TypeXVector> vec_X, std::shared_ptr<TypeYVector> vec_Y,
+      std::shared_ptr<TypeAY> AY, std::shared_ptr<TypePrecondY> P_Y,
+      bool Yd_is_GenerateYDelta_Xd = false,
+      const HeatEquationOptions &opts = HeatEquationOptions());
+  NewMethodHeatEquation(
+      std::shared_ptr<TypeXVector> vec_X, std::shared_ptr<TypeYVector> vec_Y,
+      const HeatEquationOptions &opts = HeatEquationOptions());
+  NewMethodHeatEquation(
+      const TypeXDelta &X_delta, const TypeYDelta &Y_delta,
+      const HeatEquationOptions &opts = HeatEquationOptions());
+  NewMethodHeatEquation(
+      const TypeXDelta &X_delta,
+      const HeatEquationOptions &opts = HeatEquationOptions());
+
+  // This returns *shared_ptrs* to the respective operators.
+  auto AY() { return AY_; }
+  auto C() { return C_; };
+  auto CT() { return CT_; }
+  auto AX() { return AX_; }
+  auto GT() { return G1_; }
+
+  auto P_Y() { return P_Y_; }
+  auto P_X() { return P_X_; }
+
+  auto S() { return S_; }
+
+  auto vec_X() { return vec_X_.get(); }
+  auto vec_Y() { return vec_Y_.get(); }
+
+ protected:
+  HeatEquationOptions opts_;
+
+  // Operators.
+  std::shared_ptr<TypeAY> AY_;
+  std::shared_ptr<TypeC> C_;
+  std::shared_ptr<TypeCT> CT_;
+  std::shared_ptr<TypeAX> AX_;
+  std::shared_ptr<TypeGT> G1_;
+
+  // Preconditioners.
+  std::shared_ptr<TypePrecondY> P_Y_;
+  std::shared_ptr<TypePrecondX> P_X_;
+
+  // Schur complement.
+  std::shared_ptr<TypeS> S_;
+
+  // Store doubletree vectors for X_delta input and output.
+  std::shared_ptr<TypeXVector> vec_X_;
+
+  // Store doubletree vectors for Y_delta input and output.
+  std::shared_ptr<TypeYVector> vec_Y_;
 };
 
 }  // namespace applications

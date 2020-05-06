@@ -241,6 +241,45 @@ TEST(HeatEquation, SchurPCG) {
   }
 }
 
+TEST(NewMethodHeatEquation, SchurPCG) {
+  int max_level = 7;
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+      B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+
+  for (int level = 1; level < max_level; level++) {
+    T.hierarch_basis_tree.UniformRefine(level);
+    B.ortho_tree.UniformRefine(level);
+    B.three_point_tree.UniformRefine(level);
+    X_delta.SparseRefine(level, {2, 1});
+    NewMethodHeatEquation heat_eq(X_delta);
+
+    // Generate some rhs.
+    for (auto nv : heat_eq.vec_X()->Bfs()) {
+      if (nv->node_1()->on_domain_boundary())
+        nv->set_value(0.0);
+      else
+        nv->set_value(1.0);
+    }
+
+    // Turn this into an eigen-friendly vector.
+    auto v_in = heat_eq.vec_X()->ToVectorContainer();
+
+    // auto precond = Eigen::SparseMatrix<double>(v_in.rows(), v_in.rows());
+    // precond.setIdentity();
+    auto [result, data] =
+        tools::linalg::PCG(*heat_eq.S(), v_in, *heat_eq.P_X(),
+                           Eigen::VectorXd::Zero(v_in.rows()), 1000, 1e-5);
+    std::cout << B.ortho_tree.Bfs().size() << " "
+              << B.three_point_tree.Bfs().size() << " "
+              << T.hierarch_basis_tree.Bfs().size() << " "
+              << X_delta.Bfs().size()
+              << " PCG:   #iterations: " << data.iterations
+              << ", estimated error: " << data.relative_residual << std::endl;
+  }
+}
+
 TEST(HeatEquation, LanczosDirectInverse) {
   int max_level = 12;
   auto B = Time::Bases();

@@ -79,11 +79,20 @@ class MassOperator : public LinearOperator<MassOperator<BasisIn, BasisOut>,
   static inline auto Row(BasisOut *phi_out);
 };
 
-// Evaluates the functions in zero: <gamma_0 phi, gamma_0 psi> = phi(0)
-// psi(0).
+// Evaluates the functions in zero: <gamma_0 phi, gamma_0 psi> = phi(0)psi(0).
 template <typename BasisIn, typename BasisOut>
 class ZeroEvalOperator
     : public LinearOperator<ZeroEvalOperator<BasisIn, BasisOut>, BasisIn,
+                            BasisOut> {
+ public:
+  static inline auto Column(BasisIn *phi_in);
+  static inline auto Row(BasisOut *phi_out);
+};
+
+// Evaluates the functions in 1: <gamma_1 phi, gamma_1 psi> = phi(1)psi(1).
+template <typename BasisIn, typename BasisOut>
+class OneEvalOperator
+    : public LinearOperator<OneEvalOperator<BasisIn, BasisOut>, BasisIn,
                             BasisOut> {
  public:
   static inline auto Column(BasisIn *phi_in);

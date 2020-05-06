@@ -145,14 +145,14 @@ class NegativeBilinearForm
  * The Schur complement operator for the matrix [A B; B^t G].
  * x \mapsto (B.T A^{-1} B + G) x.
  */
-template <typename Ainv, typename B, typename BT, typename G>
+template <typename Ainv, typename B, typename BT, typename G0>
 class SchurBilinearForm
     : public BilinearFormBase<typename B::DblVecIn, typename BT::DblVecOut> {
  public:
   using DblVecIn = typename B::DblVecIn;
   using DblVecOut = typename BT::DblVecOut;
   SchurBilinearForm(std::shared_ptr<Ainv> a_inv, std::shared_ptr<B> b,
-                    std::shared_ptr<BT> bt, std::shared_ptr<G> g)
+                    std::shared_ptr<BT> bt, std::shared_ptr<G0> g)
       : a_inv_(a_inv), b_(b), bt_(bt), g_(g) {
     assert(b_->vec_in() == g_->vec_in());
     assert(a_inv_->vec_in() == b_->vec_out());
@@ -177,6 +177,50 @@ class SchurBilinearForm
   std::shared_ptr<Ainv> a_inv_;
   std::shared_ptr<B> b_;
   std::shared_ptr<BT> bt_;
-  std::shared_ptr<G> g_;
+  std::shared_ptr<G0> g_;
+};
+
+/**
+ * The Schur complement operator for the matrix [A C; C^t -(A_s + gT' gT)].
+ * x \mapsto (C.T A_s^{-1} C + A_s + gT.T gT) x.
+ */
+template <typename AinvY, typename C, typename CT, typename AX, typename GT>
+class NewSchurBilinearForm
+    : public BilinearFormBase<typename C::DblVecIn, typename CT::DblVecOut> {
+ public:
+  using DblVecIn = typename C::DblVecIn;
+  using DblVecOut = typename CT::DblVecOut;
+  NewSchurBilinearForm(std::shared_ptr<AinvY> a_inv, std::shared_ptr<C> c,
+                       std::shared_ptr<CT> ct, std::shared_ptr<AX> aX,
+                       std::shared_ptr<GT> gT)
+      : a_inv_(a_inv), c_(c), ct_(ct), aX_(aX), gT_(gT) {
+    assert(c_->vec_in() == gT_->vec_in());
+    assert(a_inv_->vec_in() == c_->vec_out());
+    assert(ct_->vec_in() == a_inv_->vec_out());
+    assert(ct_->vec_out() == gT_->vec_out());
+    assert(aX_->vec_in() == gT_->vec_in());
+    assert(aX_->vec_out() == gT_->vec_out());
+  }
+
+  Eigen::VectorXd Apply(const Eigen::VectorXd &v) final {
+    Eigen::VectorXd result;
+    result = c_->Apply(v);
+    result = a_inv_->Apply(result);
+    result = ct_->Apply(result);
+
+    result += aX_->Apply(v);
+    result += gT_->Apply(v);
+    return result;
+  }
+
+  DblVecIn *vec_in() const final { return c_->vec_in(); }
+  DblVecOut *vec_out() const final { return ct_->vec_out(); }
+
+ protected:
+  std::shared_ptr<AinvY> a_inv_;
+  std::shared_ptr<C> c_;
+  std::shared_ptr<CT> ct_;
+  std::shared_ptr<AX> aX_;
+  std::shared_ptr<GT> gT_;
 };
 }  // namespace spacetime

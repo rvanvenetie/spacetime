@@ -229,13 +229,12 @@ extern template class BilinearForm<Time::TransportOperator, space::MassOperator,
 extern template class BilinearForm<Time::MassOperator, space::StiffnessOperator,
                                    Time::ThreePointWaveletFn,
                                    Time::OrthonormalWaveletFn>;
-extern template class BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
-                                   Time::ThreePointWaveletFn,
-                                   Time::ThreePointWaveletFn>;
 extern template class SymmetricBilinearForm<
     Time::MassOperator, space::StiffnessOperator, Time::OrthonormalWaveletFn>;
 extern template class SymmetricBilinearForm<
     Time::ZeroEvalOperator, space::MassOperator, Time::ThreePointWaveletFn>;
+extern template class SymmetricBilinearForm<
+    Time::OneEvalOperator, space::MassOperator, Time::ThreePointWaveletFn>;
 
 extern template class BlockDiagonalBilinearForm<
     space::DirectInverse<space::StiffnessOperator>, Time::OrthonormalWaveletFn,

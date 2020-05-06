@@ -140,6 +140,11 @@ TEST(ContLinearScaling, CheckMatrixTransposes) {
         ZeroEvalOperator<ContLinearScalingFn, ContLinearScalingFn>,
         ContLinearScalingFn, ContLinearScalingFn>({Delta[l - 1]},
                                                   {Delta[l - 1]});
+    std::cout << "OneEvalOperator" << std::endl;
+    CheckMatrixTranspose<
+        OneEvalOperator<ContLinearScalingFn, ContLinearScalingFn>,
+        ContLinearScalingFn, ContLinearScalingFn>({Delta[l - 1]},
+                                                  {Delta[l - 1]});
   }
 }
 
@@ -256,13 +261,21 @@ TEST(DiscContLinearScaling, ZeroEvalWorks) {
   auto Delta_ortho = B.disc_lin_tree.NodesPerLevel();
 
   for (int l = 0; l < ml; ++l) {
-    auto mat =
+    auto zero_mat =
         ZeroEvalOperator<ContLinearScalingFn, DiscLinearScalingFn>().ToMatrix(
             {Delta_3pt[l]}, {Delta_ortho[l]});
     for (int j = 0; j < Delta_3pt[l].size(); ++j)
       for (int i = 0; i < Delta_ortho[l].size(); ++i)
-        ASSERT_NEAR(mat(i, j),
+        ASSERT_NEAR(zero_mat(i, j),
                     Delta_3pt[l][j]->Eval(0.0) * Delta_ortho[l][i]->Eval(0.0),
+                    1e-10);
+    auto one_mat =
+        OneEvalOperator<ContLinearScalingFn, ContLinearScalingFn>().ToMatrix(
+            {Delta_3pt[l]}, {Delta_3pt[l]});
+    for (int j = 0; j < Delta_3pt[l].size(); ++j)
+      for (int i = 0; i < Delta_3pt[l].size(); ++i)
+        ASSERT_NEAR(one_mat(i, j),
+                    Delta_3pt[l][j]->Eval(1.0) * Delta_3pt[l][i]->Eval(1.0),
                     1e-10);
   }
 }

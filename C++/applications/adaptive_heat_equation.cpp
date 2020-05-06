@@ -16,18 +16,19 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
           GenerateXDeltaUnderscore(*vec_Xd_, opts.estimate_saturation_layers))),
       vec_Ydd_(std::make_shared<TypeYVector>(
           GenerateYDelta<DoubleTreeVector>(*vec_Xdd_))),
-      heat_d_dd_(std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts)),
+      heat_d_dd_(
+          std::make_unique<NewMethodHeatEquation>(vec_Xd_, vec_Ydd_, opts)),
       g_lin_form_(std::move(g_lin_form)),
       u0_lin_form_(std::move(u0_lin_form)),
       opts_(opts) {}
 
-Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
+Eigen::VectorXd AdaptiveHeatEquation::RHS(NewMethodHeatEquation &heat) {
   if (opts_.use_cache)
-    heat.B()->Apply(Eigen::VectorXd::Zero(
-        heat.B()->cols()));  // This is actually only needed to initialize BT()
+    heat.C()->Apply(Eigen::VectorXd::Zero(
+        heat.C()->cols()));  // This is actually only needed to initialize BT()
 
-  Eigen::VectorXd rhs = g_lin_form_->Apply(heat.vec_Y());
-  rhs = heat.P_Y()->Apply(rhs);
+  Eigen::VectorXd rhs = heat.P_Y()->Apply(g_lin_form_->Apply(heat.vec_Y()));
+  rhs = rhs;
   rhs = heat.BT()->Apply(rhs);
 
   rhs += u0_lin_form_->Apply(heat.vec_X());
@@ -54,8 +55,9 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     heat_d_dd_.reset();
 
     // Create heat equation with X_dd and Y_dd.
-    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y,
-                            /* Ydd_is_GenerateYDelta_Xdd */ true, opts_);
+    NewMethodHeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y,
+                                     /* Ydd_is_GenerateYDelta_Xdd */ true,
+                                     opts_);
 
     // Prolongate u_dd_d from X_d to X_dd.
     vec_Xd_->FromVectorContainer(u_dd_d);
@@ -130,6 +132,7 @@ void AdaptiveHeatEquation::Refine(
   std::cerr << std::right;
 #endif
 
-  heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
+  heat_d_dd_ =
+      std::make_unique<NewMethodHeatEquation>(vec_Xd_, vec_Ydd_, opts_);
 }
 };  // namespace applications

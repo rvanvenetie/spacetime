@@ -410,6 +410,21 @@ inline auto ZeroEvalOperator<DiscLinearScalingFn, ContLinearScalingFn>::Row(
   return ZeroEval::ThreeInOrthoOut(phi_out);
 }
 
+template <>
+inline auto OneEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Column(
+    ContLinearScalingFn *phi_in) {
+  StaticSparseVector<ContLinearScalingFn, 1> result;
+  auto [l, n] = phi_in->labda();
+  if (n == (1 << l)) result = {{{phi_in, 1.0}}};
+  return result;
+}
+
+template <>
+inline auto OneEvalOperator<ContLinearScalingFn, ContLinearScalingFn>::Row(
+    ContLinearScalingFn *phi_out) {
+  return Column(phi_out);
+}
+
 namespace Transport {
 inline auto ThreeInOrthoOut(ContLinearScalingFn *phi_in) {
   StaticSparseVector<DiscLinearScalingFn, 2> result;

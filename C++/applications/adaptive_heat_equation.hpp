@@ -95,11 +95,11 @@ class AdaptiveHeatEquation {
   std::shared_ptr<TypeYVector> vec_Ydd() { return vec_Ydd_; }
 
  protected:
-  Eigen::VectorXd RHS(HeatEquation &heat);
+  Eigen::VectorXd RHS(NewMethodHeatEquation &heat);
 
   std::shared_ptr<TypeXVector> vec_Xd_, vec_Xdd_;
   std::shared_ptr<TypeYVector> vec_Ydd_;
-  std::unique_ptr<HeatEquation> heat_d_dd_;
+  std::unique_ptr<NewMethodHeatEquation> heat_d_dd_;
   std::unique_ptr<TypeYLinForm> g_lin_form_;
   std::unique_ptr<TypeXLinForm> u0_lin_form_;
 
