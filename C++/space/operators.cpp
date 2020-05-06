@@ -227,21 +227,20 @@ inline std::array<uint, 3> Vids(Element2D *elem) {
 
 template <typename ForwardOp>
 inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
-    const std::vector<std::vector<Element2D *>> &patches, uint vertex,
-    std::vector<std::pair<uint, double>> &result) const {
+    uint vertex, std::vector<std::pair<uint, double>> &result) const {
   assert(IsDof(vertex));
 
   const auto &patch = patches[vertex];
   result.clear();
   result.reserve(patch.size() * 3);
   for (auto elem : patch) {
-    const auto Vids = space::Vids(elem);
+    const auto elem_Vids = Vids(elem);
     const auto &elem_mat = ForwardOp::ElementMatrix(elem, opts_);
     for (uint i = 0; i < 3; ++i)
-      if (Vids[i] == vertex)
+      if (elem_Vids[i] == vertex)
         for (uint j = 0; j < 3; ++j)
-          if (IsDof(Vids[j]))
-            result.emplace_back(Vids[j], elem_mat.coeff(i, j));
+          if (IsDof(elem_Vids[j]))
+            result.emplace_back(elem_Vids[j], elem_mat.coeff(i, j));
   }
   std::sort(
       result.begin(), result.end(),
@@ -259,66 +258,67 @@ inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
 }
 
 template <typename ForwardOp>
+void MultigridPreconditioner<ForwardOp>::InitializeRowMatrix() {
+  const uint V = triang_.V;
+  patches.resize(V);
+  row_mat.resize(V * 3);
+
+  // Store indices in the tree.
+  std::vector<uint> indices(V);
+  const std::vector<Vertex *> &vertices = triang_.vertices();
+  for (uint i = 0; i < V; ++i) {
+    indices[i] = i;
+    vertices[i]->set_data(&indices[i]);
+    patches[i].clear();
+  }
+
+  // Initialize patches with the triangulation on the finest level.
+  for (const auto &[elem, Vids] : triang_.element_leaves())
+    for (int vi : Vids) patches[vi].emplace_back(elem);
+
+  uint idx = 0;
+  for (uint vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
+    const auto godparents = triang_.Godparents(vertex);
+    for (uint vi : {godparents[1], godparents[0], vertex})
+      if (IsDof(vi)) RowMatrix(vi, row_mat[idx++]);
+
+    // Now we must coarsen.
+    const auto &hist = vertices[vertex]->parents_element;
+    for (const auto &elem : hist) {
+      const auto elem_Vids = Vids(elem);
+      for (auto vi : elem_Vids) {
+        // We must remove the children of elem from the existing patches.
+        auto &patch = patches[vi];
+        for (const auto &child : elem->children())
+          for (int e = 0; e < patch.size(); e++)
+            if (patch[e] == child) {
+              patch[e] = patch.back();
+              patch.resize(patch.size() - 1);
+              break;
+            }
+        // .. and update it with the parent elements.
+        patch.emplace_back(elem);
+      }
+    }
+  }
+  row_mat.resize(idx);
+
+  // Unset the data stored in the vertices.
+  for (auto nv : vertices) nv->reset_data();
+}
+
+template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     Eigen::VectorXd &rhs) const {
   // Shortcut.
   const uint V = triang_.V;
 
   // Reuse a static variable for storing the row of a matrix.
-  static std::vector<std::vector<std::pair<uint, double>>> row_mat;
-  static std::vector<std::vector<Element2D *>> patches;
   static std::vector<double> e;
   e.reserve(V * 3);
 
   // First, initialize the row matrix variables.
-  {
-    patches.resize(V);
-    row_mat.resize(V * 3);
-
-    // Store indices in the tree.
-    std::vector<uint> indices(V);
-    const std::vector<Vertex *> &vertices = triang_.vertices();
-    for (uint i = 0; i < V; ++i) {
-      indices[i] = i;
-      vertices[i]->set_data(&indices[i]);
-      patches[i].clear();
-    }
-
-    // Initialize patches with the triangulation on the finest level.
-    for (const auto &[elem, Vids] : triang_.element_leaves())
-      for (int vi : Vids) patches[vi].emplace_back(elem);
-
-    uint idx = 0;
-    for (uint vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
-      const auto godparents = triang_.Godparents(vertex);
-      for (uint vi : {godparents[1], godparents[0], vertex}) {
-        if (IsDof(vi)) RowMatrix(patches, vi, row_mat[idx++]);
-      }
-
-      // Now we must coarsen.
-      const auto &hist = vertices[vertex]->parents_element;
-      for (const auto &elem : hist) {
-        const auto Vids = space::Vids(elem);
-        for (auto vi : Vids) {
-          // We must remove the children of elem from the existing patches.
-          auto &patch = patches[vi];
-          for (const auto &child : elem->children())
-            for (int e = 0; e < patch.size(); e++)
-              if (patch[e] == child) {
-                patch[e] = patch.back();
-                patch.resize(patch.size() - 1);
-                break;
-              }
-          // .. and update it with the parent elements.
-          patch.emplace_back(elem);
-        }
-      }
-    }
-    row_mat.resize(idx);
-
-    // Unset the data stored in the vertices.
-    for (auto nv : vertices) nv->reset_data();
-  }
+  {}
 
   // Take zero vector as initial guess.
   Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
