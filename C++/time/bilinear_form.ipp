@@ -42,7 +42,7 @@ void BilinearForm<Operator, I_in, I_out>::InitializeOutput() {
   // Initialize lvl_ind_out using nodes_vec_out.
   lvl_ind_out_.resize(nodes_vec_out_->size());
   for (int lvl = 0; lvl < nodes_vec_out_->size(); ++lvl) {
-    lvl_ind_out_[lvl].reserve(nodes_vec_out_->size());
+    lvl_ind_out_[lvl].reserve((*nodes_vec_out_)[lvl]->size());
     for (auto node : (*nodes_vec_out_)[lvl])
       lvl_ind_out_[lvl].emplace_back(node->node());
   }
