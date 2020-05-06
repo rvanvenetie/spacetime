@@ -210,6 +210,14 @@ void CGInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
     vec_SS.setZero();
 }
 
+// Define the class variables.
+template <typename ForwardOp>
+std::vector<std::vector<std::pair<uint, double>>>
+    MultigridPreconditioner<ForwardOp>::row_mat;
+template <typename ForwardOp>
+std::vector<std::vector<Element2D *>>
+    MultigridPreconditioner<ForwardOp>::patches;
+
 template <typename ForwardOp>
 MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
     const TriangulationView &triang, OperatorOptions opts)
@@ -219,11 +227,13 @@ MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
       // reference, but it doesn't matter for our purpose..
       initial_triang_solver_(triang.InitialTriangulationView(), opts) {}
 
+namespace {
 inline std::array<uint, 3> Vids(Element2D *elem) {
   return {*elem->vertices()[0]->template data<uint>(),
           *elem->vertices()[1]->template data<uint>(),
           *elem->vertices()[2]->template data<uint>()};
 }
+}  // namespace
 
 template <typename ForwardOp>
 inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
