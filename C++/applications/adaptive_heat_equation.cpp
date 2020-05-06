@@ -1,9 +1,9 @@
 #include "adaptive_heat_equation.hpp"
 
-#include <boost/range/adaptor/reversed.hpp>
 #include <iomanip>
 
 #include "../tools/linalg.hpp"
+#include "error_estimator.hpp"
 
 namespace applications {
 AdaptiveHeatEquation::AdaptiveHeatEquation(
@@ -42,15 +42,22 @@ AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
                             opts_.solve_rtol_);
 }
 
+double AdaptiveHeatEquation::EstimateGlobalError(
+    const Eigen::VectorXd &u_dd_d) {
+  assert(heat_d_dd_);
+  return ErrorEstimator::ComputeGlobalError(*heat_d_dd_, *g_lin_form_,
+                                            *u0_lin_form_, u_dd_d);
+}
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     -> std::pair<TypeXVector *, double> {
-  // Create heat equation with X_dd and Y_dd.
-  assert(heat_d_dd_);
-  auto A = heat_d_dd_->A();
-  auto P_Y = heat_d_dd_->P_Y();
-  // Invalidate heat_d_dd, we no longer need these bilinear forms.
-  heat_d_dd_.reset();
   {
+    assert(heat_d_dd_);
+    auto A = heat_d_dd_->A();
+    auto P_Y = heat_d_dd_->P_Y();
+    // Invalidate heat_d_dd, we no longer need these bilinear forms.
+    heat_d_dd_.reset();
+
+    // Create heat equation with X_dd and Y_dd.
     HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y,
                             /* Ydd_is_GenerateYDelta_Xdd */ true, opts_);
 
@@ -64,28 +71,17 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     vec_Xdd_->FromVectorContainer(residual);
     // Let heat_dd_dd go out of scope..
   }
-  if (opts_.estimate_mean_zero_) ApplyMeanZero(vec_Xdd_.get());
 
-  // Get the X_d nodes *inside* X_dd.
+  double residual_error = ErrorEstimator::ComputeLocalErrors(
+      vec_Xdd_.get(), opts_.estimate_mean_zero_);
+
+  // We know that the residual on Xd should be small, so set it zero explicitly.
   auto vec_Xd_nodes =
       vec_Xdd_->Union(*vec_Xd_,
                       /*call_filter*/ datastructures::func_false);
   assert(vec_Xd_nodes.size() == vec_Xd_->container().size());
-
-  // Do a basis transformation for calculation of the residual wrt Psi_delta.
-  for (auto dblnode : vec_Xd_nodes) dblnode->set_marked(true);
-  double sq_norm = 0.0;
-  for (auto &dblnode : vec_Xdd_->container()) {
-    if (dblnode.is_metaroot()) continue;
-    if (dblnode.marked()) continue;
-    int lvl_diff = std::get<0>(dblnode.nodes())->level() -
-                   std::get<1>(dblnode.nodes())->level();
-    dblnode.set_value(dblnode.value() / sqrt(1.0 + pow(4.0, lvl_diff)));
-    sq_norm += dblnode.value() * dblnode.value();
-  }
-  for (auto dblnode : vec_Xd_nodes) dblnode->set_marked(false);
-
-  return {vec_Xdd_.get(), sqrt(sq_norm)};
+  for (auto &dblnode : vec_Xd_nodes) dblnode->set_value(0.0);
+  return {vec_Xdd_.get(), residual_error};
 }
 
 auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
@@ -134,21 +130,5 @@ void AdaptiveHeatEquation::Refine(
 #endif
 
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
-}
-
-void AdaptiveHeatEquation::ApplyMeanZero(TypeXVector *vec) {
-  for (auto &dblnode : boost::adaptors::reverse(vec->container())) {
-    auto [_, space_node] = dblnode.nodes();
-    if (space_node->level() == 0 || space_node->on_domain_boundary()) continue;
-    if (std::any_of(space_node->parents().begin(), space_node->parents().end(),
-                    [](auto parent) { return parent->on_domain_boundary(); }))
-      continue;
-    for (auto &parent : dblnode.parents(1)) {
-      auto [_, space_parent] = parent->nodes();
-      dblnode.set_value(dblnode.value() - 0.5 * space_node->Volume() /
-                                              space_parent->Volume() *
-                                              parent->value());
-    }
-  }
 }
 };  // namespace applications
