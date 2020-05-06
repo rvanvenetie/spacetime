@@ -32,14 +32,14 @@ class TriangulationView {
   const uint V;
 
   // Does the given vertex lie on the domain boundary?
-  inline bool OnBoundary(uint v) const { return on_boundary_.at(v); }
+  inline bool OnBoundary(uint v) const { return on_boundary_[v]; }
 
   // Number of initial vertices.
   inline uint InitialVertices() const { return initial_vertices_; }
 
   // Grandparents
   inline const std::array<uint, 2> &Godparents(uint vi) const {
-    return godparents_.at(vi);
+    return godparents_[vi];
   }
 
   // Access data members.

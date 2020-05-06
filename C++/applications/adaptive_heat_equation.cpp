@@ -42,10 +42,14 @@ AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
                             opts_.solve_rtol);
 }
 
+double AdaptiveHeatEquation::EstimateGlobalError(
+    const Eigen::VectorXd &u_dd_d) {
+  assert(heat_d_dd_);
+  return ErrorEstimator::ComputeGlobalError(*heat_d_dd_, *g_lin_form_,
+                                            *u0_lin_form_, u_dd_d);
+}
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
-    -> std::pair<TypeXVector *, std::pair<double, double>> {
-  double Xequiv_error = XEquivalentErrorEstimator::ComputeGlobalError(
-      *heat_d_dd_, *g_lin_form_, *u0_lin_form_, u_dd_d);
+    -> std::pair<TypeXVector *, double> {
   {
     assert(heat_d_dd_);
     auto A = heat_d_dd_->A();
@@ -68,7 +72,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     // Let heat_dd_dd go out of scope..
   }
 
-  double residual_error = ResidualErrorEstimator::ComputeLocalErrors(
+  double residual_error = ErrorEstimator::ComputeLocalErrors(
       vec_Xdd_.get(), opts_.estimate_mean_zero);
 
   // We know that the residual on Xd should be small, so set it zero explicitly.
@@ -76,13 +80,8 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
       vec_Xdd_->Union(*vec_Xd_,
                       /*call_filter*/ datastructures::func_false);
   assert(vec_Xd_nodes.size() == vec_Xd_->container().size());
-  double sum_Xd = 0.0;
-  for (auto &dblnode : vec_Xd_nodes) {
-    sum_Xd += dblnode->value() * dblnode->value();
-    dblnode->set_value(0.0);
-  }
-  return {vec_Xdd_.get(),
-          {sqrt(residual_error * residual_error - sum_Xd), Xequiv_error}};
+  for (auto &dblnode : vec_Xd_nodes) dblnode->set_value(0.0);
+  return {vec_Xdd_.get(), residual_error};
 }
 
 auto AdaptiveHeatEquation::Mark(TypeXVector *residual)

@@ -210,6 +210,14 @@ void CGInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
     vec_SS.setZero();
 }
 
+// Define the class variables.
+template <typename ForwardOp>
+std::vector<std::vector<std::pair<uint, double>>>
+    MultigridPreconditioner<ForwardOp>::row_mat;
+template <typename ForwardOp>
+std::vector<std::vector<Element2D *>>
+    MultigridPreconditioner<ForwardOp>::patches;
+
 template <typename ForwardOp>
 MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
     const TriangulationView &triang, OperatorOptions opts)
@@ -219,43 +227,96 @@ MultigridPreconditioner<ForwardOp>::MultigridPreconditioner(
       // reference, but it doesn't matter for our purpose..
       initial_triang_solver_(triang.InitialTriangulationView(), opts) {}
 
+namespace {
 inline std::array<uint, 3> Vids(Element2D *elem) {
   return {*elem->vertices()[0]->template data<uint>(),
           *elem->vertices()[1]->template data<uint>(),
           *elem->vertices()[2]->template data<uint>()};
 }
+}  // namespace
 
 template <typename ForwardOp>
 inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
-    const std::vector<std::vector<Element2D *>> &patches, uint vertex,
-    std::vector<std::pair<uint, double>> &result) const {
+    uint vertex, std::vector<std::pair<uint, double>> &result) const {
   assert(IsDof(vertex));
 
   const auto &patch = patches[vertex];
   result.clear();
   result.reserve(patch.size() * 3);
   for (auto elem : patch) {
-    const auto Vids = space::Vids(elem);
+    const auto elem_Vids = Vids(elem);
     const auto &elem_mat = ForwardOp::ElementMatrix(elem, opts_);
     for (uint i = 0; i < 3; ++i)
-      if (Vids[i] == vertex)
+      if (elem_Vids[i] == vertex)
         for (uint j = 0; j < 3; ++j)
-          if (IsDof(Vids[j]))
-            result.emplace_back(Vids[j], elem_mat.coeff(i, j));
+          if (IsDof(elem_Vids[j]))
+            result.emplace_back(elem_Vids[j], elem_mat.coeff(i, j));
   }
-  std::sort(
-      result.begin(), result.end(),
-      [](const std::pair<uint, double> &p1, const std::pair<uint, double> &p2) {
-        return p1.first < p2.first;
-      });
-  uint j = 0;
-  for (uint i = 1; i < result.size(); i++) {
-    if (result[i].first == result[j].first)
-      result[j].second += result[i].second;
-    else
-      result[++j] = result[i];
+  //  std::sort(
+  //      result.begin(), result.end(),
+  //      [](const std::pair<uint, double> &p1, const std::pair<uint, double>
+  //      &p2) {
+  //        return p1.first < p2.first;
+  //      });
+  //  uint j = 0;
+  //  for (uint i = 1; i < result.size(); i++) {
+  //    if (result[i].first == result[j].first)
+  //      result[j].second += result[i].second;
+  //    else
+  //      result[++j] = result[i];
+  //  }
+  //  result.resize(j + 1);
+}
+
+template <typename ForwardOp>
+void MultigridPreconditioner<ForwardOp>::InitializeMultigridMatrix() const {
+  const uint V = triang_.V;
+  patches.resize(V);
+  row_mat.resize(V * 3);
+
+  // Store indices in the tree.
+  std::vector<uint> indices(V);
+  const std::vector<Vertex *> &vertices = triang_.vertices();
+  for (uint i = 0; i < V; ++i) {
+    indices[i] = i;
+    vertices[i]->set_data(&indices[i]);
+    patches[i].clear();
+    patches[i].reserve(4);
   }
-  result.resize(j + 1);
+
+  // Initialize patches var with the triangulation on the finest level.
+  for (const auto &[elem, Vids] : triang_.element_leaves())
+    for (int vi : Vids) patches[vi].emplace_back(elem);
+
+  uint idx = 0;
+  for (uint vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
+    const auto godparents = triang_.Godparents(vertex);
+    for (uint vi : {godparents[1], godparents[0], vertex})
+      if (IsDof(vi)) RowMatrix(vi, row_mat[idx++]);
+
+    // Coarsen this vertex, i.e. update the patches var.
+    const auto &hist = vertices[vertex]->parents_element;
+    for (const auto &elem : hist) {
+      const auto elem_Vids = Vids(elem);
+      for (auto vi : elem_Vids) {
+        // We must remove the children of elem from the existing patches.
+        auto &patch = patches[vi];
+        for (const auto &child : elem->children())
+          for (int e = 0; e < patch.size(); e++)
+            if (patch[e] == child) {
+              patch[e] = patch.back();
+              patch.resize(patch.size() - 1);
+              break;
+            }
+        // .. and update it with the parent elements.
+        patch.emplace_back(elem);
+      }
+    }
+  }
+  row_mat.resize(idx);
+
+  // Unset the data stored in the vertices.
+  for (auto nv : vertices) nv->reset_data();
 }
 
 template <typename ForwardOp>
@@ -265,60 +326,11 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
   const uint V = triang_.V;
 
   // Reuse a static variable for storing the row of a matrix.
-  static std::vector<std::vector<std::pair<uint, double>>> row_mat;
-  static std::vector<std::vector<Element2D *>> patches;
   static std::vector<double> e;
   e.reserve(V * 3);
 
-  // First, initialize the row matrix variables.
-  {
-    patches.resize(V);
-    row_mat.resize(V * 3);
-
-    // Store indices in the tree.
-    std::vector<uint> indices(V);
-    const std::vector<Vertex *> &vertices = triang_.vertices();
-    for (uint i = 0; i < V; ++i) {
-      indices[i] = i;
-      vertices[i]->set_data(&indices[i]);
-      patches[i].clear();
-    }
-
-    // Initialize patches with the triangulation on the finest level.
-    for (const auto &[elem, Vids] : triang_.element_leaves())
-      for (int vi : Vids) patches[vi].emplace_back(elem);
-
-    uint idx = 0;
-    for (uint vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
-      const auto godparents = triang_.Godparents(vertex);
-      for (uint vi : {godparents[1], godparents[0], vertex}) {
-        if (IsDof(vi)) RowMatrix(patches, vi, row_mat[idx++]);
-      }
-
-      // Now we must coarsen.
-      const auto &hist = vertices[vertex]->parents_element;
-      for (const auto &elem : hist) {
-        const auto Vids = space::Vids(elem);
-        for (auto vi : Vids) {
-          // We must remove the children of elem from the existing patches.
-          auto &patch = patches[vi];
-          for (const auto &child : elem->children())
-            for (int e = 0; e < patch.size(); e++)
-              if (patch[e] == child) {
-                patch[e] = patch.back();
-                patch.resize(patch.size() - 1);
-                break;
-              }
-          // .. and update it with the parent elements.
-          patch.emplace_back(elem);
-        }
-      }
-    }
-    row_mat.resize(idx);
-
-    // Unset the data stored in the vertices.
-    for (auto nv : vertices) nv->reset_data();
-  }
+  // Initialize the multigrid matrix (row_mat).
+  InitializeMultigridMatrix();
 
   // Take zero vector as initial guess.
   Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
@@ -348,7 +360,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
           // Calculate a(phi_vi, phi_vi).
           double a_phi_vi_phi_vi = 0;
-          for (auto [vj, val] : row_mat[idx])
+          for (const auto &[vj, val] : row_mat[idx])
             if (vj == vi) a_phi_vi_phi_vi += val;
 
           // Calculate the correction in phi_vi.
@@ -358,7 +370,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           e.emplace_back(e_vi);
 
           // Update the residual with this new correction  a(e_vi, \cdot).
-          for (auto [vj, val] : row_mat[idx++]) residual[vj] -= e_vi * val;
+          for (const auto &[vj, val] : row_mat[idx++])
+            residual[vj] -= e_vi * val;
         }
 
         // Coarsen mesh, and restrict the residual calculated thus far.
@@ -428,7 +441,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           // Calculate a(phi_vi, phi_vi) and a(e_SS, phi_vi).
           double a_phi_vi_phi_vi = 0;
           double a_e_phi_vi = 0;
-          for (auto [vj, val] : row_mat[--idx]) {
+          for (const auto &[vj, val] : row_mat[--idx]) {
             // Calculate the inner product with itself.
             if (vj == vi) a_phi_vi_phi_vi += 1 * val;
 
