@@ -103,10 +103,12 @@ TEST(MultiGridOperator, RestrictProlongate) {
 
   // Check that prolongation & restriction work in bilinear forms.
   auto mat_fine =
-      MassOperator(triang, {.dirichlet_boundary = false}).MatrixSingleScale();
-  auto mat_coarse = MassOperator(triang.InitialTriangulationView(),
-                                 {.dirichlet_boundary = false})
-                        .MatrixSingleScale();
+      MassOperator(triang, {.dirichlet_boundary = false, .build_mat = true})
+          .MatrixSingleScale();
+  auto mat_coarse =
+      MassOperator(triang.InitialTriangulationView(),
+                   {.dirichlet_boundary = false, .build_mat = true})
+          .MatrixSingleScale();
   for (int i = 0; i < 10; i++) {
     // Calculate vector on coarsest mesh and apply M_coarse.
     Eigen::VectorXd v(triang.InitialVertices());

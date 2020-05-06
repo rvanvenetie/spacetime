@@ -23,7 +23,7 @@ struct HeatEquationOptions {
   bool use_cache = true;
 
   // Whether or not to build the space matrices.
-  bool build_space_mats = true;
+  bool build_space_mats = false;
 
   // The alpha used in the preconditioner on X.
   double PX_alpha = 0.3;
@@ -34,11 +34,11 @@ struct HeatEquationOptions {
   SpaceInverse PY_inv = SpaceInverse::DirectInverse;
 
   // For multigrid Preconditioner, sets whether to build the forward matrix.
-  bool PXY_mg_build = true;
+  bool PXY_mg_build = false;
 
   // If a multigrid Preconditioner is chosen, this sets the number of cycles.
-  size_t PX_mg_cycles = 5;
-  size_t PY_mg_cycles = 5;
+  size_t PX_mg_cycles = 3;
+  size_t PY_mg_cycles = 3;
 };
 
 // Base class for constructing the operators necessary.
