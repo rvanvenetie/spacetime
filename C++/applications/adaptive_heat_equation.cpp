@@ -44,6 +44,7 @@ AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
 
 double AdaptiveHeatEquation::EstimateGlobalError(
     const Eigen::VectorXd &u_dd_d) {
+  assert(heat_d_dd_);
   return ErrorEstimator::ComputeGlobalError(*heat_d_dd_, *g_lin_form_,
                                             *u0_lin_form_, u_dd_d);
 }
