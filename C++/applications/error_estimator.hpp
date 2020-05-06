@@ -4,50 +4,6 @@
 #include "space/integration.hpp"
 namespace applications {
 
-class XEquivalentErrorEstimator {
- public:
-  static double ComputeGlobalError(HeatEquation &heat,
-                                   AdaptiveHeatEquation::TypeYLinForm &g_lf,
-                                   AdaptiveHeatEquation::TypeXLinForm &u0_lf,
-                                   const Eigen::VectorXd &u_dd_d) {
-    // Compute ||Bu - g||_Y^2.
-    Eigen::VectorXd Bu_min_g =
-        heat.B()->Apply(u_dd_d) - g_lf.Apply(heat.vec_Y());
-    auto [Ainv_Bu_min_g, _] =
-        tools::linalg::PCG(*heat.A(), Bu_min_g, *heat.P_Y(),
-                           Eigen::VectorXd::Zero(Bu_min_g.rows()),
-                           /*imax*/ 100, /*rtol*/ 1e-5);
-    double residual_Ynorm_sq = Ainv_Bu_min_g.dot(Bu_min_g);
-
-    // Compute ||u_0 - u(0)||_L2^2 as ||u_0||^2 - 2<u_0, u(0)> + ||u(0)||^2.
-    double u0_norm_sq = u0L2NormSquared(heat, u0_lf);
-    double u0_gamma0_u_inp = u_dd_d.dot(u0_lf.Apply(heat.vec_X()));
-    double gamma0_u_norm_sq = u_dd_d.dot(heat.G()->Apply(u_dd_d));
-    double u_error_sq = u0_norm_sq - 2 * u0_gamma0_u_inp + gamma0_u_norm_sq;
-    return sqrt(residual_Ynorm_sq + u_error_sq);
-  }
-
- protected:
-  static double u0L2NormSquared(HeatEquation &heat,
-                                AdaptiveHeatEquation::TypeXLinForm &u0_lf) {
-    auto u0_functional = static_cast<space::QuadratureFunctional *>(
-        static_cast<spacetime::LinearForm<Time::ThreePointWaveletFn> &>(u0_lf)
-            .SpaceLF()
-            .Functional());
-    auto u0 = u0_functional->Function();
-    double u0_norm_sq = 0.0;
-    auto initial_leaves =
-        space::TriangulationView(heat.vec_X()->Project_1()->Bfs())
-            .InitialTriangulationView()
-            .element_leaves();
-    for (auto &[elem, _vids] : initial_leaves)
-      u0_norm_sq += space::Integrate(
-          [&u0](double x, double y) { return u0(x, y) * u0(x, y); }, *elem,
-          2 * u0_functional->Order());
-    return u0_norm_sq;
-  }
-};
-
 class ResidualErrorEstimator {
  public:
   static double ComputeLocalErrors(
