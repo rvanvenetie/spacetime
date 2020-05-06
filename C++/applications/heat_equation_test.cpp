@@ -36,8 +36,8 @@ TEST(HeatEquation, CompareToPython) {
     B.three_point_tree.UniformRefine(level);
     X_delta.SparseRefine(level, {2, 1});
     HeatEquationOptions opts;
-    opts.use_cache_ = use_cache;
-    opts.P_X_alpha_ = 1.0;
+    opts.use_cache = use_cache;
+    opts.PX_alpha = 1.0;
     HeatEquation heat_eq(X_delta, opts);
 
     // Set double-tree vectors
@@ -296,8 +296,8 @@ TEST(HeatEquation, LanczosMG) {
     X_delta.SparseRefine(level, {2, 1});
 
     HeatEquationOptions heat_eq_opts;
-    heat_eq_opts.P_X_inv_ = HeatEquationOptions::SpaceInverse::Multigrid;
-    heat_eq_opts.P_Y_inv_ = HeatEquationOptions::SpaceInverse::Multigrid;
+    heat_eq_opts.PX_inv = HeatEquationOptions::SpaceInverse::Multigrid;
+    heat_eq_opts.PY_inv = HeatEquationOptions::SpaceInverse::Multigrid;
     HeatEquation heat_eq(X_delta, heat_eq_opts);
 
     std::cout << "Level " << level << "; #(X_delta, Y_delta) = ("

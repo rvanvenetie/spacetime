@@ -32,9 +32,9 @@ TEST(Operator, InverseTimesForwardOpIsIdentity) {
     TriangulationView triang(vertex_view);
     for (bool dirichlet_boundary : {true, false}) {
       auto forward_op = StiffPlusScaledMassOperator(
-          triang, {.dirichlet_boundary_ = dirichlet_boundary});
+          triang, {.dirichlet_boundary = dirichlet_boundary});
       auto backward_op = DirectInverse<StiffPlusScaledMassOperator>(
-          triang, {.dirichlet_boundary_ = dirichlet_boundary});
+          triang, {.dirichlet_boundary = dirichlet_boundary});
       for (int i = 0; i < 10; i++) {
         Eigen::VectorXd vec = RandomVector(triang, dirichlet_boundary);
         Eigen::VectorXd vec2 = vec;
@@ -61,8 +61,8 @@ TEST(ForwardOperator, SingleScaleMatrix) {
   });
 
   TriangulationView triang(vertex_subtree);
-  MassOperator mass_op_build(triang, {.build_mat_ = true});
-  MassOperator mass_op_nobuild(triang, {.build_mat_ = false});
+  MassOperator mass_op_build(triang, {.build_mat = true});
+  MassOperator mass_op_nobuild(triang, {.build_mat = false});
 
   for (int i = 0; i < 10; i++) {
     Eigen::VectorXd vec = RandomVector(triang);
@@ -103,9 +103,9 @@ TEST(MultiGridOperator, RestrictProlongate) {
 
   // Check that prolongation & restriction work in bilinear forms.
   auto mat_fine =
-      MassOperator(triang, {.dirichlet_boundary_ = false}).MatrixSingleScale();
+      MassOperator(triang, {.dirichlet_boundary = false}).MatrixSingleScale();
   auto mat_coarse = MassOperator(triang.InitialTriangulationView(),
-                                 {.dirichlet_boundary_ = false})
+                                 {.dirichlet_boundary = false})
                         .MatrixSingleScale();
   for (int i = 0; i < 10; i++) {
     // Calculate vector on coarsest mesh and apply M_coarse.
@@ -169,11 +169,11 @@ void TestMultigridOperator(bool dirichlet_boundary, size_t time_level = 0) {
 
       TriangulationView triang(vertex_subtree);
       auto mg_op = MultigridPreconditioner<ForwardOp>(
-          triang, {.dirichlet_boundary_ = dirichlet_boundary,
-                   .time_level_ = time_level});
-      auto mass_op =
-          ForwardOp(triang, {.dirichlet_boundary_ = dirichlet_boundary,
-                             .time_level_ = time_level});
+          triang,
+          {.dirichlet_boundary = dirichlet_boundary, .time_level = time_level});
+      auto mass_op = ForwardOp(
+          triang,
+          {.dirichlet_boundary = dirichlet_boundary, .time_level = time_level});
       size_t V = triang.V;
 
       for (int i = 0; i < 10; i++) {
@@ -202,16 +202,16 @@ void TestMultigridOperator(bool dirichlet_boundary, size_t time_level = 0) {
     vertex_subtree.DeepRefine();
     TriangulationView triang(vertex_subtree);
 
-    auto mass_op = ForwardOp(triang, {.dirichlet_boundary_ = dirichlet_boundary,
-                                      .time_level_ = time_level,
-                                      .alpha_ = 1.0});
+    auto mass_op = ForwardOp(triang, {.dirichlet_boundary = dirichlet_boundary,
+                                      .time_level = time_level,
+                                      .alpha = 1.0});
     double prev_cond = 99999999;
     for (size_t cycles = 1; cycles < 5; cycles++) {
       auto mg_op = MultigridPreconditioner<ForwardOp>(
-          triang, {.dirichlet_boundary_ = dirichlet_boundary,
-                   .time_level_ = time_level,
-                   .alpha_ = 1.0,
-                   .cycles_ = cycles});
+          triang, {.dirichlet_boundary = dirichlet_boundary,
+                   .time_level = time_level,
+                   .alpha = 1.0,
+                   .mg_cycles = cycles});
 
       // Evaluate condition number.
       tools::linalg::Lanczos lanczos(mass_op, mg_op,
@@ -238,10 +238,10 @@ void TestMultigridOperator(bool dirichlet_boundary, size_t time_level = 0) {
 
     for (size_t cycles = 1; cycles < 5; cycles++) {
       auto mg_op = MultigridPreconditioner<ForwardOp>(
-          triang, {.dirichlet_boundary_ = dirichlet_boundary,
-                   .time_level_ = time_level,
-                   .alpha_ = 1.0,
-                   .cycles_ = cycles});
+          triang, {.dirichlet_boundary = dirichlet_boundary,
+                   .time_level = time_level,
+                   .alpha = 1.0,
+                   .mg_cycles = cycles});
       auto mg_mat = mg_op.ToMatrix();
 
       // Verify that the matrix is symmetric.

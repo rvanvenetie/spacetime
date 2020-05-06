@@ -50,22 +50,22 @@ int main(int argc, char* argv[]) {
   boost::program_options::options_description adapt_optdesc(
       "AdaptiveHeatEquation options");
   adapt_optdesc.add_options()("use_cache",
-                              po::value<bool>(&adapt_opts.use_cache_))(
-      "solve_rtol", po::value<double>(&adapt_opts.solve_rtol_))(
-      "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit_))(
+                              po::value<bool>(&adapt_opts.use_cache))(
+      "build_space_mats", po::value<bool>(&adapt_opts.build_space_mats))(
+      "solve_rtol", po::value<double>(&adapt_opts.solve_rtol))(
+      "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit))(
       "estimate_saturation_layers",
-      po::value<size_t>(&adapt_opts.estimate_saturation_layers_))(
-      "estimate_mean_zero", po::value<bool>(&adapt_opts.estimate_mean_zero_))(
-      "mark_theta", po::value<double>(&adapt_opts.mark_theta_))(
-      "PX_alpha", po::value<double>(&adapt_opts.P_X_alpha_))(
+      po::value<size_t>(&adapt_opts.estimate_saturation_layers))(
+      "estimate_mean_zero", po::value<bool>(&adapt_opts.estimate_mean_zero))(
+      "mark_theta", po::value<double>(&adapt_opts.mark_theta))(
+      "PX_alpha", po::value<double>(&adapt_opts.PX_alpha))(
       "PX_inv",
-      po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.P_X_inv_))(
+      po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.PX_inv))(
       "PY_inv",
-      po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.P_Y_inv_))(
-      "PXY_mg_build_fw_mat",
-      po::value<bool>(&adapt_opts.P_XY_mg_build_fw_mat_))(
-      "PX_mg_cycles", po::value<size_t>(&adapt_opts.P_X_mg_cycles_))(
-      "PY_mg_cycles", po::value<size_t>(&adapt_opts.P_Y_mg_cycles_));
+      po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.PY_inv))(
+      "PXY_mg_build", po::value<bool>(&adapt_opts.PXY_mg_build))(
+      "PX_mg_cycles", po::value<size_t>(&adapt_opts.PX_mg_cycles))(
+      "PY_mg_cycles", po::value<size_t>(&adapt_opts.PY_mg_cycles));
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(problem_optdesc).add(adapt_optdesc);
 
