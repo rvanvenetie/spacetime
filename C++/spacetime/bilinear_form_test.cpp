@@ -82,10 +82,10 @@ template <template <typename, typename> class OperatorTime,
 void TestSpacetimeCache(
     DoubleTreeVector<BasisTimeIn, HierarchicalBasisFn> &vec_in,
     DoubleTreeVector<BasisTimeOut, HierarchicalBasisFn> &vec_out) {
-  for (int i = 0; i < 2; ++i) {
+  for (bool use_cache : {true, false}) {
     // Create a bilinear form and do some caching tests.
     auto bil_form = CreateBilinearForm<OperatorTime, OperatorSpace>(
-        &vec_in, &vec_out, /* use_cache */ i == 0);
+        &vec_in, &vec_out, use_cache);
 
     // Put some random values into vec_in.
     for (auto nv : vec_in.Bfs()) {
