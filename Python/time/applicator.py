@@ -1,6 +1,7 @@
 import numpy as np
 
 from ..datastructures.applicator import ApplicatorInterface
+from ..datastructures.tree_vector import TreeVector
 from ..datastructures.tree_view import NodeViewInterface
 from .basis import MultiscaleFunctions
 from .sparse_vector import SparseVector
@@ -31,7 +32,8 @@ class Applicator(ApplicatorInterface):
         """ Helper function to initialize fields in datastructures. """
 
         # Sanity check that we start with an empty vector
-        if isinstance(vec_out, NodeViewInterface):
+        if isinstance(vec_out, NodeViewInterface) or isinstance(
+                vec_out, TreeVector):
             for nv in vec_out.bfs():
                 assert nv.value == 0
         else:
@@ -42,7 +44,8 @@ class Applicator(ApplicatorInterface):
         self.Lambda_out = MultiscaleFunctions(vec_out)
 
         # Store the vector inside the wavelet tree.
-        if isinstance(vec_in, NodeViewInterface):
+        if isinstance(vec_in, NodeViewInterface) or isinstance(
+                vec_in, TreeVector):
             for nv in vec_in.bfs():
                 assert nv.node.coeff[0] == 0
                 nv.node.coeff[0] = nv.value
@@ -66,7 +69,8 @@ class Applicator(ApplicatorInterface):
         This also copies the data from the single trees into vec_out. """
 
         # Copy result into vec_out
-        if isinstance(vec_out, NodeViewInterface):
+        if isinstance(vec_out, NodeViewInterface) or isinstance(
+                vec_out, TreeVector):
             for nv in vec_out.bfs():
                 nv.value = nv.node.coeff[1]
         else:

@@ -1,10 +1,13 @@
 *.pyc
-*.swp
+.*.sw?
+*conflicted\ copy*
 
 *.aux
 *.fls
 *.log
 *.fdb_latexmk
+*.pdf
+*.png
 
 *.pkl
 *.df

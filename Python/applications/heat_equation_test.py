@@ -1,11 +1,13 @@
 import os
 import random
+import sys
 import time
 
 import numpy as np
 import pytest
 
 from ..datastructures.applicator import LinearOperatorApplicator
+from ..datastructures.double_tree_vector import DoubleTreeVector
 from ..datastructures.double_tree_view import DoubleTree
 from ..datastructures.tree_vector import TreeVector
 from ..linalg.lanczos import Lanczos
@@ -461,11 +463,67 @@ def test_residual_error_estimator_rate(sparse_grid=True, mean_zero=True):
             break
 
 
+def generate_vectors(level=6, sparse_grid=True):
+    # Create space part.
+    triang = InitialTriangulation.unit_square()
+    triang.vertex_meta_root.uniform_refine(level)
+    basis_space = HierarchicalBasisFunction.from_triangulation(triang)
+    basis_space.deep_refine()
+
+    # Create time part for X^\delta
+    basis_time = ThreePointBasis()
+    basis_time.metaroot_wavelet.uniform_refine(level)
+
+    # Create X^\delta as a sparse grid.
+    X_delta = DoubleTree.from_metaroots(
+        (basis_time.metaroot_wavelet, basis_space.root))
+    if sparse_grid:
+        X_delta.sparse_refine(level, weights=[2, 1])
+    else:
+        X_delta.uniform_refine([level, 2 * level])
+    print('X_delta: dofs time axis={}\tdofs space axis={}'.format(
+        len(X_delta.project(0).bfs()), len(X_delta.project(1).bfs())))
+
+    # Create heat equation object.
+    heat_eq = HeatEquation(X_delta=X_delta, formulation='schur', alpha=1)
+
+    vec_Y = heat_eq.Y_delta.deep_copy(mlt_tree_cls=DoubleTreeVector)
+    vec_X = heat_eq.X_delta.deep_copy(mlt_tree_cls=DoubleTreeVector)
+
+    for i, nv in enumerate(vec_X.bfs()):
+        if not nv.nodes[1].on_domain_boundary:
+            nv.value = i
+    for i, nv in enumerate(vec_Y.bfs()):
+        if not nv.nodes[1].on_domain_boundary:
+            nv.value = i
+
+    A_s_v = heat_eq.A_s.apply(vec_Y)
+    B_v = heat_eq.B.apply(vec_X)
+    BT_v = heat_eq.BT.apply(vec_Y)
+    m_gamma_v = heat_eq.m_gamma.apply(vec_X)
+    P_Y_v = heat_eq.P_Y.apply(vec_Y)
+    P_X_v = heat_eq.P_X.apply(vec_X)
+    S_v = heat_eq.mat.apply(vec_X)
+
+    for vec, name in [(A_s_v, "A_"), (B_v, "B_"), (BT_v, "BT_"),
+                      (m_gamma_v, "G_"), (P_Y_v, "A_inv_"),
+                      (P_X_v, "precond_X_"), (S_v, "schur_mat_")]:
+        s = "std::vector<std::pair<std::tuple<size_t, size_t, double, double>, double>> "
+        s += name + "py{"
+        for nv in vec.bfs():
+            s += "{{" + "{}, {}, {}, {}".format(
+                nv.nodes[0].level, nv.nodes[0].index, nv.nodes[1].node.x,
+                nv.nodes[1].node.y) + "}, " + "{}".format(nv.value) + "}, "
+        s += "};"
+        print(s, file=sys.stderr)
+
+
 if __name__ == "__main__":
-    test_residual_error_estimator_rate(sparse_grid=False, mean_zero=True)
-    # test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
-    test_heat_error_reduction(max_history_level=16,
-                              max_level=16,
-                              save_results_file=None,
-                              formulation='schur',
-                              solver='pcg')
+    generate_vectors()
+    #test_residual_error_estimator_rate(sparse_grid=False, mean_zero=True)
+    ## test_preconditioned_eigenvalues(max_level=16, sparse_grid=True)
+    #test_heat_error_reduction(max_history_level=16,
+    #                          max_level=16,
+    #                          save_results_file=None,
+    #                          formulation='schur',
+    #                         solver='pcg')
