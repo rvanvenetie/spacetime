@@ -22,10 +22,6 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
       opts_(opts) {}
 
 Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
-  if (opts_.use_cache)
-    heat.B()->Apply(Eigen::VectorXd::Zero(
-        heat.B()->cols()));  // This is actually only needed to initialize BT()
-
   Eigen::VectorXd rhs = g_lin_form_->Apply(heat.vec_Y());
   rhs = heat.P_Y()->Apply(rhs);
   rhs = heat.BT()->Apply(rhs);

@@ -77,7 +77,6 @@ class BilinearForm
       datastructures::DoubleNodeVector<BasisTimeOut, BasisSpace>, i>;
 
   // Store (cached) bilinear forms in vectors.
-  bool is_cached_ = false;
   std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> bil_space_low_;
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_low_;
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_upp_;
@@ -155,7 +154,6 @@ class SymmetricBilinearForm
       datastructures::DoubleNodeVector<BasisTime, BasisSpace>, i>;
 
   // Store (cached) bilinear forms in vectors.
-  bool is_cached_ = false;
   std::vector<space::BilinearForm<OperatorSpace, F<1>, F<1>>> bil_space_low_;
   std::vector<Time::BilinearForm<OperatorTime, F<0>, F<0>>> bil_time_low_;
 };
@@ -178,13 +176,7 @@ class BlockDiagonalBilinearForm
 
   BlockDiagonalBilinearForm(
       DblVecIn *vec_in, DblVecOut *vec_out, bool use_cache,
-      space::OperatorOptions space_opts = space::OperatorOptions())
-      : vec_in_(vec_in),
-        vec_out_(vec_out),
-        use_cache_(use_cache),
-        space_opts_(std::move(space_opts)) {
-    assert(vec_in->container().size() == vec_out->container().size());
-  }
+      space::OperatorOptions space_opts = space::OperatorOptions());
 
   // Apply takes data from vec_in and writes it to vec_out.
   Eigen::VectorXd Apply(const Eigen::VectorXd &v) final;
@@ -199,7 +191,6 @@ class BlockDiagonalBilinearForm
   DblVecOut *vec_out_;
 
   // The (cached) bilinear forms.
-  bool is_cached_ = false;
   template <size_t i>
   using FI = datastructures::FrozenDoubleNode<
       datastructures::DoubleNodeVector<BasisTimeIn, BasisSpace>, i>;
