@@ -26,7 +26,10 @@ void MultigridTriangulationView::Refine() {
 
   // We must remove the elements from the existing patches.
   for (auto elem : hist)
-    for (auto v : elem->Vids()) assert(Erase(v, elem));
+    for (auto v : elem->Vids()) {
+      bool succes = Erase(v, elem);
+      assert(succes);
+    }
 
   // Now we must update the new elements.
   for (auto elem : hist)
@@ -46,7 +49,10 @@ void MultigridTriangulationView::Coarsen() {
   // We must remove the elements from the existing patches.
   for (auto elem : hist)
     for (auto child : elem->children())
-      for (auto v : child->Vids()) assert(Erase(v, child));
+      for (auto v : child->Vids()) {
+        bool succes = Erase(v, child);
+        assert(succes);
+      }
 
   // Now we must update the new elements.
   for (auto elem : hist)
