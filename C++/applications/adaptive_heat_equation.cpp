@@ -52,8 +52,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     heat_d_dd_.reset();
 
     // Create heat equation with X_dd and Y_dd.
-    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, AY, P_Y,
-                            /* Ydd_is_GenerateYDelta_Xdd */ true, opts_);
+    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, opts_);
 
     // Prolongate u_dd_d from X_d to X_dd.
     vec_Xd_->FromVectorContainer(u_dd_d);

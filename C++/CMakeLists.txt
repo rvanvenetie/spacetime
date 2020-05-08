@@ -4,7 +4,7 @@ project(SpaceTime)
 
 # Set the compile type to debug.
 set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "-O3 -g")
+set(CMAKE_CXX_FLAGS "-O1 -g -fno-omit-frame-pointer -ggdb")
 #set(CMAKE_CXX_FLAGS "-O3 -DVERBOSE")
 #set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
