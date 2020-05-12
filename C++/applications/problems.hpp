@@ -42,12 +42,7 @@ std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
           std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
 CylinderProblem(size_t space_order = 2) {
   auto time_f = [](double t) { return t; };
-  auto space_f = [](double x, double y) {
-    if (x * x + y * y < 0.25)
-      return 1;
-    else
-      return 0;
-  };
+  auto space_f = [](double x, double y) { return (x * x + y * y < 0.25); };
   return {CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(
               time_f, space_f, /* time_order */ 1, space_order),
           std::make_unique<NoOpLinearForm<Time::ThreePointWaveletFn>>()};
