@@ -88,6 +88,11 @@ int main(int argc, char* argv[]) {
   po::store(po::command_line_parser(argc, argv).options(cmdline_options).run(),
             vm);
   po::notify(vm);
+  std::cout << "Problem options:" << std::endl;
+  std::cout << "\tProblem: " << problem << std::endl;
+  std::cout << "\tDomain: " << domain
+            << "; initial-refines: " << initial_refines << std::endl;
+  std::cout << std::endl;
   std::cout << adapt_opts << std::endl;
 
   std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
