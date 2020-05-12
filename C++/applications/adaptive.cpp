@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include <boost/program_options.hpp>
 #include <chrono>
 #include <limits>
@@ -32,8 +34,20 @@ std::istream& operator>>(std::istream& in,
 }
 }  // namespace applications
 
+space::InitialTriangulation InitialTriangulation(std::string domain,
+                                                 size_t initial_refines) {
+  if (domain == "square" || domain == "unit-square")
+    return space::InitialTriangulation::UnitSquare(initial_refines);
+  else if (domain == "lshape" || domain == "l-shape")
+    return space::InitialTriangulation::LShape(initial_refines);
+  else {
+    std::cout << "domain not recognized :-(" << std::endl;
+    exit(1);
+  }
+}
+
 int main(int argc, char* argv[]) {
-  std::string problem;
+  std::string problem, domain;
   size_t initial_refines = 0;
   size_t max_dofs = 0;
   bool estimate_global_error = true;
@@ -41,6 +55,7 @@ int main(int argc, char* argv[]) {
       "Problem options");
   problem_optdesc.add_options()(
       "problem", po::value<std::string>(&problem)->default_value("singular"))(
+      "domain", po::value<std::string>(&domain)->default_value("square"))(
       "initial_refines", po::value<size_t>(&initial_refines))(
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
@@ -74,8 +89,23 @@ int main(int argc, char* argv[]) {
             vm);
   po::notify(vm);
   std::cout << adapt_opts << std::endl;
+
+  std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
+            std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
+      problem_data;
+  if (problem == "smooth")
+    problem_data = SmoothProblem();
+  else if (problem == "singular")
+    problem_data = SingularProblem();
+  else if (problem == "cylinder")
+    problem_data = CylinderProblem();
+  else {
+    std::cout << "problem not recognized :-(" << std::endl;
+    return 1;
+  }
+
+  auto T = InitialTriangulation(domain, initial_refines);
   auto B = Time::Bases();
-  auto T = space::InitialTriangulation::UnitSquare(initial_refines);
 
   T.hierarch_basis_tree.UniformRefine(1);
   B.ortho_tree.UniformRefine(1);
@@ -86,17 +116,6 @@ int main(int argc, char* argv[]) {
       B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
   vec_Xd->SparseRefine(1);
 
-  std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
-            std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
-      problem_data;
-  if (problem == "smooth")
-    problem_data = SmoothProblem();
-  else if (problem == "singular")
-    problem_data = SingularProblem();
-  else {
-    std::cout << "problem not recognized :-(" << std::endl;
-    return 1;
-  }
   AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                std::move(problem_data.second), adapt_opts);
 

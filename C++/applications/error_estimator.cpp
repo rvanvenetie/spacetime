@@ -6,10 +6,7 @@ namespace applications::ErrorEstimator {
 namespace {
 double u0L2NormSquared(HeatEquation &heat,
                        AdaptiveHeatEquation::TypeXLinForm &u0_lf) {
-  auto u0_functional = static_cast<space::QuadratureFunctional *>(
-      static_cast<spacetime::LinearForm<Time::ThreePointWaveletFn> &>(u0_lf)
-          .SpaceLF()
-          .Functional());
+  auto u0_functional = u0_lf.SpaceLF().Functional();
   auto u0 = u0_functional->Function();
   double u0_norm_sq = 0.0;
   auto space_metaroot = heat.vec_X()->Project_1()->node()->vertex();
