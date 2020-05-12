@@ -79,7 +79,7 @@ class NoOpLinearForm : public LinearFormBase<TimeBasis> {
   NoOpLinearForm()
       : space_linform_(std::make_unique<space::QuadratureFunctional>(
             /* space_f */ [](double x, double y) { return 0; },
-            /* spcae_order */ 0)) {}
+            /* space_order */ 0)) {}
 
   Eigen::VectorXd Apply(DblVec *vec) final {
     Eigen::VectorXd result = Eigen::VectorXd::Zero(vec->container().size());
