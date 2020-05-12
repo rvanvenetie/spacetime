@@ -41,7 +41,6 @@ SingularProblem() {
 std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
           std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
 CylinderProblem(size_t space_order = 2) {
-  auto u0 = [](double x, double y) { return 0; };
   auto time_f = [](double t) { return t; };
   auto space_f = [](double x, double y) {
     if (x * x + y * y < 0.25)
