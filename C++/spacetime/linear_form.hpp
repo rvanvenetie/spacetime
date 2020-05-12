@@ -16,6 +16,7 @@ class LinearFormBase {
 
   // Function that must be implemented.
   virtual Eigen::VectorXd Apply(DblVec *vec) = 0;
+  virtual const space::LinearForm &SpaceLF() const = 0;
 };
 
 template <typename TimeBasis>
@@ -62,8 +63,8 @@ class LinearForm : public LinearFormBase<TimeBasis> {
     return vec->ToVectorContainer();
   }
 
-  Time::LinearForm<TimeBasis> &TimeLF() { return time_linform_; }
-  space::LinearForm &SpaceLF() { return space_linform_; }
+  const Time::LinearForm<TimeBasis> &TimeLF() const { return time_linform_; }
+  const space::LinearForm &SpaceLF() const final { return space_linform_; }
 
  protected:
   Time::LinearForm<TimeBasis> time_linform_;
@@ -75,12 +76,21 @@ class NoOpLinearForm : public LinearFormBase<TimeBasis> {
  public:
   using DblVec = typename LinearFormBase<TimeBasis>::DblVec;
 
-  NoOpLinearForm() = default;
+  NoOpLinearForm()
+      : space_linform_(std::make_unique<space::QuadratureFunctional>(
+            /* space_f */ [](double x, double y) { return 0; },
+            /* space_order */ 0)) {}
+
   Eigen::VectorXd Apply(DblVec *vec) final {
     Eigen::VectorXd result = Eigen::VectorXd::Zero(vec->container().size());
     vec->FromVectorContainer(result);
     return result;
   }
+
+  const space::LinearForm &SpaceLF() const final { return space_linform_; }
+
+ protected:
+  space::LinearForm space_linform_;
 };
 
 template <typename TimeBasis>
@@ -97,6 +107,9 @@ class SumLinearForm : public LinearFormBase<TimeBasis> {
     result += b_->Apply(vec);
     vec->FromVectorContainer(result);
     return result;
+  }
+  const space::LinearForm &SpaceLF() const final {
+    throw std::logic_error("SpaceLF is not implemented for sum linear forms.");
   }
 
  protected:

@@ -26,5 +26,6 @@ class InitialTriangulation {
       size_t initial_refinement = 0);
 
   static InitialTriangulation UnitSquare(size_t initial_refinement = 0);
+  static InitialTriangulation LShape(size_t initial_refinement = 0);
 };
 }  // namespace space

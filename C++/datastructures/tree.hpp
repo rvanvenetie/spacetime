@@ -142,7 +142,7 @@ class Tree {
       : nodes_(), meta_root_(&nodes_, std::forward<Args>(args)...) {}
 
   Tree(const Tree &) = delete;
-  Tree<I> &operator=(Tree<I> &&) = default;
+  Tree<I> &operator=(Tree<I> &&) = delete;
 
   template <typename Func = T_func_noop>
   std::vector<I *> Bfs(bool include_metaroot = false,

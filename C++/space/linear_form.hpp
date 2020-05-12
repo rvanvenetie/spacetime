@@ -7,17 +7,11 @@
 
 namespace space {
 
-class LinearFunctional {
- public:
-  virtual ~LinearFunctional() {}
-  virtual std::array<double, 3> Eval(Element2D *elem) const = 0;
-};
-
-class QuadratureFunctional : public LinearFunctional {
+class QuadratureFunctional {
  public:
   QuadratureFunctional(std::function<double(double, double)> f, size_t order)
       : f_(f), order_(order) {}
-  std::array<double, 3> Eval(Element2D *elem) const final;
+  std::array<double, 3> Eval(Element2D *elem) const;
 
   std::function<double(double, double)> Function() const { return f_; }
   size_t Order() const { return order_; }
@@ -29,7 +23,7 @@ class QuadratureFunctional : public LinearFunctional {
 
 class LinearForm {
  public:
-  LinearForm(std::unique_ptr<LinearFunctional> &&functional,
+  LinearForm(std::unique_ptr<QuadratureFunctional> &&functional,
              bool dirichlet_boundary = true)
       : functional_(std::move(functional)),
         dirichlet_boundary_(dirichlet_boundary) {}
@@ -37,10 +31,10 @@ class LinearForm {
   template <typename I>
   void Apply(I *root);
 
-  LinearFunctional *Functional() { return functional_.get(); }
+  QuadratureFunctional *Functional() const { return functional_.get(); }
 
  protected:
-  std::unique_ptr<LinearFunctional> functional_;
+  std::unique_ptr<QuadratureFunctional> functional_;
   bool dirichlet_boundary_;
 };
 }  // namespace space

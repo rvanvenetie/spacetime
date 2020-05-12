@@ -109,4 +109,12 @@ InitialTriangulation InitialTriangulation::UnitSquare(
   std::vector<std::array<int, 3>> elements = {{{0, 2, 3}}, {{1, 3, 2}}};
   return CreateInitialTriangulation(vertices, elements, initial_refinement);
 }
+
+InitialTriangulation InitialTriangulation::LShape(size_t initial_refinement) {
+  std::vector<std::array<double, 2>> vertices = {
+      {0, 0}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
+  std::vector<std::array<int, 3>> elements = {{1, 0, 2}, {3, 2, 0}, {3, 0, 4},
+                                              {5, 4, 0}, {5, 0, 6}, {7, 6, 0}};
+  return CreateInitialTriangulation(vertices, elements, initial_refinement);
+}
 }  // namespace space
