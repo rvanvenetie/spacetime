@@ -37,7 +37,7 @@ void ApplyMeanZero(AdaptiveHeatEquation::TypeXVector *vec) {
 }
 }  // namespace
 
-double ComputeGlobalError(HeatEquation &heat,
+std::pair<double, std::pair<double, double>> ComputeGlobalError(HeatEquation &heat,
                           AdaptiveHeatEquation::TypeYLinForm &g_lf,
                           AdaptiveHeatEquation::TypeXLinForm &u0_lf,
                           const Eigen::VectorXd &u_dd_d) {
@@ -50,7 +50,7 @@ double ComputeGlobalError(HeatEquation &heat,
   double u0_gamma0_u_inp = u0_lf.Apply(heat.vec_X()).dot(u_dd_d);
   double gamma0_u_norm_sq = heat.G()->Apply(u_dd_d).dot(u_dd_d);
   double u_error_sq = u0_norm_sq - 2 * u0_gamma0_u_inp + gamma0_u_norm_sq;
-  return sqrt(residual_Ynorm_sq + u_error_sq);
+  return {sqrt(residual_Ynorm_sq + u_error_sq), {sqrt(residual_Ynorm_sq), sqrt(u_error_sq)}};
 }
 
 double ComputeLocalErrors(AdaptiveHeatEquation::TypeXVector *residual_dd_dd,

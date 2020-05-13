@@ -142,10 +142,12 @@ int main(int argc, char* argv[]) {
 
     if (estimate_global_error) {
       start = std::chrono::steady_clock::now();
-      double global_error = heat_eq.EstimateGlobalError(solution);
+      auto [global_error, terms] = heat_eq.EstimateGlobalError(solution);
       std::chrono::duration<double> duration_global =
           std::chrono::steady_clock::now() - start;
       std::cout << " global-error: " << global_error
+      << " Ynorm-error: " << terms.first
+      << " T0-error: " << terms.second
                 << " global-time: " << duration_global.count() << std::flush;
     }
     start = std::chrono::steady_clock::now();

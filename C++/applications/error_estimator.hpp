@@ -4,7 +4,7 @@
 #include "adaptive_heat_equation.hpp"
 namespace applications {
 namespace ErrorEstimator {
-double ComputeGlobalError(HeatEquation &heat,
+std::pair<double, std::pair<double, double>> ComputeGlobalError(HeatEquation &heat,
                           AdaptiveHeatEquation::TypeYLinForm &g_lf,
                           AdaptiveHeatEquation::TypeXLinForm &u0_lf,
                           const Eigen::VectorXd &u_dd_d);
