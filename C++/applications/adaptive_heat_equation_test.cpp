@@ -71,7 +71,7 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
       ASSERT_NEAR(u_nodes[i]->value(), python_u[i], 1e-5);
     ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[0], 1);
 
-    double global_error = heat_eq.EstimateGlobalError(u);
+    auto [global_error, terms] = heat_eq.EstimateGlobalError(u);
     auto [residual, residual_norm] = heat_eq.Estimate(u);
     auto residual_nodes = residual->Bfs();
     Eigen::VectorXd python_residual(residual_nodes.size());
@@ -102,7 +102,7 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
 
     for (size_t iter = 1; iter < 5; iter++) {
       auto [u, pcg_data] = heat_eq.Solve(vec_Xd->ToVectorContainer());
-      double global_error = heat_eq.EstimateGlobalError(u);
+      auto [global_error, terms] = heat_eq.EstimateGlobalError(u);
       auto [residual, residual_norm] = heat_eq.Estimate(u);
       auto marked_nodes = heat_eq.Mark(residual);
       ASSERT_EQ(marked_nodes.size(), python_mark_data[iter].first);
