@@ -785,7 +785,7 @@ known error convergence rate of $N^{-1/3}$.\jw{citatie}
 Figure~\ref{fig:smooth} shows the error progressions for the smooth problem. We
 plot the residual error estimator $\|\mathbf r^{\delta}\|$ from Proposition~\ref{prop:residual-apost},
 the global error estimator from Proposition~\ref{prop:global-apost} with $v^\delta=u^{\udelta \delta}$,
-and the time-slice error $\|u_0 - \gamma_0 u^{\udelta \delta}\|_{L_2(\Omega)}$ at $t=0$.
+and the time-slice error $\|u_0 - \gamma_0 u^{\udelta \delta}\|_{L_2(\Omega)}$ at $t=0$.\jw{misschien ook de $X$-norm meten?}
 We see that the $X$-norm error progression for full grid refinement is indeed $\mathcal O(N^{-1/3})$,
 whereas adaptive refinement yields the optimal\jw{cite} rate of $\mathcal O(N^{-1/2})$.
 We moreover note the superconvergence at time $t=0$ for both refinement schemes.
@@ -820,6 +820,12 @@ shows the error progression
   \item Misschien de spatial meshes voor wat verschillende $\lambda$, of sowieso
     tellen hoeveel $\lambda$'s er zijn in dit geval? lijkt veel op de numres van FK19
 \end{itemize}
+\begin{figure}
+  \includegraphics[width=0.5\linewidth]{cylinder_adaptive_errors}
+  \caption{Error progression of $e^\delta := u - u^{\underline{\delta}\delta}$ as
+  a function of $\dim X^\delta$ for adaptive and full grid refinement.\jw{excuse the terrible graph}}
+  \label{fig:cylinder}
+\end{figure}
 
 \subsection{Second singular solution}
 Selecting again the unit-square domain $\Omega := [0,1]^2$ with data $u_0 := \bbone$
@@ -829,6 +835,12 @@ and $g \equiv 0$, we see BLA.
   \item Adaptive vs full vs sparse grid
   \item Memory en time graphs
 \end{itemize}
+\begin{figure}
+  \includegraphics[width=0.5\linewidth]{singular_adaptive_errors}
+  \caption{Error progression of $e^\delta := u - u^{\underline{\delta}\delta}$ as
+  a function of $\dim X^\delta$ for adaptive and full grid refinement.\jw{excuse the terrible graph}}
+  \label{fig:singular}
+\end{figure}
 
 
 
