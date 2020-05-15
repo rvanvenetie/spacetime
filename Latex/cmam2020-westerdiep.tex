@@ -1,0 +1,45 @@
+\documentclass[12pt]{amsart}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+
+\title{Space-time adaptivity for parabolic evolution equations}
+\author{Rob Stevenson \and Raymond van Veneti\"e \and Jan Westerdiep$^\star$}
+\address{$^\star$ Korteweg-de Vries Institute for Mathematics, University of Amsterdam}
+\email[Jan Westerdiep]{j.h.westerdiep@uva.nl}
+
+\begin{document}
+
+\maketitle
+
+\section*{ABSTRACT}
+
+
+Taking the well-posed mixed simultaneous space-time variational formulation
+introduced in~\cite{And13}, we use methods previously developed in~\cite{SW20}
+to construct an adaptive loop that produces space-time approximations as linear
+combinations of tensor-products of wavelets in time and finite elements in space.
+
+Using an efficient and reliable `hierarchical basis' error estimator, we apply bulk
+chasing to show convergence of the iterands. Moreover, we provide an algorithm for
+linear-complexity application of the system matrix and an optimal preconditioner.
+Lastly, we include an extensive numerical study to show that this method is competitive
+in terms of speed and moreover exhibits optimal convergence rate in the number of
+degrees of freedom.
+
+\begin{thebibliography}{99}
+
+\bibitem[And13]{And13}
+R.~Andreev.
+\newblock Stability of sparse space-time finite element discretizations of
+ linear parabolic evolution equations.
+\newblock {\em IMA J. Numer. Anal.}, 33(1):242--260, 2013.
+
+\bibitem[SW20]{SW20}
+\newblock Stability of Galerkin discretizations of a mixed space-time variational
+   formulation of parabolic evolution equations.
+\newblock {\em IMA J. Numer. Anal.}, 2020.
+
+\end{thebibliography}
+
+
+\end{document}
