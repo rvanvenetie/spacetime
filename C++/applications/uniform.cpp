@@ -66,6 +66,9 @@ int main(int argc, char* argv[]) {
 
   auto T = InitialTriangulation(domain, initial_refines);
   auto B = Time::Bases();
+  auto vec_Xd = std::make_shared<
+      DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
+      B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
 
   for (int level = 1; level < max_level; level++) {
     std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
@@ -81,19 +84,26 @@ int main(int argc, char* argv[]) {
       std::cout << "problem not recognized :-(" << std::endl;
       return 1;
     }
-    B.ortho_tree.UniformRefine(level + 2);
-    B.three_point_tree.UniformRefine(level + 2);
-    T.hierarch_basis_tree.UniformRefine(2 * (level + 2));
-
-    auto vec_Xd = std::make_shared<
-        DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
-        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+    B.ortho_tree.UniformRefine(level + 1);
+    B.three_point_tree.UniformRefine(level + 1);
+    T.hierarch_basis_tree.UniformRefine(2 * (level + 1));
     if (sparse_refine)
-      vec_Xd->SparseRefine(level, {2, 1});
+      vec_Xd->SparseRefine(2 * level, {2, 1});
     else
       vec_Xd->UniformRefine({level, 2 * level});
     size_t ndof = vec_Xd->Bfs().size();  // A slight overestimate.
-    std::cout << ndof << std::endl;
+    int max_node_time = 0, max_node_space = 0;
+    for (auto node : vec_Xd->Bfs()) {
+      max_node_time =
+          std::max(max_node_time, std::get<0>(node->nodes())->level());
+      max_node_space =
+          std::max(max_node_space, std::get<1>(node->nodes())->level());
+    }
+    int max_space_tree_lvl = 0;
+    for (auto node : T.hierarch_basis_tree.Bfs())
+      max_space_tree_lvl = std::max(max_space_tree_lvl, node->level());
+    std::cout << ndof << " " << max_node_time << " " << max_node_space << " "
+              << max_space_tree_lvl << std::endl;
     if (ndof == 0) continue;
     if (ndof > max_dofs) break;
     AdaptiveHeatEquationOptions adapt_opts;

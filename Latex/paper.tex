@@ -812,9 +812,10 @@ moet het wel lukken, maar is niet super easy-peasy om die inproducten uit te rek
 Selecting the L-shaped domain $\Omega := [-1,1]^2 \setminus [0,1]^2$ with data
 $u_0 \equiv 0$ and $g(x,y) := \bbone_{{x^2 + y^2 \leq 1/4}}(x,y)$, the true
 solution is unknown in closed form but known to be singular in the re-entrant
-corner.\jw{is het wel singulier? of alleen minder regulier? hier wil ik een citatie of *iets* anders} Figure~\ref{fig:cylinder}
-shows the error progression
-
+corner.\jw{is het wel singulier? of alleen minder regulier? hier wil ik een citatie of *iets* anders}
+Figure~\ref{fig:cylinder} shows the error progression for this cylinder problem.
+We see that the full grid rate of $1/4$ is improved to $1/2$ for adaptive refinement,
+and again note the superconvergent rate for the time-slice error at $t=0$.
 \begin{itemize}
   \item Adaptive vs full vs sparse grid
   \item Misschien de spatial meshes voor wat verschillende $\lambda$, of sowieso
