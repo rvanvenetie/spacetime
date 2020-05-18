@@ -803,7 +803,7 @@ moet het wel lukken, maar is niet super easy-peasy om die inproducten uit te rek
 \]}
 \begin{figure}
   \includegraphics[width=0.5\linewidth]{smooth_adaptive_errors}
-  \caption{Error progression of $e^\delta := u - u^{\underline{\delta}\delta}$ as
+  \caption{Error progression of $e^\delta := u - u^{\underline{\delta}\delta}$ for the smooth problem as
   a function of $\dim X^\delta$ for adaptive and full grid refinement.\jw{excuse the terrible graph}}
   \label{fig:smooth}
 \end{figure}
@@ -812,7 +812,7 @@ moet het wel lukken, maar is niet super easy-peasy om die inproducten uit te rek
 Selecting the L-shaped domain $\Omega := [-1,1]^2 \setminus [0,1]^2$ with data
 $u_0 \equiv 0$ and $g(x,y) := \bbone_{{x^2 + y^2 \leq 1/4}}(x,y)$, the true
 solution is unknown in closed form but known to be singular in the re-entrant
-corner.\jw{hier wil ik een citatie of *iets* anders} Figure~\ref{fig:cylinder}
+corner.\jw{is het wel singulier? of alleen minder regulier? hier wil ik een citatie of *iets* anders} Figure~\ref{fig:cylinder}
 shows the error progression
 
 \begin{itemize}
@@ -822,7 +822,7 @@ shows the error progression
 \end{itemize}
 \begin{figure}
   \includegraphics[width=0.5\linewidth]{cylinder_adaptive_errors}
-  \caption{Error progression of $e^\delta := u - u^{\underline{\delta}\delta}$ as
+  \caption{Error progression of $e^\delta := u - u^{\underline{\delta}\delta}$ for the cylinder problem as
   a function of $\dim X^\delta$ for adaptive and full grid refinement.\jw{excuse the terrible graph}}
   \label{fig:cylinder}
 \end{figure}
@@ -837,7 +837,7 @@ and $g \equiv 0$, we see BLA.
 \end{itemize}
 \begin{figure}
   \includegraphics[width=0.5\linewidth]{singular_adaptive_errors}
-  \caption{Error progression of $e^\delta := u - u^{\underline{\delta}\delta}$ as
+  \caption{Error progression of $e^\delta := u - u^{\underline{\delta}\delta}$ for the singular problem as
   a function of $\dim X^\delta$ for adaptive and full grid refinement.\jw{excuse the terrible graph}}
   \label{fig:singular}
 \end{figure}

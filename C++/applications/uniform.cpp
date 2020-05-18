@@ -81,9 +81,9 @@ int main(int argc, char* argv[]) {
       std::cout << "problem not recognized :-(" << std::endl;
       return 1;
     }
-    B.ortho_tree.UniformRefine(level);
-    B.three_point_tree.UniformRefine(level);
-    T.hierarch_basis_tree.UniformRefine(2 * level);
+    B.ortho_tree.UniformRefine(level + 2);
+    B.three_point_tree.UniformRefine(level + 2);
+    T.hierarch_basis_tree.UniformRefine(2 * (level + 2));
 
     auto vec_Xd = std::make_shared<
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(

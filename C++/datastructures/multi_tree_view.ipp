@@ -257,7 +257,7 @@ inline void MultiTreeView<I>::SparseRefine(int max_level,
   DeepRefine([&](const typename I::TupleNodes& nodes) {
     auto lvls = levels(nodes);
     int w_level = 0;
-    for (int i = 0; i < dim; ++i) w_level += weights[i] * lvls[i];
+    for (int i = 0; i < dim; ++i) w_level += weights[i] * std::max(0, lvls[i]);
     return w_level <= max_level;
   });
 }
