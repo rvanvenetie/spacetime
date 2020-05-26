@@ -38,6 +38,7 @@ int main(int argc, char* argv[]) {
   size_t max_dofs = 0;
   bool estimate_global_error = true;
   bool sparse_refine = true;
+  bool calculate_condition_numbers = false;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
   problem_optdesc.add_options()(
@@ -50,7 +51,10 @@ int main(int argc, char* argv[]) {
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
       "estimate_global_error", po::value<bool>(&estimate_global_error))(
-      "sparse_refine", po::value<bool>(&sparse_refine));
+      "sparse_refine", po::value<bool>(&sparse_refine))(
+      "calculate_condition_numbers",
+      po::value<bool>(&calculate_condition_numbers));
+
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(problem_optdesc);
 
@@ -91,7 +95,7 @@ int main(int argc, char* argv[]) {
       vec_Xd->SparseRefine(2 * level, {2, 1});
     else
       vec_Xd->UniformRefine({level, 2 * level});
-    size_t ndof = vec_Xd->Bfs().size();  // A slight overestimate.
+    size_t ndof_X = vec_Xd->Bfs().size();  // A slight overestimate.
     int max_node_time = 0, max_node_space = 0;
     for (auto node : vec_Xd->Bfs()) {
       max_node_time =
@@ -102,16 +106,43 @@ int main(int argc, char* argv[]) {
     int max_space_tree_lvl = 0;
     for (auto node : T.hierarch_basis_tree.Bfs())
       max_space_tree_lvl = std::max(max_space_tree_lvl, node->level());
-    std::cout << ndof << " " << max_node_time << " " << max_node_space << " "
+    std::cout << ndof_X << " " << max_node_time << " " << max_node_space << " "
               << max_space_tree_lvl << std::endl;
-    if (ndof == 0) continue;
-    if (ndof > max_dofs) break;
+    if (ndof_X == 0) continue;
+    if (ndof_X > max_dofs) break;
     AdaptiveHeatEquationOptions adapt_opts;
     adapt_opts.use_cache = false;
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                  std::move(problem_data.second), adapt_opts);
-    std::cout << "XDelta-size: " << ndof << " total-memory-kB: " << getmem()
-              << std::flush;
+    size_t ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
+    std::cout << "XDelta-size: " << ndof_X << " YDeltaDelta-size: " << ndof_Y
+              << " total-memory-kB: " << getmem() << std::flush;
+
+    if (calculate_condition_numbers) {
+      auto start = std::chrono::steady_clock::now();
+      std::chrono::duration<double> duration_cond =
+          std::chrono::steady_clock::now() - start;
+
+      // Set the initial vector to something valid.
+      heat_eq.vec_Ydd()->Reset();
+      for (auto nv : heat_eq.vec_Ydd()->Bfs())
+        if (!nv->node_1()->on_domain_boundary()) nv->set_random();
+      auto lanczos_Y = tools::linalg::Lanczos(
+          *heat_eq.heat_d_dd()->A(), *heat_eq.heat_d_dd()->P_Y(),
+          heat_eq.vec_Ydd()->ToVectorContainer());
+
+      // Set the initial vector to something valid.
+      heat_eq.vec_Xd()->Reset();
+      for (auto nv : heat_eq.vec_Xd()->Bfs())
+        if (!nv->node_1()->on_domain_boundary()) nv->set_random();
+      auto lanczos_X = tools::linalg::Lanczos(
+          *heat_eq.heat_d_dd()->S(), *heat_eq.heat_d_dd()->P_X(),
+          heat_eq.vec_Xd()->ToVectorContainer());
+      std::cout << " cond-PY-A: " << lanczos_Y.cond()
+                << " cond-PX-S: " << lanczos_X.cond()
+                << " cond-time: " << duration_cond.count() << std::endl;
+      continue;
+    }
 
     // Solve - estimate.
     auto start = std::chrono::steady_clock::now();

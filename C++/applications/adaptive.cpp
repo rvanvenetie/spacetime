@@ -51,6 +51,7 @@ int main(int argc, char* argv[]) {
   size_t initial_refines = 0;
   size_t max_dofs = 0;
   bool estimate_global_error = true;
+  bool calculate_condition_numbers = false;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
   problem_optdesc.add_options()(
@@ -59,7 +60,9 @@ int main(int argc, char* argv[]) {
       "initial_refines", po::value<size_t>(&initial_refines))(
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
-      "estimate_global_error", po::value<bool>(&estimate_global_error));
+      "estimate_global_error", po::value<bool>(&estimate_global_error))(
+      "calculate_condition_numbers",
+      po::value<bool>(&calculate_condition_numbers));
 
   AdaptiveHeatEquationOptions adapt_opts;
   boost::program_options::options_description adapt_optdesc(
@@ -124,12 +127,38 @@ int main(int argc, char* argv[]) {
   AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                std::move(problem_data.second), adapt_opts);
 
-  size_t ndof = 0;
+  size_t ndof_X = 0, ndof_Y = 0;
   Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
-  while (ndof < max_dofs) {
-    ndof = vec_Xd->Bfs().size();  // A slight overestimate.
-    std::cout << "XDelta-size: " << ndof << " total-memory-kB: " << getmem()
-              << std::flush;
+  while (ndof_X < max_dofs) {
+    ndof_X = vec_Xd->Bfs().size();             // A slight overestimate.
+    ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
+    std::cout << "XDelta-size: " << ndof_X << " YDeltaDelta-size: " << ndof_Y
+              << " total-memory-kB: " << getmem() << std::flush;
+
+    if (calculate_condition_numbers) {
+      auto start = std::chrono::steady_clock::now();
+      std::chrono::duration<double> duration_cond =
+          std::chrono::steady_clock::now() - start;
+
+      // Set the initial vector to something valid.
+      heat_eq.vec_Ydd()->Reset();
+      for (auto nv : heat_eq.vec_Ydd()->Bfs())
+        if (!nv->node_1()->on_domain_boundary()) nv->set_random();
+      auto lanczos_Y = tools::linalg::Lanczos(
+          *heat_eq.heat_d_dd()->A(), *heat_eq.heat_d_dd()->P_Y(),
+          heat_eq.vec_Ydd()->ToVectorContainer());
+
+      // Set the initial vector to something valid.
+      heat_eq.vec_Xd()->Reset();
+      for (auto nv : heat_eq.vec_Xd()->Bfs())
+        if (!nv->node_1()->on_domain_boundary()) nv->set_random();
+      auto lanczos_X = tools::linalg::Lanczos(
+          *heat_eq.heat_d_dd()->S(), *heat_eq.heat_d_dd()->P_X(),
+          heat_eq.vec_Xd()->ToVectorContainer());
+      std::cout << " cond-PY-A: " << lanczos_Y.cond()
+                << " cond-PX-S: " << lanczos_X.cond()
+                << " cond-time: " << duration_cond.count() << std::flush;
+    }
 
     // Solve - estimate.
     auto start = std::chrono::steady_clock::now();
@@ -146,8 +175,8 @@ int main(int argc, char* argv[]) {
       std::chrono::duration<double> duration_global =
           std::chrono::steady_clock::now() - start;
       std::cout << " global-error: " << global_error
-      << " Ynorm-error: " << terms.first
-      << " T0-error: " << terms.second
+                << " Ynorm-error: " << terms.first
+                << " T0-error: " << terms.second
                 << " global-time: " << duration_global.count() << std::flush;
     }
     start = std::chrono::steady_clock::now();
