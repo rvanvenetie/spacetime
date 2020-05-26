@@ -831,7 +831,7 @@ This error estimator will drive our adaptive loop. Even without Assumption~\ref{
   \jw{deze afschatting geldt voro elke $v^\delta \in X^\delta$ en niet alleen voor de oplossing van ons systeem; ik zie twee mogelijk-leuke toepassingen hiervan, namelijk
   \begin{itemize}
     \item het stelt ons in staat om de $X$-norm fout van PCG iterands te plotten
-    \item het stelt ons in staat om de $X$-norm fout van de FK19-oplossing te plotten
+    \item het stelt ons in staat om de $X$-norm fout van (1 component van) de FK19-oplossing te plotten
   \end{itemize}
   is daar iets nuttig aan?}
 \end{remark}
@@ -972,7 +972,9 @@ vector. The simple Algorithm~\ref{alg:adapt} shows the resulting adaptive loop.
 \end{proof}
 
 \section{Application in linear time}
-\jw{XYZ inleiding.} Here
+\jw{XYZ inleiding.}
+
+Here
 \begin{align*}
 (A_s v_1 \otimes w_1)(v_2 \otimes w_2)&=\int_0^1 v_1(t) v_2(t)\dif t \int_\Omega \nabla w_1({\bf x})\cdot  \nabla w_2({\bf x}) \dif{\bf x},\\
 (B v_1 \otimes w_1)(v_2 \otimes w_2)&=\int_0^1 \frac{\dif v_1}{\dif t}(t) v_2(t)\dif t \int_\Omega w_1({\bf x}) w_2({\bf x}) \dif {\bf x}+(A_s v_1 \otimes w_1)(v_2 \otimes w_2),\\
@@ -982,10 +984,13 @@ v_1(0) v_2(0)\int_\Omega w_1({\bf x}) w_2({\bf x}) \dif {\bf x}\\
 g(v_2 \otimes w_2)&=\sum_i \int_0^1g_{1i}(t) v_2(t)\dif t \int_\Omega g_{2i}({\bf x}) w_2({\bf x}) \dif  {\bf x},
 \end{align*}
 where we assumed that $g$ is given or approximated in the form $g(t,{\bf x})=\sum_i g_{1i}(t) g_{2i}({\bf x})$.
+
+
 \subsection{Efficient evaluation of operators in space and time}
-TODO
+\jw{willen we hier de sectie uit followup copy-pasten of is een referentie naar nicos' phd of dat paper met kestler voldoende?}
 \subsection{Efficient evaluation of tensor-product operators}
-TODO
+\jw{willen we hier de sectie uit followup copy-pasten of is een referentie naar nicos' phd of dat paper met kestler voldoende?}
+
 \subsection{Preconditioning the arising system}
 \jw{introduce operator preconditioning}
 
@@ -1095,6 +1100,10 @@ with a typical tensor product mesh into prismatic elements. \jw{meh slecht gefor
 Further restriction of the full grid to those functions of level $\ell$ in time and
 $k$ in space such that $2 \ell + k \leq 2L$ produces a \emph{sparse grid}.
 
+\jw{ik mis nog een paar rake zinnen om te vergelijken met FK19 hieronder. De moeilijkheid
+zit 'm in het verschil in norm + dat zelfs hun uniform-refinement solutions tov
+een simplicial mesh zijn, en wij dus een tensor mesh hebben}
+
 \subsection{Condition numbers of preconditioner}
 \subsection{Smooth solution}
 We consider the unit-square domain $\Omega := [0,1]^2$ and prescribe the solution
@@ -1149,7 +1158,7 @@ for adaptive refinement, recovering the rate of the smooth case.
   \label{fig:cylinder}
 \end{figure}
 
-\subsection{Second singular solution}
+\subsection{Singular solution}
 Selecting the unit-square domain $\Omega := [0,1]^2$ with data $u_0 := \bbone$
 and $g \equiv 0$, we see the error progressions plotted in Figure~\ref{fig:singular-error}.
 For the uniform refinement, we see the abhorrent convergence rate of $\O(N^{-1/11})$.
@@ -1159,12 +1168,15 @@ if this rate is optimal.
 Figure~\ref{fig:singular-time-memory} shows the peak memory consumption in kilobytes
 over $\# \dim X^\delta$ and computation time of a single application of $S^{\udelta \delta}$.
 We see that the memory consumption is asymptotically linear in the number of
-unknowns, whereas for the time per apply, we observe a rate of $1.04$.\jw{dit is natuurlijk groter dan 1. Is het wel acceptabel?}
+unknowns, whereas for the time per apply, we observe a rate of $1.03$.\jw{dit is natuurlijk groter dan 1. Is het wel acceptabel?}
+The memory consumption is relatively high because $\dim Y^\udelta \approx 16 \times \dim X^\delta$,
+resulting in very large systems.\jw{oef, ja wel goed om te vertellen maar 16 is een hoge constante zeg}
 
 \begin{figure}
   \includegraphics[width=0.5\linewidth]{singular_adaptive_errors}
-  \caption{Error progression of $e^\delta := u - u^{\underline{\delta}\delta}$ for the singular problem as
-  a function of $\dim X^\delta$ for adaptive and full grid refinement.\jw{excuse the terrible graph}}
+  \caption{Error progressions for the singular problem of residual norm (solid line),
+  estimated $X$-norm error (dashed), and $t=0$ time-slice error (dotted) as a function
+  of $\dim X^\delta$ for adaptive (black), sparse grid (red), and full grid refinement (orange).}
   \label{fig:singular-error}
 \end{figure}
 \begin{figure}
