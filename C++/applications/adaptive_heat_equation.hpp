@@ -83,7 +83,8 @@ class AdaptiveHeatEquation {
     return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
   }
 
-  std::pair<double, std::pair<double, double>> EstimateGlobalError(const Eigen::VectorXd &u_dd_d);
+  std::pair<double, std::pair<double, double>> EstimateGlobalError(
+      const Eigen::VectorXd &u_dd_d);
   std::pair<TypeXVector *, double> Estimate(const Eigen::VectorXd &u_dd_d);
   std::vector<TypeXNode *> Mark(TypeXVector *residual);
 
@@ -93,6 +94,7 @@ class AdaptiveHeatEquation {
   std::shared_ptr<TypeXVector> vec_Xd() { return vec_Xd_; }
   std::shared_ptr<TypeXVector> vec_Xdd() { return vec_Xdd_; }
   std::shared_ptr<TypeYVector> vec_Ydd() { return vec_Ydd_; }
+  HeatEquation *heat_d_dd() { return heat_d_dd_.get(); }
 
  protected:
   Eigen::VectorXd RHS(HeatEquation &heat);
