@@ -38,10 +38,7 @@ int main(int argc, char* argv[]) {
   size_t max_dofs = 0;
   bool estimate_global_error = true;
   bool sparse_refine = true;
-<<<<<<< HEAD
   bool calculate_condition_numbers = false;
-=======
->>>>>>> cpp/master
   boost::program_options::options_description problem_optdesc(
       "Problem options");
   problem_optdesc.add_options()(
@@ -54,14 +51,10 @@ int main(int argc, char* argv[]) {
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
       "estimate_global_error", po::value<bool>(&estimate_global_error))(
-<<<<<<< HEAD
       "sparse_refine", po::value<bool>(&sparse_refine))(
       "calculate_condition_numbers",
       po::value<bool>(&calculate_condition_numbers));
 
-=======
-      "sparse_refine", po::value<bool>(&sparse_refine));
->>>>>>> cpp/master
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(problem_optdesc);
 
