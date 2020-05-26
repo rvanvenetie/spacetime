@@ -106,10 +106,10 @@ int main(int argc, char* argv[]) {
     int max_space_tree_lvl = 0;
     for (auto node : T.hierarch_basis_tree.Bfs())
       max_space_tree_lvl = std::max(max_space_tree_lvl, node->level());
-    std::cout << ndof << " " << max_node_time << " " << max_node_space << " "
+    std::cout << ndof_X << " " << max_node_time << " " << max_node_space << " "
               << max_space_tree_lvl << std::endl;
-    if (ndof == 0) continue;
-    if (ndof > max_dofs) break;
+    if (ndof_X == 0) continue;
+    if (ndof_X > max_dofs) break;
     AdaptiveHeatEquationOptions adapt_opts;
     adapt_opts.use_cache = false;
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
