@@ -201,7 +201,7 @@ $u$ such that
 \begin{equation}
   \label{eqn:ibvp}
   \left\{
-    \begin{array}{rl} 
+    \begin{array}{rl}
       \frac{\dif u}{\dif t}(t) +A(t) u(t)&\!\!\!= g(t) \quad(t \in I),\\
       u(0) &\!\!\!= u_0.
     \end{array}
@@ -224,7 +224,7 @@ for all $v$ from another suitable space of functions of time and space.
     \begin{bmatrix} B \\ \gamma_0\end{bmatrix}\in \Lis(X,Y' \times H),
   \end{equation}
   where for $t \in \bar I$, $\gamma_t\colon u \mapsto u(t,\cdot)$ denotes the trace map.
-  In other words, given $(g, u_0) \in Y' \times H$, finding $u \in X$ such that 
+  In other words, given $(g, u_0) \in Y' \times H$, finding $u \in X$ such that
   \begin{equation}
     \label{eqn:B-varform}
     (Bu)(v_1)+\la u(0,\cdot),v_2\ra=g(v_1)+\la u_0,v_2\ra\quad ((v_1,v_2) \in Y \times H),
@@ -233,7 +233,7 @@ for all $v$ from another suitable space of functions of time and space.
 \end{theorem}
 
 \subsection{Andreev formulation}
-Defining $A, A_s \in \Lis(Y,Y')$, $A_a \in \cL(Y,Y')$, and $\partial_t \in \cL(X,Y')$ by 
+Defining $A, A_s \in \Lis(Y,Y')$, $A_a \in \cL(Y,Y')$, and $\partial_t \in \cL(X,Y')$ by
 \[
 (Au)(v):=\int_I a(t;u(t),v(t)) \dif t, \quad A_s:=\tfrac12(A+A'), \quad A_a:=\tfrac12(A-A'), \quad \partial_t:=B-A,
 \]
@@ -259,23 +259,23 @@ which are equivalent to the canonical norms on $Y$ and $X$.
   \label{lem:energy-norm}
   It holds that $\|\cdot\|_X^2=(S\cdot)(\cdot)$.
 \end{lemma}
-\begin{proof} 
+\begin{proof}
   We find \jw{dit ben ik nog niet nagegaan}
   \[
     \|w\|_X^2=\sup_{0 \neq v_1 \in Y} \frac{(B w)(v_1)}{\|v_1\|_Y^2}+\|\gamma_0 w\|^2
     =\sup_{0 \neq (v_1,v_2) \in Y \times H} \frac{((B w)(v_1)+\la \gamma_0 w,v_2\ra)^2}{\|v_1\|_Y^2+\|v_2\|^2} =(Sw)(w),
   \]
   where the first equality can be found in e.g.~\cite[Thm.~2.1]{Ern2017a}, and,
-  when realising that $S$ is also the Schur complement of 
+  when realising that $S$ is also the Schur complement of
   $\begin{bsmallmatrix} A_s & 0 & B\\ 0 & \Id & \gamma_0\\ B' & \gamma_0' & 0\end{bsmallmatrix} \in \cL(Y\times H \times X, Y'\times H'\times X')$, the last one follows from e.g.~\cite[Lemma~2.2]{Kondratyuk2008}.
 \end{proof}
 
-Let $(X^\delta)_{\delta \in \Delta}$ be a collection of closed subspaces of $X$. 
+Let $(X^\delta)_{\delta \in \Delta}$ be a collection of closed subspaces of $X$.
 We define a \emph{partial order} on $\Delta$ by $\delta \preceq \tilde{\delta}$
 when $X^\delta \subseteq X^{\tilde{\delta}}$. For $\delta \in \Delta$, let
 $u_\delta \in X^\delta$ denote the {\em Galerkin approximation to $u$}, i.e., the solution of
 \begin{equation}
-(Su_\delta)(v)=f(v) \quad (v \in X^\delta), 
+(Su_\delta)(v)=f(v) \quad (v \in X^\delta),
   \label{eqn:galerkin}
 \end{equation}
 being the best approximation to $u$ from $X^\delta$ wrt.~$\|\cdot\|_X$.
@@ -295,9 +295,9 @@ Uniform stability essentially establishes the norm equivalences
 \]
 Note that $\gamma_\Delta$ can be made arbitrarily close to $1$ by selecting $Y^\delta$ sufficiently large.
 
-For $\delta, \hat{\delta} \in \Delta$ with $Y^\delta \subseteq Y^{\hat{\delta}}$, and 
+For $\delta, \hat{\delta} \in \Delta$ with $Y^\delta \subseteq Y^{\hat{\delta}}$, and
 $E_Y^{\hat{\delta}}$, $E_X^\delta$ denoting the embeddings $Y^{\hat{\delta}} \rightarrow Y$,
-$X^\delta \rightarrow X$, let $(\mu^{\hat{\delta} \delta},u^{\hat{\delta} \delta}) \in Y^{\hat{\delta}} \times X^\delta$ be the solution of 
+$X^\delta \rightarrow X$, let $(\mu^{\hat{\delta} \delta},u^{\hat{\delta} \delta}) \in Y^{\hat{\delta}} \times X^\delta$ be the solution of
 \[
   \begin{bmatrix}{E_Y^{\hat{\delta}}}' A_s E_Y^{\hat{\delta}}& {E_Y^{\hat{\delta}}}' B E^\delta_X\\ {E^\delta_X}' B' E_Y^{\hat{\delta}}& -{E^\delta_X}' \gamma_0' \gamma_0 E^\delta_X \end{bmatrix}
   \begin{bmatrix} \mu^{\hat{\delta} \delta} \\ u^{\hat{\delta} \delta} \end{bmatrix}
@@ -354,8 +354,8 @@ and~\cite[Proposition 2.5]{Tantardini2016} by allowing $W \neq \tilde W$.
 
 \begin{prop} \label{prop:space-infsup}
   Let $W$ and $\tilde W$ be closed subspaces of $H$ such that there exists a
-  (biorthogonal) projector $Q \in \cL(H,H)$ with $\ran Q=W$ and $\ran (\Id -Q)={\tilde W}^\perp$. 
-  Then, when $W \subset V$, it holds that 
+  (biorthogonal) projector $Q \in \cL(H,H)$ with $\ran Q=W$ and $\ran (\Id -Q)={\tilde W}^\perp$.
+  Then, when $W \subset V$, it holds that
   \[
     \gamma:=\inf_{0 \neq \tilde w \in \tilde W}\sup_{0 \neq w \in W}\frac{\la \tilde w,w\ra}{\|\tilde w\|_{V'}\|w\|_V}>0
   \]
@@ -402,8 +402,8 @@ or $W_\lambda^\delta=\tilde{W}_\lambda^\delta=\{0\}$}, let
 \[
 \framebox{$Y^\delta=\sum_{\mu \in \vee_\Psi} \psi_\mu \otimes V_\mu^\delta$}
 \]
-and $\tilde{Y}^\delta=\sum_{\mu \in \vee_\Psi} \tilde{\psi}_\mu \otimes \tilde{V}_\mu^\delta$ 
-where \framebox{$(V^\delta_\mu,\tilde{V}^\delta_\mu) \in {\mathcal O}$ or $V_\lambda^\delta=\tilde{V}_\lambda^\delta=\{0\}$} is such that 
+and $\tilde{Y}^\delta=\sum_{\mu \in \vee_\Psi} \tilde{\psi}_\mu \otimes \tilde{V}_\mu^\delta$
+where \framebox{$(V^\delta_\mu,\tilde{V}^\delta_\mu) \in {\mathcal O}$ or $V_\lambda^\delta=\tilde{V}_\lambda^\delta=\{0\}$} is such that
 \begin{equation}
   \label{eqn:pre-doubletree}
   \la \sigma'_\lambda,\psi_\mu\ra_{L_2(I)} \neq 0 \implies \tilde{V}^\delta_\mu \supset \tilde{W}^\delta_\lambda.
@@ -425,7 +425,7 @@ Let $\tilde v=\sum_{\mu \in \vee_\Psi} \tilde{\psi}_\mu \otimes \tilde{v}_\mu \i
 Then, for any constant $\eps\in (0,\gamma)$, there exists a $v=\sum_{\mu \in \vee_\Psi} \psi_\mu \otimes v_\mu \in Y^\delta$  with $\la \tilde v_\mu,v_\mu\ra \geq (\gamma-\eps) \|\tilde{v}_\mu\|_{V'} \|v_\mu\|_V$ and $\|\tilde{v}_\mu\|_{V'}= \|v_\mu\|_V$, and so
 \[
   \la\tilde v, v\ra_{L_2(I)\otimes H}
-  = \sum_{\mu \in \vee_\Psi} \la \tilde{v}_\mu,v_\mu\ra \geq (\gamma-\eps) 
+  = \sum_{\mu \in \vee_\Psi} \la \tilde{v}_\mu,v_\mu\ra \geq (\gamma-\eps)
   \sum_{\mu \in \vee_\Psi} \|\tilde{v}_\lambda\|_{V'}^2
   \eqsim \|\tilde v\|_{Y'} \|v\|_Y.
 \]
@@ -472,7 +472,7 @@ is ensured under the condition that\jw{ik heb dit niet gecheckt, bovendien heb i
 \begin{example}
   Consider pairs $(W, \tilde W) \in \mathcal O$ where $W = \tilde W$.
   Let any $\sigma_\lambda$ be a continuous piecewise polynomial of degree $d-1$\jw{voor $d$ de dimensie van je space domain?! of gewoon *een* $d$? in het tweede geval: rename naar $p$?}
-  wrt.~a uniform partition of $I$ into $2^{|\lambda|}$ subintervals, and let 
+  wrt.~a uniform partition of $I$ into $2^{|\lambda|}$ subintervals, and let
   $\Psi=\tilde{\Psi}$ be such that $\spann\{\tilde{\psi}_\lambda : |\mu| \leq |\lambda|\}$
   includes all piecewise polynomials of degree $d-2$ wrt.~a uniform partition
   of $I$ into $2^{|\lambda|}$ subintervals so that \eqref{eqn:deriv-orthogonal}
@@ -556,7 +556,7 @@ a constant $\zeta<1$ such that for all $\delta \in \Delta$, when $f \in F^\delta
   right-hand side $f =B' A_s^{-1}g+\gamma_0' u_0\in X'$. Indeed: given any
   $\{0\} \neq X^\delta \subsetneq X^{\udelta} \subsetneq X$, consider a non-zero
   $f \in X'$ that vanishes on $X^{\udelta}$. Then $u_\delta=u_\udelta=0 \neq u$,
-  meaning that \eqref{eqn:reduction} does not hold. 
+  meaning that \eqref{eqn:reduction} does not hold.
 \end{remark}
 
 For the time being we will operate under the restrictive assumption that whenever
@@ -584,7 +584,7 @@ $\|\cdot\|_{X^{\hat{\delta}\delta}}:=(S^{\hat{\delta}\delta}\cdot)(\cdot)^{\frac
 and $f^{\hat{\delta} \delta}$.
 
 From \eqref{eqn:galerkin-ortho} and \eqref{eqn:X-norm-equiv},
-we infer that there exists a $C_\Delta=C_\Delta(\gamma_\Delta,\eps_{\Delta})\geq 1$ such that 
+we infer that there exists a $C_\Delta=C_\Delta(\gamma_\Delta,\eps_{\Delta})\geq 1$ such that
 $\lim_{\gamma_\Delta \uparrow 1,\eps_\Delta \downarrow 0} C_\Delta = 1$, and for
 $\delta,\hat{\delta} \in \Delta$ with $Y^{\hat{\delta}} \supseteq Y^\delta$,
 using~\cite[Rem.~3.8]{Stevenson2020a}, again we have
@@ -656,7 +656,7 @@ the successor of $u^{\udelta(\delta) \delta}$ in our converging sequence.
   Notice that $\hat{\rho}$ and $\bar{\rho}$ are $<1$ when $\rho<1$ and $C_\Delta$ is sufficiently close to $1$.\jw{oef alle diacritics duizelen me hier}
 \end{prop}
 \begin{proof}
-  Using that $u-u_\udelta \perp_X X^\udelta$, it follows from \eqref{eqn:precond-norm-equiv} that 
+  Using that $u-u_\udelta \perp_X X^\udelta$, it follows from \eqref{eqn:precond-norm-equiv} that
   $\|u-u^{\udelta \delta}\|_X^2 \leq C_\Delta^2 \|u-u_\delta\|_X^2$ is equivalent to
   $\|u_\udelta-u^{\udelta \delta}\|_X \leq \sqrt{C_\Delta^2 -1}\, \|u-u_{\delta}\|_X$.
   Similarly, Assumption~\ref{assum:saturation} implies $\|u-u_\delta\|_X \leq \sqrt{\frac{\zeta^2}{1-\zeta^2}} \|u_\udelta-w\|_X$ for any $w \in X^\delta$.
@@ -685,7 +685,7 @@ To realize \eqref{eqn:construct-improved-solution}, i.e., to construct an improv
 Galerkin approximation to $u^{\udelta \udelta}$, we apply the concept of bulk
 chasing, also known as D\"{o}rfler marking, on a collection of a posteriori error
 indicators that constitute an efficient and reliable error estimator. We will apply
-an estimator of `hierarchical basis' type.  
+an estimator of `hierarchical basis' type.
 
 \begin{assum}[$X$-stable splitting of $X^{\udelta} \ominus X^\delta$]
   \jw{is dit een juiste naam voor deze assumption?}
@@ -693,7 +693,7 @@ an estimator of `hierarchical basis' type.
   such that $X^\delta + \spann \Psi^\delta=X^\udelta$ and, for some constants $0<m\leq M$,
   for all $z \in X^\delta$ and ${\bf c} := (c_\lambda)_{\lambda \in I_\delta^\udelta} \in \R^{\# I_\delta^\udelta}$, we have
   \begin{equation}
-    m^2 \|z+{\bf c}^\top \Psi^\delta\|_X^2 
+    m^2 \|z+{\bf c}^\top \Psi^\delta\|_X^2
     \leq \|z\|_X^2+\|{\bf c}\|^2
     \leq M^2 \|z+{\bf c}^\top \Psi^\delta\|_X^2.
   \label{eqn:X-stable-splitting}
@@ -729,13 +729,13 @@ an estimator of `hierarchical basis' type.
 \begin{proof}
   As a consequence of \eqref{eqn:X-stable-splitting} and \eqref{eqn:precond-norm-equiv}, we have
   \[
-    C_\Delta^{-4} m^2 \|z+{\bf c}^\top \Psi^\delta\|_{X^{\udelta \udelta}}^2 
+    C_\Delta^{-4} m^2 \|z+{\bf c}^\top \Psi^\delta\|_{X^{\udelta \udelta}}^2
     \leq
     \|z\|_{X^{\udelta \udelta}}^2+ \|{\bf c}\|^2
-    \leq 
+    \leq
     C_\Delta^{4} M^2 \|z+{\bf c}^\top \Psi^\delta\|_{X^{\udelta \udelta}}^2 \quad (z \in X^d, {\bf c} \in \R^{\# I_\delta^\udelta}).
   \]
-  We infer that 
+  We infer that
   \begin{align*}
     \|u^{\udelta \tilde{\delta}}-u^{\udelta \delta}\|_{X^{\udelta \udelta}}&=\sup_{0 \neq (z,{\bf c}) \in X^\delta \times \R^{\# I_\delta^\udelta}}
     \frac{(S^{\udelta \udelta}(u^{\udelta \tilde{\delta}}-u^{\udelta \delta}))(z+{\bf c}^\top \Psi^\delta)}{\|z+{\bf c}^\top \Psi^\delta\|_{X^{\udelta \udelta}}}\\
@@ -805,7 +805,7 @@ This error estimator will drive our adaptive loop. Even without Assumption~\ref{
   term we expect to be of higher order, for any $v^\delta \in X^\delta$,
   \[
     \|u - v^\delta\|_X^2 \eqsim \la (\mathbf A_s^{\udelta})^{-1}{\bf r}^\udelta_Y, {\bf r}^\udelta_Y \ra + \|u_0 - \gamma_0 v^\delta\|_H^2,
-  \] 
+  \]
   where $\mathbf A_s^{\udelta} := (A_s E_Y^{\udelta} \Xi^{\udelta})(E_Y^{\udelta} \Xi^{\udelta})$ and ${\bf r}^\udelta_Y := (g - B E_X^{\delta} v^\delta)(\Xi^\udelta)$.
   \jw{zouden we in staat zijn om de constantes hidden in $\eqsim$ hierboven, precies te maken? Mss de data oscillation erin?}
 \end{prop}
@@ -840,7 +840,7 @@ This error estimator will drive our adaptive loop. Even without Assumption~\ref{
 In view of the discussion following Assumption~\ref{assum:saturation}, notice
 that the results that were obtained so far, in particular Propositions~\ref{prop:residual-apost}
 and~\ref{prop:residual-efficient-reliable}, are valid under the condition that
-$f \in F^\delta$. 
+$f \in F^\delta$.
 
 Let us now consider the situation that the expressions $u$, $u^{\udelta(\delta) \delta}$,
 ${\bf r}^{\udelta(\delta) \delta}$, and $u^{\udelta(\tilde{\delta}) \tilde{\delta}}$
@@ -856,7 +856,7 @@ their computation.
   \label{prop:contraction}
   Assume Assumption~\ref{assum:X-stable-splitting}. Let $\theta \in (0,1]$ be a constant. Then for $1-\gamma_\Delta$ and $\eps_\Delta$
   sufficiently small, and $\omega>0$ a sufficiently small constant, there exists
-  a constant $\check{\rho}<1$ such that for 
+  a constant $\check{\rho}<1$ such that for
   \begin{itemize}
     \item $J \subseteq I_\delta^\udelta$ with $\|{}^{\delta\!}{\bf r}^{\udelta(\delta) \delta}|_J\| \geq \theta \|{}^{\delta\!}{\bf r}^{\udelta(\delta) \delta}\|$, and
     \item $X^\delta+\spann \Psi^\delta|_{J} \subseteq X^{\check{\delta}}$, and
@@ -961,7 +961,7 @@ vector. The simple Algorithm~\ref{alg:adapt} shows the resulting adaptive loop.
   In the case that $\eta(\delta)<\omega \|{\bf r}^\delta\|$, from
   $\|{\bf r}^\delta\| \eqsim \|{}^{\delta\!}u-u^\delta\|_X \lesssim \|u-u^\delta\|_X+\eta(\delta)$,
   we infer that when $\omega$ is sufficiently small, it follows that $\eta(\delta) \lesssim \|u-u^\delta\|_X$.
-  Since in this case $\eta(\tilde{\delta})\leq \eta(\delta)$ and 
+  Since in this case $\eta(\tilde{\delta})\leq \eta(\delta)$ and
   $\|u-u^{\tilde{\delta}}\|_X \leq \check{\rho} \|u-u^\delta\|_X$ by Proposition~\ref{prop:contraction},
   we conclude \eqref{eqn:contraction} possibly by taking $\breve{\rho}$ closer to $1$.
 
@@ -1009,9 +1009,9 @@ For given $\mathbf B_\lambda^\delta \eqsim (\mathbf A_\lambda^\delta)^{-1}$, we 
 \[
   (\mathbf D_Y^\delta)^{-1} \eqsim \blockdiag[\mathbf B_\lambda^\delta]_\lambda.
 \]
-In \S\ref{sec:mgprecond} below, we construct such $\mathbf B_\lambda^\delta$ in the form of a
-\emph{multigrid preconditioner}, which can be applied in linear complexity. A
-simpler approach, although at superlinear complexity, would be to perform direct
+Suitable $\mathbf B_\lambda^\delta$, that can also be applied in linear complexity, are provided by \emph{multi-level methods},
+e.g.~one can use a V-cycle method based on the stable subspace decomposition introduced in~\cite{Wu2017}.
+ A simpler approach, although at superlinear complexity, would be to perform direct
 solves in the spatial axis, i.e.~$\mathbf B_\lambda^\delta := (\mathbf A_\lambda^\delta)^{-1}$.
 
 \subsubsection{A preconditioner for bilinear forms on $X \times X$}
@@ -1042,11 +1042,14 @@ the matrix representation of $D_X^\delta$ reads
 \]
 \begin{theorem}
 If the collection $\mathcal O := \{W_\lambda^\delta = \tilde W_\lambda^\delta : \lambda \in \vee_\Sigma^\delta\}$
-satisfies the conditions of Proposition~\ref{prop:space-infsup} with uniform inf-sup constant $\gamma>0$,
-then
-  \[
-    (\mathbf D_X^\delta)^{-1} \eqsim \blockdiag[\mathbf C_\lambda^\delta \mathbf A_\lambda^\delta \mathbf C_\lambda^\delta]_\lambda, \quad \text{where} \quad \mathbf C_\lambda^\delta \eqsim (\mathbf A_\lambda^\delta + 2^{|\lambda|} \mathbf M_\lambda^\delta)^{-1} \quad \text{and} \quad \mathbf M_\lambda^\delta := \la \Phi_\lambda^\delta, \Phi_\lambda^\delta \ra.
-  \]
+satisfies the conditions of Proposition~\ref{prop:space-infsup} with uniform inf-sup constant $\gamma>0$, and one has $\mathbf C_\lambda^\delta$ such that
+\begin{equation}\label{eqn:robustmg}
+    \mathbf C_\lambda^\delta \eqsim (\mathbf A_\lambda^\delta + 2^{|\lambda|} \mathbf M_\lambda^\delta)^{-1} \quad \text{uniformly in $\delta$ and $|\lambda|\in \N_0$},
+\end{equation}
+where $M_\lambda^\delta := \la \Phi_\lambda^\delta, \Phi_\lambda^\delta \ra$, then
+\[
+    (\mathbf D_X^\delta)^{-1} \eqsim \blockdiag[\mathbf C_\lambda^\delta \mathbf A_\lambda^\delta \mathbf C_\lambda^\delta]_\lambda.
+\]
   In other words, constructing the $\mathbf C_\lambda^\delta$ leads to an optimal preconditioner on $X \times X$.
 \end{theorem}
 \begin{proof}
@@ -1065,20 +1068,18 @@ For $u \in W_\lambda^\delta$, we have $\gamma \|u\|_{V'} \leq \|u\|_{(W_\lambda^
 \]
 Therefore, given $\mathbf C_\lambda^\delta \eqsim (\mathbf A_\lambda^\delta + 2^{|\lambda|} \mathbf M_\lambda^\delta)^{-1}$ uniformly in $\delta$ and $|\lambda|$, the result holds.
 \end{proof}
-We will momentarily construct such $\mathbf C_\lambda^\delta$ as a multigrid
-preconditioner. A (suboptimal) alternative is to take
+In~\cite{olshanskii2000convergence, kolev2016multilevel} it was shown that a V-cycle multi-grid method yields a ${\bf C}^\delta_{\lambda}$ that satisfies~\eqref{eqn:robustmg}, and that moreover  can be applied in linear complexity.
+These results were shown for uniformly refined meshes, but similarly as for $4^{-|\lambda|} = 0$, we expect them to hold for locally refined meshes as well. \rvv{Hier had Rob iets snuggers over te zeggen.}
+
+ A (suboptimal) alternative is to take
 $\mathbf C_\lambda^\delta := (\mathbf A_\lambda^\delta + 2^{|\lambda|} \mathbf M_\lambda^\delta)^{-1}$
 directly.
-
-\subsubsection{A multigrid preconditioner in space}
-\label{sec:mgprecond}
-\jw{ray: kan jij hier iets over schrijven?}
 
 
 
 \section{Numerical results}
 We study the numerical solutions to the heat equation, posed on a two-dimensional
-polygonal spatial domain. Recall from \S\ref{sec:spaces} the three-point (continuous piecewise linear) 
+polygonal spatial domain. Recall from \S\ref{sec:spaces} the three-point (continuous piecewise linear)
 wavelet basis $\Sigma$, the orthonormal (discontinuous piecewise linear)
 wavelet basis $\Psi$, and the hierarchical (continuous piecewise linear) basis $\Upsilon$.
 We equip the primal trial space $X^\delta$ with $\Sigma \otimes \Upsilon$ and
@@ -1175,7 +1176,7 @@ unknowns, whereas for the time per apply, we observe a rate of $1.04$.\jw{dit is
 
 
 
-\bibliography{library} 
+\bibliography{library}
 \bibliographystyle{siam}
 
 \end{document}
