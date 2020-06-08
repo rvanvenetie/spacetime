@@ -32,6 +32,39 @@ std::istream& operator>>(std::istream& in,
     in.setstate(std::ios_base::failbit);
   return in;
 }
+
+void PrintTimeSliceSS(double t, AdaptiveHeatEquation::TypeXVector* solution) {
+  datastructures::TreeVector<HierarchicalBasisFn> time_slice(
+      solution->root()->node_1());
+  for (auto psi_time : solution->Project_0()->Bfs())
+    if (psi_time->node()->Eval(t) != 0) {
+      double time_val = psi_time->node()->Eval(t);
+      // time_slice += time_val * psi_time->FrozenOtherAxis()
+      time_slice.root()->Union(
+          psi_time->FrozenOtherAxis(),
+          /* call_filter*/ datastructures::func_true, /* call_postprocess*/
+          [time_val](const auto& my_node, const auto& other_node) {
+            my_node->set_value(my_node->value() +
+                               time_val * other_node->value());
+          });
+    }
+
+  // Calculate the single tree representation.
+  space::TriangulationView triang(time_slice.Bfs());
+  space::MassOperator op(triang);
+  Eigen::VectorXd u_SS = time_slice.ToVector();
+  assert(op.FeasibleVector(u_SS));
+
+  op.ApplyHierarchToSingle(u_SS);
+  assert(op.FeasibleVector(u_SS));
+
+  time_slice.FromVector(u_SS);
+
+  // Put the single tree
+  for (auto nv : time_slice.Bfs())
+    std::cerr << "(" << nv->node()->center().first << ","
+              << nv->node()->center().second << ") : " << nv->value() << ";";
+}
 }  // namespace applications
 
 space::InitialTriangulation InitialTriangulation(std::string domain,
@@ -53,6 +86,7 @@ int main(int argc, char* argv[]) {
   bool estimate_global_error = true;
   bool calculate_condition_numbers = false;
   bool print_centers = false;
+  std::vector<double> print_time_slices;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
   problem_optdesc.add_options()(
@@ -64,7 +98,11 @@ int main(int argc, char* argv[]) {
       "estimate_global_error", po::value<bool>(&estimate_global_error))(
       "calculate_condition_numbers",
       po::value<bool>(&calculate_condition_numbers))(
-      "print_centers", po::value<bool>(&print_centers));
+      "print_centers", po::value<bool>(&print_centers))(
+      "print_time_slices",
+      po::value<std::vector<double>>(&print_time_slices)->multitoken());
+
+  std::sort(print_time_slices.begin(), print_time_slices.end());
 
   AdaptiveHeatEquationOptions adapt_opts;
   boost::program_options::options_description adapt_optdesc(
@@ -180,6 +218,17 @@ int main(int argc, char* argv[]) {
                   << dblnode->node_1()->center().first << ","
                   << dblnode->node_1()->center().second
                   << ")) : " << dblnode->value() << ";";
+      }
+      std::cerr << std::endl;
+    }
+
+    if (print_time_slices.size()) {
+      vec_Xd->FromVectorContainer(solution);
+      for (double t : print_time_slices) {
+        assert(t >= 0 && t <= 1);
+        std::cerr << "time_slice " << t << " = ";
+        PrintTimeSliceSS(t, vec_Xd.get());
+        std::cerr << std::endl;
       }
       std::cerr << std::endl;
     }
