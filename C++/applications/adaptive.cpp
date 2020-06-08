@@ -49,20 +49,28 @@ void PrintTimeSliceSS(double t, AdaptiveHeatEquation::TypeXVector* solution) {
           });
     }
 
-  // Calculate the single tree representation.
+  // Calculate the triangulation corresponding to this space mesh.
   space::TriangulationView triang(time_slice.Bfs());
+  std::cerr << "triang{";
+  for (auto [elem, vertices] : triang.element_leaves())
+    std::cerr << "(" << vertices[0] << ", " << vertices[1] << ", "
+              << vertices[2] << ");";
+  std::cerr << "}\t";
+
+  // Calculate the single scale representation
   space::MassOperator op(triang);
   Eigen::VectorXd u_SS = time_slice.ToVector();
   assert(op.FeasibleVector(u_SS));
-
   op.ApplyHierarchToSingle(u_SS);
   assert(op.FeasibleVector(u_SS));
 
   // Print the data in single scale.
   time_slice.FromVector(u_SS);
+  std::cerr << "vertices{";
   for (auto nv : time_slice.Bfs())
     std::cerr << "(" << nv->node()->center().first << ","
               << nv->node()->center().second << ") : " << nv->value() << ";";
+  std::cerr << "}";
 }
 }  // namespace applications
 
