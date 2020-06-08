@@ -131,6 +131,8 @@ class Function : public datastructures::Node<I> {
   inline int index() const { return index_; }
   const std::vector<Element1D *> &support() const { return support_; }
 
+  // double center() const { return 0; }
+
   friend std::ostream &operator<<(std::ostream &os, const Function<I> &fn) {
     os << I::name << "(" << fn.level() << ", " << fn.index() << ")";
     return os;
