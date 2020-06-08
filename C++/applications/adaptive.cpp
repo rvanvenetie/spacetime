@@ -179,7 +179,7 @@ int main(int argc, char* argv[]) {
                   << "(" << dblnode->node_1()->level() << ",("
                   << dblnode->node_1()->center().first << ","
                   << dblnode->node_1()->center().second
-                  << ")) : " << dblnode->value() << ",";
+                  << ")) : " << dblnode->value() << ";";
       }
       std::cerr << std::endl;
     }
