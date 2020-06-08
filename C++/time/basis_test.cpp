@@ -131,6 +131,13 @@ TEST(ThreePointBasis, UniformRefinement) {
   int ml = 7;
 
   B.three_point_tree.UniformRefine(ml);
+
+  auto mother_scalings = B.three_point_tree.meta_root()->children();
+  ASSERT_EQ(mother_scalings[0]->Eval(0), 1.0);
+  ASSERT_EQ(mother_scalings[0]->Eval(1), 0);
+  ASSERT_EQ(mother_scalings[1]->Eval(0), 0);
+  ASSERT_EQ(mother_scalings[1]->Eval(1), 1);
+
   auto Lambda = B.three_point_tree.NodesPerLevel();
   auto Delta = B.cont_lin_tree.NodesPerLevel();
 
@@ -149,6 +156,8 @@ TEST(ThreePointBasis, UniformRefinement) {
 
       if (psi_n > 0) {
         ASSERT_EQ(psi->Eval(h * 2 * psi_n), -0.5 * pow(2, l / 2.0));
+        ASSERT_EQ(psi->Eval(0), 0);
+        ASSERT_EQ(psi->Eval(0.0001), 0);
         ASSERT_EQ(psi->support().front()->Interval().first,
                   h * (2 * psi_n - 1));
       }
@@ -162,6 +171,7 @@ TEST(ThreePointBasis, UniformRefinement) {
         ASSERT_EQ(psi->Eval(0), -pow(2, l / 2.0));
         ASSERT_EQ(psi->support().front()->Interval().first, 0);
       }
+
       if (psi_n == pow(2, l - 1) - 1) {
         ASSERT_EQ(psi->Eval(1), -pow(2, l / 2.0));
         ASSERT_EQ(psi->support().back()->Interval().second, 1);
