@@ -52,6 +52,7 @@ int main(int argc, char* argv[]) {
   size_t max_dofs = 0;
   bool estimate_global_error = true;
   bool calculate_condition_numbers = false;
+  bool print_centers = false;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
   problem_optdesc.add_options()(
@@ -62,7 +63,8 @@ int main(int argc, char* argv[]) {
                       std::numeric_limits<std::size_t>::max()))(
       "estimate_global_error", po::value<bool>(&estimate_global_error))(
       "calculate_condition_numbers",
-      po::value<bool>(&calculate_condition_numbers));
+      po::value<bool>(&calculate_condition_numbers))(
+      "print_centers", po::value<bool>(&print_centers));
 
   AdaptiveHeatEquationOptions adapt_opts;
   boost::program_options::options_description adapt_optdesc(
@@ -160,7 +162,7 @@ int main(int argc, char* argv[]) {
                 << " cond-time: " << duration_cond.count() << std::flush;
     }
 
-    // Solve - estimate.
+    // Solve.
     auto start = std::chrono::steady_clock::now();
     auto [solution, pcg_data] = heat_eq.Solve(x0);
     std::chrono::duration<double> duration_solve =
@@ -169,6 +171,20 @@ int main(int argc, char* argv[]) {
               << " solve-time: " << duration_solve.count()
               << " solve-memory: " << getmem() << std::flush;
 
+    if (print_centers) {
+      vec_Xd->FromVectorContainer(solution);
+      for (auto dblnode : vec_Xd->Bfs()) {
+        std::cerr << "((" << dblnode->node_0()->level() << ","
+                  << dblnode->node_0()->center() << "),"
+                  << "(" << dblnode->node_1()->level() << ",("
+                  << dblnode->node_1()->center().first << ","
+                  << dblnode->node_1()->center().second
+                  << ")) : " << dblnode->value() << ";";
+      }
+      std::cerr << std::endl;
+    }
+
+    // Estimate.
     if (estimate_global_error) {
       start = std::chrono::steady_clock::now();
       auto [global_error, terms] = heat_eq.EstimateGlobalError(solution);

@@ -23,6 +23,7 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
   bool is_full() const;
   Vertex *vertex() const { return vertex_; }
   const SmallVector<Element2D *, 4> &support() const { return vertex_->patch; }
+  std::pair<double, double> center() const { return {vertex_->x, vertex_->y}; }
   inline bool on_domain_boundary() const { return vertex_->on_domain_boundary; }
 
   double Volume() const;
