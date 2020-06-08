@@ -58,9 +58,8 @@ void PrintTimeSliceSS(double t, AdaptiveHeatEquation::TypeXVector* solution) {
   op.ApplyHierarchToSingle(u_SS);
   assert(op.FeasibleVector(u_SS));
 
+  // Print the data in single scale.
   time_slice.FromVector(u_SS);
-
-  // Put the single tree
   for (auto nv : time_slice.Bfs())
     std::cerr << "(" << nv->node()->center().first << ","
               << nv->node()->center().second << ") : " << nv->value() << ";";
