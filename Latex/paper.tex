@@ -181,6 +181,9 @@ Een paar open vragen:
 \begin{itemize}
   \item Willen we de algoritmes van \S 5.1, \S 5.2 hierin zetten of citen?
   \item Willen we de details van onze implementatie hier bespreken of willen we die in een (korte?) followup doen?
+    \begin{itemize}
+      \item We zouden ook de implementatie + die algo's uit \S 5.1 en \S 5.2 samen in een nieuw papertje kunnen zetten, dat klinkt wel als een logische scheidingslijn
+    \end{itemize}
   \item Wat doen we met secties \S 5.8 5.9, 5.10 uit followup, wat een bewijs geeft van $X$-stability voor een basis die we niet meer gebruiken?
 
 \end{itemize}
@@ -286,7 +289,7 @@ We define a \emph{partial order} on $\Delta$ by $\delta \preceq \tilde{\delta}$
 when $X^\delta \subseteq X^{\tilde{\delta}}$. For $\delta \in \Delta$, let
 $u_\delta \in X^\delta$ denote the {\em Galerkin approximation to $u$}, i.e., the solution of
 \begin{equation}
-(Su_\delta)(v)=f(v) \quad (v \in X^\delta),
+  (Su_\delta)(v)=f(v) =: (B' A^{-1} g + \gamma_0' u_0)(v) \quad (v \in X^\delta),
   \label{eqn:galerkin}
 \end{equation}
 being the best approximation to $u$ from $X^\delta$ wrt.~$\|\cdot\|_X$.
@@ -562,6 +565,7 @@ a constant $\zeta<1$ such that for all $\delta \in \Delta$, when $f \in F^\delta
   \label{eqn:reduction}
   \|u-u_\udelta\|_X \leq \zeta \|u-u_\delta\|_X.
 \end{equation}
+  \jw{in zekere zin gebruiken we niet dat *er zo'n refinement is*, maar dat *onze* refinement hieraan voldoet, toch?}
 \end{assum}
 \begin{remark} \label{data-oscillation}
   Notice that above assumption cannot be valid without a restriction on the
@@ -1151,35 +1155,37 @@ taking $n=3$ in the sequel.
 \begin{table}
   \begin{tabular}{rrrrrrrrrrr}\toprule
     $\dim X^\delta$ & $n=1$ & $n=2$ & $n=3$ & $n=4$ & $n=5$  & $n=6$\\\midrule
-    \emph{adaptive} \quad
-    %22     & 1.20065  & 1.02872  & 1.00469  & 1.00078  & 1.00013 \\
-    %67     & 1.29296  & 1.05413  & 1.01177  & 1.00252  & 1.00055 \\
-    %221    & 1.34285  & 1.06806  & 1.01631  & 1.00405  & 1.00101 \\
-    %777    & 1.35620  & 1.07408  & 1.01836  & 1.00457  & 1.00110 \\
-    %2865   & 1.35994  & 1.07516  & 1.01841  & 1.00470  & 1.00119 \\
-    %10913  & 1.36209  & 1.07597  & 1.01901  & 1.00485  & 1.00123 \\
-    %42433  & 1.36533  & 1.07672  & 1.01920  & 1.00491  & 1.00124 \\
-    %167041 & 1.36589  & 1.07716  & 1.01924  & 1.00492  & 1.00124 \\
-    %662273 & 1.36598  & 1.07707  & 1.01929  & 1.00494  & 1.00124 \\
-    \\\midrule
+    %\emph{adaptive} \quad
+    %%22     & 1.20065  & 1.02872  & 1.00469  & 1.00078  & 1.00013 \\
+    %%67     & 1.29296  & 1.05413  & 1.01177  & 1.00252  & 1.00055 \\
+    %%221    & 1.34285  & 1.06806  & 1.01631  & 1.00405  & 1.00101 \\
+    %%777    & 1.35620  & 1.07408  & 1.01836  & 1.00457  & 1.00110 \\
+    %%2865   & 1.35994  & 1.07516  & 1.01841  & 1.00470  & 1.00119 \\
+    %%10913  & 1.36209  & 1.07597  & 1.01901  & 1.00485  & 1.00123 \\
+    %%42433  & 1.36533  & 1.07672  & 1.01920  & 1.00491  & 1.00124 \\
+    %%167041 & 1.36589  & 1.07716  & 1.01924  & 1.00492  & 1.00124 \\
+    %%662273 & 1.36598  & 1.07707  & 1.01929  & 1.00494  & 1.00124 \\
+    %\\\midrule
     \emph{sparse grid} \quad
     %22     & 1.20065  & 1.02872  & 1.00469  & 1.00078  & 1.00013 & 1.00002 \\
     %67     & 1.29296  & 1.05413  & 1.01177  & 1.00252  & 1.00055 & 1.00011 \\
-    221    & 1.34285  & 1.06806  & 1.01631  & 1.00405  & 1.00101 & 1.00024 \\
+    %221    & 1.34285  & 1.06806  & 1.01631  & 1.00405  & 1.00101 & 1.00024 \\
     %777    & 1.35620  & 1.07408  & 1.01836  & 1.00457  & 1.00110 & 1.00026 \\
     %2865   & 1.35994  & 1.07516  & 1.01841  & 1.00470  & 1.00119 & 1.00027 \\
-    10913  & 1.36209  & 1.07597  & 1.01901  & 1.00485  & 1.00123 & 1.00028 \\
-    %42433  & 1.36533  & 1.07672  & 1.01920  & 1.00491  & 1.00124 & 1.00028 \\
-    %167041 & 1.36589  & 1.07716  & 1.01924  & 1.00492  & 1.00124 & 1.00028 \\
+    %10913  & 1.36209  & 1.07597  & 1.01901  & 1.00485  & 1.00123 & 1.00028 \\
+    42433  & 1.36533  & 1.07672  & 1.01920  & 1.00491  & 1.00124 & 1.00028 \\
+    167041 & 1.36589  & 1.07716  & 1.01924  & 1.00492  & 1.00124 & 1.00028 \\
     662273 & 1.36598  & 1.07707  & 1.01929  & 1.00494  & 1.00125 & 1.00028 \\
+    2636289 & 1.36602  & 1.07716  & 1.01934  & 1.00494  & 1.00126 & 1.00029 \\
     \midrule
     \emph{full grid} \quad
     %27      & 1.20065  & 1.02871  & 1.00469  & 1.00078  & 1.00013  & 1.00002 \\
-    125     & 1.29332  & 1.05427  & 1.01182  & 1.00249  & 1.00054  & 1.00011 \\
+    %125     & 1.29332  & 1.05427  & 1.01182  & 1.00249  & 1.00054  & 1.00011 \\
     %729     & 1.34276  & 1.06965  & 1.01647  & 1.00409  & 1.00103  & 1.00025 \\
     4913    & 1.35600    & 1.07395  & 1.01815  & 1.00462  & 1.00111  & 1.00027 \\
-    %35937   & 1.3598   & 1.07516  & 1.01871  & 1.00476  & 1.00116  & 1.00028 \\
-    274625  & 1.36216  & 1.07600    & 1.01902  & 1.00485  & 1.00123  & 1.00028
+    35937   & 1.3598   & 1.07516  & 1.01871  & 1.00476  & 1.00116  & 1.00028 \\
+    274625  & 1.36216  & 1.07600    & 1.01902  & 1.00485  & 1.00123  & 1.00028 \\
+    2146689  & 1.36514  & 1.07673    & 1.01919  & 1.0049  & 1.00124  & 1.00028
     \\\bottomrule
   \end{tabular}
   \caption{Spectral condition numbers $\kappa_2\big((\tilde {\bf D}_Y^\udelta)^{-1} {\bf A}_s^{\udelta}\big)$ with the ${\bf B}_\lambda^\udelta$ multigrid-in-space preconditioners with $n$ V-cycles.\jw{wording; ik wacht nog op numres}}
@@ -1198,26 +1204,28 @@ numbers regardless of the choice of preconditioner, thus defending $m=3$ in the 
 \begin{table}
   \begin{tabular}{rrrrrrrrrrr}\toprule
     $\dim X^\delta$ & $m=1$ & $m=2$ & $m=3$ & $m=4$ & $m=5$ & $m=6$ & D.S.\\\midrule
-    \emph{adaptive} \quad
-    \\\midrule
+    %\emph{adaptive} \quad
+    %\\\midrule
     \emph{sparse grid} \quad
     %22       & 2.73105  & 2.74699& 2.74942& 2.74982& 2.74989&2.74990 & 2.74990\\
     %67       & 4.61358  & 3.60135& 3.55394& 3.54991& 3.54938&3.54929 & 3.54928\\
-    221      & 6.73666  & 4.65982& 4.65159& 4.65347& 4.65404&4.65414 & 4.65416\\
+    %221      & 6.73666  & 4.65982& 4.65159& 4.65347& 4.65404&4.65414 & 4.65416\\
     %777      & 7.54550  & 4.89895& 4.85749& 4.86621& 4.86912&4.86971 & 4.86985\\
     %2865     & 7.79973  & 5.21031& 5.21667& 5.22923& 5.23239&5.23302 & 5.23317\\
-    10913    & 8.43870  & 5.79534& 5.77102& 5.77038& 5.77060&5.77065 & 5.77066\\
-    %42433    & 9.37352  & 6.40080& 6.37194& 6.37121& 6.37136&6.37140 & 6.37141\\
-    %167041   & 10.0961  & 7.19988& 7.19469& 7.19370& 7.19357&7.19356 & 7.19356\\
+    %10913    & 8.43870  & 5.79534& 5.77102& 5.77038& 5.77060&5.77065 & 5.77066\\
+    42433    & 9.37352  & 6.40080& 6.37194& 6.37121& 6.37136&6.37140 & 6.37141\\
+    167041   & 10.0961  & 7.19988& 7.19469& 7.19370& 7.19357&7.19356 & 7.19356\\
     662273   & 10.6490  & 7.82146& 7.81987& 7.81913& 7.81910&7.81909 & 7.81910\\
+    2636289  & 11.1022  & 8.19769& 8.20189& 8.20195& 8.20281& 8.20239& 8.20236 \\
     \midrule
     \emph{full grid} \quad
     %27      & 3.50861  & 3.50338  & 3.50784  & 3.50848  & 3.50859  & 3.5086   & 3.50861 \\
-    125     & 4.60722  & 6.05995  & 4.64478  & 4.60486  & 4.60643  & 4.60706  & 4.60719 \\
+    %125     & 4.60722  & 6.05995  & 4.64478  & 4.60486  & 4.60643  & 4.60706  & 4.60719 \\
     %729     & 5.46211  & 7.86126  & 5.49222  & 5.45141  & 5.45939  & 5.46158  & 5.46201 \\
     4913    & 5.89239  & 9.19603  & 5.91405  & 5.87484  & 5.88790   & 5.89189  & 5.89269 \\
-    %35937   & 6.05852  & 9.71829  & 6.104    & 6.04536  & 6.05475  & 6.05884  & 6.05828 \\
-    274625  & 6.41674  & 9.99095  & 6.43572  & 6.40801  & 6.41185  & 6.41532  & 6.41641
+    35937   & 6.05852  & 9.71829  & 6.104    & 6.04536  & 6.05475  & 6.05884  & 6.05828 \\
+    274625  & 6.41674  & 9.99095  & 6.43572  & 6.40801  & 6.41185  & 6.41532  & 6.41641 \\
+    2146689  & 10.11500  & 7.07961& 7.08715& 7.08764& 7.08767& 7.08767 & 7.08767
     \\\bottomrule
   \end{tabular}
   \caption{Spectral condition numbers $\kappa_2\big((\tilde {\bf D}_X^\delta)^{-1} {\bf S}^{\udelta \delta}\big)$ with the ${\bf C}_\lambda^\delta$ multigrid-in-space preconditioners with $m$ V-cycles, versus a direct solve (D.S.).\jw{wording; ik wacht nog op numres}}
@@ -1274,7 +1282,7 @@ for adaptive refinement, recovering the rate of the smooth case.
   \includegraphics[width=0.5\linewidth]{cylinder_adaptive_errors}
   \caption{Error progressions for the cylinder problem of residual norm (solid line),
   estimated $X$-norm error (dashed), and $t=0$ time-slice error (dotted) as a function
-  of $\dim X^\delta$ for adaptive (black), sparse grid (red), and full grid refinement (orange).}
+  of $\dim X^\delta$ for adaptive (black), sparse grid (red), and full grid refinement (orange).\jw{dit plaatje kan opnieuw want die rates zijn eigenlijk net anders}}
   \label{fig:cylinder}
 \end{figure}
 
