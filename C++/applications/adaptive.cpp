@@ -132,6 +132,8 @@ int main(int argc, char* argv[]) {
 
   size_t ndof_X = 0, ndof_Y = 0;
   double t_delta = adapt_opts.t_init;
+  std::pair<Eigen::VectorXd, tools::linalg::SolverData> solver_output;
+  solver_output.first = Eigen::VectorXd::Zero(vec_Xd->container().size());
   while (ndof_X < max_dofs) {
     ndof_X = vec_Xd->Bfs().size();             // A slight overestimate.
     ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
@@ -164,11 +166,11 @@ int main(int argc, char* argv[]) {
     }
 
     // Solve and estimate.
-    std::pair<Eigen::VectorXd, tools::linalg::SolverData> solver_output;
-    solver_output.first = Eigen::VectorXd::Zero(vec_Xd->container().size());
+    solver_output.second = tools::linalg::SolverData();
     std::pair<AdaptiveHeatEquation::TypeXVector*, double> estimate_output;
     std::chrono::time_point<std::chrono::steady_clock> start;
     std::chrono::duration<double> duration_solve, duration_estimate;
+    std::cout << " solve-atol: " << t_delta << std::flush;
     do {
       t_delta /= 2.0;
       start = std::chrono::steady_clock::now();
