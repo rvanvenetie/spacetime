@@ -184,10 +184,9 @@ int main(int argc, char* argv[]) {
     t_delta = estimate_output.second + t_delta;
     std::cout << " solve-PCG-steps: " << solver_output.second.iterations
               << " solve-time: " << duration_solve.count()
-              << " solve-memory: " << getmem() << std::flush;
+              << " solve-estimate-memory: " << getmem() << std::flush;
     std::cout << " residual-norm: " << estimate_output.second
-              << " estimate-time: " << duration_estimate.count()
-              << " estimate-memory: " << getmem() << std::flush;
+              << " estimate-time: " << duration_estimate.count() << std::flush;
 
     if (print_centers) {
       vec_Xd->FromVectorContainer(solver_output.first);
