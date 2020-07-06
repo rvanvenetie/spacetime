@@ -132,8 +132,6 @@ int main(int argc, char* argv[]) {
 
   size_t ndof_X = 0, ndof_Y = 0;
   double t_delta = adapt_opts.t_init;
-  std::pair<Eigen::VectorXd, tools::linalg::SolverData> solver_output;
-  solver_output.first = Eigen::VectorXd::Zero(vec_Xd->container().size());
   while (ndof_X < max_dofs) {
     ndof_X = vec_Xd->Bfs().size();             // A slight overestimate.
     ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
@@ -165,32 +163,31 @@ int main(int argc, char* argv[]) {
                 << " cond-time: " << duration_cond.count() << std::flush;
     }
 
-    // Solve.
+    // Solve and estimate.
+    std::pair<Eigen::VectorXd, tools::linalg::SolverData> solver_output;
+    solver_output.first = Eigen::VectorXd::Zero(vec_Xd->container().size());
     std::pair<AdaptiveHeatEquation::TypeXVector*, double> estimate_output;
     std::chrono::time_point<std::chrono::steady_clock> start;
+    std::chrono::duration<double> duration_solve, duration_estimate;
     do {
-      t_delta /= 10.0;
-      {
-        start = std::chrono::steady_clock::now();
-        solver_output = heat_eq.Solve(solver_output.first, t_delta);
-        std::chrono::duration<double> duration_solve =
-            std::chrono::steady_clock::now() - start;
-        std::cout << " solve-PCG-steps: " << solver_output.second.iterations
-                  << " solve-time: " << duration_solve.count()
-                  << " solve-memory: " << getmem() << std::flush;
-      }
-      {
-        start = std::chrono::steady_clock::now();
-        estimate_output = heat_eq.Estimate(solver_output.first);
-        std::chrono::duration<double> duration_estimate =
-            std::chrono::steady_clock::now() - start;
+      t_delta /= 2.0;
+      start = std::chrono::steady_clock::now();
+      auto this_solver_output = heat_eq.Solve(solver_output.first, t_delta);
+      solver_output.first = this_solver_output.first;
+      solver_output.second += this_solver_output.second;
+      duration_solve += std::chrono::steady_clock::now() - start;
 
-        std::cout << " residual-norm: " << estimate_output.second
-                  << " estimate-time: " << duration_estimate.count()
-                  << " estimate-memory: " << getmem() << std::flush;
-      }
+      start = std::chrono::steady_clock::now();
+      estimate_output = heat_eq.Estimate(solver_output.first);
+      duration_estimate += std::chrono::steady_clock::now() - start;
     } while (t_delta > adapt_opts.solve_xi * estimate_output.second);
     t_delta = estimate_output.second + t_delta;
+    std::cout << " solve-PCG-steps: " << solver_output.second.iterations
+              << " solve-time: " << duration_solve.count()
+              << " solve-memory: " << getmem() << std::flush;
+    std::cout << " residual-norm: " << estimate_output.second
+              << " estimate-time: " << duration_estimate.count()
+              << " estimate-memory: " << getmem() << std::flush;
 
     if (print_centers) {
       vec_Xd->FromVectorContainer(solver_output.first);

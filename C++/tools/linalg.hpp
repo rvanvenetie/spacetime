@@ -10,6 +10,13 @@ struct SolverData {
   double relative_residual;
   size_t iterations;
   bool converged;
+
+  SolverData &operator+=(const SolverData &rhs) {
+    this->relative_residual = rhs.relative_residual;
+    this->iterations += rhs.iterations;
+    this->converged = rhs.converged;
+    return *this;
+  }
 };
 
 // Loosely based off Eigen/ConjugateGradient.h.
