@@ -18,8 +18,11 @@ using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
 struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
+  // Initial t_\delta \eqsim ||g||_Y' + ||u_0||_H.
+  double t_init = 1.0;
+
   // Solve-step parameters.
-  double solve_rtol = 1e-4;
+  double solve_xi = 0.5;
   size_t solve_maxit = 100;
 
   // Residual estimation parameter.
@@ -35,8 +38,9 @@ struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
     os << "\tUse cache: " << (opts.use_cache ? "true" : "false") << std::endl;
     os << "\tBuild space matrices: "
        << (opts.build_space_mats ? "true" : "false") << std::endl;
-    os << "\tSolve options -- rtol: " << opts.solve_rtol
-       << "; maxit: " << opts.solve_maxit << std::endl;
+    os << "\tSolve options -- xi: " << opts.solve_xi
+       << "; maxit: " << opts.solve_maxit << "; t_init: " << opts.t_init
+       << std::endl;
     os << "\tEstimate options -- saturation layers: "
        << opts.estimate_saturation_layers
        << "; mean-zero: " << opts.estimate_mean_zero << std::endl;
@@ -78,7 +82,7 @@ class AdaptiveHeatEquation {
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
   std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
-      const Eigen::VectorXd &x0);
+      const Eigen::VectorXd &x0, double atol = 1e-3);
   std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve() {
     return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
   }
@@ -101,7 +105,7 @@ class AdaptiveHeatEquation {
 
   std::shared_ptr<TypeXVector> vec_Xd_, vec_Xdd_;
   std::shared_ptr<TypeYVector> vec_Ydd_;
-  std::unique_ptr<HeatEquation> heat_d_dd_;
+  std::unique_ptr<HeatEquation> heat_d_dd_, heat_dd_dd_;
   std::unique_ptr<TypeYLinForm> g_lin_form_;
   std::unique_ptr<TypeXLinForm> u0_lin_form_;
 

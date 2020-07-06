@@ -31,52 +31,42 @@ Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
 }
 
 std::pair<Eigen::VectorXd, tools::linalg::SolverData>
-AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
+AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0, double atol) {
   assert(heat_d_dd_);
   return tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
-                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit,
-                            opts_.solve_rtol);
+                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit, atol);
 }
 
-std::pair<double, std::pair<double, double>> AdaptiveHeatEquation::EstimateGlobalError(
-    const Eigen::VectorXd &u_dd_d) {
+std::pair<double, std::pair<double, double>>
+AdaptiveHeatEquation::EstimateGlobalError(const Eigen::VectorXd &u_dd_d) {
   assert(heat_d_dd_);
   return ErrorEstimator::ComputeGlobalError(*heat_d_dd_, *g_lin_form_,
                                             *u0_lin_form_, u_dd_d);
 }
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     -> std::pair<TypeXVector *, double> {
-  {
-    assert(heat_d_dd_);
+  assert(heat_d_dd_);
+  // Create heat equation with X_dd and Y_dd.
+  if (!heat_dd_dd_) {
     auto A = heat_d_dd_->A();
     auto P_Y = heat_d_dd_->P_Y();
-    // Invalidate heat_d_dd, we no longer need these bilinear forms.
-    heat_d_dd_.reset();
-
-    // Create heat equation with X_dd and Y_dd.
-    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y,
-                            /* Ydd_is_GenerateYDelta_Xdd */ true, opts_);
-
-    // Prolongate u_dd_d from X_d to X_dd.
-    vec_Xd_->FromVectorContainer(u_dd_d);
-    vec_Xdd_->FromVector(*vec_Xd_);
-    Eigen::VectorXd u_dd_dd = vec_Xdd_->ToVectorContainer();
-
-    // Calculate the residual and store inside the dbltree.
-    Eigen::VectorXd residual = RHS(heat_dd_dd) - heat_dd_dd.S()->Apply(u_dd_dd);
-    vec_Xdd_->FromVectorContainer(residual);
-    // Let heat_dd_dd go out of scope..
+    heat_dd_dd_ = std::make_unique<HeatEquation>(
+        vec_Xdd_, vec_Ydd_, A, P_Y,
+        /* Ydd_is_GenerateYDelta_Xdd */ true, opts_);
   }
+
+  // Prolongate u_dd_d from X_d to X_dd.
+  vec_Xd_->FromVectorContainer(u_dd_d);
+  vec_Xdd_->FromVector(*vec_Xd_);
+  Eigen::VectorXd u_dd_dd = vec_Xdd_->ToVectorContainer();
+
+  // Calculate the residual and store inside the dbltree.
+  Eigen::VectorXd residual =
+      RHS(*heat_dd_dd_) - heat_dd_dd_->S()->Apply(u_dd_dd);
+  vec_Xdd_->FromVectorContainer(residual);
 
   double residual_error = ErrorEstimator::ComputeLocalErrors(
       vec_Xdd_.get(), opts_.estimate_mean_zero);
-
-  // We know that the residual on Xd should be small, so set it zero explicitly.
-  auto vec_Xd_nodes =
-      vec_Xdd_->Union(*vec_Xd_,
-                      /*call_filter*/ datastructures::func_false);
-  assert(vec_Xd_nodes.size() == vec_Xd_->container().size());
-  for (auto &dblnode : vec_Xd_nodes) dblnode->set_value(0.0);
   return {vec_Xdd_.get(), residual_error};
 }
 
@@ -105,6 +95,7 @@ void AdaptiveHeatEquation::Refine(
 
   // Reset the objects that we no longer need, this will free the memory.
   heat_d_dd_.reset();
+  heat_dd_dd_.reset();
   vec_Xdd_.reset();
   vec_Ydd_.reset();
 

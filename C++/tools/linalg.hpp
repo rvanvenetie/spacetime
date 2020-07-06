@@ -18,7 +18,7 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
                                            const Eigen::VectorXd &b,
                                            const PrecondType &M,
                                            const Eigen::VectorXd &x0, int imax,
-                                           double rtol);
+                                           double atol);
 
 template <typename MatType, typename PrecondType>
 class Lanczos {

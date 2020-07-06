@@ -72,7 +72,8 @@ int main(int argc, char* argv[]) {
   adapt_optdesc.add_options()("use_cache",
                               po::value<bool>(&adapt_opts.use_cache))(
       "build_space_mats", po::value<bool>(&adapt_opts.build_space_mats))(
-      "solve_rtol", po::value<double>(&adapt_opts.solve_rtol))(
+      "t_init", po::value<double>(&adapt_opts.t_init))(
+      "solve_xi", po::value<double>(&adapt_opts.solve_xi))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit))(
       "estimate_saturation_layers",
       po::value<size_t>(&adapt_opts.estimate_saturation_layers))(
@@ -130,7 +131,9 @@ int main(int argc, char* argv[]) {
                                std::move(problem_data.second), adapt_opts);
 
   size_t ndof_X = 0, ndof_Y = 0;
-  Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
+  double t_delta = adapt_opts.t_init;
+  std::pair<Eigen::VectorXd, tools::linalg::SolverData> solver_output;
+  solver_output.first = Eigen::VectorXd::Zero(vec_Xd->container().size());
   while (ndof_X < max_dofs) {
     ndof_X = vec_Xd->Bfs().size();             // A slight overestimate.
     ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
@@ -163,16 +166,34 @@ int main(int argc, char* argv[]) {
     }
 
     // Solve.
-    auto start = std::chrono::steady_clock::now();
-    auto [solution, pcg_data] = heat_eq.Solve(x0);
-    std::chrono::duration<double> duration_solve =
-        std::chrono::steady_clock::now() - start;
-    std::cout << " solve-PCG-steps: " << pcg_data.iterations
-              << " solve-time: " << duration_solve.count()
-              << " solve-memory: " << getmem() << std::flush;
+    std::pair<AdaptiveHeatEquation::TypeXVector*, double> estimate_output;
+    std::chrono::time_point<std::chrono::steady_clock> start;
+    do {
+      t_delta /= 10.0;
+      {
+        start = std::chrono::steady_clock::now();
+        solver_output = heat_eq.Solve(solver_output.first, t_delta);
+        std::chrono::duration<double> duration_solve =
+            std::chrono::steady_clock::now() - start;
+        std::cout << " solve-PCG-steps: " << solver_output.second.iterations
+                  << " solve-time: " << duration_solve.count()
+                  << " solve-memory: " << getmem() << std::flush;
+      }
+      {
+        start = std::chrono::steady_clock::now();
+        estimate_output = heat_eq.Estimate(solver_output.first);
+        std::chrono::duration<double> duration_estimate =
+            std::chrono::steady_clock::now() - start;
+
+        std::cout << " residual-norm: " << estimate_output.second
+                  << " estimate-time: " << duration_estimate.count()
+                  << " estimate-memory: " << getmem() << std::flush;
+      }
+    } while (t_delta > adapt_opts.solve_xi * estimate_output.second);
+    t_delta = estimate_output.second + t_delta;
 
     if (print_centers) {
-      vec_Xd->FromVectorContainer(solution);
+      vec_Xd->FromVectorContainer(solver_output.first);
       for (auto dblnode : vec_Xd->Bfs()) {
         std::cerr << "((" << dblnode->node_0()->level() << ","
                   << dblnode->node_0()->center() << "),"
@@ -187,7 +208,8 @@ int main(int argc, char* argv[]) {
     // Estimate.
     if (estimate_global_error) {
       start = std::chrono::steady_clock::now();
-      auto [global_error, terms] = heat_eq.EstimateGlobalError(solution);
+      auto [global_error, terms] =
+          heat_eq.EstimateGlobalError(solver_output.first);
       std::chrono::duration<double> duration_global =
           std::chrono::steady_clock::now() - start;
       std::cout << " global-error: " << global_error
@@ -195,14 +217,6 @@ int main(int argc, char* argv[]) {
                 << " T0-error: " << terms.second
                 << " global-time: " << duration_global.count() << std::flush;
     }
-    start = std::chrono::steady_clock::now();
-    auto [residual, residual_norm] = heat_eq.Estimate(solution);
-    std::chrono::duration<double> duration_estimate =
-        std::chrono::steady_clock::now() - start;
-
-    std::cout << " residual-norm: " << residual_norm
-              << " estimate-time: " << duration_estimate.count()
-              << " estimate-memory: " << getmem() << std::flush;
 
 #ifdef VERBOSE
     std::cerr << std::endl << "Adaptive::Trees" << std::endl;
@@ -222,14 +236,14 @@ int main(int argc, char* argv[]) {
 #endif
 
     // Mark - Refine.
-    auto marked_nodes = heat_eq.Mark(residual);
-    vec_Xd->FromVectorContainer(solution);
+    auto marked_nodes = heat_eq.Mark(estimate_output.first);
+    vec_Xd->FromVectorContainer(solver_output.first);
 
     start = std::chrono::steady_clock::now();
     heat_eq.Refine(marked_nodes);
     std::chrono::duration<double> duration_refine =
         std::chrono::steady_clock::now() - start;
-    x0 = vec_Xd->ToVectorContainer();
+    solver_output.first = vec_Xd->ToVectorContainer();
 
     std::cout << " refine-time: " << duration_refine.count() << std::endl;
   }
