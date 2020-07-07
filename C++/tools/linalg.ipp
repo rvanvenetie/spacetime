@@ -47,7 +47,7 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
     double beta = abs_r / abs_r_old;
     p = z + beta * p;
   }
-  if (sq_res_norm > threshold) std::cout << "DID NOT CONVERGE" << std::endl;
+  if (sq_res_norm > threshold) std::cerr << "DID NOT CONVERGE" << std::endl;
 
   return {x,
           {.relative_residual = sqrt(sq_res_norm / sq_rhs_norm),
