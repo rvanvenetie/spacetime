@@ -4,13 +4,17 @@
 #include "../datastructures/tree.hpp"
 #include "triangulation.hpp"
 
-namespace space {
-
-class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
- public:
+namespace datastructures {
+template <>
+struct NodeTrait<space::HierarchicalBasisFn> {
   static constexpr size_t N_parents = 2;
   static constexpr size_t N_children = 4;
+};
+}  // namespace datastructures
 
+namespace space {
+class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
+ public:
   HierarchicalBasisFn(const std::vector<HierarchicalBasisFn *> &parents,
                       Vertex *vertex)
       : Node(parents), vertex_(vertex) {}
@@ -18,7 +22,11 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
   bool Refine();
   bool is_full() const;
   Vertex *vertex() const { return vertex_; }
-  const std::vector<Element2D *> &support() const { return vertex_->patch; }
+  const SmallVector<Element2D *, 4> &support() const { return vertex_->patch; }
+  std::pair<double, double> center() const { return {vertex_->x, vertex_->y}; }
+  inline bool on_domain_boundary() const { return vertex_->on_domain_boundary; }
+
+  double Volume() const;
 
   double Eval(double x, double y) const;
   Eigen::Vector2d EvalGrad(double x, double y) const;
@@ -33,7 +41,8 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
   Vertex *vertex_;
 
   // Protected constructor for creating a metaroot.
-  HierarchicalBasisFn(Vertex *vertex) : Node(), vertex_(vertex) {
+  HierarchicalBasisFn(Deque<HierarchicalBasisFn> *container, Vertex *vertex)
+      : Node(container), vertex_(vertex) {
     assert(vertex->is_metaroot());
   }
 

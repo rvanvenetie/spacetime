@@ -5,12 +5,10 @@
 #include <memory>
 namespace Time {
 
-// Initialize static variables.
-datastructures::Tree<ContLinearScalingFn> cont_lin_tree;
-datastructures::Tree<ThreePointWaveletFn> three_point_tree;
-
 // Metaroot constructor.
-ContLinearScalingFn::ContLinearScalingFn() : ScalingFn<ContLinearScalingFn>() {
+ContLinearScalingFn::ContLinearScalingFn(Deque<ContLinearScalingFn> *container,
+                                         Element1D *mother_element)
+    : ScalingFn<ContLinearScalingFn>(container) {
   auto scaling_left = make_child(
       /* parents */ std::vector{this},
       /* index */ 0,
@@ -91,8 +89,13 @@ ContLinearScalingFn *ContLinearScalingFn::RefineLeft() {
   return child_left_;
 }
 
-ThreePointWaveletFn::ThreePointWaveletFn() : WaveletFn<ThreePointWaveletFn>() {
-  auto mother_scalings = cont_lin_tree.meta_root->children();
+ThreePointWaveletFn::ThreePointWaveletFn(
+    Deque<ThreePointWaveletFn> *container,
+    const SmallVector<
+        ContLinearScalingFn *,
+        datastructures::NodeTrait<ContLinearScalingFn>::N_children>
+        &mother_scalings)
+    : WaveletFn<ThreePointWaveletFn>(container) {
   assert(mother_scalings.size() == 2);
   for (size_t i = 0; i < 2; ++i) {
     make_child(
@@ -153,7 +156,7 @@ bool ThreePointWaveletFn::Refine() {
 
     // First refine the left part.
     auto [l, n] = labda();
-    double scaling = pow(2, (l + 1) / 2.0);
+    double scaling = std::pow(2, (l + 1) / 2.0);
     std::vector<ContLinearScalingFn *> phi_children{phi_left->child_middle_,
                                                     phi_middle->child_left_,
                                                     phi_middle->child_middle_};

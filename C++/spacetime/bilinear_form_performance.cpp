@@ -32,19 +32,19 @@ int main() {
     // Code inside this region runs in parallel.
     std::cout << "Hello from thread " << omp_get_thread_num() << std::endl;
   }
+  auto B = Time::Bases();
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(::level);
-  ortho_tree.UniformRefine(::level);
-  three_point_tree.UniformRefine(::level);
+  B.ortho_tree.UniformRefine(::level);
+  B.three_point_tree.UniformRefine(::level);
 
   for (size_t j = 0; j < ::bilform_iters; ++j) {
     // Setup random X_delta
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
-        three_point_tree.meta_root.get(),
-        T.hierarch_basis_tree.meta_root.get());
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     X_delta.SparseRefine(::level, {2, 1});
     X_delta.compute_fibers();
-    auto Y_delta = GenerateYDelta(X_delta);
+    auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
     auto vec_X = X_delta.template DeepCopy<
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
@@ -54,20 +54,23 @@ int main() {
     vec_Y.compute_fibers();
     auto bil_form =
         CreateBilinearForm<Time::TransportOperator, space::MassOperator>(
-            vec_X, &vec_Y, /* use_cache */ use_cache);
+            &vec_X, &vec_Y, /* use_cache */ use_cache);
 
-    std::cout << "----" << std::endl;
-    std::cout << "X_delta size " << X_delta.Bfs().size() << " sizeof element "
-              << sizeof(decltype(X_delta)::Impl) << std::endl;
-    std::cout << "Y_delta size " << Y_delta.Bfs().size() << " sizeof element "
-              << sizeof(decltype(Y_delta)::Impl) << std::endl;
-    std::cout << "Sigma size " << bil_form.sigma().Bfs().size() << std::endl;
-    std::cout << "Theta size " << bil_form.theta().Bfs().size() << std::endl;
+    // std::cout << "----" << std::endl;
+    // std::cout << "X_delta size " << X_delta.Bfs().size() << " sizeof element
+    // "
+    //          << sizeof(decltype(X_delta)::Impl) << std::endl;
+    // std::cout << "Y_delta size " << Y_delta.Bfs().size() << " sizeof element
+    // "
+    //          << sizeof(decltype(Y_delta)::Impl) << std::endl;
+    // std::cout << "Sigma size " << bil_form->sigma()->Bfs().size() <<
+    // std::endl; std::cout << "Theta size " << bil_form->theta()->Bfs().size()
+    // << std::endl;
     for (size_t k = 0; k < ::inner_iters; k++) {
       for (auto& nv : vec_X.Bfs()) {
         nv->set_value(bsd_rnd());
       }
-      bil_form.Apply();
+      bil_form->Apply(vec_X.ToVectorContainer());
     }
   }
   return 0;

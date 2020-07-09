@@ -1,8 +1,12 @@
-add_library(space SHARED triangulation.cpp initial_triangulation.cpp basis.cpp operators.cpp triangulation_view.cpp)
+add_library(space STATIC triangulation.cpp initial_triangulation.cpp basis.cpp operators.cpp triangulation_view.cpp multigrid_triangulation_view.cpp linear_form.cpp integration.cpp)
 target_link_libraries(space PUBLIC OpenMP::OpenMP_CXX)
 
+# Executables
 add_executable(triangulation_view_performance triangulation_view_performance.cpp)
 target_link_libraries(triangulation_view_performance space)
+
+add_executable(multigrid_preconditioner_performance multigrid_preconditioner_performance.cpp)
+target_link_libraries(multigrid_preconditioner_performance space)
 
 # Create tests
 package_add_test(triangulation_test triangulation_test.cpp)
@@ -11,5 +15,17 @@ target_link_libraries(triangulation_test space)
 package_add_test(triangulation_view_test triangulation_view_test.cpp)
 target_link_libraries(triangulation_view_test space)
 
-package_add_test(bilinear_formtest bilinear_form_test.cpp)
-target_link_libraries(bilinear_formtest space)
+package_add_test(multigrid_triangulation_view_test multigrid_triangulation_view_test.cpp)
+target_link_libraries(multigrid_triangulation_view_test space)
+
+package_add_test(space_bilinear_form_test bilinear_form_test.cpp)
+target_link_libraries(space_bilinear_form_test space)
+
+package_add_test(space_linear_form_test linear_form_test.cpp)
+target_link_libraries(space_linear_form_test space)
+
+package_add_test(space_operators_test operators_test.cpp)
+target_link_libraries(space_operators_test space)
+
+package_add_test(space_integration_test integration_test.cpp)
+target_link_libraries(space_integration_test space)

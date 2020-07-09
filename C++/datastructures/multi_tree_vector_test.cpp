@@ -74,14 +74,13 @@ TEST(MultiTreeVector, basic) {
   auto vec_sparse = TripleTreeVector<Vertex, Element2D, Vertex>(
       T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
   vec_sparse.SparseRefine(3);
-  for (auto &nv : vec_sparse.Bfs())
-    nv->set_value((double)std::rand() / RAND_MAX);
+  for (auto &nv : vec_sparse.Bfs()) nv->set_random();
 
   // Fill another uniform vector with random junk.
   auto vec_unif = TripleTreeVector<Vertex, Element2D, Vertex>(
       T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
   vec_unif.UniformRefine({1, 5, 2});
-  for (auto &nv : vec_unif.Bfs()) nv->set_value((double)std::rand() / RAND_MAX);
+  for (auto &nv : vec_unif.Bfs()) nv->set_random();
 
   // Create empty vector.
   auto vec_result = TripleTreeVector<Vertex, Element2D, Vertex>(

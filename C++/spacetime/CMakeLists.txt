@@ -1,4 +1,4 @@
-add_library(spacetime SHARED basis.cpp)
+add_library(spacetime STATIC bilinear_form.cpp basis.cpp)
 target_link_libraries(spacetime space time)
 
 add_executable(spacetime_bilinear_form_performance bilinear_form_performance.cpp)
@@ -10,3 +10,6 @@ target_link_libraries(spacetime_basis_test spacetime)
 
 package_add_test(spacetime_bilinear_form_test bilinear_form_test.cpp)
 target_link_libraries(spacetime_bilinear_form_test spacetime)
+
+package_add_test(spacetime_linear_form_test linear_form_test.cpp)
+target_link_libraries(spacetime_linear_form_test spacetime)

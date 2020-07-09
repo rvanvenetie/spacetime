@@ -20,6 +20,12 @@ bool HierarchicalBasisFn::is_full() const {
   return true;
 }
 
+double HierarchicalBasisFn::Volume() const {
+  double vol = 0.0;
+  for (auto elem : support()) vol += elem->area();
+  return vol;
+}
+
 double HierarchicalBasisFn::Eval(double x, double y) const {
   for (auto elem : support()) {
     auto bary = elem->BarycentricCoordinates(x, y);

@@ -1,2 +1,1 @@
-package_add_test(integration_test integration_test.cpp)
-target_link_libraries(integration_test space time)
+package_add_test(linalg_test linalg_test.cpp)

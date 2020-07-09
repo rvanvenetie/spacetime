@@ -1,4 +1,6 @@
 #include "initial_triangulation.hpp"
+
+#include <map>
 namespace space {
 
 InitialTriangulation::InitialTriangulation(
@@ -6,10 +8,10 @@ InitialTriangulation::InitialTriangulation(
     const std::vector<std::array<int, 3>> &elements)
     : vertex_tree(),
       elem_tree(),
-      hierarch_basis_tree(new HierarchicalBasisFn(vertex_tree.meta_root.get())),
-      vertex_meta_root(vertex_tree.meta_root.get()),
-      elem_meta_root(elem_tree.meta_root.get()),
-      hierarch_basis_meta_root(hierarch_basis_tree.meta_root.get()) {
+      hierarch_basis_tree(vertex_tree.meta_root()),
+      vertex_meta_root(vertex_tree.meta_root()),
+      elem_meta_root(elem_tree.meta_root()),
+      hierarch_basis_meta_root(hierarch_basis_tree.meta_root()) {
   // Convenient aliases.
   auto &vertex_roots = vertex_meta_root->children();
   auto &element_roots = elem_meta_root->children();
@@ -69,10 +71,50 @@ InitialTriangulation::InitialTriangulation(
   }
 }
 
-InitialTriangulation InitialTriangulation::UnitSquare() {
+InitialTriangulation InitialTriangulation::CreateInitialTriangulation(
+    const std::vector<std::array<double, 2>> &vertices,
+    const std::vector<std::array<int, 3>> &elements,
+    size_t initial_refinement) {
+  // If we need to refine this triangulation, do this :-).
+  if (initial_refinement) {
+    InitialTriangulation triang(vertices, elements);
+    triang.elem_tree.UniformRefine(initial_refinement);
+    auto vertices_bfs = triang.vertex_tree.Bfs();
+    std::map<Vertex *, size_t> v2idx;
+    for (size_t i = 0; i < vertices_bfs.size(); ++i) v2idx[vertices_bfs[i]] = i;
+
+    // Create new arrays.
+    std::vector<std::array<double, 2>> vertices;
+    std::vector<std::array<int, 3>> elements;
+
+    for (auto vtx : vertices_bfs)
+      vertices.emplace_back(std::array{vtx->x, vtx->y});
+    for (auto elem : triang.elem_tree.Bfs()) {
+      if (!elem->is_leaf()) continue;
+      std::array<int, 3> elem2vidx;
+      for (int v = 0; v < 3; ++v)
+        elem2vidx[v] = v2idx.at(elem->vertices().at(v));
+      elements.emplace_back(elem2vidx);
+    }
+    return InitialTriangulation(vertices, elements);
+  } else {
+    return InitialTriangulation(vertices, elements);
+  }
+}
+
+InitialTriangulation InitialTriangulation::UnitSquare(
+    size_t initial_refinement) {
   std::vector<std::array<double, 2>> vertices = {
       {{0, 0}}, {{1, 1}}, {{1, 0}}, {{0, 1}}};
   std::vector<std::array<int, 3>> elements = {{{0, 2, 3}}, {{1, 3, 2}}};
-  return InitialTriangulation(vertices, elements);
+  return CreateInitialTriangulation(vertices, elements, initial_refinement);
+}
+
+InitialTriangulation InitialTriangulation::LShape(size_t initial_refinement) {
+  std::vector<std::array<double, 2>> vertices = {
+      {0, 0}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
+  std::vector<std::array<int, 3>> elements = {{1, 0, 2}, {3, 2, 0}, {3, 0, 4},
+                                              {5, 4, 0}, {5, 0, 6}, {7, 6, 0}};
+  return CreateInitialTriangulation(vertices, elements, initial_refinement);
 }
 }  // namespace space

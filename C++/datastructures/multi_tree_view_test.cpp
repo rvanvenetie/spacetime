@@ -119,15 +119,15 @@ TEST(MultiNodeView, SparseRefine) {
 
     // Calculate the number of elements we expect.
     int count = 0;
-    for (int i = -1; i <= max_level; ++i)
-      for (int j = -1; j <= max_level; ++j)
-        for (int k = -1; k <= max_level; ++k)
+    for (int i = 0; i <= max_level; ++i)
+      for (int j = 0; j <= max_level; ++j)
+        for (int k = 0; k <= max_level; ++k)
           if (weights[0] * i + weights[1] * j + weights[2] * k <= level) {
             count += vertices_on_level[i] * elements_on_level[j] *
                      vertices_on_level[k];
           }
 
-    auto multi_nodes = multi_tree.Bfs(/*include_metaroot*/ true);
+    auto multi_nodes = multi_tree.Bfs(/*include_metaroot*/ false);
     ASSERT_EQ(multi_nodes.size(), count);
   }
 }
@@ -190,9 +190,9 @@ TEST(MultiNodeView, Union) {
       T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
 
   // Union a lot of sparse trees.
-  for (int i = -1; i <= max_level; ++i)
-    for (int j = -1; j <= max_level; ++j)
-      for (int k = -1; k <= max_level; ++k)
+  for (int i = 0; i <= max_level; ++i)
+    for (int j = 0; j <= max_level; ++j)
+      for (int k = 0; k <= max_level; ++k)
         if (i + j + k <= max_level) {
           auto multi_tree = TripleTreeView<Vertex, Element2D, Vertex>(
               T.vertex_meta_root, T.elem_meta_root, T.vertex_meta_root);
@@ -201,7 +201,7 @@ TEST(MultiNodeView, Union) {
         }
 
   // Get the union nodes.
-  auto union_nodes = union_tree.Bfs(/*include_metaroot*/ true);
+  auto union_nodes = union_tree.Bfs(/*include_metaroot*/ false);
 
   // Do the same, but now not stupid.
   auto multi_tree = TripleTreeView<Vertex, Element2D, Vertex>(
@@ -209,7 +209,7 @@ TEST(MultiNodeView, Union) {
   multi_tree.SparseRefine(max_level);
 
   // Compare the results
-  auto multi_nodes = multi_tree.Bfs(/*include_metaroot*/ true);
+  auto multi_nodes = multi_tree.Bfs(/*include_metaroot*/ false);
   ASSERT_EQ(multi_nodes.size(), union_nodes.size());
   for (int i = 0; i < multi_nodes.size(); ++i) {
     ASSERT_EQ(multi_nodes[i]->nodes(), union_nodes[i]->nodes());

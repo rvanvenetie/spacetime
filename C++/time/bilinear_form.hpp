@@ -44,19 +44,33 @@ class BilinearForm {
     FinalizeOutput(f);
   }
 
+  auto Transpose() const {
+    auto transpose = BilinearForm<Operator, I_out, I_in>();
+    transpose.vec_in_ = vec_out_;
+    transpose.vec_out_ = vec_in_;
+    transpose.nodes_vec_in_ = nodes_vec_out_;
+    transpose.nodes_vec_out_ = nodes_vec_in_;
+    transpose.InitializeOutput();
+    return transpose;
+  }
+
   // Debug function, O(n^2).
   Eigen::MatrixXd ToMatrix();
 
  protected:
+  // Protected constructor, and give transpose operator access.
+  BilinearForm() : vec_in_(nullptr), vec_out_(nullptr) {}
+  friend BilinearForm<Operator, I_out, I_in>;
+
   // Roots of the treeviews we are considering.
   I_in *vec_in_;
   I_out *vec_out_;
 
-  // A flattened bfs view of the vectors.
-  std::vector<I_in *> nodes_vec_in_;
-  std::vector<I_out *> nodes_vec_out_;
+  // A flattened (levelwise) view of input/output vectors.
+  std::shared_ptr<std::vector<std::vector<I_in *>>> nodes_vec_in_;
+  std::shared_ptr<std::vector<std::vector<I_out *>>> nodes_vec_out_;
 
-  // A flattened, levelwise view of the trees.
+  // Another flattened (levelwise) view of the vectors, in another data format.
   std::vector<SparseVector<WaveletBasisIn>> lvl_vec_in_;
   std::vector<SparseIndices<WaveletBasisOut>> lvl_ind_out_;
 
@@ -65,17 +79,18 @@ class BilinearForm {
   SparseIndices<WaveletBasisOut> empty_ind_out_;
 
   // Helper function to set the levelwise input/output vector.
+  void InitializeOutput();
   void InitializeInput();
   void FinalizeOutput(const SparseVector<WaveletBasisOut> &f);
 
   // Recursive apply.
   std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>>
-  ApplyRecur(size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
+  ApplyRecur(size_t l, SparseIndices<ScalingBasisOut> &&Pi_out,
              const SparseVector<ScalingBasisIn> &d);
 
   // Recursive apply upper part.
   std::pair<SparseVector<ScalingBasisOut>, SparseVector<WaveletBasisOut>>
-  ApplyUppRecur(size_t l, const SparseIndices<ScalingBasisOut> &Pi_out,
+  ApplyUppRecur(size_t l, SparseIndices<ScalingBasisOut> &&Pi_out,
                 const SparseVector<ScalingBasisIn> &d);
 
   // Recursive apply lower part.
@@ -84,11 +99,12 @@ class BilinearForm {
 
   // Index sets.
   std::pair<SparseIndices<ScalingBasisOut>, SparseIndices<ScalingBasisOut>>
-  ConstructPiOut(const SparseIndices<ScalingBasisOut> &Pi_out);
+  ConstructPiOut(SparseIndices<ScalingBasisOut> &&Pi_out,
+                 bool construct_Pi_A_out = true);
 
-  std::pair<SparseIndices<ScalingBasisIn>, SparseIndices<ScalingBasisIn>>
-  ConstructPiIn(const SparseIndices<ScalingBasisIn> &Pi_in,
-                const SparseIndices<ScalingBasisOut> &Pi_B_out);
+  SparseIndices<ScalingBasisIn> ConstructPiBIn(
+      SparseIndices<ScalingBasisIn> &&Pi_in,
+      const SparseIndices<ScalingBasisOut> &Pi_B_out);
 };
 
 // Helper functions .

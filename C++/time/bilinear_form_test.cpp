@@ -5,12 +5,11 @@
 #include <set>
 #include <unordered_map>
 
-#include "../datastructures/multi_tree_vector.hpp"
-#include "../tools/integration.hpp"
+#include "bases.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "integration.hpp"
 #include "linear_operator.hpp"
-#include "three_point_basis.hpp"
 
 int bsd_rnd() {
   static unsigned int seed = 0;
@@ -23,7 +22,6 @@ int bsd_rnd() {
 namespace Time {
 using datastructures::TreeVector;
 using ::testing::ElementsAre;
-using tools::IntegrationRule;
 
 template <template <typename, typename> class Operator, typename WaveletBasisIn,
           typename WaveletBasisOut>
@@ -32,10 +30,8 @@ void TestLinearity(const TreeVector<WaveletBasisIn>& vec_in,
   // Create two random vectors.
   auto vec_in_1 = vec_in.DeepCopy();
   auto vec_in_2 = vec_in.DeepCopy();
-  for (auto nv : vec_in_1.Bfs())
-    nv->set_value(((double)std::rand()) / RAND_MAX);
-  for (auto nv : vec_in_2.Bfs())
-    nv->set_value(((double)std::rand()) / RAND_MAX);
+  for (auto nv : vec_in_1.Bfs()) nv->set_random();
+  for (auto nv : vec_in_2.Bfs()) nv->set_random();
 
   // Also calculate a lin. comb. of this vector
   double alpha = 1.337;
@@ -69,8 +65,7 @@ void TestUppLow(const TreeVector<WaveletBasisIn>& vec_in,
                 const TreeVector<WaveletBasisOut>& vec_out) {
   // Checks that BilForm::Apply() == BilForm::ApplyUpp() + BilForm::ApplyLow().
   for (int i = 0; i < 20; i++) {
-    for (auto nv : vec_in.Bfs())
-      nv->set_value(((double)std::rand()) / RAND_MAX);
+    for (auto nv : vec_in.Bfs()) nv->set_random();
 
     CreateBilinearForm<Operator>(vec_in, vec_out).Apply();
     auto vec_out_full = vec_out.DeepCopy();
@@ -98,7 +93,8 @@ void CheckMatrixQuadrature(const TreeVector<WaveletBasisIn>& vec_in,
   TestLinearity<Operator>(vec_in, vec_out);
   TestUppLow<Operator>(vec_in, vec_out);
 
-  auto mat = CreateBilinearForm<Operator>(vec_in, vec_out).ToMatrix();
+  auto bil_form = CreateBilinearForm<Operator>(vec_in, vec_out);
+  auto mat = bil_form.ToMatrix();
   auto nodes_in = vec_in.Bfs();
   auto nodes_out = vec_out.Bfs();
   for (int j = 0; j < nodes_in.size(); ++j)
@@ -109,29 +105,33 @@ void CheckMatrixQuadrature(const TreeVector<WaveletBasisIn>& vec_in,
       if (g->level() > f->level()) support = g->support();
       double ip = 0;
       for (auto elem : support)
-        ip += IntegrationRule<1, 2>::Integrate(
+        ip += Integrate(
             [f, deriv_in, g, deriv_out](const double& t) {
               return f->Eval(t, deriv_in) * g->Eval(t, deriv_out);
             },
-            *elem);
+            *elem, /*degree*/ 2);
 
       ASSERT_NEAR(mat(i, j), ip, 1e-10);
     }
+
+  // Check that its transpose equals the matrix transpose.
+  auto tmat = bil_form.Transpose().ToMatrix();
+  ASSERT_TRUE(mat.transpose().isApprox(tmat));
 }
 
 TEST(BilinearForm, FullTest) {
   // Reset the persistent trees.
-  ResetTrees();
+  Bases B;
   int ml = 7;
-  three_point_tree.UniformRefine(ml);
-  ortho_tree.UniformRefine(ml);
+  B.three_point_tree.UniformRefine(ml);
+  B.ortho_tree.UniformRefine(ml);
 
   for (size_t j = 0; j < 20; ++j) {
     // Set up three-point tree.
     auto three_vec_in =
-        TreeVector<ThreePointWaveletFn>(three_point_tree.meta_root);
+        TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root());
     auto three_vec_out =
-        TreeVector<ThreePointWaveletFn>(three_point_tree.meta_root);
+        TreeVector<ThreePointWaveletFn>(B.three_point_tree.meta_root());
     three_vec_in.DeepRefine(
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 != 0;
@@ -144,8 +144,10 @@ TEST(BilinearForm, FullTest) {
     ASSERT_GT(three_vec_out.Bfs().size(), 0);
 
     // Set up orthonormal tree.
-    auto ortho_vec_in = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
-    auto ortho_vec_out = TreeVector<OrthonormalWaveletFn>(ortho_tree.meta_root);
+    auto ortho_vec_in =
+        TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root());
+    auto ortho_vec_out =
+        TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root());
     ortho_vec_in.DeepRefine(
         /* call_filter */ [](auto&& nv) {
           return nv->level() <= 0 || bsd_rnd() % 3 == 0;

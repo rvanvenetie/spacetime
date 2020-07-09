@@ -25,15 +25,17 @@ TEST(TriangulationView, UniformRefine) {
     auto vertex_view = TreeView<Vertex>(T.vertex_meta_root);
     vertex_view.UniformRefine(level);
 
+    std::vector<Vertex *> vertices;
+    for (auto vtx : vertex_view.Bfs()) vertices.emplace_back(vtx->node());
+
     // Now create the corresponding element tree
-    TriangulationView triang_view(vertex_view);
+    TriangulationView triang_view(std::move(vertices));
 
     // Lets see if this actually gives some fruitful results!
-    auto elements = triang_view.element_view().Bfs();
-    ASSERT_EQ(elements.size(), pow(2, level + 2) - 2);
+    ASSERT_EQ(triang_view.element_leaves().size(), pow(2, level + 1));
 
-    for (auto elem : elements) {
-      ASSERT_TRUE(elem->level() <= level);
+    for (const auto &[elem, _] : triang_view.element_leaves()) {
+      ASSERT_TRUE(elem->level() == level);
     }
   }
 }
@@ -45,18 +47,13 @@ TEST(TriangulationView, VertexSubTree) {
   // Create a subtree with only vertices lying below the diagonal.
   auto vertex_subtree = TreeView<Vertex>(T.vertex_meta_root);
   vertex_subtree.DeepRefine(/* call_filter */ [](const auto &vertex) {
-    return vertex->x + vertex->y <= 1.0;
+    return vertex->level() == 0 || (vertex->x + vertex->y <= 1.0);
   });
   ASSERT_TRUE(vertex_subtree.Bfs().size() < T.vertex_meta_root->Bfs().size());
 
   auto T_view = TriangulationView(vertex_subtree);
-  ASSERT_TRUE(T_view.history().size() < T.elem_meta_root->Bfs().size());
 
-  // Check that the history object contains exactly non-root vertices
-  ASSERT_EQ(T_view.history().size(), vertex_subtree.Bfs().size() -
-                                         T.vertex_meta_root->children().size());
-
-  // Check there are no duplicats.
+  // Check there are no duplicates.
   std::set<Vertex *> vertices_subtree;
   for (auto vertex : T_view.vertices()) {
     vertices_subtree.insert(vertex);
@@ -64,24 +61,9 @@ TEST(TriangulationView, VertexSubTree) {
   ASSERT_EQ(vertices_subtree.size(), T_view.vertices().size());
   // Check all nodes necessary for the elem subtree are
   // inside the vertices_subtree.
-  for (auto &elem : T_view.element_view().Bfs()) {
-    for (auto &vtx : elem->node()->vertices()) {
+  for (const auto &[elem, _] : T_view.element_leaves()) {
+    for (auto &vtx : elem->vertices()) {
       ASSERT_TRUE(vertices_subtree.count(vtx));
-    }
-  }
-
-  // And the other way around.
-  auto elements_view = T_view.element_view().Bfs();
-  std::set<Element2D *> elements_subtree;
-  for (auto &nv : elements_view) {
-    elements_subtree.insert(nv->node());
-  }
-  ASSERT_EQ(elements_subtree.size(), elements_view.size());
-  // Check all nodes necessary for the elem subtree are
-  // inside the elements_subtree.
-  for (auto &vertex : T_view.vertices()) {
-    for (auto elem : vertex->patch) {
-      ASSERT_TRUE(elements_subtree.count(elem));
     }
   }
 }

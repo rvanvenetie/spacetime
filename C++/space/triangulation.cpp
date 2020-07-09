@@ -20,6 +20,22 @@ HierarchicalBasisFn *Vertex::RefineHierarchicalBasisFn() {
   return phi_;
 }
 
+Element2D::Element2D(Element2D *parent, const std::array<Vertex *, 3> &vertices,
+                     double area)
+    : BinaryNode(parent), area_(area), vertices_(vertices) {
+  // Calculate the element stiffness matrix.
+  Eigen::Vector2d v0, v1, v2;
+  v0 << vertices[0]->x, vertices[0]->y;
+  v1 << vertices[1]->x, vertices[1]->y;
+  v2 << vertices[2]->x, vertices[2]->y;
+
+  Eigen::Matrix<double, 3, 2> D;
+  D << v2[0] - v1[0], v2[1] - v1[1], v0[0] - v2[0], v0[1] - v2[1],
+      v1[0] - v0[0], v1[1] - v0[1];
+
+  stiff_mat_.noalias() = D * D.transpose() / (4.0 * area);
+}
+
 std::array<Vertex *, 2> Element2D::edge(int i) const {
   assert(0 <= i && i <= 2);
   return {{vertices_[(i + 1) % 3], vertices_[(i + 2) % 3]}};
@@ -115,6 +131,10 @@ std::array<Element2D *, 2> Element2D::Bisect(Vertex *new_vertex) {
   assert(child1->edge(2) == child2->reversed_edge(1));
   new_vertex->patch.push_back(child1);
   new_vertex->patch.push_back(child2);
+  new_vertex->parents_element.push_back(this);
+  if (new_vertex->godparents.empty())
+    for (int gp = 1; gp < 3; gp++)
+      new_vertex->godparents.emplace_back(vertices_[gp]);
 
   if (neighbours[2]) {
     for (int i = 0; i < 3; ++i) {

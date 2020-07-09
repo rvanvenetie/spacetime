@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Dense>
 #include <iostream>
+#include <random>
 #include <vector>
 
 #include "multi_tree_view.hpp"
@@ -58,7 +59,13 @@ class MultiNodeVectorBase : public MultiNodeViewBase<I, T...>,
   using MultiNodeViewBase<I, T...>::MultiNodeViewBase;
 
   inline const double &value() const { return value_; }
-  inline void set_value(double val) { value_ = val; }
+  inline void set_value(double val) {
+    // assert(val == 0.0 || (1e-100 < std::abs(val) && std::abs(val) < 1e100));
+    value_ = val;
+  }
+  inline void set_random() {
+    value_ = static_cast<double>(std::rand()) / RAND_MAX;
+  }
 
  protected:
   double value_ = 0.0;
@@ -83,6 +90,14 @@ class MultiTreeVector : public MultiTreeView<I> {
   // Note: this is not compatible with the Python ToArray!
   Eigen::VectorXd ToVector() const { return Super::root_->ToVector(); }
   void FromVector(const Eigen::VectorXd &vec) { Super::root_->FromVector(vec); }
+  void FromVector(const MultiTreeVector<I> &vec) {
+    Reset();
+    Super::root_->Union(vec.root(),
+                        /* call_filter*/ func_true, /* call_postprocess*/
+                        [](const auto &my_node, const auto &other_node) {
+                          my_node->set_value(other_node->value());
+                        });
+  }
 
   // This uses the ordering as in the underlying container.
   Eigen::VectorXd ToVectorContainer() const {

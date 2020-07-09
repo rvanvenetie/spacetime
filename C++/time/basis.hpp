@@ -7,13 +7,56 @@
 #include "../datastructures/tree.hpp"
 #include "sparse_vector.hpp"
 
+// Forward all the class declarations.
 namespace Time {
-
+class Element1D;
 class DiscConstantScalingFn;
-class ContLinearScalingFn;
+class HaarWaveletFn;
 class DiscLinearScalingFn;
 class OrthonormalWaveletFn;
+class ContLinearScalingFn;
+class ThreePointWaveletFn;
+}  // namespace Time
 
+namespace datastructures {
+template <>
+struct NodeTrait<Time::Element1D> {
+  static constexpr size_t N_parents = 1;
+  static constexpr size_t N_children = 2;
+};
+template <>
+struct NodeTrait<Time::DiscConstantScalingFn> {
+  static constexpr size_t N_parents = 1;
+  static constexpr size_t N_children = 2;
+};
+template <>
+struct NodeTrait<Time::HaarWaveletFn> {
+  static constexpr size_t N_parents = 1;
+  static constexpr size_t N_children = 2;
+};
+template <>
+struct NodeTrait<Time::DiscLinearScalingFn> {
+  static constexpr size_t N_parents = 2;
+  static constexpr size_t N_children = 4;
+};
+template <>
+struct NodeTrait<Time::OrthonormalWaveletFn> {
+  static constexpr size_t N_parents = 2;
+  static constexpr size_t N_children = 4;
+};
+template <>
+struct NodeTrait<Time::ContLinearScalingFn> {
+  static constexpr size_t N_parents = 2;
+  static constexpr size_t N_children = 3;
+};
+template <>
+struct NodeTrait<Time::ThreePointWaveletFn> {
+  static constexpr size_t N_parents = 2;
+  static constexpr size_t N_children = 2;
+};
+}  // namespace datastructures
+
+namespace Time {
 class Element1D : public datastructures::BinaryNode<Element1D> {
  public:
   // Constructors given the parent.
@@ -51,7 +94,7 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  Element1D() : BinaryNode(), index_(0) {
+  Element1D(Deque<Element1D> *container) : BinaryNode(container), index_(0) {
     make_child(/* parent */ this, /* index */ 0);
   }
 
@@ -87,6 +130,11 @@ class Function : public datastructures::Node<I> {
   }
   inline int index() const { return index_; }
   const std::vector<Element1D *> &support() const { return support_; }
+  double center() const {
+    return (support_[0]->Interval().first +
+            support_.back()->Interval().second) /
+           2.0;
+  }
 
   friend std::ostream &operator<<(std::ostream &os, const Function<I> &fn) {
     os << I::name << "(" << fn.level() << ", " << fn.index() << ")";
@@ -95,7 +143,8 @@ class Function : public datastructures::Node<I> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  Function() : datastructures::Node<I>(), index_(0) {}
+  Function(Deque<I> *container)
+      : datastructures::Node<I>(container), index_(0) {}
 
   // The index inside this level.
   int index_;
@@ -118,9 +167,9 @@ class ScalingFn : public Function<I> {
   double Eval(double t, bool deriv = false) const {
     int l = this->level_;
     int n = this->index_;
-    double chain_rule_constant = deriv ? std::pow(2, l) : 1;
-    return chain_rule_constant * static_cast<const I &>(*this).EvalMother(
-                                     std::pow(2, l) * t - n, deriv);
+    double chain_rule_constant = deriv ? (1 << l) : 1;
+    return chain_rule_constant *
+           static_cast<const I &>(*this).EvalMother((1 << l) * t - n, deriv);
   }
 
   const SparseVector<WaveletType> &multi_scale() const { return multi_scale_; }
@@ -188,12 +237,4 @@ class WaveletFn : public Function<I> {
   // This maps a wavelet to its single scale representation.
   SparseVector<ScalingType> single_scale_;
 };
-
-// Declare static variables.
-extern Element1D *mother_element;
-extern datastructures::Tree<Element1D> elem_tree;
-
-// Debug function for reseting all the `time trees`
-void ResetTrees();
-
 }  // namespace Time

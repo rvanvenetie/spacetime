@@ -21,12 +21,13 @@ inline std::vector<I*> MultiNodeViewInterface<I, T...>::Bfs(
 
     nodes.emplace_back(node);
     callback(node);
-    for (size_t i = 0; i < dim; ++i)
+    static_for<dim>([&queue, &node](auto i) {
       for (const auto& child : node->children(i))
         if (!child->marked()) {
           child->set_marked(true);
           queue.emplace(child);
         }
+    });
   }
   for (const auto& node : nodes) {
     node->set_marked(false);
@@ -62,9 +63,9 @@ inline void MultiNodeViewInterface<I, T...>::DeepRefine(
 
 template <typename I, typename... T>
 template <typename I_other, typename FuncFilt, typename FuncPost>
-void MultiNodeViewInterface<I, T...>::Union(I_other* other,
-                                            const FuncFilt& call_filter,
-                                            const FuncPost& call_postprocess) {
+std::vector<I*> MultiNodeViewInterface<I, T...>::Union(
+    I_other* other, const FuncFilt& call_filter,
+    const FuncPost& call_postprocess) {
   assert(is_root() && other->is_root());
   assert(self().nodes() == other->nodes());
   std::queue<std::pair<I*, I_other*>> queue;
@@ -86,14 +87,20 @@ void MultiNodeViewInterface<I, T...>::Union(I_other* other,
     // Now do the union magic in all dimensions.
     static_for<dim>([&queue, &my_node, &other_node, &call_filter](auto i) {
       // Get a list of all children of the other_node in axis `i`.
-      using T_child = std::tuple_element_t<i, std::tuple<T...>>;
-      SmallVector<T_child*, T_child::N_children> other_children_i;
-      // other_children_i.clear();
+      static thread_local std::vector<I_other*> filtered_children;
+      filtered_children.clear();
       for (const auto& other_child_i : other_node->children(i))
+        if (call_filter(other_child_i))
+          filtered_children.emplace_back(other_child_i);
+
+      static thread_local std::vector<std::tuple_element_t<i, TupleNodes>>
+          other_children_i;
+      other_children_i.clear();
+      for (const auto& other_child_i : filtered_children)
         other_children_i.emplace_back(std::get<i>(other_child_i->nodes()));
 
       // Refine my_node using this list of children.
-      my_node->template Refine<i>(other_children_i, call_filter,
+      my_node->template Refine<i>(other_children_i, /*call_filter*/ func_true,
                                   /*make_conforming*/ false);
 
       // Now only put children on the queue that other_node has as well.
@@ -112,6 +119,7 @@ void MultiNodeViewInterface<I, T...>::Union(I_other* other,
   for (const auto& my_node : my_nodes) {
     my_node->set_marked(false);
   }
+  return my_nodes;
 }
 
 template <typename I, typename... T>
@@ -165,7 +173,7 @@ inline bool MultiNodeViewInterface<I, T...>::Refine(const container& children_i,
     // Now finally, lets create an actual child!
     auto child = self().make_child(
         /*nodes*/ std::move(child_nodes),
-        /*parents*/ std::move(brothers));
+        /*parents*/ brothers);
 
     // Add this child to all brothers.
     for (size_t j = 0; j < dim; ++j) {
@@ -173,8 +181,28 @@ inline bool MultiNodeViewInterface<I, T...>::Refine(const container& children_i,
         brother->children(j).push_back(child);
       }
     }
+
+    if (make_conforming) {
+      static_for<dim>([this, &brothers](auto j) {
+        for (auto brother : brothers[j]) {
+          if (brother == this) continue;
+          if (std::get<j>(brother->nodes())->is_metaroot()) {
+            brother->template Refine<j>();
+          }
+        }
+      });
+    }
     refined = true;
   }
+
+  static_for<dim>([this](auto j) {
+    if (std::get<j>(self().nodes())->is_metaroot()) {
+      assert(self().children(j).size() == 0 ||
+             self().children(j).size() ==
+                 std::get<j>(self().nodes())->children().size());
+    }
+  });
+
   return refined;
 }
 
@@ -230,7 +258,7 @@ inline void MultiTreeView<I>::SparseRefine(int max_level,
   DeepRefine([&](const typename I::TupleNodes& nodes) {
     auto lvls = levels(nodes);
     int w_level = 0;
-    for (int i = 0; i < dim; ++i) w_level += weights[i] * lvls[i];
+    for (int i = 0; i < dim; ++i) w_level += weights[i] * std::max(0, lvls[i]);
     return w_level <= max_level;
   });
 }
@@ -243,5 +271,53 @@ inline MT_other MultiTreeView<I>::DeepCopy(
   MT_other new_tree(root_->nodes());
   new_tree.root()->Union(root(), /*call_filter*/ func_true, call_postprocess);
   return new_tree;
+}
+
+template <typename I>
+template <typename I_other, typename MT_other>
+void MultiTreeView<I>::ConformingRefinement(
+    const MT_other& supertree,
+    const std::vector<I_other*>& nodes_to_add) const {
+  assert(root_->is_root() && supertree.root()->is_root());
+  std::queue<I_other*> queue;
+  std::vector<I_other*> marked;
+  marked.reserve(nodes_to_add.size() + container().size());
+
+  for (auto super_mltnode : nodes_to_add) {
+    queue.emplace(super_mltnode);
+    super_mltnode->set_marked(true);
+    marked.push_back(super_mltnode);
+  }
+
+  while (!queue.empty()) {
+    auto super_mltnode = queue.front();
+    queue.pop();
+
+    static_for<dim>([&supertree, &queue, &super_mltnode, &marked](auto i) {
+      for (const auto& super_parent : super_mltnode->parents(i)) {
+        if (!super_parent->marked()) {
+          if (super_parent->is_root()) assert(super_parent == supertree.root());
+          if (std::get<i>(super_parent->nodes())->is_metaroot()) {
+            for (const auto& super_brother : super_parent->children(i))
+              if (!super_brother->marked()) {
+                queue.emplace(super_brother);
+                super_brother->set_marked(true);
+                marked.push_back(super_brother);
+              }
+          }
+          queue.emplace(super_parent);
+          super_parent->set_marked(true);
+          marked.push_back(super_parent);
+        }
+      }
+    });
+  }
+
+  root_->Union(supertree.root(),
+               /*call_filter*/ [](auto& super_mltnode) {
+                 return super_mltnode->marked();
+               });
+
+  for (auto super_mltnode : marked) super_mltnode->set_marked(false);
 }
 };  // namespace datastructures

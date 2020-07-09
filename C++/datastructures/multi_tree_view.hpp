@@ -96,8 +96,8 @@ class MultiNodeViewInterface {
 
   template <typename I_other = I, typename FuncFilt = T_func_true,
             typename FuncPost = T_func_noop>
-  void Union(I_other* other, const FuncFilt& call_filter = func_true,
-             const FuncPost& call_postprocess = func_noop);
+  std::vector<I*> Union(I_other* other, const FuncFilt& call_filter = func_true,
+                        const FuncPost& call_postprocess = func_noop);
 
   template <
       size_t i,
@@ -120,6 +120,21 @@ class MultiNodeViewInterface {
     bool result = false;
     static_for<dim>(
         [&](auto i) { result |= Refine<i>(call_filter, make_conforming); });
+    return result;
+  }
+
+  // This returns nodes in this multitree, sliced by levels.
+  std::vector<std::vector<I*>> NodesPerLevel() {
+    std::vector<std::vector<I*>> result;
+    for (auto node : Bfs()) {
+      size_t lvl = node->level();
+      assert(lvl >= 0 && lvl <= result.size());
+      if (lvl == result.size()) {
+        result.emplace_back();
+        if (lvl) result.reserve(result[lvl - 1].size());
+      }
+      result[node->level()].emplace_back(node);
+    }
     return result;
   }
 
@@ -146,22 +161,22 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   using MultiNodeViewInterface<I, T...>::dim;
   using typename MultiNodeViewInterface<I, T...>::TupleNodes;
   using TParents =
-      std::array<StaticVector<I*, std::max({T::N_parents...})>, dim>;
+      std::array<StaticVector<I*, std::max({NodeTrait<T>::N_parents...})>, dim>;
   using TChildren =
-      std::array<SmallVector<I*, std::max({T::N_children...})>, dim>;
+      std::array<SmallVector<I*, std::max({NodeTrait<T>::N_children...})>, dim>;
 
  public:
   // Constructor for a node.
-  explicit MultiNodeViewBase(std::deque<I>* container, const TupleNodes& nodes,
+  explicit MultiNodeViewBase(Deque<I>* container, const TupleNodes& nodes,
                              const TParents& parents)
       : container_(container), nodes_(nodes), parents_(parents) {
     assert(container);
   }
 
   // Constructors for root.
-  explicit MultiNodeViewBase(std::deque<I>* container, const TupleNodes& nodes)
+  explicit MultiNodeViewBase(Deque<I>* container, const TupleNodes& nodes)
       : MultiNodeViewBase(container, nodes, {}) {}
-  explicit MultiNodeViewBase(std::deque<I>* container, T*... nodes)
+  explicit MultiNodeViewBase(Deque<I>* container, T*... nodes)
       : MultiNodeViewBase(container, TupleNodes(nodes...)) {
     assert(this->is_root());
   }
@@ -205,12 +220,12 @@ class MultiNodeViewBase : public MultiNodeViewInterface<I, T...> {
   bool marked_ = false;
   TupleNodes nodes_;
 
-  // Store parents/children as raw pointers.
-  TParents parents_;
+  // Store children/parents as raw pointers.
   TChildren children_;
+  TParents parents_;
 
   // Pointer to the deque that holds all the childen.
-  std::deque<I>* container_;
+  Deque<I>* container_;
 };
 
 template <typename... T>
@@ -227,7 +242,8 @@ class MultiTreeView {
 
   I* root() { return root_; }
   I* root() const { return root_; }
-  const std::deque<I>& container() const { return multi_nodes_; }
+  const Deque<I>& container() const { return multi_nodes_; }
+  Deque<I>& container() { return multi_nodes_; }
 
   // This constructs the tree with a single meta_root.
   template <typename... T>
@@ -243,6 +259,7 @@ class MultiTreeView {
 
   MultiTreeView(const MultiTreeView<I>&) = delete;
   MultiTreeView(MultiTreeView<I>&&) = default;
+  MultiTreeView<I>& operator=(MultiTreeView<I>&&) = default;
 
   // Uniform refine, nodes->level() <= max_levels.
   void UniformRefine(std::array<int, dim> max_levels);
@@ -264,6 +281,10 @@ class MultiTreeView {
             typename FuncPost = T_func_noop>
   MT_other DeepCopy(const FuncPost& call_postprocess = func_noop) const;
 
+  template <typename I_other = I, typename MT_other = MultiTreeView<I_other>>
+  void ConformingRefinement(const MT_other& supertree,
+                            const std::vector<I_other*>& nodes_to_add) const;
+
   // Simple helpers.
   std::vector<I*> Bfs(bool include_metaroot = false) const {
     return root_->Bfs(include_metaroot);
@@ -273,18 +294,19 @@ class MultiTreeView {
                   const FuncPost& call_postprocess = func_noop) {
     return root_->DeepRefine(call_filter, call_postprocess);
   }
-  template <typename T_other = I, typename FuncFilt = T_func_true,
+  template <typename I_other = I, typename FuncFilt = T_func_true,
             typename FuncPost = T_func_noop>
-  void Union(const T_other& other, const FuncFilt& call_filter = func_true,
-             const FuncPost& call_postprocess = func_noop) {
-    root_->Union(other.root(), call_filter, call_postprocess);
+  std::vector<I*> Union(const I_other& other,
+                        const FuncFilt& call_filter = func_true,
+                        const FuncPost& call_postprocess = func_noop) {
+    return root_->Union(other.root(), call_filter, call_postprocess);
   }
 
  protected:
   // Store the root.
   I* root_;
 
-  std::deque<I> multi_nodes_;
+  Deque<I> multi_nodes_;
 };
 
 template <typename T0>
@@ -292,7 +314,6 @@ using TreeView = MultiTreeView<MultiNodeView<T0>>;
 
 template <typename T0, typename T1, typename T2>
 using TripleTreeView = MultiTreeView<MultiNodeView<T0, T1, T2>>;
-
 };  // namespace datastructures
 
 #include "multi_tree_view.ipp"

@@ -5,9 +5,6 @@
 
 #include "basis.hpp"
 namespace Time {
-class ContLinearScalingFn;
-class ThreePointWaveletFn;
-
 template <>
 struct FunctionTrait<ContLinearScalingFn> {
   using Wavelet = ThreePointWaveletFn;
@@ -22,8 +19,6 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
  public:
   constexpr static size_t order = 1;
   constexpr static bool continuous = true;
-  constexpr static size_t N_children = 3;
-  constexpr static size_t N_parents = 2;
   constexpr static const char *name = "CLS";
 
   explicit ContLinearScalingFn(const std::vector<ContLinearScalingFn *> parents,
@@ -59,7 +54,8 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
   ContLinearScalingFn *child_right_ = nullptr;
 
   // Protected constructor for creating a metaroot.
-  ContLinearScalingFn();
+  ContLinearScalingFn(Deque<ContLinearScalingFn> *container,
+                      Element1D *mother_element);
 
   friend datastructures::Tree<ContLinearScalingFn>;
   friend ThreePointWaveletFn;
@@ -68,8 +64,6 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
 
 class ThreePointWaveletFn : public WaveletFn<ThreePointWaveletFn> {
  public:
-  constexpr static size_t N_children = 2;
-  constexpr static size_t N_parents = 2;
   constexpr static const char *name = "Three";
 
   explicit ThreePointWaveletFn(const std::vector<ThreePointWaveletFn *> parents,
@@ -82,13 +76,13 @@ class ThreePointWaveletFn : public WaveletFn<ThreePointWaveletFn> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  ThreePointWaveletFn();
+  ThreePointWaveletFn(
+      Deque<ThreePointWaveletFn> *container,
+      const SmallVector<
+          ContLinearScalingFn *,
+          datastructures::NodeTrait<ContLinearScalingFn>::N_children>
+          &mother_scalings);
 
   friend datastructures::Tree<ThreePointWaveletFn>;
 };
-
-// Define static variables.
-extern datastructures::Tree<ContLinearScalingFn> cont_lin_tree;
-extern datastructures::Tree<ThreePointWaveletFn> three_point_tree;
-
 }  // namespace Time
