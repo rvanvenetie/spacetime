@@ -46,7 +46,7 @@ double DiscLinearScalingFn::Eval(double t, bool deriv) const {
 bool DiscLinearScalingFn::Refine() {
   if (is_full()) return false;
 
-#pragma critical
+#pragma omp critical
   if (!is_full()) {
     assert(children_.empty());
     support_[0]->Refine();
