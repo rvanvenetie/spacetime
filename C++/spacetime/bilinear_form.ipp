@@ -162,30 +162,24 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
         bil_form.Apply();
       }
     }
-  } else
-  #pragma omp parallel
-  {
-    #pragma omp for schedule(dynamic, 1)
+  } else {
+    // Apply the lower part using cached bil forms.
     for (int i = 0; i < bil_space_low_.size(); ++i) bil_space_low_[i].Apply();
-    #pragma omp for schedule(dynamic, 1)
     for (int i = 0; i < bil_time_low_.size(); ++i) bil_time_low_[i].ApplyLow();
-    #pragma omp for schedule(dynamic, 1)
-    for (int i = 0; i < bil_time_upp_.size(); ++i) bil_time_upp_[i].Apply();
-    #pragma omp for schedule(dynamic, 1)
-    for (int i = 0; i < bil_space_upp_.size(); ++i) bil_space_upp_[i].Apply();
 
     // Store the lower output.
-    #pragma omp single
-    {
-      v_lower = vec_out_->ToVectorContainer();
+    v_lower = vec_out_->ToVectorContainer();
+  
+    // Reset the input, if necessary.
+    if (vec_in_ == sigma_.get() ||
+        static_cast<void *>(vec_in_) == static_cast<void *>(vec_out_))
+      vec_in_->FromVectorContainer(v_in);
 
-      // Reset the input, if necessary.
-      if (vec_in_ == sigma_.get() ||
-          static_cast<void *>(vec_in_) == static_cast<void *>(vec_out_))
-        vec_in_->FromVectorContainer(v_in);
-    }
+    // Apply the upper part using cached bil forms.
+    for (int i = 0; i < bil_time_upp_.size(); ++i) bil_time_upp_[i].ApplyUpp();
+    for (int i = 0; i < bil_space_upp_.size(); ++i) bil_space_upp_[i].Apply();
+
   }
-  // clang-format on
 
   // Return vectorized output.
   return v_lower + vec_out_->ToVectorContainer();
@@ -267,46 +261,66 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
   vec_->FromVectorContainer(v_in);
 
   if (!use_cache_) {
-    // Calculate R_sigma(Id x A_1)I_Lambda.
-    for (auto psi_in_labda : vec_->Project_0()->Bfs()) {
-      auto fiber_in = vec_->Fiber_1(psi_in_labda->node());
-      auto fiber_out = psi_in_labda->FrozenOtherAxis();
-      if (fiber_out->children().empty()) continue;
-      auto bil_form = space::CreateBilinearForm<OperatorSpace>(
-          fiber_in, fiber_out, space_opts_);
-      bil_form.Apply();
-    }
+    // Load some variables in single threading.
+    auto vec_proj_0 = vec_->Project_0()->Bfs();
+    auto vec_proj_1 = vec_->Project_1()->Bfs();
 
-    // Calculate R_Lambda(L_0 x Id)I_Sigma.
-    for (auto psi_out_labda : vec_->Project_1()->Bfs()) {
-      auto fiber_in = vec_->Fiber_0(psi_out_labda->node());
-      if (fiber_in->children().empty()) continue;
-      auto fiber_out = psi_out_labda->FrozenOtherAxis();
-      auto bil_form =
-          Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
-      bil_form.ApplyLow();
-    }
+    // Execute the rest parallel.
+    #pragma omp parallel
+    {
+        // Calculate R_sigma(Id x A_1)I_Lambda.
+      #pragma omp for schedule(dynamic, 1)
+      for (int i = 0; i < vec_proj_0.size(); ++i) {
+        auto psi_in_labda = vec_proj_0[i];
+        auto fiber_in = vec_->Fiber_1(psi_in_labda->node());
+        auto fiber_out = psi_in_labda->FrozenOtherAxis();
+        if (fiber_out->children().empty()) continue;
+        auto bil_form = space::CreateBilinearForm<OperatorSpace>(
+            fiber_in, fiber_out, space_opts_);
+        bil_form.Apply();
+      }
 
-    v_lower = vec_->ToVectorContainer();
-    vec_->FromVectorContainer(v_in);
+      // Calculate R_Lambda(L_0 x Id)I_Sigma.
+      #pragma omp for schedule(dynamic, 1)
+      for (int i = 0; i < vec_proj_1.size(); ++i) {
+        auto psi_out_labda = vec_proj_1[i];
+        auto fiber_in = vec_->Fiber_0(psi_out_labda->node());
+        if (fiber_in->children().empty()) continue;
+        auto fiber_out = psi_out_labda->FrozenOtherAxis();
+        auto bil_form =
+            Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
+        bil_form.ApplyLow();
+      }
 
-    // Calculate R_Sigma(U_1 x Id)I_Lambda.
-    for (auto psi_in_labda : vec_->Project_1()->Bfs()) {
-      auto fiber_out = vec_->Fiber_0(psi_in_labda->node());
-      if (fiber_out->children().empty()) continue;
-      auto fiber_in = psi_in_labda->FrozenOtherAxis();
-      auto bil_form =
-          Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
-      bil_form.ApplyUpp();
-    }
-    // Calculate R_Lambda(Id x A2)I_Sigma.
-    for (auto psi_out_labda : vec_->Project_0()->Bfs()) {
-      auto fiber_out = vec_->Fiber_1(psi_out_labda->node());
-      auto fiber_in = psi_out_labda->FrozenOtherAxis();
-      if (fiber_in->children().empty()) continue;
-      auto bil_form = space::CreateBilinearForm<OperatorSpace>(
-          fiber_in, fiber_out, space_opts_);
-      bil_form.Apply();
+      #pragma omp single
+      {
+        v_lower = vec_->ToVectorContainer();
+        vec_->FromVectorContainer(v_in);
+      }
+
+      // Calculate R_Sigma(U_1 x Id)I_Lambda.
+      #pragma omp for schedule(dynamic, 1)
+      for (int i = 0; i < vec_proj_1.size(); ++i) {
+        auto psi_in_labda = vec_proj_1[i];
+        auto fiber_out = vec_->Fiber_0(psi_in_labda->node());
+        if (fiber_out->children().empty()) continue;
+        auto fiber_in = psi_in_labda->FrozenOtherAxis();
+        auto bil_form =
+            Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
+        bil_form.ApplyUpp();
+      }
+
+      // Calculate R_Lambda(Id x A2)I_Sigma.
+      #pragma omp for schedule(dynamic, 1)
+      for (int i = 0; i < vec_proj_0.size(); ++i) {
+        auto psi_out_labda = vec_proj_0[i];
+        auto fiber_out = vec_->Fiber_1(psi_out_labda->node());
+        auto fiber_in = psi_out_labda->FrozenOtherAxis();
+        if (fiber_in->children().empty()) continue;
+        auto bil_form = space::CreateBilinearForm<OperatorSpace>(
+            fiber_in, fiber_out, space_opts_);
+        bil_form.Apply();
+      }
     }
   } else {
     // Apply the lower part using cached bil forms.
@@ -354,7 +368,11 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
   vec_in_->FromVectorContainer(v_in);
 
   if (!use_cache_) {
-    for (auto psi_out_labda : vec_out_->Project_0()->Bfs()) {
+    auto vec_out_proj_0 = vec_out_->Project_0()->Bfs();
+
+    #pragma omp parallel for schedule(dynamic, 1)
+    for (int i = 0; i < vec_out_proj_0.size(); ++i) {
+      auto psi_out_labda = vec_out_proj_0[i];
       auto fiber_in = vec_in_->Fiber_1(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
       auto fiber_out = psi_out_labda->FrozenOtherAxis();

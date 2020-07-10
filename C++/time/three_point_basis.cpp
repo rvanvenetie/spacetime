@@ -34,58 +34,62 @@ double ContLinearScalingFn::EvalMother(double t, bool deriv) const {
 
 ContLinearScalingFn *ContLinearScalingFn::RefineMiddle() {
   if (child_middle_) return child_middle_;
-  auto [l, n] = labda();
-  for (auto elem : support_) elem->Refine();
+#pragma omp critical
+  if (!child_middle_) {
+    auto [l, n] = labda();
+    for (auto elem : support_) elem->Refine();
 
-  std::vector<Element1D *> child_support;
-  if (n > 0) child_support.push_back(support_[0]->children()[1]);
-  if (n < (1 << l)) child_support.push_back(support_.back()->children()[0]);
+    std::vector<Element1D *> child_support;
+    if (n > 0) child_support.push_back(support_[0]->children()[1]);
+    if (n < (1 << l)) child_support.push_back(support_.back()->children()[0]);
 
-  // Create child, and add accordingly.
-  child_middle_ = make_child(
-      /* parents */ std::vector{this},
-      /* index */ 2 * n,
-      /* support */ child_support);
+    // Create child, and add accordingly.
+    child_middle_ = make_child(
+        /* parents */ std::vector{this},
+        /* index */ 2 * n,
+        /* support */ child_support);
 
-  if (child_left_) {
-    child_left_->nbr_right_ = child_middle_;
-    child_middle_->nbr_left_ = child_left_;
+    if (child_left_) {
+      child_left_->nbr_right_ = child_middle_;
+      child_middle_->nbr_left_ = child_left_;
+    }
+    if (child_right_) {
+      child_right_->nbr_left_ = child_middle_;
+      child_middle_->nbr_right_ = child_right_;
+    }
   }
-  if (child_right_) {
-    child_right_->nbr_left_ = child_middle_;
-    child_middle_->nbr_right_ = child_right_;
-  }
-
   return child_middle_;
 }
 
 ContLinearScalingFn *ContLinearScalingFn::RefineLeft() {
   assert(nbr_left_);
   if (child_left_) return child_left_;
-  support_[0]->Refine();
-  auto [l, n] = labda();
+#pragma omp critical
+  if (!child_left_) {
+    support_[0]->Refine();
+    auto [l, n] = labda();
 
-  // Create child, and add accordingly.
-  auto elems = support_[0]->children();
-  child_left_ = make_child(
-      /* parents */ std::vector{nbr_left_, this},
-      /* index */ (2 * n - 1),
-      /* support */ std::vector{elems[0], elems[1]});
+    // Create child, and add accordingly.
+    auto elems = support_[0]->children();
+    child_left_ = make_child(
+        /* parents */ std::vector{nbr_left_, this},
+        /* index */ (2 * n - 1),
+        /* support */ std::vector{elems[0], elems[1]});
 
-  // Add this child to our left neighbour.
-  nbr_left_->child_right_ = child_left_;
-  nbr_left_->children_.push_back(child_left_);
+    // Add this child to our left neighbour.
+    nbr_left_->child_right_ = child_left_;
+    nbr_left_->children_.push_back(child_left_);
 
-  // Update neighbours of children.
-  if (nbr_left_->child_middle_) {
-    nbr_left_->child_middle_->nbr_right_ = child_left_;
-    child_left_->nbr_left_ = nbr_left_->child_middle_;
+    // Update neighbours of children.
+    if (nbr_left_->child_middle_) {
+      nbr_left_->child_middle_->nbr_right_ = child_left_;
+      child_left_->nbr_left_ = nbr_left_->child_middle_;
+    }
+    if (child_middle_) {
+      child_middle_->nbr_left_ = child_left_;
+      child_left_->nbr_right_ = child_middle_;
+    }
   }
-  if (child_middle_) {
-    child_middle_->nbr_left_ = child_left_;
-    child_left_->nbr_right_ = child_middle_;
-  }
-
   return child_left_;
 }
 

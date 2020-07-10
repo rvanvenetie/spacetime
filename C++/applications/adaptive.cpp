@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
   std::string problem, domain;
   size_t initial_refines = 0;
   size_t max_dofs = 0;
+  size_t num_threads = 1;
   bool estimate_global_error = true;
   bool calculate_condition_numbers = false;
   bool print_centers = false;
@@ -71,6 +72,7 @@ int main(int argc, char* argv[]) {
       "AdaptiveHeatEquation options");
   adapt_optdesc.add_options()("use_cache",
                               po::value<bool>(&adapt_opts.use_cache))(
+      "num_threads", po::value<size_t>(&num_threads))(
       "build_space_mats", po::value<bool>(&adapt_opts.build_space_mats))(
       "solve_rtol", po::value<double>(&adapt_opts.solve_rtol))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit))(
@@ -93,6 +95,12 @@ int main(int argc, char* argv[]) {
   po::store(po::command_line_parser(argc, argv).options(cmdline_options).run(),
             vm);
   po::notify(vm);
+  assert(num_threads > 0);
+  if (adapt_opts.use_cache) {
+    std::cout << "Multithreading is only enabled for no-cache." << std::endl;
+    return 1;
+  }
+
   std::cout << "Problem options:" << std::endl;
   std::cout << "\tProblem: " << problem << std::endl;
   std::cout << "\tDomain: " << domain
