@@ -154,11 +154,9 @@ class DoubleTreeBase : public MT_Base<I> {
   using DNType = I;
 
   FrozenDoubleNode<I, 0>* Fiber_0(T1* mu) const {
-    assert(std::get<0>(fibers_).count(mu));
     return std::get<0>(fibers_).at(mu);
   }
   FrozenDoubleNode<I, 1>* Fiber_1(T0* mu) const {
-    assert(std::get<1>(fibers_).count(mu));
     return std::get<1>(fibers_).at(mu);
   }
 
