@@ -212,10 +212,10 @@ void CGInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 
 // Define the class variables.
 template <typename ForwardOp>
-std::vector<std::vector<std::pair<uint, double>>>
+thread_local std::vector<std::vector<std::pair<uint, double>>>
     MultigridPreconditioner<ForwardOp>::row_mat;
 template <typename ForwardOp>
-std::vector<std::vector<Element2D *>>
+thread_local std::vector<std::vector<Element2D *>>
     MultigridPreconditioner<ForwardOp>::patches;
 
 template <typename ForwardOp>
@@ -326,7 +326,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
   const uint V = triang_.V;
 
   // Reuse a static variable for storing the row of a matrix.
-  static std::vector<double> e;
+  static thread_local std::vector<double> e;
   e.reserve(V * 3);
 
   // Initialize the multigrid matrix (row_mat).

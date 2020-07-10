@@ -119,6 +119,8 @@ void TestSpacetimeLinearity(
   // Create two random vectors.
   auto vec_in_1 = vec_in.DeepCopy();
   auto vec_in_2 = vec_in.DeepCopy();
+  vec_in_1.ComputeFibers();
+  vec_in_2.ComputeFibers();
   for (auto nv : vec_in_1.Bfs()) {
     if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
     nv->set_random();
@@ -131,6 +133,7 @@ void TestSpacetimeLinearity(
   // Also calculate a lin. comb. of this vector
   double alpha = 1.337;
   auto vec_in_comb = vec_in_1.DeepCopy();
+  vec_in_comb.ComputeFibers();
   vec_in_comb *= alpha;
   vec_in_comb += vec_in_2;
 
@@ -206,6 +209,7 @@ void TestSpacetimeQuadrature(
 }
 
 TEST(BilinearForm, SparseQuadrature) {
+  omp_set_num_threads(1);
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(6);
@@ -222,6 +226,8 @@ TEST(BilinearForm, SparseQuadrature) {
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
     auto vec_Y = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    vec_X.ComputeFibers();
+    vec_Y.ComputeFibers();
 
     // Test the actual operators that we use.
     TestSpacetimeQuadrature<Time::MassOperator, space::StiffnessOperator,
@@ -265,6 +271,7 @@ TEST(BilinearForm, SparseQuadrature) {
     // Check that it also works for different vec_out.
     auto vec_Y_cpy = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    vec_Y_cpy.ComputeFibers();
     TestSpacetimeQuadrature<Time::MassOperator, space::StiffnessOperator,
                             OrthonormalWaveletFn, OrthonormalWaveletFn>(
         vec_Y, vec_Y_cpy, /* deriv_space */ true,
@@ -290,6 +297,8 @@ TEST(BilinearForm, Transpose) {
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
     auto vec_Y = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    vec_X.ComputeFibers();
+    vec_Y.ComputeFibers();
 
     // Test the actual operators that we use.
     auto A_s = CreateBilinearForm<Time::MassOperator, space::StiffnessOperator>(
@@ -339,6 +348,8 @@ TEST(SymmetricBilinearForm, Works) {
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
     auto vec_Y = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    vec_X.ComputeFibers();
+    vec_Y.ComputeFibers();
 
     // Test the actual operators that we use.
     for (bool use_cache : {true, false}) {
@@ -400,6 +411,7 @@ TEST(BlockDiagonalBilinearForm, CanBeConstructed) {
 
     auto vec_Y = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    vec_Y.ComputeFibers();
 
     auto A_s = CreateBlockDiagonalBilinearForm<space::StiffnessOperator>(
         &vec_Y, &vec_Y, /*use_cache*/ true);

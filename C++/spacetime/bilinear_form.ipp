@@ -97,8 +97,8 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
     // Load some variables in single threading.
     auto vec_out_proj_0 = vec_out_->Project_0()->Bfs();
     auto vec_out_proj_1 = vec_out_->Project_1()->Bfs();
-    auto sigma_proj_0 = sigma_.Project_0()->Bfs();
-    auto theta_proj_1 = theta_.Project_1()->Bfs();
+    auto sigma_proj_0 = sigma_->Project_0()->Bfs();
+    auto theta_proj_1 = theta_->Project_1()->Bfs();
 
     // Execute the rest parallel.
     #pragma omp parallel
@@ -107,6 +107,7 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       #pragma omp for schedule(dynamic, 1)
       for (int i = 0; i < sigma_proj_0.size(); ++i) {
         auto psi_in_labda = sigma_proj_0[i];
+        auto fiber_in = vec_in_->Fiber_1(psi_in_labda->node());
         auto fiber_out = psi_in_labda->FrozenOtherAxis();
         if (fiber_out->children().empty()) continue;
         auto bil_form = space::CreateBilinearForm<OperatorSpace>(
@@ -151,8 +152,8 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
 
       // Calculate R_Lambda(Id x A2)I_Theta.
       #pragma omp for schedule(dynamic, 1)
-      for (int i = 0; i < vec_out_proj_1.size(); ++i) {
-        auto psi_out_labda = vec_out_proj_1[i];
+      for (int i = 0; i < vec_out_proj_0.size(); ++i) {
+        auto psi_out_labda = vec_out_proj_0[i];
         auto fiber_in = theta_->Fiber_1(psi_out_labda->node());
         if (fiber_in->children().empty()) continue;
         auto fiber_out = psi_out_labda->FrozenOtherAxis();

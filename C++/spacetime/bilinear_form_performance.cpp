@@ -43,15 +43,14 @@ int main() {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
         B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     X_delta.SparseRefine(::level, {2, 1});
-    X_delta.compute_fibers();
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
     auto vec_X = X_delta.template DeepCopy<
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
     auto vec_Y = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
-    vec_X.compute_fibers();
-    vec_Y.compute_fibers();
+    vec_X.ComputeFibers();
+    vec_Y.ComputeFibers();
     auto bil_form =
         CreateBilinearForm<Time::TransportOperator, space::MassOperator>(
             &vec_X, &vec_Y, /* use_cache */ use_cache);
