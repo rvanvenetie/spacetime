@@ -380,7 +380,7 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
       space::OperatorOptions space_opts{space_opts_};
       space_opts.time_level = std::get<0>(psi_out_labda->nodes())->level();
       auto bil_form = space::CreateBilinearForm<OperatorSpace>(
-          fiber_in, fiber_out, space_opts_);
+          fiber_in, fiber_out, space_opts);
       bil_form.Apply();
     }
   } else {
