@@ -15,12 +15,15 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
   Eigen::VectorXd x = Eigen::VectorXd::Zero(n);
 
   double sq_rhs_norm = b.squaredNorm();
-  if (sq_rhs_norm == 0) return {x, {0.0, 1}};
+  if (sq_rhs_norm == 0) return {x, {0.0, 0}};
 
   double threshold = rtol * rtol * sq_rhs_norm;
   Eigen::VectorXd residual = b - A * x0;
   double sq_res_norm = residual.squaredNorm();
-  if (sq_rhs_norm == 0) return {x0, {0.0, 1}};
+  if (sq_res_norm < threshold)
+    return {x0,
+            {.relative_residual = sqrt(sq_res_norm / sq_rhs_norm),
+             .iterations = 0}};
   x = x0;
 
   Eigen::VectorXd p = M * residual;
@@ -29,6 +32,8 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
 
   size_t i = 0;
   while (i < imax) {
+    i++;
+
     tmp.noalias() = A * p;
     double alpha = abs_r / p.dot(tmp);
     x += alpha * p;
@@ -41,10 +46,8 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
     abs_r = residual.dot(z);
     double beta = abs_r / abs_r_old;
     p = z + beta * p;
-
-    i++;
   }
-  if (sq_res_norm > threshold) std::cout << "DID NOT CONVERGE" << std::endl;
+  if (sq_res_norm > threshold) std::cerr << "DID NOT CONVERGE" << std::endl;
 
   return {x,
           {.relative_residual = sqrt(sq_res_norm / sq_rhs_norm),

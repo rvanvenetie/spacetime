@@ -91,11 +91,11 @@ class ForwardOperator : public Operator {
     return matrix_;
   }
 
- protected:
   // Hierarhical Basis Transformations from HB to SS, and its transpose.
   void ApplyHierarchToSingle(Eigen::VectorXd &vec_HB) const;
   void ApplyTransposeHierarchToSingle(Eigen::VectorXd &vec_SS) const;
 
+ protected:
   void InitializeMatrixSingleScale();
   Eigen::SparseMatrix<double> matrix_;
 };
