@@ -145,6 +145,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Multithreading is only enabled for no-cache." << std::endl;
     return 1;
   }
+  omp_set_num_threads(num_threads);
 
   std::cout << "Problem options:" << std::endl;
   std::cout << "\tProblem: " << problem << std::endl;
