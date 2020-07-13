@@ -68,6 +68,11 @@ class BilinearForm
   std::shared_ptr<DoubleTreeVector<BasisTimeIn, BasisSpace>> sigma_;
   std::shared_ptr<DoubleTreeVector<BasisTimeOut, BasisSpace>> theta_;
 
+  // Debug information.
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_construct_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::num_apply_;
+
   // Define frozen templates, useful for storing the bil forms.
   template <size_t i>
   using FI = datastructures::FrozenDoubleNode<
@@ -148,6 +153,11 @@ class SymmetricBilinearForm
   bool use_cache_;
   space::OperatorOptions space_opts_;
 
+  // Debug information.
+  using BilinearFormBase<DblVec, DblVec>::time_construct_;
+  using BilinearFormBase<DblVec, DblVec>::time_apply_;
+  using BilinearFormBase<DblVec, DblVec>::num_apply_;
+
   // Define frozen templates, useful for storing the bil forms.
   template <size_t i>
   using F = datastructures::FrozenDoubleNode<
@@ -189,6 +199,11 @@ class BlockDiagonalBilinearForm
 
   DblVecIn *vec_in_;
   DblVecOut *vec_out_;
+
+  // Debug information.
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_construct_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::num_apply_;
 
   // The (cached) bilinear forms.
   template <size_t i>

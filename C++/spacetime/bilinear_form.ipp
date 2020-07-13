@@ -30,6 +30,7 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
       theta_(theta),
       use_cache_(use_cache),
       space_opts_(std::move(space_opts)) {
+  auto time_start = std::chrono::steady_clock::now();
 #ifdef VERBOSE
   std::cerr << std::left;
   std::cerr << std::endl
@@ -80,6 +81,8 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
       bil_space_upp_.emplace_back(fiber_in, fiber_out, space_opts_);
     }
   }
+  time_construct_ = std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - time_start);
 }
 
 template <template <typename, typename> class OperatorTime,
@@ -88,6 +91,10 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
                              BasisTimeOut>::Apply(const Eigen::VectorXd &v_in) {
   if (v_in.squaredNorm() == 0)
     return Eigen::VectorXd::Zero(vec_out_->container().size());
+
+  // Debug information.
+  auto time_start = std::chrono::steady_clock::now();
+  num_apply_++;
 
   Eigen::VectorXd v_lower;
 
@@ -162,7 +169,13 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
   }
 
   // Return vectorized output.
-  return v_lower + vec_out_->ToVectorContainer();
+  Eigen::VectorXd result = v_lower + vec_out_->ToVectorContainer();
+
+  // Store timing results.
+  time_apply_ += std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - time_start);
+
+  return result;
 }
 
 template <template <typename, typename> class OperatorTime,
@@ -213,6 +226,7 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::
     SymmetricBilinearForm(DblVec *vec, bool use_cache,
                           space::OperatorOptions space_opts)
     : vec_(vec), use_cache_(use_cache), space_opts_(std::move(space_opts)) {
+  auto time_start = std::chrono::steady_clock::now();
   // If use cache, cache the bil forms here.
   if (use_cache_) {
     // Calculate R_sigma(Id x A_1)I_Lambda.
@@ -231,6 +245,8 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::
       bil_time_low_.emplace_back(fiber_in, fiber_out);
     }
   }
+  time_construct_ = std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - time_start);
 }
 
 template <template <typename, typename> class OperatorTime,
@@ -240,6 +256,10 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
     const Eigen::VectorXd &v_in) {
   if (v_in.squaredNorm() == 0)
     return Eigen::VectorXd::Zero(vec_->container().size());
+
+  // Debug information.
+  auto time_start = std::chrono::steady_clock::now();
+  num_apply_++;
 
   Eigen::VectorXd v_lower;
 
@@ -302,7 +322,13 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
   }
 
   // Return vectorized output.
-  return v_lower + vec_->ToVectorContainer();
+  Eigen::VectorXd result = v_lower + vec_->ToVectorContainer();
+
+  // Store timing results.
+  time_apply_ += std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - time_start);
+
+  return result;
 }
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::
@@ -312,6 +338,7 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::
       vec_out_(vec_out),
       use_cache_(use_cache),
       space_opts_(std::move(space_opts)) {
+  auto time_start = std::chrono::steady_clock::now();
   assert(vec_in->container().size() == vec_out->container().size());
   // If use cache, cache the bil forms here.
   if (use_cache_) {
@@ -324,6 +351,8 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::
       space_bilforms_.emplace_back(fiber_in, fiber_out, space_opts_);
     }
   }
+  time_construct_ = std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - time_start);
 }
 
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
@@ -332,6 +361,10 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
     const Eigen::VectorXd &v_in) {
   if (v_in.squaredNorm() == 0)
     return Eigen::VectorXd::Zero(vec_out_->container().size());
+
+  // Debug information.
+  auto time_start = std::chrono::steady_clock::now();
+  num_apply_++;
 
   // Store the input in the double tree.
   vec_in_->FromVectorContainer(v_in);
@@ -351,6 +384,13 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
     // Apply the space bilforms.
     for (auto &bil_form : space_bilforms_) bil_form.Apply();
   }
-  return vec_out_->ToVectorContainer();
+  // Return vectorized output.
+  Eigen::VectorXd result = vec_out_->ToVectorContainer();
+
+  // Store timing results.
+  time_apply_ += std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - time_start);
+
+  return result;
 }
 }  // namespace spacetime

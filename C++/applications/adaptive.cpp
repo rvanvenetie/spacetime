@@ -93,6 +93,7 @@ int main(int argc, char* argv[]) {
   bool estimate_global_error = true;
   bool calculate_condition_numbers = false;
   bool print_centers = false;
+  bool print_time_apply = false;
   std::vector<double> print_time_slices;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
@@ -107,7 +108,8 @@ int main(int argc, char* argv[]) {
       po::value<bool>(&calculate_condition_numbers))(
       "print_centers", po::value<bool>(&print_centers))(
       "print_time_slices",
-      po::value<std::vector<double>>(&print_time_slices)->multitoken());
+      po::value<std::vector<double>>(&print_time_slices)->multitoken())(
+      "print_time_apply", po::value<bool>(&print_time_apply));
 
   std::sort(print_time_slices.begin(), print_time_slices.end());
 
@@ -176,11 +178,13 @@ int main(int argc, char* argv[]) {
 
   size_t ndof_X = 0, ndof_Y = 0;
   Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
+  size_t iter = 0;
   while (ndof_X < max_dofs) {
     ndof_X = vec_Xd->Bfs().size();             // A slight overestimate.
     ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
-    std::cout << "XDelta-size: " << ndof_X << " YDeltaDelta-size: " << ndof_Y
-              << " total-memory-kB: " << getmem() << std::flush;
+    std::cout << "iter: " << ++iter << "\n\tXDelta-size: " << ndof_X
+              << "\n\tYDeltaDelta-size: " << ndof_Y
+              << "\n\ttotal-memory-kB: " << getmem() << std::flush;
 
     if (calculate_condition_numbers) {
       auto start = std::chrono::steady_clock::now();
@@ -202,9 +206,9 @@ int main(int argc, char* argv[]) {
       auto lanczos_X = tools::linalg::Lanczos(
           *heat_eq.heat_d_dd()->S(), *heat_eq.heat_d_dd()->P_X(),
           heat_eq.vec_Xd()->ToVectorContainer());
-      std::cout << " cond-PY-A: " << lanczos_Y.cond()
-                << " cond-PX-S: " << lanczos_X.cond()
-                << " cond-time: " << duration_cond.count() << std::flush;
+      std::cout << "\n\tcond-PY-A: " << lanczos_Y.cond()
+                << "\n\tcond-PX-S: " << lanczos_X.cond()
+                << "\n\tcond-time: " << duration_cond.count() << std::flush;
     }
 
     // Solve.
@@ -212,9 +216,25 @@ int main(int argc, char* argv[]) {
     auto [solution, pcg_data] = heat_eq.Solve(x0);
     std::chrono::duration<double> duration_solve =
         std::chrono::steady_clock::now() - start;
-    std::cout << " solve-PCG-steps: " << pcg_data.iterations
-              << " solve-time: " << duration_solve.count()
-              << " solve-memory: " << getmem() << std::flush;
+    std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
+              << "\n\tsolve-time: " << duration_solve.count()
+              << "\n\tsolve-memory: " << getmem() << std::flush;
+
+    if (print_time_apply) {
+      auto heat_d_dd = heat_eq.heat_d_dd();
+      std::cout << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
+                << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
+                << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
+                << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
+                << "\n\tP_Y-time-per-apply: "
+                << heat_d_dd->P_Y()->TimePerApply()
+                << "\n\tP_X-time-per-apply: "
+                << heat_d_dd->P_X()->TimePerApply()
+                << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
+                << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
+                << "\n\ttotal-time-construct: "
+                << heat_d_dd->TotalTimeConstruct() << std::flush;
+    }
 
     if (print_centers) {
       vec_Xd->FromVectorContainer(solution);
@@ -246,19 +266,19 @@ int main(int argc, char* argv[]) {
       auto [global_error, terms] = heat_eq.EstimateGlobalError(solution);
       std::chrono::duration<double> duration_global =
           std::chrono::steady_clock::now() - start;
-      std::cout << " global-error: " << global_error
-                << " Ynorm-error: " << terms.first
-                << " T0-error: " << terms.second
-                << " global-time: " << duration_global.count() << std::flush;
+      std::cout << "\n\tglobal-error: " << global_error
+                << "\n\tYnorm-error: " << terms.first
+                << "\n\tT0-error: " << terms.second
+                << "\n\tglobal-time: " << duration_global.count() << std::flush;
     }
     start = std::chrono::steady_clock::now();
     auto [residual, residual_norm] = heat_eq.Estimate(solution);
     std::chrono::duration<double> duration_estimate =
         std::chrono::steady_clock::now() - start;
 
-    std::cout << " residual-norm: " << residual_norm
-              << " estimate-time: " << duration_estimate.count()
-              << " estimate-memory: " << getmem() << std::flush;
+    std::cout << "\n\tresidual-norm: " << residual_norm
+              << "\n\testimate-time: " << duration_estimate.count()
+              << "\n\testimate-memory: " << getmem() << std::flush;
 
 #ifdef VERBOSE
     std::cerr << std::endl << "Adaptive::Trees" << std::endl;
@@ -287,7 +307,7 @@ int main(int argc, char* argv[]) {
         std::chrono::steady_clock::now() - start;
     x0 = vec_Xd->ToVectorContainer();
 
-    std::cout << " refine-time: " << duration_refine.count() << std::endl;
+    std::cout << "\n\trefine-time: " << duration_refine.count() << std::endl;
   }
 
   return 0;
