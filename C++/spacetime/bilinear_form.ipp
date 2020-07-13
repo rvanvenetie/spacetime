@@ -87,6 +87,7 @@ template <template <typename, typename> class OperatorTime,
 Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
                              BasisTimeOut>::Apply(const Eigen::VectorXd &v_in) {
   if (v_in.isZero()) return v_in;
+
   Eigen::VectorXd v_lower;
 
   // Store the input in the double tree.
