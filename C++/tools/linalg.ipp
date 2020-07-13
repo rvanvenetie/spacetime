@@ -47,7 +47,7 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
     double beta = abs_r / abs_r_old;
     p = z + beta * p;
   }
-  assert(rtol > 0 || sq_res_norm <= threshold);
+  assert(rtol == 0 || sq_res_norm <= threshold);
 
   return {x,
           {.relative_residual = sqrt(sq_res_norm / sq_rhs_norm),
