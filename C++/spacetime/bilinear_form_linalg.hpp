@@ -53,6 +53,19 @@ class BilinearFormBase
   Eigen::VectorXd operator*(const Eigen::MatrixBase<Rhs> &x) const {
     return const_cast<BilinearFormBase *>(this)->Apply(x);
   }
+
+  double TimeApply() const { return time_apply_.count(); };
+  double TimePerApply() const {
+    if (num_apply_ == 0) return 0;
+    return time_apply_.count() / num_apply_;
+  };
+  double TimeConstruct() const { return time_construct_.count(); }
+
+ protected:
+  // Timing debug information.
+  std::chrono::duration<double> time_construct_{0};
+  std::chrono::duration<double> time_apply_{0};
+  size_t num_apply_ = 0;
 };
 
 // This class represents the adjoint of a bilinear form.
@@ -68,8 +81,19 @@ class TransposeBilinearForm
       : bil_form_(bil_form) {}
 
   Eigen::VectorXd Apply(const Eigen::VectorXd &v) final {
-    return bil_form_->ApplyTranspose(v);
+    // Debug information.
+    auto time_start = std::chrono::steady_clock::now();
+    num_apply_++;
+
+    Eigen::VectorXd result = bil_form_->ApplyTranspose(v);
+
+    // Store timing results.
+    time_apply_ += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - time_start);
+
+    return result;
   }
+
   DblVecIn *vec_in() const final { return bil_form_->vec_out(); }
   DblVecOut *vec_out() const final { return bil_form_->vec_in(); }
 
@@ -77,6 +101,9 @@ class TransposeBilinearForm
 
  protected:
   std::shared_ptr<BilForm> bil_form_;
+
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::num_apply_;
 };
 
 // This class represents the sum of two bilinear forms.
@@ -94,7 +121,17 @@ class SumBilinearForm : public BilinearFormBase<typename BilFormA::DblVecIn,
   }
 
   Eigen::VectorXd Apply(const Eigen::VectorXd &v) final {
-    return a_->Apply(v) + b_->Apply(v);
+    // Debug information.
+    auto time_start = std::chrono::steady_clock::now();
+    num_apply_++;
+
+    Eigen::VectorXd result = a_->Apply(v) + b_->Apply(v);
+
+    // Store timing results.
+    time_apply_ += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - time_start);
+
+    return result;
   }
   DblVecIn *vec_in() const final { return a_->vec_in(); }
   DblVecOut *vec_out() const final { return a_->vec_out(); }
@@ -112,6 +149,9 @@ class SumBilinearForm : public BilinearFormBase<typename BilFormA::DblVecIn,
  protected:
   std::shared_ptr<BilFormA> a_;
   std::shared_ptr<BilFormB> b_;
+
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::num_apply_;
 };
 
 // This class represents a negative bilinear form (-BilForm).
@@ -161,12 +201,21 @@ class SchurBilinearForm
   }
 
   Eigen::VectorXd Apply(const Eigen::VectorXd &v) final {
+    // Debug information.
+    auto time_start = std::chrono::steady_clock::now();
+    num_apply_++;
+
     Eigen::VectorXd result;
     result = b_->Apply(v);
     result = a_inv_->Apply(result);
     result = bt_->Apply(result);
 
     result += g_->Apply(v);
+
+    // Store timing results.
+    time_apply_ += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - time_start);
+
     return result;
   }
 
@@ -178,5 +227,8 @@ class SchurBilinearForm
   std::shared_ptr<B> b_;
   std::shared_ptr<BT> bt_;
   std::shared_ptr<G> g_;
+
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::num_apply_;
 };
 }  // namespace spacetime
