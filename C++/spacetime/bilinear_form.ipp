@@ -114,7 +114,7 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
     #pragma omp parallel
     {
       // Calculate R_sigma(Id x A_1)I_Lambda.
-      #pragma omp for schedule(dynamic, 1)
+      #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < sigma_proj_0.size(); ++i) {
         auto psi_in_labda = sigma_proj_0[i];
         auto fiber_in = vec_in_->Fiber_1(psi_in_labda->node());
@@ -126,7 +126,7 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       }
 
       // Calculate R_Lambda(L_0 x Id)I_Sigma.
-      #pragma omp for schedule(dynamic, 1)
+      #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < vec_out_proj_1.size(); ++i) {
         auto psi_out_labda = vec_out_proj_1[i];
         auto fiber_in = sigma_->Fiber_0(psi_out_labda->node());
@@ -149,7 +149,7 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       }
 
       // Calculate R_Theta(U_1 x Id)I_Lambda.
-      #pragma omp for schedule(dynamic, 1)
+      #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < theta_proj_1.size(); ++i) {
         auto psi_in_labda = theta_proj_1[i];
         auto fiber_in = vec_in_->Fiber_0(psi_in_labda->node());
@@ -161,7 +161,7 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       }
 
       // Calculate R_Lambda(Id x A2)I_Theta.
-      #pragma omp for schedule(dynamic, 1)
+      #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < vec_out_proj_0.size(); ++i) {
         auto psi_out_labda = vec_out_proj_0[i];
         auto fiber_in = theta_->Fiber_1(psi_out_labda->node());
@@ -298,7 +298,7 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
     #pragma omp parallel
     {
         // Calculate R_sigma(Id x A_1)I_Lambda.
-      #pragma omp for schedule(dynamic, 1)
+      #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < vec_proj_0.size(); ++i) {
         auto psi_in_labda = vec_proj_0[i];
         auto fiber_in = vec_->Fiber_1(psi_in_labda->node());
@@ -310,7 +310,7 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
       }
 
       // Calculate R_Lambda(L_0 x Id)I_Sigma.
-      #pragma omp for schedule(dynamic, 1)
+      #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < vec_proj_1.size(); ++i) {
         auto psi_out_labda = vec_proj_1[i];
         auto fiber_in = vec_->Fiber_0(psi_out_labda->node());
@@ -328,7 +328,7 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
       }
 
       // Calculate R_Sigma(U_1 x Id)I_Lambda.
-      #pragma omp for schedule(dynamic, 1)
+      #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < vec_proj_1.size(); ++i) {
         auto psi_in_labda = vec_proj_1[i];
         auto fiber_out = vec_->Fiber_0(psi_in_labda->node());
@@ -340,7 +340,7 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
       }
 
       // Calculate R_Lambda(Id x A2)I_Sigma.
-      #pragma omp for schedule(dynamic, 1)
+      #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < vec_proj_0.size(); ++i) {
         auto psi_out_labda = vec_proj_0[i];
         auto fiber_out = vec_->Fiber_1(psi_out_labda->node());
@@ -415,7 +415,7 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
   if (!use_cache_) {
     auto vec_out_proj_0 = vec_out_->Project_0()->Bfs();
 
-    #pragma omp parallel for schedule(dynamic, 1)
+    #pragma omp parallel for schedule(dynamic, 2)
     for (int i = 0; i < vec_out_proj_0.size(); ++i) {
       auto psi_out_labda = vec_out_proj_0[i];
       auto fiber_in = vec_in_->Fiber_1(psi_out_labda->node());
