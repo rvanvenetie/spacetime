@@ -93,6 +93,7 @@ int main(int argc, char* argv[]) {
   bool estimate_global_error = true;
   bool calculate_condition_numbers = false;
   bool print_centers = false;
+  bool print_time_apply = false;
   std::vector<double> print_time_slices;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
@@ -107,7 +108,8 @@ int main(int argc, char* argv[]) {
       po::value<bool>(&calculate_condition_numbers))(
       "print_centers", po::value<bool>(&print_centers))(
       "print_time_slices",
-      po::value<std::vector<double>>(&print_time_slices)->multitoken());
+      po::value<std::vector<double>>(&print_time_slices)->multitoken())(
+      "print_time_apply", po::value<bool>(&print_time_apply));
 
   std::sort(print_time_slices.begin(), print_time_slices.end());
 
@@ -215,6 +217,23 @@ int main(int argc, char* argv[]) {
     std::cout << " solve-PCG-steps: " << pcg_data.iterations
               << " solve-time: " << duration_solve.count()
               << " solve-memory: " << getmem() << std::flush;
+
+    if (print_time_apply) {
+      auto heat_d_dd = heat_eq.heat_d_dd();
+      std::cout << " A-time-per-apply: " << heat_d_dd->A()->TimePerApply()
+                << " B-time-per-apply: " << heat_d_dd->B()->TimePerApply()
+                << " BT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
+                << " G-time-per-apply: " << heat_d_dd->G()->TimePerApply()
+                << " P_Y-time-per-apply: " << heat_d_dd->P_Y()->TimePerApply()
+                << " P_X-time-per-apply: " << heat_d_dd->P_X()->TimePerApply()
+                << " S-time-per-apply: " << heat_d_dd->S()->TimePerApply()
+                << " total-time-apply: "
+                << (heat_d_dd->A()->TimeApply() + heat_d_dd->B()->TimeApply() +
+                    heat_d_dd->BT()->TimeApply() + heat_d_dd->G()->TimeApply() +
+                    heat_d_dd->P_Y()->TimeApply() +
+                    heat_d_dd->P_X()->TimeApply())
+                << std::flush;
+    }
 
     if (print_centers) {
       vec_Xd->FromVectorContainer(solution);
