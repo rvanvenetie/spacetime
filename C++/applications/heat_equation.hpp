@@ -107,6 +107,16 @@ class HeatEquation {
   auto vec_X() { return vec_X_.get(); }
   auto vec_Y() { return vec_Y_.get(); }
 
+  double TotalTimeApply() {
+    return A()->TimeApply() + B()->TimeApply() + BT()->TimeApply() +
+           G()->TimeApply() + P_Y()->TimeApply() + P_X()->TimeApply();
+  }
+  double TotalTimeConstruct() {
+    return A()->TimeConstruct() + B()->TimeConstruct() + BT()->TimeConstruct() +
+           G()->TimeConstruct() + P_Y()->TimeConstruct() +
+           P_X()->TimeConstruct();
+  }
+
  protected:
   HeatEquationOptions opts_;
 
