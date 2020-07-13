@@ -86,6 +86,7 @@ template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
                              BasisTimeOut>::Apply(const Eigen::VectorXd &v_in) {
+  if (v_in.isZero()) return v_in;
   Eigen::VectorXd v_lower;
 
   // Store the input in the double tree.
@@ -167,6 +168,8 @@ template <template <typename, typename> class OperatorTime,
 Eigen::VectorXd
 BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
              BasisTimeOut>::ApplyTranspose(const Eigen::VectorXd &v_in) {
+  if (v_in.isZero()) return v_in;
+
   // ApplyTranspose only works with if we have cached the bil forms.
   assert(use_cache_);
 
@@ -232,6 +235,8 @@ template <template <typename, typename> class OperatorTime,
 Eigen::VectorXd
 SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
     const Eigen::VectorXd &v_in) {
+  if (v_in.isZero()) return v_in;
+
   Eigen::VectorXd v_lower;
 
   // Store the input in the double tree.
@@ -321,6 +326,8 @@ template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 Eigen::VectorXd
 BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
     const Eigen::VectorXd &v_in) {
+  if (v_in.isZero()) return v_in;
+
   // Store the input in the double tree.
   vec_in_->FromVectorContainer(v_in);
 
