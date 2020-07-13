@@ -232,6 +232,13 @@ int main(int argc, char* argv[]) {
                     heat_d_dd->BT()->TimeApply() + heat_d_dd->G()->TimeApply() +
                     heat_d_dd->P_Y()->TimeApply() +
                     heat_d_dd->P_X()->TimeApply())
+                << " total-time-construct: "
+                << (heat_d_dd->A()->TimeConstruct() +
+                    heat_d_dd->B()->TimeConstruct() +
+                    heat_d_dd->BT()->TimeConstruct() +
+                    heat_d_dd->G()->TimeConstruct() +
+                    heat_d_dd->P_Y()->TimeConstruct() +
+                    heat_d_dd->P_X()->TimeConstruct())
                 << std::flush;
     }
 
