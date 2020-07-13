@@ -150,6 +150,7 @@ int main(int argc, char* argv[]) {
   std::cout << "\tProblem: " << problem << std::endl;
   std::cout << "\tDomain: " << domain
             << "; initial-refines: " << initial_refines << std::endl;
+  std::cout << "\tNumber-threads: " << num_threads << std::endl;
   std::cout << std::endl;
   std::cout << adapt_opts << std::endl;
 
