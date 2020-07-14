@@ -19,6 +19,9 @@ using T_func_noop = decltype(func_noop);
 using T_func_true = decltype(func_true);
 using T_func_false = decltype(func_false);
 
+// Global variable holding the current thread number.
+static thread_local int thread_number = omp_get_thread_num();
+
 template <typename I>
 struct NodeTrait;  // This should define N_children and N_parents.
 
@@ -97,7 +100,6 @@ class Node {
 
  protected:
   int level_;
-  static thread_local int thread_number;
   std::vector<unsigned short> marked_;
   std::vector<void *> data_;
 
@@ -121,9 +123,6 @@ class Node {
         data_(omp_get_max_threads(), nullptr),
         container_(container) {}
 };
-
-template <typename I>
-thread_local int Node<I>::thread_number = omp_get_thread_num();
 
 template <typename I>
 class BinaryNode : public Node<I> {
