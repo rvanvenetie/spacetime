@@ -212,10 +212,10 @@ void CGInverse<ForwardOp>::ApplySingleScale(Eigen::VectorXd &vec_SS) const {
 
 // Define the class variables.
 template <typename ForwardOp>
-thread_local std::vector<std::vector<std::pair<uint, double>>>
+thread_local std::vector<PoolVector<std::pair<uint, double>>>
     MultigridPreconditioner<ForwardOp>::row_mat;
 template <typename ForwardOp>
-thread_local std::vector<std::vector<Element2D *>>
+thread_local std::vector<PoolVector<Element2D *>>
     MultigridPreconditioner<ForwardOp>::patches;
 
 template <typename ForwardOp>
@@ -237,7 +237,7 @@ inline std::array<uint, 3> Vids(Element2D *elem) {
 
 template <typename ForwardOp>
 inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
-    uint vertex, std::vector<std::pair<uint, double>> &result) const {
+    uint vertex, PoolVector<std::pair<uint, double>> &result) const {
   assert(IsDof(vertex));
 
   const auto &patch = patches[vertex];
