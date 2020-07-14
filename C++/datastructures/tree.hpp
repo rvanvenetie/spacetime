@@ -20,6 +20,9 @@ using T_func_true = decltype(func_true);
 using T_func_false = decltype(func_false);
 
 // Global variable holding the current thread number.
+#ifndef MAX_NUMBER_THREADS
+#define MAX_NUMBER_THREADS 1
+#endif
 static thread_local int thread_number = omp_get_thread_num();
 
 template <typename I>
@@ -31,9 +34,7 @@ class Node {
   // The implementation must publish constexpr N_parents and N_children. This
   // will give us possible optimalisations :-).
   explicit Node(const std::vector<I *> &parents)
-      : parents_(parents.begin(), parents.end()),
-        marked_(omp_get_max_threads(), 0),
-        data_(omp_get_max_threads(), nullptr) {
+      : parents_(parents.begin(), parents.end()) {
     assert(parents.size());
     level_ = parents[0]->level() + 1;
     container_ = parents[0]->container_;
@@ -100,8 +101,8 @@ class Node {
 
  protected:
   int level_;
-  std::vector<unsigned short> marked_;
-  std::vector<void *> data_;
+  std::array<unsigned short, MAX_NUMBER_THREADS> marked_{0};
+  std::array<void *, MAX_NUMBER_THREADS> data_{nullptr};
 
   // Store children/parents as raw pointers.
   SmallVector<I *, NodeTrait<I>::N_children> children_;
@@ -117,11 +118,7 @@ class Node {
     return &container_->back();
   }
 
-  explicit Node(Deque<I> *container)
-      : level_(-1),
-        marked_(omp_get_max_threads(), 0),
-        data_(omp_get_max_threads(), nullptr),
-        container_(container) {}
+  explicit Node(Deque<I> *container) : level_(-1), container_(container) {}
 };
 
 template <typename I>

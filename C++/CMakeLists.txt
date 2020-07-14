@@ -24,6 +24,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Set OpenMP
 find_package(OpenMP)
+include(ProcessorCount)
+ProcessorCount(MAX_NUMBER_THREADS)
+message("Setting maximum number of threads to ${MAX_NUMBER_THREADS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMAX_NUMBER_THREADS=${MAX_NUMBER_THREADS}")
 
 ### Download GoogleTest
 include(FetchContent)

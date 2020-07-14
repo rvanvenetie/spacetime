@@ -143,10 +143,12 @@ int main(int argc, char* argv[]) {
             vm);
   po::notify(vm);
   assert(num_threads > 0);
-  if (adapt_opts.use_cache) {
+  if (num_threads > 1 && adapt_opts.use_cache) {
     std::cout << "Multithreading is only enabled for no-cache." << std::endl;
     return 1;
   }
+  assert(num_threads <= omp_get_max_threads());
+  assert(num_threads <= MAX_NUMBER_THREADS);
   omp_set_num_threads(num_threads);
 
   std::cout << "Problem options:" << std::endl;
