@@ -2,6 +2,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <array>
+#include <chrono>
 #include <iostream>
 #include <memory>
 #include <tuple>
