@@ -42,8 +42,8 @@ class Node {
   }
 
   int level() const { return level_; }
-  bool marked() const { return marked_[omp_get_thread_num()]; }
-  void set_marked(bool value) { marked_[omp_get_thread_num()] = value; }
+  bool marked() const { return marked_[thread_number]; }
+  void set_marked(bool value) { marked_[thread_number] = value; }
   bool is_leaf() const { return children_.size() == 0; }
   inline bool is_metaroot() const { return (level_ == -1); }
   const auto &parents() const { return parents_; }
@@ -52,19 +52,19 @@ class Node {
   // General data field for universal storage.
   template <typename T>
   T *data() {
-    assert(data_[omp_get_thread_num()] != nullptr);
-    return static_cast<T *>(data_[omp_get_thread_num()]);
+    assert(data_[thread_number] != nullptr);
+    return static_cast<T *>(data_[thread_number]);
   }
   template <typename T>
   void set_data(T *value) {
-    assert(data_[omp_get_thread_num()] == nullptr);
-    data_[omp_get_thread_num()] = static_cast<void *>(value);
+    assert(data_[thread_number] == nullptr);
+    data_[thread_number] = static_cast<void *>(value);
   }
   void reset_data() {
-    assert(data_[omp_get_thread_num()] != nullptr);
-    data_[omp_get_thread_num()] = nullptr;
+    assert(data_[thread_number] != nullptr);
+    data_[thread_number] = nullptr;
   }
-  bool has_data() { return data_[omp_get_thread_num()] != nullptr; }
+  bool has_data() { return data_[thread_number] != nullptr; }
 
   template <typename Func = T_func_noop>
   std::vector<I *> Bfs(bool include_metaroot = false,
@@ -97,6 +97,7 @@ class Node {
 
  protected:
   int level_;
+  static thread_local int thread_number;
   std::vector<unsigned short> marked_;
   std::vector<void *> data_;
 
@@ -120,6 +121,9 @@ class Node {
         data_(omp_get_max_threads(), nullptr),
         container_(container) {}
 };
+
+template <typename I>
+thread_local int Node<I>::thread_number = omp_get_thread_num();
 
 template <typename I>
 class BinaryNode : public Node<I> {
