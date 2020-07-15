@@ -110,7 +110,8 @@ int main(int argc, char* argv[]) {
       "print_centers", po::value<bool>(&print_centers))(
       "print_time_slices",
       po::value<std::vector<double>>(&print_time_slices)->multitoken())(
-      "print_time_apply", po::value<bool>(&print_time_apply));
+      "print_time_apply", po::value<bool>(&print_time_apply))(
+      "num_threads", po::value<size_t>(&num_threads));
 
   std::sort(print_time_slices.begin(), print_time_slices.end());
 
@@ -119,7 +120,6 @@ int main(int argc, char* argv[]) {
       "AdaptiveHeatEquation options");
   adapt_optdesc.add_options()("use_cache",
                               po::value<bool>(&adapt_opts.use_cache))(
-      "num_threads", po::value<size_t>(&num_threads))(
       "build_space_mats", po::value<bool>(&adapt_opts.build_space_mats))(
       "solve_rtol", po::value<double>(&adapt_opts.solve_rtol))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit))(
