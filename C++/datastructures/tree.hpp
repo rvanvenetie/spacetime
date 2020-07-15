@@ -2,6 +2,7 @@
 #include <omp.h>
 
 #include <algorithm>
+#include <array>
 #include <memory>
 #include <queue>
 #include <utility>
