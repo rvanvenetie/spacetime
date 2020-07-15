@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
   size_t max_dofs = 0;
   size_t num_threads = 1;
   bool estimate_global_error = true;
-  bool sparse_refine = true;
+  bool sparse_refine = false;
   bool calculate_condition_numbers = false;
   bool print_time_apply = false;
   boost::program_options::options_description problem_optdesc(
