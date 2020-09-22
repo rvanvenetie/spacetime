@@ -245,6 +245,7 @@ int main(int argc, char* argv[]) {
                 << "\n\t\tT0-error: " << global_error.error_t0 << std::flush;
       cycle++;
     } while (t_delta > adapt_opts.solve_xi * (total_error + t_delta));
+    t_delta = total_error + t_delta;
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();
