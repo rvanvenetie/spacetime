@@ -20,7 +20,8 @@ struct GlobalError {
 
 GlobalError ComputeGlobalError(const Eigen::VectorXd &g_min_Bu,
                                const Eigen::VectorXd &PY_g_min_Bu,
-                               HeatEquation &heat,
+                               const Eigen::VectorXd &G_u_dd_dd,
+                               const Eigen::VectorXd &u0, HeatEquation &heat,
                                const Eigen::VectorXd &u_dd_dd,
                                LinearFormBase<ThreePointWaveletFn> &u0_lf);
 

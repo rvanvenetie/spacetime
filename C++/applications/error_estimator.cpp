@@ -40,7 +40,8 @@ void ApplyMeanZero(
 
 GlobalError ComputeGlobalError(const Eigen::VectorXd &g_min_Bu,
                                const Eigen::VectorXd &PY_g_min_Bu,
-                               HeatEquation &heat,
+                               const Eigen::VectorXd &G_u_dd_dd,
+                               const Eigen::VectorXd &u0, HeatEquation &heat,
                                const Eigen::VectorXd &u_dd_dd,
                                LinearFormBase<ThreePointWaveletFn> &u0_lf) {
   GlobalError error;
@@ -48,8 +49,8 @@ GlobalError ComputeGlobalError(const Eigen::VectorXd &g_min_Bu,
 
   // Compute ||u_0 - u(0)||_L2^2 as ||u_0||^2 - 2<u_0, u(0)> + ||u(0)||^2.
   double u0_norm_sq = u0L2NormSquared(heat, u0_lf);
-  double u0_gamma0_u_inp = u0_lf.Apply(heat.vec_X()).dot(u_dd_dd);
-  double gamma0_u_norm_sq = heat.G()->Apply(u_dd_dd).dot(u_dd_dd);
+  double u0_gamma0_u_inp = u0.dot(u_dd_dd);
+  double gamma0_u_norm_sq = G_u_dd_dd.dot(u_dd_dd);
   double error_t0_sq = u0_norm_sq - 2 * u0_gamma0_u_inp + gamma0_u_norm_sq;
 
   error.error = sqrt(error_Yprime_sq + error_t0_sq);

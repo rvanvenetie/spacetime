@@ -62,12 +62,14 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
         g_lin_form_->Apply(heat_dd_dd.vec_Y()) - heat_dd_dd.B()->Apply(u_dd_dd);
     Eigen::VectorXd PY_g_min_Bu = heat_dd_dd.P_Y()->Apply(g_min_Bu);
     // \gamma_0' (u0 - \gamma_0 u^\delta)
-    Eigen::VectorXd t0_term = u0_lin_form_->Apply(heat_dd_dd.vec_X()) -
-                              heat_dd_dd.G()->Apply(u_dd_dd);
-    Eigen::VectorXd residual = heat_dd_dd.BT()->Apply(PY_g_min_Bu) + t0_term;
+    Eigen::VectorXd u0 = u0_lin_form_->Apply(heat_dd_dd.vec_X());
+    Eigen::VectorXd G_u_dd_dd = heat_dd_dd.G()->Apply(u_dd_dd);
+    Eigen::VectorXd residual =
+        heat_dd_dd.BT()->Apply(PY_g_min_Bu) + (u0 - G_u_dd_dd);
 
-    global_error = ErrorEstimator::ComputeGlobalError(
-        g_min_Bu, PY_g_min_Bu, heat_dd_dd, u_dd_dd, *u0_lin_form_);
+    global_error =
+        ErrorEstimator::ComputeGlobalError(g_min_Bu, PY_g_min_Bu, G_u_dd_dd, u0,
+                                           heat_dd_dd, u_dd_dd, *u0_lin_form_);
     vec_Xdd_->FromVectorContainer(residual);
     // Let heat_dd_dd go out of scope..
   }
