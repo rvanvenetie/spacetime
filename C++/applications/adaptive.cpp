@@ -217,7 +217,7 @@ int main(int argc, char* argv[]) {
     int cycle = 1;
     auto start = std::chrono::steady_clock::now();
     do {
-      t_delta /= 2.0;
+      t_delta /= 3.0;
       std::cout << "\n\tcycle " << cycle << ":\n\t\tt_delta: " << t_delta;
       // Solve.
       start = std::chrono::steady_clock::now();
@@ -246,8 +246,8 @@ int main(int argc, char* argv[]) {
                 << "\n\t\tYnorm-error: " << global_error.error_Yprime
                 << "\n\t\tT0-error: " << global_error.error_t0 << std::flush;
       cycle++;
-    } while (t_delta > adapt_opts.solve_xi * (total_error + t_delta));
-    t_delta = total_error + t_delta;
+    } while (t_delta > adapt_opts.solve_xi * total_error);
+    t_delta = total_error;
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();
