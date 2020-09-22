@@ -20,9 +20,8 @@ using Time::ThreePointWaveletFn;
 
 struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   // Solve-step parameters.
-  // Initial t_\delta \eqsim || g || _Y' + ||u_0||_H.
-  double t_init = 1.0;
   double solve_rtol = 1e-4;
+  double solve_factor = 2.0;  // factor to divide t_delta by at every cycle.
   double solve_xi = 0.5;
   size_t solve_maxit = 100;
 
@@ -40,8 +39,8 @@ struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
     os << "\tBuild space matrices: "
        << (opts.build_space_mats ? "true" : "false") << std::endl;
     os << "\tSolve options -- xi: " << opts.solve_xi
-       << "; maxit: " << opts.solve_maxit << "; t_init: " << opts.t_init
-       << std::endl;
+       << "; maxit: " << opts.solve_maxit
+       << "; division-factor: " << opts.solve_factor << std::endl;
     os << "\tEstimate options -- saturation layers: "
        << opts.estimate_saturation_layers
        << "; mean-zero: " << opts.estimate_mean_zero << std::endl;
