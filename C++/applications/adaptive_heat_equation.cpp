@@ -30,11 +30,12 @@ Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
 }
 
 std::pair<Eigen::VectorXd, tools::linalg::SolverData>
-AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
+AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0, double tol,
+                            enum tools::linalg::StoppingCriterium crit) {
   assert(heat_d_dd_);
   return tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
-                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit,
-                            opts_.solve_rtol);
+                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit, tol,
+                            crit);
 }
 
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
@@ -43,13 +44,9 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
   ErrorEstimator::GlobalError global_error;
   {
     assert(heat_d_dd_);
-    auto A = heat_d_dd_->A();
-    auto P_Y = heat_d_dd_->P_Y();
-    // Invalidate heat_d_dd, we no longer need these bilinear forms.
-    heat_d_dd_.reset();
-
     // Create heat equation with X_dd and Y_dd.
-    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y,
+    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, heat_d_dd_->A(),
+                            heat_d_dd_->P_Y(),
                             /* Ydd_is_GenerateYDelta_Xdd */ true, opts_);
 
     // Prolongate u_dd_d from X_d to X_dd.

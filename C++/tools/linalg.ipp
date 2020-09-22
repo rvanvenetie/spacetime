@@ -19,7 +19,7 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
   if (sq_rhs_norm == 0) return {x, {0.0, 0}};
 
   double rel_threshold = tol * tol * sq_rhs_norm;
-  double alg_threshold = tol;
+  double alg_threshold = tol * tol;
   Eigen::VectorXd residual = b - A * x0;
   double sq_res_norm = residual.squaredNorm();
   if (stopping == StoppingCriterium::Relative && sq_res_norm < rel_threshold)
@@ -61,7 +61,7 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
 
   return {x,
           {.relative_residual = sqrt(sq_res_norm / sq_rhs_norm),
-           .algebraic_error = abs_r,
+           .algebraic_error = sqrt(abs_r),
            .iterations = i,
            .converged = converged}};
 }

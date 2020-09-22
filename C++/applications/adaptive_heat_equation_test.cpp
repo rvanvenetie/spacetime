@@ -56,7 +56,6 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     opts.use_cache = use_cache;
     opts.mark_theta = 0.7;
     opts.PX_alpha = 0.35;
-    opts.solve_rtol = 1e-5;
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf),
                                  opts);
 

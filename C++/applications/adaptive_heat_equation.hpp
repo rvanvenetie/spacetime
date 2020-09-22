@@ -20,7 +20,8 @@ using Time::ThreePointWaveletFn;
 
 struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   // Solve-step parameters.
-  double solve_rtol = 1e-4;
+  double solve_factor = 3.0;  // factor to divide t_delta by at every cycle.
+  double solve_xi = 0.5;
   size_t solve_maxit = 100;
 
   // Residual estimation parameter.
@@ -36,8 +37,9 @@ struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
     os << "\tUse cache: " << (opts.use_cache ? "true" : "false") << std::endl;
     os << "\tBuild space matrices: "
        << (opts.build_space_mats ? "true" : "false") << std::endl;
-    os << "\tSolve options -- rtol: " << opts.solve_rtol
-       << "; maxit: " << opts.solve_maxit << std::endl;
+    os << "\tSolve options -- xi: " << opts.solve_xi
+       << "; maxit: " << opts.solve_maxit
+       << "; division-factor: " << opts.solve_factor << std::endl;
     os << "\tEstimate options -- saturation layers: "
        << opts.estimate_saturation_layers
        << "; mean-zero: " << opts.estimate_mean_zero << std::endl;
@@ -79,9 +81,13 @@ class AdaptiveHeatEquation {
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
   std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
-      const Eigen::VectorXd &x0);
-  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve() {
-    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
+      const Eigen::VectorXd &x0, double tol = 1e-5,
+      enum tools::linalg::StoppingCriterium crit =
+          tools::linalg::StoppingCriterium::Algebraic);
+  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
+      double tol = 1e-5, enum tools::linalg::StoppingCriterium crit =
+                             tools::linalg::StoppingCriterium::Algebraic) {
+    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()), tol, crit);
   }
 
   std::pair<TypeXVector *, std::pair<double, ErrorEstimator::GlobalError>>

@@ -117,7 +117,8 @@ int main(int argc, char* argv[]) {
   adapt_optdesc.add_options()("use_cache",
                               po::value<bool>(&adapt_opts.use_cache))(
       "build_space_mats", po::value<bool>(&adapt_opts.build_space_mats))(
-      "solve_rtol", po::value<double>(&adapt_opts.solve_rtol))(
+      "solve_factor", po::value<double>(&adapt_opts.solve_factor))(
+      "solve_xi", po::value<double>(&adapt_opts.solve_xi))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit))(
       "estimate_saturation_layers",
       po::value<size_t>(&adapt_opts.estimate_saturation_layers))(
@@ -176,6 +177,8 @@ int main(int argc, char* argv[]) {
 
   size_t ndof_X = 0, ndof_Y = 0;
   Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
+  double t_delta = heat_eq.Estimate(x0).second.second.error;
+  std::cout << "t_init: " << t_delta << std::endl;
   size_t iter = 0;
   while (ndof_X < max_dofs) {
     ndof_X = vec_Xd->Bfs().size();             // A slight overestimate.
@@ -209,14 +212,43 @@ int main(int argc, char* argv[]) {
                 << "\n\tcond-time: " << duration_cond.count() << std::flush;
     }
 
-    // Solve.
+    Eigen::VectorXd solution = x0;
+    double total_error;
+    AdaptiveHeatEquation::TypeXVector* residual;
+    int cycle = 1;
     auto start = std::chrono::steady_clock::now();
-    auto [solution, pcg_data] = heat_eq.Solve(x0);
-    std::chrono::duration<double> duration_solve =
-        std::chrono::steady_clock::now() - start;
-    std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
-              << "\n\tsolve-time: " << duration_solve.count()
-              << "\n\tsolve-memory: " << getmem() << std::flush;
+    do {
+      t_delta /= adapt_opts.solve_factor;
+      std::cout << "\n\tcycle: " << cycle << "\n\t\tt_delta: " << t_delta;
+      // Solve.
+      start = std::chrono::steady_clock::now();
+      auto [cur_solution, pcg_data] = heat_eq.Solve(solution, t_delta);
+      solution = cur_solution;
+      std::chrono::duration<double> duration_solve =
+          std::chrono::steady_clock::now() - start;
+      std::cout << "\n\t\tsolve-PCG-steps: " << pcg_data.iterations
+                << "\n\t\tsolve-PCG-algebraic-error: "
+                << pcg_data.algebraic_error
+                << "\n\t\tsolve-time: " << duration_solve.count()
+                << "\n\t\tsolve-memory: " << getmem() << std::flush;
+
+      // Estimate.
+      start = std::chrono::steady_clock::now();
+      auto [residual, global_errors] = heat_eq.Estimate(solution);
+      auto [residual_norm, global_error] = global_errors;
+      total_error = global_error.error;
+      std::chrono::duration<double> duration_estimate =
+          std::chrono::steady_clock::now() - start;
+
+      std::cout << "\n\t\tresidual-norm: " << residual_norm
+                << "\n\t\testimate-time: " << duration_estimate.count()
+                << "\n\t\testimate-memory: " << getmem() << std::flush;
+      std::cout << "\n\t\tglobal-error: " << total_error
+                << "\n\t\tYnorm-error: " << global_error.error_Yprime
+                << "\n\t\tT0-error: " << global_error.error_t0 << std::flush;
+      cycle++;
+    } while (t_delta > adapt_opts.solve_xi * total_error);
+    t_delta = total_error;
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();
@@ -257,20 +289,6 @@ int main(int argc, char* argv[]) {
       }
       std::cerr << std::endl;
     }
-
-    // Estimate.
-    start = std::chrono::steady_clock::now();
-    auto [residual, global_errors] = heat_eq.Estimate(solution);
-    auto [residual_norm, global_error] = global_errors;
-    std::chrono::duration<double> duration_estimate =
-        std::chrono::steady_clock::now() - start;
-
-    std::cout << "\n\tresidual-norm: " << residual_norm
-              << "\n\testimate-time: " << duration_estimate.count()
-              << "\n\testimate-memory: " << getmem() << std::flush;
-    std::cout << "\n\tglobal-error: " << global_error.error
-              << "\n\tYnorm-error: " << global_error.error_Yprime
-              << "\n\tT0-error: " << global_error.error_t0 << std::flush;
 
 #ifdef VERBOSE
     std::cerr << std::endl << "Adaptive::Trees" << std::endl;
