@@ -34,6 +34,9 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
 
   size_t i = 0;
   bool converged = false;
+  if (stopping == StoppingCriterium::Algebraic && abs_r < alg_threshold)
+    converged = true;
+
   while (!converged && i < imax) {
     i++;
 
