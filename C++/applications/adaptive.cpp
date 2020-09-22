@@ -222,8 +222,7 @@ int main(int argc, char* argv[]) {
       std::cout << "\n\tcycle: " << cycle << "\n\t\tt_delta: " << t_delta;
       // Solve.
       start = std::chrono::steady_clock::now();
-      auto [cur_solution, pcg_data] =
-          heat_eq.Solve(solution, t_delta * t_delta);
+      auto [cur_solution, pcg_data] = heat_eq.Solve(solution, t_delta);
       solution = cur_solution;
       std::chrono::duration<double> duration_solve =
           std::chrono::steady_clock::now() - start;

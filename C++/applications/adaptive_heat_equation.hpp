@@ -21,7 +21,7 @@ using Time::ThreePointWaveletFn;
 struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   // Solve-step parameters.
   double solve_rtol = 1e-4;
-  double solve_factor = 2.0;  // factor to divide t_delta by at every cycle.
+  double solve_factor = 3.0;  // factor to divide t_delta by at every cycle.
   double solve_xi = 0.5;
   size_t solve_maxit = 100;
 
