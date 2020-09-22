@@ -33,7 +33,8 @@ std::pair<Eigen::VectorXd, tools::linalg::SolverData>
 AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0, double atol) {
   assert(heat_d_dd_);
   return tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
-                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit, atol);
+                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit, atol,
+                            tools::linalg::StoppingCriterium::Algebraic);
 }
 
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
