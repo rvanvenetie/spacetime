@@ -119,7 +119,8 @@ int main(int argc, char* argv[]) {
   adapt_optdesc.add_options()("use_cache",
                               po::value<bool>(&adapt_opts.use_cache))(
       "build_space_mats", po::value<bool>(&adapt_opts.build_space_mats))(
-      "solve_rtol", po::value<double>(&adapt_opts.solve_rtol))(
+      "t_init", po::value<double>(&adapt_opts.t_init))(
+      "solve_xi", po::value<double>(&adapt_opts.solve_xi))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit))(
       "estimate_saturation_layers",
       po::value<size_t>(&adapt_opts.estimate_saturation_layers))(
@@ -177,6 +178,7 @@ int main(int argc, char* argv[]) {
                                std::move(problem_data.second), adapt_opts);
 
   size_t ndof_X = 0, ndof_Y = 0;
+  double t_delta = adapt_opts.t_init;
   Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
   size_t iter = 0;
   while (ndof_X < max_dofs) {
@@ -211,14 +213,37 @@ int main(int argc, char* argv[]) {
                 << "\n\tcond-time: " << duration_cond.count() << std::flush;
     }
 
-    // Solve.
-    auto start = std::chrono::steady_clock::now();
-    auto [solution, pcg_data] = heat_eq.Solve(x0);
-    std::chrono::duration<double> duration_solve =
-        std::chrono::steady_clock::now() - start;
-    std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
-              << "\n\tsolve-time: " << duration_solve.count()
-              << "\n\tsolve-memory: " << getmem() << std::flush;
+    do {
+      // Solve.
+      auto start = std::chrono::steady_clock::now();
+      auto [solution, pcg_data] = heat_eq.Solve(x0);
+      std::chrono::duration<double> duration_solve =
+          std::chrono::steady_clock::now() - start;
+      std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
+                << "\n\tsolve-time: " << duration_solve.count()
+                << "\n\tsolve-memory: " << getmem() << std::flush;
+
+      // Estimate.
+      if (estimate_global_error) {
+        start = std::chrono::steady_clock::now();
+        auto [global_error, terms] = heat_eq.EstimateGlobalError(solution);
+        std::chrono::duration<double> duration_global =
+            std::chrono::steady_clock::now() - start;
+        std::cout << "\n\tglobal-error: " << global_error
+                  << "\n\tYnorm-error: " << terms.first
+                  << "\n\tT0-error: " << terms.second
+                  << "\n\tglobal-time: " << duration_global.count()
+                  << std::flush;
+      }
+      start = std::chrono::steady_clock::now();
+      auto [residual, residual_norm] = heat_eq.Estimate(solution);
+      std::chrono::duration<double> duration_estimate =
+          std::chrono::steady_clock::now() - start;
+
+      std::cout << "\n\tresidual-norm: " << residual_norm
+                << "\n\testimate-time: " << duration_estimate.count()
+                << "\n\testimate-memory: " << getmem() << std::flush;
+    } while (true);
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();
@@ -259,26 +284,6 @@ int main(int argc, char* argv[]) {
       }
       std::cerr << std::endl;
     }
-
-    // Estimate.
-    if (estimate_global_error) {
-      start = std::chrono::steady_clock::now();
-      auto [global_error, terms] = heat_eq.EstimateGlobalError(solution);
-      std::chrono::duration<double> duration_global =
-          std::chrono::steady_clock::now() - start;
-      std::cout << "\n\tglobal-error: " << global_error
-                << "\n\tYnorm-error: " << terms.first
-                << "\n\tT0-error: " << terms.second
-                << "\n\tglobal-time: " << duration_global.count() << std::flush;
-    }
-    start = std::chrono::steady_clock::now();
-    auto [residual, residual_norm] = heat_eq.Estimate(solution);
-    std::chrono::duration<double> duration_estimate =
-        std::chrono::steady_clock::now() - start;
-
-    std::cout << "\n\tresidual-norm: " << residual_norm
-              << "\n\testimate-time: " << duration_estimate.count()
-              << "\n\testimate-memory: " << getmem() << std::flush;
 
 #ifdef VERBOSE
     std::cerr << std::endl << "Adaptive::Trees" << std::endl;
