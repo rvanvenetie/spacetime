@@ -8,17 +8,19 @@ namespace tools::linalg {
 
 struct SolverData {
   double relative_residual;
+  double algebraic_error;
   size_t iterations;
   bool converged;
 };
 
+enum StoppingCriterium { Relative, Algebraic };
+
 // Loosely based off Eigen/ConjugateGradient.h.
 template <typename MatType, typename PrecondType>
-std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
-                                           const Eigen::VectorXd &b,
-                                           const PrecondType &M,
-                                           const Eigen::VectorXd &x0, int imax,
-                                           double rtol);
+std::pair<Eigen::VectorXd, SolverData> PCG(
+    const MatType &A, const Eigen::VectorXd &b, const PrecondType &M,
+    const Eigen::VectorXd &x0, int imax, double tol,
+    enum StoppingCriterium stopping = StoppingCriterium::Relative);
 
 template <typename MatType, typename PrecondType>
 class Lanczos {

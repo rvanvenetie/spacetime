@@ -14,12 +14,16 @@ TEST(PCG, CanSolve) {
   Eigen::MatrixXd A(2, 2), Id(2, 2), M(2, 2);
   A << 4, 1, 1, 3;
   Id << 1, 0, 0, 1;
-  M << 4, 0, 0, 3;
+  M << 1. / 4, 0, 0, 1. / 3;
 
   ASSERT_TRUE(linalg::PCG(A, b, Id, zero, 10, 1e-5).first.isApprox(x_true));
   ASSERT_TRUE(linalg::PCG(A, b, M, zero, 10, 1e-5).first.isApprox(x_true));
   ASSERT_TRUE(linalg::PCG(A, b, Id, x0, 10, 1e-5).first.isApprox(x_true));
   ASSERT_TRUE(linalg::PCG(A, b, M, x0, 10, 1e-5).first.isApprox(x_true));
+
+  ASSERT_TRUE(
+      linalg::PCG(A, b, M, zero, 10, 1e-5, linalg::StoppingCriterium::Algebraic)
+          .first.isApprox(x_true));
 }
 
 TEST(Lanczos, identity) {
