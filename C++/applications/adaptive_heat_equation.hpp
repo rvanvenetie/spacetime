@@ -1,4 +1,5 @@
 #pragma once
+#include "applications/error_estimator.hpp"
 #include "applications/heat_equation.hpp"
 #include "datastructures/double_tree_view.hpp"
 #include "spacetime/basis.hpp"
@@ -83,9 +84,8 @@ class AdaptiveHeatEquation {
     return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
   }
 
-  std::pair<double, std::pair<double, double>> EstimateGlobalError(
-      const Eigen::VectorXd &u_dd_d);
-  std::pair<TypeXVector *, double> Estimate(const Eigen::VectorXd &u_dd_d);
+  std::pair<TypeXVector *, std::pair<double, ErrorEstimator::GlobalError>>
+  Estimate(const Eigen::VectorXd &u_dd_d);
   std::vector<TypeXNode *> Mark(TypeXVector *residual);
 
   // Refines the grid and prolongates a solution living on Xd_.

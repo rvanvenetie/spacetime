@@ -3,7 +3,6 @@
 #include <iomanip>
 
 #include "../tools/linalg.hpp"
-#include "error_estimator.hpp"
 
 namespace applications {
 AdaptiveHeatEquation::AdaptiveHeatEquation(
@@ -38,14 +37,10 @@ AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
                             opts_.solve_rtol);
 }
 
-std::pair<double, std::pair<double, double>> AdaptiveHeatEquation::EstimateGlobalError(
-    const Eigen::VectorXd &u_dd_d) {
-  assert(heat_d_dd_);
-  return ErrorEstimator::ComputeGlobalError(*heat_d_dd_, *g_lin_form_,
-                                            *u0_lin_form_, u_dd_d);
-}
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
-    -> std::pair<TypeXVector *, double> {
+    -> std::pair<TypeXVector *,
+                 std::pair<double, ErrorEstimator::GlobalError>> {
+  ErrorEstimator::GlobalError global_error;
   {
     assert(heat_d_dd_);
     auto A = heat_d_dd_->A();
@@ -63,8 +58,16 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     Eigen::VectorXd u_dd_dd = vec_Xdd_->ToVectorContainer();
 
     // Calculate the residual and store inside the dbltree.
-    Eigen::VectorXd residual = RHS(heat_dd_dd) - heat_dd_dd.S()->Apply(u_dd_dd);
+    Eigen::VectorXd g_min_Bu =
+        g_lin_form_->Apply(heat_dd_dd.vec_Y()) - heat_dd_dd.B()->Apply(u_dd_dd);
+    Eigen::VectorXd PY_g_min_Bu = heat_dd_dd.P_Y()->Apply(g_min_Bu);
+    Eigen::VectorXd t0_term = u0_lin_form_->Apply(heat_dd_dd.vec_X()) -
+                              heat_dd_dd.G()->Apply(u_dd_dd);
+    Eigen::VectorXd residual = heat_dd_dd.PT()->Apply(PY_g_min_Bu) + t0_term;
     vec_Xdd_->FromVectorContainer(residual);
+
+    global_error = ErrorEstimator::ComputeGlobalError(
+        g_min_Bu, PY_g_min_Bu, heat_dd_dd, u_dd_dd, *u0_lin_form_);
     // Let heat_dd_dd go out of scope..
   }
 
@@ -77,7 +80,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
                       /*call_filter*/ datastructures::func_false);
   assert(vec_Xd_nodes.size() == vec_Xd_->container().size());
   for (auto &dblnode : vec_Xd_nodes) dblnode->set_value(0.0);
-  return {vec_Xdd_.get(), residual_error};
+  return {vec_Xdd_.get(), {residual_error, global_error}};
 }
 
 auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
