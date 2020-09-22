@@ -214,11 +214,11 @@ int main(int argc, char* argv[]) {
     Eigen::VectorXd solution = x0;
     double total_error;
     AdaptiveHeatEquation::TypeXVector* residual;
-    int cycle = 0;
+    int cycle = 1;
     auto start = std::chrono::steady_clock::now();
     do {
       t_delta /= 2.0;
-      std::cout << "\n\tcycle " << cycle << "\n\t\tt_delta: " << t_delta;
+      std::cout << "\n\tcycle " << cycle << ":\n\t\tt_delta: " << t_delta;
       // Solve.
       start = std::chrono::steady_clock::now();
       auto [cur_solution, pcg_data] =
