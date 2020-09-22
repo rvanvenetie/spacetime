@@ -71,8 +71,8 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
       ASSERT_NEAR(u_nodes[i]->value(), python_u[i], 1e-5);
     ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[0], 1);
 
-    auto [global_error, terms] = heat_eq.EstimateGlobalError(u);
-    auto [residual, residual_norm] = heat_eq.Estimate(u);
+    auto [residual, global_errors] = heat_eq.Estimate(u);
+    auto [residual_norm, global_error] = global_errors;
     auto residual_nodes = residual->Bfs();
     Eigen::VectorXd python_residual(residual_nodes.size());
     python_residual << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -95,19 +95,20 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     auto marked_nodes = heat_eq.Mark(residual);
     ASSERT_EQ(marked_nodes.size(), python_mark_data[0].first);
     ASSERT_NEAR(residual_norm, python_mark_data[0].second.first, 1e-10);
-    ASSERT_NEAR(global_error, python_mark_data[0].second.second, 1e-10);
+    ASSERT_NEAR(global_error.error, python_mark_data[0].second.second, 1e-10);
 
     vec_Xd->FromVectorContainer(u);
     heat_eq.Refine(marked_nodes);
 
     for (size_t iter = 1; iter < 5; iter++) {
       auto [u, pcg_data] = heat_eq.Solve(vec_Xd->ToVectorContainer());
-      auto [global_error, terms] = heat_eq.EstimateGlobalError(u);
-      auto [residual, residual_norm] = heat_eq.Estimate(u);
+      auto [residual, global_errors] = heat_eq.Estimate(u);
+      auto [residual_norm, global_error] = global_errors;
       auto marked_nodes = heat_eq.Mark(residual);
       ASSERT_EQ(marked_nodes.size(), python_mark_data[iter].first);
       ASSERT_NEAR(residual_norm, python_mark_data[iter].second.first, 1e-5);
-      ASSERT_NEAR(global_error, python_mark_data[iter].second.second, 1e-5);
+      ASSERT_NEAR(global_error.error, python_mark_data[iter].second.second,
+                  1e-5);
       ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[iter], 1);
       TestNoEmptyFrozenAxes(heat_eq.vec_Xd());
       TestNoEmptyFrozenAxes(heat_eq.vec_Xdd());

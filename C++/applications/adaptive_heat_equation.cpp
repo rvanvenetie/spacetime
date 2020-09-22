@@ -63,7 +63,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     Eigen::VectorXd PY_g_min_Bu = heat_dd_dd.P_Y()->Apply(g_min_Bu);
     Eigen::VectorXd t0_term = u0_lin_form_->Apply(heat_dd_dd.vec_X()) -
                               heat_dd_dd.G()->Apply(u_dd_dd);
-    Eigen::VectorXd residual = heat_dd_dd.PT()->Apply(PY_g_min_Bu) + t0_term;
+    Eigen::VectorXd residual = heat_dd_dd.BT()->Apply(PY_g_min_Bu) + t0_term;
     vec_Xdd_->FromVectorContainer(residual);
 
     global_error = ErrorEstimator::ComputeGlobalError(

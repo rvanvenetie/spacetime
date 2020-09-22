@@ -153,25 +153,18 @@ int main(int argc, char* argv[]) {
               << " solve-time: " << duration_solve.count()
               << " solve-memory: " << getmem() << std::flush;
 
-    if (estimate_global_error) {
-      start = std::chrono::steady_clock::now();
-      auto [global_error, terms] = heat_eq.EstimateGlobalError(solution);
-      std::chrono::duration<double> duration_global =
-          std::chrono::steady_clock::now() - start;
-      std::cout << " global-error: " << global_error
-                << " Ynorm-error: " << terms.first
-                << " T0-error: " << terms.second
-                << " global-time: " << duration_global.count() << std::flush;
-    }
-
     start = std::chrono::steady_clock::now();
-    auto [residual, residual_norm] = heat_eq.Estimate(solution);
+    auto [residual, global_errors] = heat_eq.Estimate(solution);
+    auto [residual_norm, global_error] = global_errors;
     std::chrono::duration<double> duration_estimate =
         std::chrono::steady_clock::now() - start;
 
-    std::cout << " residual-norm: " << residual_norm
-              << " estimate-time: " << duration_estimate.count()
-              << " estimate-memory: " << getmem() << std::flush;
+    std::cout << "\n\tresidual-norm: " << residual_norm
+              << "\n\testimate-time: " << duration_estimate.count()
+              << "\n\testimate-memory: " << getmem() << std::flush;
+    std::cout << "\n\tglobal-error: " << global_error.error
+              << "\n\tYnorm-error: " << global_error.error_Yprime
+              << "\n\tT0-error: " << global_error.error_t0 << std::flush;
 
 #ifdef VERBOSE
     std::cerr << std::endl << "Adaptive::Trees" << std::endl;
