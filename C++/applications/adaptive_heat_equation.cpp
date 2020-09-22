@@ -3,7 +3,6 @@
 #include <iomanip>
 
 #include "../tools/linalg.hpp"
-#include "error_estimator.hpp"
 
 namespace applications {
 AdaptiveHeatEquation::AdaptiveHeatEquation(
@@ -31,30 +30,21 @@ Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
 }
 
 std::pair<Eigen::VectorXd, tools::linalg::SolverData>
-AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
+AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0, double atol) {
   assert(heat_d_dd_);
   return tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
-                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit,
-                            opts_.solve_rtol);
+                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit, atol);
 }
 
-std::pair<double, std::pair<double, double>> AdaptiveHeatEquation::EstimateGlobalError(
-    const Eigen::VectorXd &u_dd_d) {
-  assert(heat_d_dd_);
-  return ErrorEstimator::ComputeGlobalError(*heat_d_dd_, *g_lin_form_,
-                                            *u0_lin_form_, u_dd_d);
-}
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
-    -> std::pair<TypeXVector *, double> {
+    -> std::pair<TypeXVector *,
+                 std::pair<double, ErrorEstimator::GlobalError>> {
+  ErrorEstimator::GlobalError global_error;
   {
     assert(heat_d_dd_);
-    auto A = heat_d_dd_->A();
-    auto P_Y = heat_d_dd_->P_Y();
-    // Invalidate heat_d_dd, we no longer need these bilinear forms.
-    heat_d_dd_.reset();
-
     // Create heat equation with X_dd and Y_dd.
-    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y,
+    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, heat_d_dd_->A(),
+                            heat_d_dd_->P_Y(),
                             /* Ydd_is_GenerateYDelta_Xdd */ true, opts_);
 
     // Prolongate u_dd_d from X_d to X_dd.
@@ -63,7 +53,18 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     Eigen::VectorXd u_dd_dd = vec_Xdd_->ToVectorContainer();
 
     // Calculate the residual and store inside the dbltree.
-    Eigen::VectorXd residual = RHS(heat_dd_dd) - heat_dd_dd.S()->Apply(u_dd_dd);
+    Eigen::VectorXd g_min_Bu =
+        g_lin_form_->Apply(heat_dd_dd.vec_Y()) - heat_dd_dd.B()->Apply(u_dd_dd);
+    Eigen::VectorXd PY_g_min_Bu = heat_dd_dd.P_Y()->Apply(g_min_Bu);
+    // \gamma_0' (u0 - \gamma_0 u^\delta)
+    Eigen::VectorXd u0 = u0_lin_form_->Apply(heat_dd_dd.vec_X());
+    Eigen::VectorXd G_u_dd_dd = heat_dd_dd.G()->Apply(u_dd_dd);
+    Eigen::VectorXd residual =
+        heat_dd_dd.BT()->Apply(PY_g_min_Bu) + (u0 - G_u_dd_dd);
+
+    global_error =
+        ErrorEstimator::ComputeGlobalError(g_min_Bu, PY_g_min_Bu, G_u_dd_dd, u0,
+                                           heat_dd_dd, u_dd_dd, *u0_lin_form_);
     vec_Xdd_->FromVectorContainer(residual);
     // Let heat_dd_dd go out of scope..
   }
@@ -77,7 +78,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
                       /*call_filter*/ datastructures::func_false);
   assert(vec_Xd_nodes.size() == vec_Xd_->container().size());
   for (auto &dblnode : vec_Xd_nodes) dblnode->set_value(0.0);
-  return {vec_Xdd_.get(), residual_error};
+  return {vec_Xdd_.get(), {residual_error, global_error}};
 }
 
 auto AdaptiveHeatEquation::Mark(TypeXVector *residual)

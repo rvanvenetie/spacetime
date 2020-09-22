@@ -36,7 +36,6 @@ int main(int argc, char* argv[]) {
   size_t initial_refines = 0;
   size_t max_level = 0;
   size_t max_dofs = 0;
-  bool estimate_global_error = true;
   bool sparse_refine = true;
   bool calculate_condition_numbers = false;
   boost::program_options::options_description problem_optdesc(
@@ -50,7 +49,6 @@ int main(int argc, char* argv[]) {
           ->default_value(std::numeric_limits<std::size_t>::max()))(
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
-      "estimate_global_error", po::value<bool>(&estimate_global_error))(
       "sparse_refine", po::value<bool>(&sparse_refine))(
       "calculate_condition_numbers",
       po::value<bool>(&calculate_condition_numbers));
@@ -153,25 +151,18 @@ int main(int argc, char* argv[]) {
               << " solve-time: " << duration_solve.count()
               << " solve-memory: " << getmem() << std::flush;
 
-    if (estimate_global_error) {
-      start = std::chrono::steady_clock::now();
-      auto [global_error, terms] = heat_eq.EstimateGlobalError(solution);
-      std::chrono::duration<double> duration_global =
-          std::chrono::steady_clock::now() - start;
-      std::cout << " global-error: " << global_error
-                << " Ynorm-error: " << terms.first
-                << " T0-error: " << terms.second
-                << " global-time: " << duration_global.count() << std::flush;
-    }
-
     start = std::chrono::steady_clock::now();
-    auto [residual, residual_norm] = heat_eq.Estimate(solution);
+    auto [residual, global_errors] = heat_eq.Estimate(solution);
+    auto [residual_norm, global_error] = global_errors;
     std::chrono::duration<double> duration_estimate =
         std::chrono::steady_clock::now() - start;
 
-    std::cout << " residual-norm: " << residual_norm
-              << " estimate-time: " << duration_estimate.count()
-              << " estimate-memory: " << getmem() << std::flush;
+    std::cout << "\n\tresidual-norm: " << residual_norm
+              << "\n\testimate-time: " << duration_estimate.count()
+              << "\n\testimate-memory: " << getmem() << std::flush;
+    std::cout << "\n\tglobal-error: " << global_error.error
+              << "\n\tYnorm-error: " << global_error.error_Yprime
+              << "\n\tT0-error: " << global_error.error_t0 << std::flush;
 
 #ifdef VERBOSE
     std::cerr << std::endl << "Adaptive::Trees" << std::endl;

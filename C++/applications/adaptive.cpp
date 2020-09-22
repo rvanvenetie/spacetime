@@ -90,7 +90,6 @@ int main(int argc, char* argv[]) {
   std::string problem, domain;
   size_t initial_refines = 0;
   size_t max_dofs = 0;
-  bool estimate_global_error = true;
   bool calculate_condition_numbers = false;
   bool print_centers = false;
   bool print_time_apply = false;
@@ -103,7 +102,6 @@ int main(int argc, char* argv[]) {
       "initial_refines", po::value<size_t>(&initial_refines))(
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
-      "estimate_global_error", po::value<bool>(&estimate_global_error))(
       "calculate_condition_numbers",
       po::value<bool>(&calculate_condition_numbers))(
       "print_centers", po::value<bool>(&print_centers))(
@@ -213,37 +211,40 @@ int main(int argc, char* argv[]) {
                 << "\n\tcond-time: " << duration_cond.count() << std::flush;
     }
 
+    Eigen::VectorXd solution = x0;
+    double total_error;
+    AdaptiveHeatEquation::TypeXVector* residual;
+    int cycle = 0;
+    auto start = std::chrono::steady_clock::now();
     do {
+      t_delta /= 2.0;
+      std::cout << "\n\tcycle " << cycle << "\n\t\tt_delta " << t_delta;
       // Solve.
-      auto start = std::chrono::steady_clock::now();
-      auto [solution, pcg_data] = heat_eq.Solve(x0);
+      start = std::chrono::steady_clock::now();
+      auto [cur_solution, pcg_data] = heat_eq.Solve(solution, t_delta);
+      solution = cur_solution;
       std::chrono::duration<double> duration_solve =
           std::chrono::steady_clock::now() - start;
-      std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
-                << "\n\tsolve-time: " << duration_solve.count()
-                << "\n\tsolve-memory: " << getmem() << std::flush;
+      std::cout << "\n\t\tsolve-PCG-steps: " << pcg_data.iterations
+                << "\n\t\tsolve-time: " << duration_solve.count()
+                << "\n\t\tsolve-memory: " << getmem() << std::flush;
 
       // Estimate.
-      if (estimate_global_error) {
-        start = std::chrono::steady_clock::now();
-        auto [global_error, terms] = heat_eq.EstimateGlobalError(solution);
-        std::chrono::duration<double> duration_global =
-            std::chrono::steady_clock::now() - start;
-        std::cout << "\n\tglobal-error: " << global_error
-                  << "\n\tYnorm-error: " << terms.first
-                  << "\n\tT0-error: " << terms.second
-                  << "\n\tglobal-time: " << duration_global.count()
-                  << std::flush;
-      }
       start = std::chrono::steady_clock::now();
-      auto [residual, residual_norm] = heat_eq.Estimate(solution);
+      auto [residual, global_errors] = heat_eq.Estimate(solution);
+      auto [residual_norm, global_error] = global_errors;
+      total_error = global_error.error;
       std::chrono::duration<double> duration_estimate =
           std::chrono::steady_clock::now() - start;
 
-      std::cout << "\n\tresidual-norm: " << residual_norm
-                << "\n\testimate-time: " << duration_estimate.count()
-                << "\n\testimate-memory: " << getmem() << std::flush;
-    } while (true);
+      std::cout << "\n\t\tresidual-norm: " << residual_norm
+                << "\n\t\testimate-time: " << duration_estimate.count()
+                << "\n\t\testimate-memory: " << getmem() << std::flush;
+      std::cout << "\n\t\tglobal-error: " << total_error
+                << "\n\t\tYnorm-error: " << global_error.error_Yprime
+                << "\n\t\tT0-error: " << global_error.error_t0 << std::flush;
+      cycle++;
+    } while (t_delta > adapt_opts.solve_xi * (total_error + t_delta));
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();
