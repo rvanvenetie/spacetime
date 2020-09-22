@@ -61,7 +61,7 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
 
   return {x,
           {.relative_residual = sqrt(sq_res_norm / sq_rhs_norm),
-           .algebraic_error = abs_r,
+           .algebraic_error = sqrt(abs_r),
            .iterations = i,
            .converged = converged}};
 }
