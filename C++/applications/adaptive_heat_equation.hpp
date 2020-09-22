@@ -82,9 +82,10 @@ class AdaptiveHeatEquation {
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
   std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
-      const Eigen::VectorXd &x0, double atol = 1e-3);
-  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve() {
-    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
+      const Eigen::VectorXd &x0, double atol = 1e-8);
+  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
+      double atol = 1e-8) {
+    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()), atol);
   }
 
   std::pair<TypeXVector *, std::pair<double, ErrorEstimator::GlobalError>>

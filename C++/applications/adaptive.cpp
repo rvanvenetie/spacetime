@@ -218,7 +218,7 @@ int main(int argc, char* argv[]) {
     int cycle = 1;
     auto start = std::chrono::steady_clock::now();
     do {
-      t_delta /= opts.solve_factor;
+      t_delta /= adapt_opts.solve_factor;
       std::cout << "\n\tcycle: " << cycle << "\n\t\tt_delta: " << t_delta;
       // Solve.
       start = std::chrono::steady_clock::now();
