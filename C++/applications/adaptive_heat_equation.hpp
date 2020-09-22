@@ -20,7 +20,6 @@ using Time::ThreePointWaveletFn;
 
 struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   // Solve-step parameters.
-  double solve_rtol = 1e-4;
   double solve_factor = 3.0;  // factor to divide t_delta by at every cycle.
   double solve_xi = 0.5;
   size_t solve_maxit = 100;
@@ -82,9 +81,13 @@ class AdaptiveHeatEquation {
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
   std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
-      const Eigen::VectorXd &x0, double atol = 1e-3);
-  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve() {
-    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
+      const Eigen::VectorXd &x0, double tol = 1e-5,
+      enum tools::linalg::StoppingCriterium crit =
+          tools::linalg::StoppingCriterium::Algebraic);
+  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
+      double tol = 1e-5, enum tools::linalg::StoppingCriterium crit =
+                             tools::linalg::StoppingCriterium::Algebraic) {
+    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()), tol, crit);
   }
 
   std::pair<TypeXVector *, std::pair<double, ErrorEstimator::GlobalError>>
