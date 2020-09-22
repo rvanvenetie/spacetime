@@ -218,7 +218,7 @@ int main(int argc, char* argv[]) {
     auto start = std::chrono::steady_clock::now();
     do {
       t_delta /= 3.0;
-      std::cout << "\n\tcycle " << cycle << ":\n\t\tt_delta: " << t_delta;
+      std::cout << "\n\tcycle: " << cycle << "\n\t\tt_delta: " << t_delta;
       // Solve.
       start = std::chrono::steady_clock::now();
       auto [cur_solution, pcg_data] = heat_eq.Solve(solution, t_delta);
