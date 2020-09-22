@@ -90,7 +90,6 @@ int main(int argc, char* argv[]) {
   std::string problem, domain;
   size_t initial_refines = 0;
   size_t max_dofs = 0;
-  bool estimate_global_error = true;
   bool calculate_condition_numbers = false;
   bool print_centers = false;
   bool print_time_apply = false;
@@ -103,7 +102,6 @@ int main(int argc, char* argv[]) {
       "initial_refines", po::value<size_t>(&initial_refines))(
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
-      "estimate_global_error", po::value<bool>(&estimate_global_error))(
       "calculate_condition_numbers",
       po::value<bool>(&calculate_condition_numbers))(
       "print_centers", po::value<bool>(&print_centers))(
@@ -261,24 +259,18 @@ int main(int argc, char* argv[]) {
     }
 
     // Estimate.
-    if (estimate_global_error) {
-      start = std::chrono::steady_clock::now();
-      auto [global_error, terms] = heat_eq.EstimateGlobalError(solution);
-      std::chrono::duration<double> duration_global =
-          std::chrono::steady_clock::now() - start;
-      std::cout << "\n\tglobal-error: " << global_error
-                << "\n\tYnorm-error: " << terms.first
-                << "\n\tT0-error: " << terms.second
-                << "\n\tglobal-time: " << duration_global.count() << std::flush;
-    }
     start = std::chrono::steady_clock::now();
-    auto [residual, residual_norm] = heat_eq.Estimate(solution);
+    auto [residual, global_errors] = heat_eq.Estimate(solution);
+    auto [residual_norm, global_error] = global_errors;
     std::chrono::duration<double> duration_estimate =
         std::chrono::steady_clock::now() - start;
 
     std::cout << "\n\tresidual-norm: " << residual_norm
               << "\n\testimate-time: " << duration_estimate.count()
               << "\n\testimate-memory: " << getmem() << std::flush;
+    std::cout << "\n\tglobal-error: " << global_error.error
+              << "\n\tYnorm-error: " << global_error.error_Yprime
+              << "\n\tT0-error: " << global_error.error_t0 << std::flush;
 
 #ifdef VERBOSE
     std::cerr << std::endl << "Adaptive::Trees" << std::endl;
