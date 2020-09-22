@@ -117,7 +117,7 @@ int main(int argc, char* argv[]) {
   adapt_optdesc.add_options()("use_cache",
                               po::value<bool>(&adapt_opts.use_cache))(
       "build_space_mats", po::value<bool>(&adapt_opts.build_space_mats))(
-      "t_init", po::value<double>(&adapt_opts.t_init))(
+      "solve_factor", po::value<double>(&adapt_opts.solve_factor))(
       "solve_xi", po::value<double>(&adapt_opts.solve_xi))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit))(
       "estimate_saturation_layers",
@@ -176,8 +176,9 @@ int main(int argc, char* argv[]) {
                                std::move(problem_data.second), adapt_opts);
 
   size_t ndof_X = 0, ndof_Y = 0;
-  double t_delta = adapt_opts.t_init;
   Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
+  double t_delta = heat_eq.Estimate(x0).second.second.error;
+  std::cout << "t_init: " << t_delta << std::endl;
   size_t iter = 0;
   while (ndof_X < max_dofs) {
     ndof_X = vec_Xd->Bfs().size();             // A slight overestimate.
@@ -217,7 +218,7 @@ int main(int argc, char* argv[]) {
     int cycle = 1;
     auto start = std::chrono::steady_clock::now();
     do {
-      t_delta /= 3.0;
+      t_delta /= adapt_opts.solve_factor;
       std::cout << "\n\tcycle: " << cycle << "\n\t\tt_delta: " << t_delta;
       // Solve.
       start = std::chrono::steady_clock::now();
