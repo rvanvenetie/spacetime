@@ -184,6 +184,7 @@ int main(int argc, char* argv[]) {
     ndof_X = vec_Xd->Bfs().size();             // A slight overestimate.
     ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
     std::cout << "iter: " << ++iter << "\n\tXDelta-size: " << ndof_X
+              << "\n\tXDelta-Gradedness: " << vec_Xd->Gradedness()
               << "\n\tYDeltaDelta-size: " << ndof_Y
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
 

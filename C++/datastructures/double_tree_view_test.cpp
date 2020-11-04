@@ -8,12 +8,15 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "space/initial_triangulation.hpp"
+#include "time/bases.hpp"
 
 using namespace space;
 using namespace datastructures;
 using ::testing::AllOf;
 using ::testing::Each;
 using ::testing::Eq;
+using Time::OrthonormalWaveletFn;
+using Time::ThreePointWaveletFn;
 
 constexpr int max_level = 5;
 
@@ -161,4 +164,39 @@ TEST(DoubleTreeVector, frozen_vector) {
   auto db_tree_copy = db_tree.DeepCopy();
   auto db_tree_copy_nodes = db_tree_copy.Bfs();
   for (auto db_node : db_tree_copy_nodes) ASSERT_EQ(db_node->value(), 1.0);
+}
+
+TEST(Gradedness, FullTensor) {
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(6);
+  B.ortho_tree.UniformRefine(6);
+  B.three_point_tree.UniformRefine(6);
+
+  for (int lvl_t = 0; lvl_t < 3; lvl_t++) {
+    for (int lvl_x = 0; lvl_x < 6; lvl_x++) {
+      auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+          B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+      X_delta.UniformRefine({lvl_t, lvl_x});
+
+      ASSERT_EQ(X_delta.Gradedness(), lvl_x + 1);
+    }
+  }
+}
+
+TEST(Gradedness, SparseTensor) {
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(6);
+  B.ortho_tree.UniformRefine(6);
+  B.three_point_tree.UniformRefine(6);
+
+  int level = 8;
+  for (int L = 1; L < 5; L++) {
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+    X_delta.SparseRefine(level, {L, 1});
+
+    ASSERT_EQ(X_delta.Gradedness(), L);
+  }
 }

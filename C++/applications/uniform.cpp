@@ -113,7 +113,9 @@ int main(int argc, char* argv[]) {
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                  std::move(problem_data.second), adapt_opts);
     size_t ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
-    std::cout << "XDelta-size: " << ndof_X << " YDeltaDelta-size: " << ndof_Y
+    std::cout << "XDelta-size: " << ndof_X
+              << " XDelta-Gradedness: " << vec_Xd->Gradedness()
+              << " YDeltaDelta-size: " << ndof_Y
               << " total-memory-kB: " << getmem() << std::flush;
 
     if (calculate_condition_numbers) {
