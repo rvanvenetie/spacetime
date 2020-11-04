@@ -113,10 +113,10 @@ int main(int argc, char* argv[]) {
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                  std::move(problem_data.second), adapt_opts);
     size_t ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
-    std::cout << "XDelta-size: " << ndof_X
-              << " XDelta-Gradedness: " << vec_Xd->Gradedness()
-              << " YDeltaDelta-size: " << ndof_Y
-              << " total-memory-kB: " << getmem() << std::flush;
+    std::cout << "level: " << level << "\n\tXDelta-size: " << ndof_X
+              << "\n\tXDelta-Gradedness: " << vec_Xd->Gradedness()
+              << "\n\tYDeltaDelta-size: " << ndof_Y
+              << "\n\ttotal-memory-kB: " << getmem() << std::flush;
 
     if (calculate_condition_numbers) {
       auto start = std::chrono::steady_clock::now();
@@ -138,9 +138,9 @@ int main(int argc, char* argv[]) {
       auto lanczos_X = tools::linalg::Lanczos(
           *heat_eq.heat_d_dd()->S(), *heat_eq.heat_d_dd()->P_X(),
           heat_eq.vec_Xd()->ToVectorContainer());
-      std::cout << " cond-PY-A: " << lanczos_Y.cond()
-                << " cond-PX-S: " << lanczos_X.cond()
-                << " cond-time: " << duration_cond.count() << std::endl;
+      std::cout << "\n\tcond-PY-A: " << lanczos_Y.cond()
+                << "\n\tcond-PX-S: " << lanczos_X.cond()
+                << "\n\tcond-time: " << duration_cond.count() << std::endl;
       continue;
     }
 
@@ -149,9 +149,9 @@ int main(int argc, char* argv[]) {
     auto [solution, pcg_data] = heat_eq.Solve();
     std::chrono::duration<double> duration_solve =
         std::chrono::steady_clock::now() - start;
-    std::cout << " solve-PCG-steps: " << pcg_data.iterations
-              << " solve-time: " << duration_solve.count()
-              << " solve-memory: " << getmem() << std::flush;
+    std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
+              << "\n\tsolve-time: " << duration_solve.count()
+              << "\n\tsolve-memory: " << getmem() << std::flush;
 
     start = std::chrono::steady_clock::now();
     auto [residual, global_errors] = heat_eq.Estimate(solution);
