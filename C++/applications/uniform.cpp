@@ -52,8 +52,7 @@ int main(int argc, char* argv[]) {
   size_t max_level = 0;
   size_t max_dofs = 0;
   size_t num_threads = 1;
-  bool estimate_global_error = true;
-  bool sparse_refine = false;
+  bool sparse_refine = true;
   bool calculate_condition_numbers = false;
   bool print_time_apply = false;
   boost::program_options::options_description problem_optdesc(
@@ -67,7 +66,6 @@ int main(int argc, char* argv[]) {
           ->default_value(std::numeric_limits<std::size_t>::max()))(
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
-      "estimate_global_error", po::value<bool>(&estimate_global_error))(
       "sparse_refine", po::value<bool>(&sparse_refine))(
       "num_threads", po::value<size_t>(&num_threads))(
       "print_time_apply", po::value<bool>(&print_time_apply))(
@@ -80,7 +78,6 @@ int main(int argc, char* argv[]) {
   adapt_optdesc.add_options()("use_cache",
                               po::value<bool>(&adapt_opts.use_cache))(
       "build_space_mats", po::value<bool>(&adapt_opts.build_space_mats))(
-      "solve_rtol", po::value<double>(&adapt_opts.solve_rtol))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit))(
       "estimate_saturation_layers",
       po::value<size_t>(&adapt_opts.estimate_saturation_layers))(
@@ -158,6 +155,7 @@ int main(int argc, char* argv[]) {
                                  std::move(problem_data.second), adapt_opts);
     size_t ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
     std::cout << "level: " << level << "\n\tXDelta-size: " << ndof_X
+              << "\n\tXDelta-Gradedness: " << vec_Xd->Gradedness()
               << "\n\tYDeltaDelta-size: " << ndof_Y
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
 
@@ -181,8 +179,10 @@ int main(int argc, char* argv[]) {
       auto lanczos_X = tools::linalg::Lanczos(
           *heat_eq.heat_d_dd()->S(), *heat_eq.heat_d_dd()->P_X(),
           heat_eq.vec_Xd()->ToVectorContainer());
-      std::cout << "\n\tcond-PY-A: " << lanczos_Y.cond()
-                << "\n\tcond-PX-S: " << lanczos_X.cond()
+      std::cout << "\n\tlmin-PY-A: " << lanczos_Y.min()
+                << "\n\tlmax-PY-A: " << lanczos_Y.max()
+                << "\n\tlmin-PX-S: " << lanczos_X.min()
+                << "\n\tlmax-PX-S: " << lanczos_X.max()
                 << "\n\tcond-time: " << duration_cond.count() << std::endl;
       continue;
     }
@@ -212,25 +212,18 @@ int main(int argc, char* argv[]) {
                 << heat_d_dd->TotalTimeConstruct() << std::flush;
     }
 
-    if (estimate_global_error) {
-      start = std::chrono::steady_clock::now();
-      auto [global_error, terms] = heat_eq.EstimateGlobalError(solution);
-      std::chrono::duration<double> duration_global =
-          std::chrono::steady_clock::now() - start;
-      std::cout << "\n\tglobal-error: " << global_error
-                << "\n\tYnorm-error: " << terms.first
-                << "\n\tT0-error: " << terms.second
-                << "\n\tglobal-time: " << duration_global.count() << std::flush;
-    }
-
     start = std::chrono::steady_clock::now();
-    auto [residual, residual_norm] = heat_eq.Estimate(solution);
+    auto [residual, global_errors] = heat_eq.Estimate(solution);
+    auto [residual_norm, global_error] = global_errors;
     std::chrono::duration<double> duration_estimate =
         std::chrono::steady_clock::now() - start;
 
     std::cout << "\n\tresidual-norm: " << residual_norm
               << "\n\testimate-time: " << duration_estimate.count()
               << "\n\testimate-memory: " << getmem() << std::flush;
+    std::cout << "\n\tglobal-error: " << global_error.error
+              << "\n\tYnorm-error: " << global_error.error_Yprime
+              << "\n\tT0-error: " << global_error.error_t0 << std::flush;
 
 #ifdef VERBOSE
     std::cerr << std::endl << "Adaptive::Trees" << std::endl;
