@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
   size_t num_threads = 1;
   bool calculate_condition_numbers = false;
   bool print_centers = false;
-  bool print_time_apply = false;
+  bool print_time_apply = true;
   std::vector<double> print_time_slices;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
@@ -236,7 +236,7 @@ int main(int argc, char* argv[]) {
       t_delta /= adapt_opts.solve_factor;
       std::cout << "\n\tcycle: " << cycle << "\n\t\tt_delta: " << t_delta;
       // Solve.
-      start = std::chrono::steady_clock::now();
+      auto start = std::chrono::steady_clock::now();
       auto [cur_solution, pcg_data] = heat_eq.Solve(solution, t_delta);
       solution = cur_solution;
       std::chrono::duration<double> duration_solve =
@@ -264,6 +264,11 @@ int main(int argc, char* argv[]) {
       cycle++;
     } while (t_delta > adapt_opts.solve_xi * total_error);
     t_delta = total_error;
+
+    std::chrono::duration<double> duration_solve_estimate =
+        std::chrono::steady_clock::now() - start;
+    std::cout << "\n\ttotal-time-solve-estimate: "
+              << duration_solve_estimate.count();
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();

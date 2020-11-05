@@ -55,6 +55,7 @@ int main(int argc, char* argv[]) {
   bool sparse_refine = true;
   bool calculate_condition_numbers = false;
   bool print_time_apply = false;
+  double solve_rtol = 1e-6;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
   problem_optdesc.add_options()(
@@ -78,6 +79,7 @@ int main(int argc, char* argv[]) {
   adapt_optdesc.add_options()("use_cache",
                               po::value<bool>(&adapt_opts.use_cache))(
       "build_space_mats", po::value<bool>(&adapt_opts.build_space_mats))(
+      "solve_rtol", po::value<double>(&solve_rtol))(
       "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit))(
       "estimate_saturation_layers",
       po::value<size_t>(&adapt_opts.estimate_saturation_layers))(
@@ -104,6 +106,7 @@ int main(int argc, char* argv[]) {
             << "; initial-refines: " << initial_refines << std::endl;
   std::cout << std::endl;
   std::cout << adapt_opts << std::endl;
+  std::cout << "\tsolve-rtol: " << solve_rtol << std::endl;
 
   assert(num_threads > 0 && num_threads <= omp_get_max_threads() &&
          num_threads <= MAX_NUMBER_THREADS);
@@ -189,7 +192,8 @@ int main(int argc, char* argv[]) {
 
     // Solve - estimate.
     auto start = std::chrono::steady_clock::now();
-    auto [solution, pcg_data] = heat_eq.Solve();
+    auto [solution, pcg_data] =
+        heat_eq.Solve(solve_rtol, tools::linalg::StoppingCriterium::Relative);
     std::chrono::duration<double> duration_solve =
         std::chrono::steady_clock::now() - start;
     std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
