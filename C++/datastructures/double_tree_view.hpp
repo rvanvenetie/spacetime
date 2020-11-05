@@ -175,6 +175,27 @@ class DoubleTreeBase : public MT_Base<I> {
     return MT_Base<I>::template DeepCopy<MT_other>();
   }
 
+  size_t Gradedness() const {
+    std::vector<I*> nodes = this->root()->Bfs();
+    std::unordered_map<I*, int> gradedness;
+    int result = 0;
+
+    for (auto dblnode : nodes) {
+      if (dblnode->template is_full<0>()) {
+        gradedness.emplace(dblnode, 0);
+      } else if (dblnode->levels()[1] == 0) {
+        gradedness.emplace(dblnode, 1);
+      } else {
+        int min_grade = INT_MAX;
+        for (auto parent : dblnode->parents(1))
+          min_grade = std::min(min_grade, gradedness.at(parent));
+        gradedness.emplace(dblnode, 1 + min_grade);
+      }
+      result = std::max(result, gradedness.at(dblnode));
+    }
+    return result;
+  }
+
  protected:
   mutable std::tuple<std::unordered_map<T1*, FrozenDoubleNode<I, 0>*>,
                      std::unordered_map<T0*, FrozenDoubleNode<I, 1>*>>
