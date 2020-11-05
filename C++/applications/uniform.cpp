@@ -138,8 +138,10 @@ int main(int argc, char* argv[]) {
       auto lanczos_X = tools::linalg::Lanczos(
           *heat_eq.heat_d_dd()->S(), *heat_eq.heat_d_dd()->P_X(),
           heat_eq.vec_Xd()->ToVectorContainer());
-      std::cout << "\n\tcond-PY-A: " << lanczos_Y.cond()
-                << "\n\tcond-PX-S: " << lanczos_X.cond()
+      std::cout << "\n\tlmin-PY-A: " << lanczos_Y.min()
+                << "\n\tlmax-PY-A: " << lanczos_Y.max()
+                << "\n\tlmin-PX-S: " << lanczos_X.min()
+                << "\n\tlmax-PX-S: " << lanczos_X.max()
                 << "\n\tcond-time: " << duration_cond.count() << std::endl;
       continue;
     }
