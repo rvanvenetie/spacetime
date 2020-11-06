@@ -239,6 +239,7 @@ int main(int argc, char* argv[]) {
       auto start = std::chrono::steady_clock::now();
       auto [cur_solution, pcg_data] = heat_eq.Solve(solution, t_delta);
       solution = cur_solution;
+      t_delta = pcg_data.algebraic_error;
       std::chrono::duration<double> duration_solve =
           std::chrono::steady_clock::now() - start;
       std::cout << "\n\t\tsolve-PCG-steps: " << pcg_data.iterations
