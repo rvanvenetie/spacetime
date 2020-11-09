@@ -162,8 +162,6 @@ class WaveletFn;
 template <typename I>
 class ScalingFn : public Function<I> {
  public:
-  using WaveletType = typename FunctionTrait<I>::Wavelet;
-
   double Eval(double t, bool deriv = false) const {
     int l = this->level_;
     int n = this->index_;
@@ -172,14 +170,8 @@ class ScalingFn : public Function<I> {
            static_cast<const I &>(*this).EvalMother((1 << l) * t - n, deriv);
   }
 
-  const SparseVector<WaveletType> &multi_scale() const { return multi_scale_; }
-
  protected:
-  friend WaveletFn<WaveletType>;
   using Function<I>::Function;
-
-  // This is the transpose of wavelet -> single scale.
-  SparseVector<WaveletType> multi_scale_;
 };
 
 template <typename I>
@@ -202,8 +194,7 @@ class WaveletFn : public Function<I> {
                single_scale_[i].first->index());
       }
 
-      auto [phi, coeff] = single_scale_[i];
-      phi->multi_scale_.emplace_back(static_cast<I *>(this), coeff);
+      auto [phi, _] = single_scale_[i];
       for (auto elem : phi->support()) {
         support_.push_back(elem);
         assert(elem->level() == this->level_);
