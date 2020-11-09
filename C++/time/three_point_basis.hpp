@@ -54,6 +54,7 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
 
   friend datastructures::Tree<ContLinearScalingFn>;
   friend ThreePointWaveletFn;
+  friend HierarchicalWaveletFn;
   friend Element1D;
 };
 
