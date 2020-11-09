@@ -159,6 +159,22 @@ TEST(BilinearForm, FullTest) {
     ASSERT_GT(ortho_vec_in.Bfs().size(), 0);
     ASSERT_GT(ortho_vec_out.Bfs().size(), 0);
 
+    // Set up hierarhical tree.
+    auto hierarch_vec_in =
+        TreeVector<HierarchicalWaveletFn>(B.hierarch_tree.meta_root());
+    auto hierarch_vec_out =
+        TreeVector<HierarchicalWaveletFn>(B.hierarch_tree.meta_root());
+    hierarch_vec_in.DeepRefine(
+        /* call_filter */ [](auto&& nv) {
+          return nv->level() <= 0 || bsd_rnd() % 3 == 0;
+        });
+    hierarch_vec_out.DeepRefine(
+        /* call_filter */ [](auto&& nv) {
+          return nv->level() <= 0 || bsd_rnd() % 3 == 0;
+        });
+    ASSERT_GT(hierarch_vec_in.Bfs().size(), 0);
+    ASSERT_GT(hierarch_vec_out.Bfs().size(), 0);
+
     TestLinearity<ZeroEvalOperator>(three_vec_in, three_vec_out);
     TestUppLow<ZeroEvalOperator>(three_vec_in, three_vec_out);
 
@@ -177,6 +193,12 @@ TEST(BilinearForm, FullTest) {
                                                 ortho_vec_out, false);
     CheckMatrixQuadrature<TransportOperator, ThreePointWaveletFn,
                           OrthonormalWaveletFn>(three_vec_in, true,
+                                                ortho_vec_out, false);
+    CheckMatrixQuadrature<MassOperator, HierarchicalWaveletFn,
+                          HierarchicalWaveletFn>(hierarch_vec_in, false,
+                                                 hierarch_vec_out, false);
+    CheckMatrixQuadrature<MassOperator, HierarchicalWaveletFn,
+                          OrthonormalWaveletFn>(hierarch_vec_in, false,
                                                 ortho_vec_out, false);
   }
 }

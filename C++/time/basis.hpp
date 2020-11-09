@@ -16,6 +16,7 @@ class DiscLinearScalingFn;
 class OrthonormalWaveletFn;
 class ContLinearScalingFn;
 class ThreePointWaveletFn;
+class HierarchicalWaveletFn;
 }  // namespace Time
 
 namespace datastructures {
@@ -51,6 +52,11 @@ struct NodeTrait<Time::ContLinearScalingFn> {
 };
 template <>
 struct NodeTrait<Time::ThreePointWaveletFn> {
+  static constexpr size_t N_parents = 2;
+  static constexpr size_t N_children = 2;
+};
+template <>
+struct NodeTrait<Time::HierarchicalWaveletFn> {
   static constexpr size_t N_parents = 2;
   static constexpr size_t N_children = 2;
 };
@@ -134,6 +140,9 @@ class Function : public datastructures::Node<I> {
     return (support_[0]->Interval().first +
             support_.back()->Interval().second) /
            2.0;
+  }
+  std::pair<double, double> Interval() const {
+    return {support_[0]->Interval().first, support_.back()->Interval().second};
   }
 
   friend std::ostream &operator<<(std::ostream &os, const Function<I> &fn) {
