@@ -7,11 +7,6 @@
 namespace Time {
 
 template <>
-struct FunctionTrait<DiscLinearScalingFn> {
-  using Wavelet = OrthonormalWaveletFn;
-};
-
-template <>
 struct FunctionTrait<OrthonormalWaveletFn> {
   using Scaling = DiscLinearScalingFn;
 };
