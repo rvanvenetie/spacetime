@@ -12,7 +12,7 @@ struct FunctionTrait<HierarchicalWaveletFn> {
 
 class HierarchicalWaveletFn : public WaveletFn<HierarchicalWaveletFn> {
  public:
-  constexpr static const char *name = "Three";
+  constexpr static const char *name = "Hierarch";
 
   explicit HierarchicalWaveletFn(
       const std::vector<HierarchicalWaveletFn *> parents, int index,
@@ -23,6 +23,12 @@ class HierarchicalWaveletFn : public WaveletFn<HierarchicalWaveletFn> {
 
   bool is_full() const;
   bool Refine();
+  double vertex() const {
+    if (this->level_ == 0)
+      return this->index_;
+    else
+      return (2 * this->index_ + 1) * std::pow(2, -this->level_);
+  }
 
  protected:
   // Protected constructor for creating a metaroot.
