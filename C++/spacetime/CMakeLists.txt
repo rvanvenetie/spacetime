@@ -13,3 +13,6 @@ target_link_libraries(spacetime_bilinear_form_test spacetime)
 
 package_add_test(spacetime_linear_form_test linear_form_test.cpp)
 target_link_libraries(spacetime_linear_form_test spacetime)
+
+package_add_test(spacetime_interpolant_test interpolant_test.cpp)
+target_link_libraries(spacetime_interpolant_test spacetime)

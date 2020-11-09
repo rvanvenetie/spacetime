@@ -141,6 +141,9 @@ class Function : public datastructures::Node<I> {
             support_.back()->Interval().second) /
            2.0;
   }
+  std::pair<double, double> Interval() const {
+    return {support_[0]->Interval().first, support_.back()->Interval().second};
+  }
 
   friend std::ostream &operator<<(std::ostream &os, const Function<I> &fn) {
     os << I::name << "(" << fn.level() << ", " << fn.index() << ")";

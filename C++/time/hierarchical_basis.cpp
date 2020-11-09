@@ -58,8 +58,12 @@ bool HierarchicalWaveletFn::Refine() {
     auto phi = single_scale_[0].first;
 
     // Refine the necessary scaling functions.
-    phi->RefineLeft();
+    assert(phi->parents()[0]->child_middle_);
+    assert(phi->parents()[1]->child_middle_);
     phi->RefineMiddle();
+    phi->parents()[0]->child_middle_->RefineMiddle();
+    phi->parents()[1]->child_middle_->RefineMiddle();
+    phi->RefineLeft();
     phi->RefineRight();
 
     // Create the two children
