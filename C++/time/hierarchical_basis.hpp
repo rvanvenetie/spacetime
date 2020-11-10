@@ -19,6 +19,11 @@ class HierarchicalWaveletFn : public WaveletFn<HierarchicalWaveletFn> {
       SparseVector<ContLinearScalingFn> &&single_scale)
       : WaveletFn(parents, index, std::move(single_scale)) {
     assert(single_scale_.size() == 1);
+    if (this->level_ > 0)
+      for (auto &elem : support()) {
+        assert(elem->psi_hierarch_ == nullptr);
+        elem->psi_hierarch_ = this;
+      }
   }
 
   bool is_full() const;

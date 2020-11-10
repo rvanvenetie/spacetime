@@ -94,6 +94,42 @@ GenerateXDeltaUnderscore(
   return X_delta_underscore;
 }
 
+void GenerateZDelta(
+    const datastructures::DoubleTreeVector<Time::ThreePointWaveletFn,
+                                           space::HierarchicalBasisFn> &X_delta,
+    datastructures::DoubleTreeVector<Time::HierarchicalWaveletFn,
+                                     space::HierarchicalBasisFn> *Z_delta) {
+  using SpaceNode =
+      typename DoubleTreeVector<ThreePointWaveletFn,
+                                HierarchicalBasisFn>::FrozenDN1Type;
+  Time::HierarchicalWaveletFn *time_meta_root = Z_delta->root()->node_0();
+
+  for (auto &x_labda_0 : X_delta.Project_0()->Bfs()) {
+    Time::ThreePointWaveletFn *sigma = x_labda_0->node();
+    Time::HierarchicalWaveletFn *hat_phi = nullptr;
+    if (sigma->level() > 0)
+      hat_phi = sigma->support()[0]->RefinePsiHierarchical();
+    else
+      hat_phi = time_meta_root->children().at(sigma->index());
+
+    assert(!hat_phi->has_data());
+    hat_phi->set_data(x_labda_0->FrozenOtherAxis());
+  }
+
+  Z_delta->Project_0()->DeepRefine([](auto node) { return node->has_data(); });
+  Z_delta->Project_1()->Union(X_delta.Project_1());
+
+  for (auto &z_labda_0 : Z_delta->Project_0()->Bfs()) {
+    assert(z_labda_0->node()->has_data());
+    SpaceNode *data = z_labda_0->node()->template data<SpaceNode>();
+    z_labda_0->FrozenOtherAxis()->Union(data);
+    z_labda_0->node()->reset_data();
+  }
+
+  // Make sure that we are *growing* Z_delta.
+  assert(X_delta.container().size() == Z_delta->container().size());
+}
+
 // Template specializations for GenerateYDelta.
 template DoubleTreeView<OrthonormalWaveletFn, HierarchicalBasisFn>
 GenerateYDelta<DoubleTreeView, DoubleTreeView>(
