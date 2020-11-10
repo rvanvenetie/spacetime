@@ -1,5 +1,6 @@
 #include "basis.hpp"
 
+#include "hierarchical_basis.hpp"
 #include "orthonormal_basis.hpp"
 #include "three_point_basis.hpp"
 
@@ -36,6 +37,16 @@ const std::array<OrthonormalWaveletFn *, 2> &Element1D::RefinePsiOrthonormal() {
     assert(psi_ortho_[0] && psi_ortho_[1]);
   }
   return psi_ortho_;
+}
+
+HierarchicalWaveletFn *Element1D::RefinePsiHierarchical() {
+  if (!psi_hierarch_) {
+    assert(level() > 0);
+    const auto &psi_parent = parent()->RefinePsiHierarchical();
+    psi_parent->Refine();
+    assert(psi_hierarch_);
+  }
+  return psi_hierarch_;
 }
 
 std::pair<double, double> Element1D::Interval() const {

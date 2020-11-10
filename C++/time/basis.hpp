@@ -84,6 +84,7 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
   }
 
   const std::array<OrthonormalWaveletFn *, 2> &RefinePsiOrthonormal();
+  HierarchicalWaveletFn *RefinePsiHierarchical();
 
   std::pair<double, double> Interval() const;
   double GlobalCoordinates(double bary2) const;
@@ -111,11 +112,13 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
   std::array<ContLinearScalingFn *, 2> phi_cont_lin_ = {nullptr, nullptr};
   std::array<DiscLinearScalingFn *, 2> phi_disc_lin_ = {nullptr, nullptr};
   std::array<OrthonormalWaveletFn *, 2> psi_ortho_ = {nullptr, nullptr};
+  HierarchicalWaveletFn *psi_hierarch_ = nullptr;
 
   friend DiscConstantScalingFn;
   friend ContLinearScalingFn;
   friend DiscLinearScalingFn;
   friend OrthonormalWaveletFn;
+  friend HierarchicalWaveletFn;
   friend datastructures::Tree<Element1D>;
 };
 

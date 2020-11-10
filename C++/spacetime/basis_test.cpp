@@ -1,6 +1,7 @@
 #include "basis.hpp"
 
 #include <set>
+#include <unordered_set>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -172,4 +173,44 @@ TEST(GenerateTheta, FullTensorTheta) {
       ASSERT_EQ(theta_nodes[i]->nodes(), test_nodes[i]->nodes());
   }
 }
+
+TEST(GenerateZDelta, EqualsXDelta) {
+  size_t max_level = 15;
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  auto X_delta = DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
+      B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+  auto Z_delta =
+      DoubleTreeVector<Time::HierarchicalWaveletFn, HierarchicalBasisFn>(
+          B.hierarch_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+
+  for (size_t level = 1; level < max_level; level++) {
+    T.hierarch_basis_tree.DeepRefine(
+        /* call_filter */ [level](const auto& psi) {
+          auto [x, y] = psi->center();
+          if (psi->level() > level) return false;
+          if (psi->level() == 0) return true;
+          return (x + y <= 1.0);
+        });
+    B.hierarch_tree.DeepRefine(
+        /* call_filter */ [level](const auto& psi) {
+          auto [l, n] = psi->labda();
+          if (l > level) return false;
+          if (l == 0) return true;
+          return (n == 0);
+        });
+    X_delta.SparseRefine(level);
+
+    std::set<std ::pair<std::pair<int, int>, std::pair<double, double>>>
+        idx_set;
+    for (auto dblnode : X_delta.Bfs())
+      idx_set.emplace(dblnode->node_0()->labda(), dblnode->node_1()->center());
+
+    GenerateZDelta(X_delta, &Z_delta);
+    ASSERT_TRUE(X_delta.Bfs().size() == Z_delta.Bfs().size());
+    for (auto dblnode : Z_delta.Bfs())
+      ASSERT_TRUE(idx_set.count(
+          std::pair{dblnode->node_0()->labda(), dblnode->node_1()->center()}));
+  }
+}  // namespace spacetime
 };  // namespace spacetime
