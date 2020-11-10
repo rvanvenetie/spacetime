@@ -40,12 +40,14 @@ const std::array<OrthonormalWaveletFn *, 2> &Element1D::RefinePsiOrthonormal() {
 }
 
 HierarchicalWaveletFn *Element1D::RefinePsiHierarchical() {
+  assert(level() != 0);
   if (!psi_hierarch_) {
     assert(level() > 0);
     const auto &psi_parent = parent()->RefinePsiHierarchical();
     psi_parent->Refine();
     assert(psi_hierarch_);
   }
+  assert(psi_hierarch_->level() == this->level());
   return psi_hierarch_;
 }
 
