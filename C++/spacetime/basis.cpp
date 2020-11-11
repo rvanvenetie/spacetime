@@ -109,10 +109,8 @@ void GenerateZDelta(
     Time::HierarchicalWaveletFn *hat_phi = nullptr;
     if (sigma->level() == 0)
       hat_phi = time_meta_root->children().at(sigma->index());
-    else if (sigma->index() == 0)
-      hat_phi = sigma->support()[0]->RefinePsiHierarchical();
     else
-      hat_phi = sigma->support()[1]->RefinePsiHierarchical();
+      hat_phi = sigma->support().at(1)->RefinePsiHierarchical();
 
     assert(hat_phi->labda() == sigma->labda());
     assert(!hat_phi->has_data());
