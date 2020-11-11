@@ -144,19 +144,31 @@ class InterpolationLinearForm
                    .at(0)
                    ->parent()
                    ->RefinePsiHierarchical(),
-               X_delta->root()->node_1()) {
-    //    vec_Z_.UniformRefine(1);
-  }
+               X_delta->root()->node_1()) {}
 
   Eigen::VectorXd Apply(DblVecY *vec_Y) final {
+    // Grow Z_delta and interpolate.
     GenerateZDelta(*X_delta_, &vec_Z_);
     Interpolate(g_, &vec_Z_);
+
+    // Apply the mass operator to fill the inner products between
+    // the interpolant of g, and the given vector Y.
+    space::OperatorOptions space_opts(
+        {.dirichlet_boundary = false, .build_mat = false});
     spacetime::BilinearForm<Time::MassOperator, space::MassOperator,
                             Time::HierarchicalWaveletFn,
                             Time::OrthonormalWaveletFn>
-        mass_bil_form(&vec_Z_, vec_Y, /* use_cache */ false);
+        mass_bil_form(&vec_Z_, vec_Y, /* use_cache */ false, space_opts);
+    auto result = mass_bil_form.Apply(vec_Z_.ToVectorContainer());
 
-    return mass_bil_form.Apply(vec_Z_.ToVectorContainer());
+    // We must manually set the boundary dofs in vec_Y to zero.
+    size_t i = 0;
+    for (const auto &node : vec_Y->container()) {
+      if (node.node_1()->on_domain_boundary()) result[i] = 0;
+      i++;
+    }
+
+    return result;
   }
 
   const space::LinearForm &SpaceLF() const final {

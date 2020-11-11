@@ -42,4 +42,38 @@ TEST(Interpolant, ProjectsSparse) {
     ASSERT_TRUE(tree_interpol.ToVector().isApprox(vec_tree_interpol));
   }
 }
+
+TEST(Interpolant, ProjectBasis) {
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(6);
+  B.hierarch_tree.UniformRefine(6);
+  auto Z_delta = datastructures::DoubleTreeVector<Time::HierarchicalWaveletFn,
+                                                  space::HierarchicalBasisFn>(
+      B.hierarch_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+
+  for (int level = 0; level < 6; level++) {
+    Z_delta.SparseRefine(level);
+
+    auto dblnodes = Z_delta.Bfs();
+    for (size_t i = 0; i < dblnodes.size(); ++i) {
+      Z_delta.Reset();
+
+      // Check that the interpolation of a basis function is exactly the basis
+      // fn.
+      Interpolate(
+          [&](double t, double x, double y) {
+            return dblnodes[i]->node_0()->Eval(t) *
+                   dblnodes[i]->node_1()->Eval(x, y);
+          },
+          &Z_delta);
+      for (size_t j = 0; j < dblnodes.size(); ++j) {
+        if (j != i)
+          ASSERT_TRUE(dblnodes[j]->value() == 0);
+        else
+          ASSERT_TRUE(dblnodes[j]->value() == 1);
+      }
+    }
+  }
+}
 }  // namespace spacetime
