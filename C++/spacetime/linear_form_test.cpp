@@ -47,7 +47,7 @@ TEST(LinearForm, ZeroEval) {
   auto space_f = [](double x, double y) { return x * y; };
 
   auto linform = CreateZeroEvalLinearForm<Time::OrthonormalWaveletFn>(
-      space_f, /*space_order*/ 2);
+      space_f, /* apply_quadrature*/ true, /*space_order*/ 2);
   for (int level = 1; level < max_level; level++) {
     auto vec = datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
                                                 space::HierarchicalBasisFn>(

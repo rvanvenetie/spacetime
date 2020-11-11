@@ -197,12 +197,13 @@ std::unique_ptr<TensorLinearForm<TimeBasis>> CreateQuadratureTensorLinearForm(
 
 template <typename TimeBasis>
 std::unique_ptr<TensorLinearForm<TimeBasis>> CreateZeroEvalLinearForm(
-    std::function<double(double, double)> space_f, size_t space_order) {
+    std::function<double(double, double)> space_f, bool space_apply_quadrature,
+    size_t space_order) {
   using TimeScalingBasis = typename Time::FunctionTrait<TimeBasis>::Scaling;
   return std::make_unique<TensorLinearForm<TimeBasis>>(
       Time::LinearForm<TimeBasis>(
           std::make_unique<Time::ZeroEvalFunctional<TimeScalingBasis>>()),
-      space::LinearForm(space_f, /* apply_quadrature*/ true, space_order));
+      space::LinearForm(space_f, space_apply_quadrature, space_order));
 }
 
 }  // namespace spacetime

@@ -39,7 +39,7 @@ void LinearForm::ApplyInterpolation(I *root) {
       {.dirichlet_boundary = false, .build_mat = false});
   CreateBilinearForm<MassOperator>(root, root, space_opts).Apply();
 
-  // Set the boundary dofs to nonzero.
+  // Set the boundary dofs to zero.
   if (dirichlet_boundary_)
     for (auto node : root->Bfs())
       if (node->node()->on_domain_boundary()) node->set_value(0);
