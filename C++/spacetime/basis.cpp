@@ -112,6 +112,8 @@ void GenerateZDelta(
     else
       hat_phi = time_meta_root->children().at(sigma->index());
 
+    std::cout << *sigma << std::endl;
+    std::cout << *hat_phi << std::endl;
     assert(!hat_phi->has_data());
     hat_phi->set_data(x_labda_0->FrozenOtherAxis());
   }

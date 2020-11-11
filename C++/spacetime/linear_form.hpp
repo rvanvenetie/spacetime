@@ -145,7 +145,7 @@ class InterpolationLinearForm
                    ->parent()
                    ->RefinePsiHierarchical(),
                X_delta->root()->node_1()) {
-    vec_Z_.UniformRefine(1);
+    //    vec_Z_.UniformRefine(1);
   }
 
   Eigen::VectorXd Apply(DblVecY *vec_Y) final {

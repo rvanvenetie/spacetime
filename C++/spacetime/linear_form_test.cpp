@@ -64,9 +64,11 @@ TEST(LinearForm, Interpolation) {
   T.hierarch_basis_tree.UniformRefine(max_level);
   B.three_point_tree.UniformRefine(max_level);
 
-  auto g = [](double t, double x, double y) { return t * t * t * x * y; };
+  auto g = [](double t, double x, double y) {
+    return t * t * t * x * (x - 1) * y * (y - 1);
+  };
   auto time_g = [](double t) { return t * t * t; };
-  auto space_g = [](double x, double y) { return x * y; };
+  auto space_g = [](double x, double y) { return x * (x - 1) * y * (y - 1); };
 
   auto X_delta = std::make_shared<
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
@@ -78,13 +80,15 @@ TEST(LinearForm, Interpolation) {
   auto linform_quadrature =
       CreateQuadratureTensorLinearForm<Time::OrthonormalWaveletFn>(
           time_g, space_g, /*time_order*/ 3, /*space_order*/ 2);
-  for (int level = 1; level < max_level; level++) {
+  for (int level = 2; level < max_level; level++) {
     X_delta->SparseRefine(level);
     GenerateZDelta(*X_delta, &Z_delta);
 
     auto vec_Y = GenerateYDelta<DoubleTreeVector>(*X_delta);
     auto vec_interpol = linform_interpol.Apply(&vec_Y);
     auto vec_quad = linform_quadrature->Apply(&vec_Y);
+    std::cout << vec_interpol.adjoint() << std::endl;
+    std::cout << vec_quad.adjoint() << std::endl;
     ASSERT_TRUE(vec_interpol.isApprox(vec_quad));
   }
 }
