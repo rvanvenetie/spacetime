@@ -107,12 +107,14 @@ void GenerateZDelta(
   for (auto &x_labda_0 : X_delta.Project_0()->Bfs()) {
     Time::ThreePointWaveletFn *sigma = x_labda_0->node();
     Time::HierarchicalWaveletFn *hat_phi = nullptr;
-    if (sigma->level() > 0)
-      hat_phi = sigma->support()[0]->RefinePsiHierarchical();
-    else
+    if (sigma->level() == 0)
       hat_phi = time_meta_root->children().at(sigma->index());
+    else
+      hat_phi = sigma->support().at(1)->RefinePsiHierarchical();
 
+    assert(hat_phi->labda() == sigma->labda());
     assert(!hat_phi->has_data());
+
     hat_phi->set_data(x_labda_0->FrozenOtherAxis());
   }
 

@@ -19,6 +19,10 @@ HierarchicalWaveletFn::HierarchicalWaveletFn(
         /* single_scale */
         std::vector{std::pair{mother_scalings[i], 1.0}});
   }
+
+  // Register the metaroot inside the metaroot of element1d.
+  Element1D *elem_meta_root = mother_scalings.at(0)->support().at(0)->parent();
+  elem_meta_root->psi_hierarch_ = this;
 }
 
 bool HierarchicalWaveletFn::Refine() {
