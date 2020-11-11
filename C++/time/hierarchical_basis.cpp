@@ -21,7 +21,8 @@ HierarchicalWaveletFn::HierarchicalWaveletFn(
   }
 
   // Register the metaroot inside the metaroot of element1d.
-  mother_scalings[0]->support()[0]->parent()->psi_hierarch_ = this;
+  Element1D *elem_meta_root = mother_scalings.at(0)->support().at(0)->parent();
+  elem_meta_root->psi_hierarch_ = this;
 }
 
 bool HierarchicalWaveletFn::Refine() {

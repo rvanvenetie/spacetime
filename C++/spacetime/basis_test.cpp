@@ -174,7 +174,7 @@ TEST(GenerateTheta, FullTensorTheta) {
   }
 }
 
-TEST(GenerateZDelta, EqualsXDelta) {
+TEST(GenerateZDelta, EqualsXDeltaSparse) {
   size_t max_level = 15;
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
@@ -192,7 +192,7 @@ TEST(GenerateZDelta, EqualsXDelta) {
           if (psi->level() == 0) return true;
           return (x + y <= 1.0);
         });
-    B.hierarch_tree.DeepRefine(
+    B.three_point_tree.DeepRefine(
         /* call_filter */ [level](const auto& psi) {
           auto [l, n] = psi->labda();
           if (l > level) return false;
@@ -212,5 +212,32 @@ TEST(GenerateZDelta, EqualsXDelta) {
       ASSERT_TRUE(idx_set.count(
           std::pair{dblnode->node_0()->labda(), dblnode->node_1()->center()}));
   }
-}  // namespace spacetime
+}
+TEST(GenerateZDelta, EqualsXDeltaFull) {
+  size_t max_level = 6;
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(max_level);
+  B.three_point_tree.UniformRefine(max_level);
+  auto X_delta = DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
+      B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+  auto Z_delta =
+      DoubleTreeVector<Time::HierarchicalWaveletFn, HierarchicalBasisFn>(
+          B.hierarch_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+
+  for (size_t level = 1; level < max_level; level++) {
+    X_delta.UniformRefine(level);
+
+    std::set<std ::pair<std::pair<int, int>, std::pair<double, double>>>
+        idx_set;
+    for (auto dblnode : X_delta.Bfs())
+      idx_set.emplace(dblnode->node_0()->labda(), dblnode->node_1()->center());
+
+    GenerateZDelta(X_delta, &Z_delta);
+    ASSERT_TRUE(X_delta.Bfs().size() == Z_delta.Bfs().size());
+    for (auto dblnode : Z_delta.Bfs())
+      ASSERT_TRUE(idx_set.count(
+          std::pair{dblnode->node_0()->labda(), dblnode->node_1()->center()}));
+  }
+}
 };  // namespace spacetime
