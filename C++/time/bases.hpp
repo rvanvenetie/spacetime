@@ -37,9 +37,7 @@ struct Bases {
         three_point_tree(cont_lin_tree.meta_root()->children()),
         disc_lin_tree(mother_element),
         ortho_tree(disc_lin_tree.meta_root()->children()),
-        hierarch_tree(cont_lin_tree.meta_root()->children()) {
-    hierarch_tree.UniformRefine(1);
-  }
+        hierarch_tree(cont_lin_tree.meta_root()->children()) {}
 };
 
 }  // namespace Time
