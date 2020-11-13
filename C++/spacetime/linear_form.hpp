@@ -79,9 +79,9 @@ class NoOpLinearForm : public LinearFormBase<TimeBasis> {
   using DblVec = typename LinearFormBase<TimeBasis>::DblVec;
 
   NoOpLinearForm()
-      : space_linform_(std::make_unique<space::QuadratureFunctional>(
-            /* space_f */ [](double x, double y) { return 0; },
-            /* space_order */ 0)) {}
+      : space_linform_(/* space_f */ [](double x, double y) { return 0; },
+                       /* apply_quadrature*/ true,
+                       /* space_order */ 0) {}
 
   Eigen::VectorXd Apply(DblVec *vec) final {
     Eigen::VectorXd result = Eigen::VectorXd::Zero(vec->container().size());
@@ -192,19 +192,18 @@ std::unique_ptr<TensorLinearForm<TimeBasis>> CreateQuadratureTensorLinearForm(
       Time::LinearForm<TimeBasis>(
           std::make_unique<Time::QuadratureFunctional<TimeScalingBasis>>(
               time_f, time_order)),
-      space::LinearForm(
-          std::make_unique<space::QuadratureFunctional>(space_f, space_order)));
+      space::LinearForm(space_f, /* apply_quadrature*/ true, space_order));
 }
 
 template <typename TimeBasis>
 std::unique_ptr<TensorLinearForm<TimeBasis>> CreateZeroEvalLinearForm(
-    std::function<double(double, double)> space_f, size_t space_order) {
+    std::function<double(double, double)> space_f, bool space_apply_quadrature,
+    size_t space_order) {
   using TimeScalingBasis = typename Time::FunctionTrait<TimeBasis>::Scaling;
   return std::make_unique<TensorLinearForm<TimeBasis>>(
       Time::LinearForm<TimeBasis>(
           std::make_unique<Time::ZeroEvalFunctional<TimeScalingBasis>>()),
-      space::LinearForm(
-          std::make_unique<space::QuadratureFunctional>(space_f, space_order)));
+      space::LinearForm(space_f, space_apply_quadrature, space_order));
 }
 
 }  // namespace spacetime

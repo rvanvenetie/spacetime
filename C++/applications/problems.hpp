@@ -24,7 +24,8 @@ SmoothProblem() {
                   time_g1, space_g1, 2, 2),
               CreateQuadratureTensorLinearForm<Time::OrthonormalWaveletFn>(
                   time_g2, space_g2, 1, 4)),
-          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(u0, 4)};
+          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(
+              u0, /* apply_quadrature*/ true, /* quadrature_order*/ 4)};
 }
 
 // Singular problem: u0 = 1, f = 0.
@@ -34,7 +35,8 @@ SingularProblem() {
   auto u0 = [](double x, double y) { return 1.0; };
 
   return {std::make_unique<NoOpLinearForm<Time::OrthonormalWaveletFn>>(),
-          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(u0, 1)};
+          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(
+              u0, /* apply_quadrature*/ true, /* quadrature_order */ 1)};
 }
 
 // Problem with u0 = 0 and rhs f = t * 1_{x^2 + y^2 < 1/4}.
