@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 #include "../spacetime/linear_form.hpp"
 #include "../time/basis.hpp"
 
@@ -46,6 +47,34 @@ CylinderProblem(size_t space_order = 2) {
   return {CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(
               time_f, space_f, /* time_order */ 1, space_order),
           std::make_unique<NoOpLinearForm<Time::ThreePointWaveletFn>>()};
+}
+
+// Problem with u = sin(pi x) sin(pi y) exp(-100 ((t-x)^2 + (t-y)^2))
+std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
+          std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
+MovingPeakProblem(size_t space_order = 2) {
+  auto u0 = [](double x, double y) {
+    return sin(M_PI * x) * sin(M_PI * y) * exp(-100 * (x * x + y * y));
+  };
+  auto g = [](double x, double y, double t) {
+    double dt_u = -100 * ((x - t) * (x - t) + (y - t) * (y - t)) *
+                  sin(M_PI * x) * sin(M_PI * y) *
+                  exp(-100 * ((x - t) * (x - t) + (y - t) * (y - t)));
+    double dxx_u = sin(M_PI * y) *
+                   (400 * M_PI * (t - x) * cos(M_PI * x) +
+                    200 * (200 * (t - x) * (t - x) - 1) * sin(M_PI * x) -
+                    M_PI * M_PI * sin(M_PI * x)) *
+                   exp(-100 * ((x - t) * (x - t) + (y - t) * (y - t)));
+    double dyy_u = sin(M_PI * x) *
+                   (400 * M_PI * (t - y) * cos(M_PI * y) +
+                    200 * (200 * (t - y) * (t - y) - 1) * sin(M_PI * y) -
+                    M_PI * M_PI * sin(M_PI * y)) *
+                   exp(-100 * ((x - t) * (x - t) + (y - t) * (y - t)));
+    return dt_u - dxx_u - dxx_u;
+  };
+  return {CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(
+              time_f, space_f, /* time_order */ 1, space_order),
+          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(u0, 1)};
 }
 
 }  // namespace applications
