@@ -274,11 +274,9 @@ int main(int argc, char* argv[]) {
 
       std::cout << "\n\tcenters: ";
       for (auto dblnode : vec_Xd->Bfs()) print_dblnode(dblnode);
-      std::cout << std::endl;
 
       std::cout << "\n\tcenters-max-gradedness: ";
       for (auto dblnode : max_gradedness) print_dblnode(dblnode);
-      std::cout << std::endl;
     }
 
     if (print_time_slices.size()) {
