@@ -5,12 +5,16 @@
 
 namespace spacetime {
 
+// Interpolates a function into Z_delta.
 template <typename Func>
-void Interpolate(
+Eigen::VectorXd Interpolate(
     Func &&g,
-    datastructures::DoubleTreeVector<Time::HierarchicalWaveletFn,
-                                     space::HierarchicalBasisFn> *dbltree) {
-  for (auto &dblnode : dbltree->container()) {
+    const datastructures::DoubleTreeVector<
+        Time::HierarchicalWaveletFn, space::HierarchicalBasisFn> &dbltree) {
+  Eigen::VectorXd result = Eigen::VectorXd::Zero(dbltree.container().size());
+  size_t i = 0;
+  for (auto &dblnode : dbltree.container()) {
+    i++;
     if (dblnode.is_metaroot()) continue;
     StaticVector<std::pair<double, double>, 3> eval_time;
     StaticVector<std::pair<std::pair<double, double>, double>, 3> eval_space;
@@ -34,14 +38,36 @@ void Interpolate(
                               -0.5);
     }
 
-    double val = 0;
     for (auto [t, c_time] : eval_time)
       for (auto [pt, c_space] : eval_space) {
         auto [x, y] = pt;
-        val += c_time * c_space * g(t, x, y);
+        result[i - 1] += c_time * c_space * g(t, x, y);
       }
-    dblnode.set_value(val);
   }
+  return result;
+}
+
+// Evaluates the (time) trace operator.
+template <typename BasisTime>
+datastructures::TreeVector<space::HierarchicalBasisFn> Trace(
+    double t, const datastructures::DoubleTreeVector<
+                  BasisTime, space::HierarchicalBasisFn> &dbltree) {
+  datastructures::TreeVector<space::HierarchicalBasisFn> time_slice(
+      dbltree.root()->node_1());
+
+  for (auto psi_time : dbltree.Project_0()->Bfs()) {
+    double time_val = psi_time->node()->Eval(t);
+    if (time_val != 0) {
+      time_slice.root()->Union(
+          psi_time->FrozenOtherAxis(),
+          /* call_filter*/ datastructures::func_true, /* call_postprocess*/
+          [time_val](const auto &my_node, const auto &other_node) {
+            my_node->set_value(my_node->value() +
+                               time_val * other_node->value());
+          });
+    }
+  }
+  return time_slice;
 }
 
 }  // namespace spacetime
