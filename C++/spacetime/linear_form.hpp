@@ -4,7 +4,7 @@
 #include "../space/linear_form.hpp"
 #include "../time/linear_form.hpp"
 #include "bilinear_form.hpp"
-#include "interpolant.hpp"
+#include "linear_operator.hpp"
 
 namespace spacetime {
 
@@ -149,7 +149,7 @@ class InterpolationLinearForm
   Eigen::VectorXd Apply(DblVecY *vec_Y) final {
     // Grow Z_delta and interpolate.
     GenerateZDelta(*X_delta_, &vec_Z_);
-    Interpolate(g_, &vec_Z_);
+    auto g_vec_Z = Interpolate(g_, vec_Z_);
 
     // Apply the mass operator to fill the inner products between
     // the interpolant of g, and the given vector Y.
@@ -159,7 +159,7 @@ class InterpolationLinearForm
                             Time::HierarchicalWaveletFn,
                             Time::OrthonormalWaveletFn>
         mass_bil_form(&vec_Z_, vec_Y, /* use_cache */ false, space_opts);
-    auto result = mass_bil_form.Apply(vec_Z_.ToVectorContainer());
+    auto result = mass_bil_form.Apply(g_vec_Z);
 
     // We must manually set the boundary dofs in vec_Y to zero.
     size_t i = 0;
