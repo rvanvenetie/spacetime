@@ -174,7 +174,9 @@ class DoubleTreeBase : public MT_Base<I> {
     return MT_Base<I>::template DeepCopy<MT_other>();
   }
 
-  size_t Gradedness() const {
+  // Calculates the gradedness, and stores the nodes with max gradedness
+  // in the given vector.
+  size_t Gradedness(std::vector<I*>* max_gradedness = nullptr) const {
     std::vector<I*> nodes = this->root()->Bfs();
     std::unordered_map<I*, int> gradedness;
     int result = 0;
@@ -192,6 +194,12 @@ class DoubleTreeBase : public MT_Base<I> {
       }
       result = std::max(result, gradedness.at(dblnode));
     }
+
+    if (max_gradedness)
+      for (auto dblnode : nodes)
+        if (gradedness.at(dblnode) == result)
+          max_gradedness->emplace_back(dblnode);
+
     return result;
   }
 
