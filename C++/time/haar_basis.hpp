@@ -7,11 +7,6 @@
 namespace Time {
 
 template <>
-struct FunctionTrait<DiscConstantScalingFn> {
-  using Wavelet = HaarWaveletFn;
-};
-
-template <>
 struct FunctionTrait<HaarWaveletFn> {
   using Scaling = DiscConstantScalingFn;
 };

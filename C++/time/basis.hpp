@@ -16,6 +16,7 @@ class DiscLinearScalingFn;
 class OrthonormalWaveletFn;
 class ContLinearScalingFn;
 class ThreePointWaveletFn;
+class HierarchicalWaveletFn;
 }  // namespace Time
 
 namespace datastructures {
@@ -54,6 +55,11 @@ struct NodeTrait<Time::ThreePointWaveletFn> {
   static constexpr size_t N_parents = 2;
   static constexpr size_t N_children = 2;
 };
+template <>
+struct NodeTrait<Time::HierarchicalWaveletFn> {
+  static constexpr size_t N_parents = 2;
+  static constexpr size_t N_children = 2;
+};
 }  // namespace datastructures
 
 namespace Time {
@@ -78,6 +84,7 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
   }
 
   const std::array<OrthonormalWaveletFn *, 2> &RefinePsiOrthonormal();
+  HierarchicalWaveletFn *RefinePsiHierarchical();
 
   std::pair<double, double> Interval() const;
   double GlobalCoordinates(double bary2) const;
@@ -105,11 +112,13 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
   std::array<ContLinearScalingFn *, 2> phi_cont_lin_ = {nullptr, nullptr};
   std::array<DiscLinearScalingFn *, 2> phi_disc_lin_ = {nullptr, nullptr};
   std::array<OrthonormalWaveletFn *, 2> psi_ortho_ = {nullptr, nullptr};
+  HierarchicalWaveletFn *psi_hierarch_ = nullptr;
 
   friend DiscConstantScalingFn;
   friend ContLinearScalingFn;
   friend DiscLinearScalingFn;
   friend OrthonormalWaveletFn;
+  friend HierarchicalWaveletFn;
   friend datastructures::Tree<Element1D>;
 };
 
@@ -134,6 +143,9 @@ class Function : public datastructures::Node<I> {
     return (support_[0]->Interval().first +
             support_.back()->Interval().second) /
            2.0;
+  }
+  std::pair<double, double> Interval() const {
+    return {support_[0]->Interval().first, support_.back()->Interval().second};
   }
 
   friend std::ostream &operator<<(std::ostream &os, const Function<I> &fn) {
@@ -162,8 +174,6 @@ class WaveletFn;
 template <typename I>
 class ScalingFn : public Function<I> {
  public:
-  using WaveletType = typename FunctionTrait<I>::Wavelet;
-
   double Eval(double t, bool deriv = false) const {
     int l = this->level_;
     int n = this->index_;
@@ -172,14 +182,8 @@ class ScalingFn : public Function<I> {
            static_cast<const I &>(*this).EvalMother((1 << l) * t - n, deriv);
   }
 
-  const SparseVector<WaveletType> &multi_scale() const { return multi_scale_; }
-
  protected:
-  friend WaveletFn<WaveletType>;
   using Function<I>::Function;
-
-  // This is the transpose of wavelet -> single scale.
-  SparseVector<WaveletType> multi_scale_;
 };
 
 template <typename I>
@@ -202,8 +206,7 @@ class WaveletFn : public Function<I> {
                single_scale_[i].first->index());
       }
 
-      auto [phi, coeff] = single_scale_[i];
-      phi->multi_scale_.emplace_back(static_cast<I *>(this), coeff);
+      auto [phi, _] = single_scale_[i];
       for (auto elem : phi->support()) {
         support_.push_back(elem);
         assert(elem->level() == this->level_);

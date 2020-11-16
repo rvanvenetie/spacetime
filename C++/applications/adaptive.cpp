@@ -34,20 +34,7 @@ std::istream& operator>>(std::istream& in,
 }
 
 void PrintTimeSliceSS(double t, AdaptiveHeatEquation::TypeXVector* solution) {
-  datastructures::TreeVector<HierarchicalBasisFn> time_slice(
-      solution->root()->node_1());
-  for (auto psi_time : solution->Project_0()->Bfs())
-    if (psi_time->node()->Eval(t) != 0) {
-      double time_val = psi_time->node()->Eval(t);
-      // time_slice += time_val * psi_time->FrozenOtherAxis()
-      time_slice.root()->Union(
-          psi_time->FrozenOtherAxis(),
-          /* call_filter*/ datastructures::func_true, /* call_postprocess*/
-          [time_val](const auto& my_node, const auto& other_node) {
-            my_node->set_value(my_node->value() +
-                               time_val * other_node->value());
-          });
-    }
+  auto time_slice = spacetime::Trace(t, *solution);
 
   // Calculate the triangulation corresponding to this space mesh.
   space::TriangulationView triang(time_slice.Bfs());
@@ -289,15 +276,15 @@ int main(int argc, char* argv[]) {
 
     if (print_centers) {
       vec_Xd->FromVectorContainer(solution);
+      std::cerr << std::endl;
       for (auto dblnode : vec_Xd->Bfs()) {
         std::cerr << "((" << dblnode->node_0()->level() << ","
                   << dblnode->node_0()->center() << "),"
                   << "(" << dblnode->node_1()->level() << ",("
                   << dblnode->node_1()->center().first << ","
                   << dblnode->node_1()->center().second
-                  << ")) : " << dblnode->value() << ";";
+                  << ")) : " << dblnode->value() << ";" << std::flush;
       }
-      std::cerr << std::endl;
     }
 
     if (print_time_slices.size()) {

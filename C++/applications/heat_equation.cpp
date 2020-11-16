@@ -45,10 +45,10 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
   // Create transpose of B sharing data with B.
   InitializeBT();
 
-  // Create trace operator.
+  // Create gamma_0'gamma_0 operator.
   G_ = std::make_shared<TypeG>(vec_X_.get(), opts_.use_cache, space_opts);
 
-  // Create the negative trace operator.
+  // Create the negative gamma_0'gamma_0 operator.
   auto minus_G = std::make_shared<NegativeBilinearForm<TypeG>>(G_);
 
   // Initialize preconditioners (if necessary).

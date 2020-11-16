@@ -4,10 +4,10 @@
 
 namespace applications {
 
-using spacetime::CreateQuadratureLinearForm;
+using spacetime::CreateQuadratureTensorLinearForm;
 using spacetime::CreateZeroEvalLinearForm;
 using spacetime::NoOpLinearForm;
-using spacetime::SumLinearForm;
+using spacetime::SumTensorLinearForm;
 
 // Solution u = (1 + t^2) x (1-x) y (1-y) on unit square.
 std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
@@ -19,12 +19,13 @@ SmoothProblem() {
   auto space_g2 = [](double x, double y) { return (x - 1) * x * (y - 1) * y; };
   auto u0 = [](double x, double y) { return (1 - x) * x * (1 - y) * y; };
 
-  return {std::make_unique<SumLinearForm<Time::OrthonormalWaveletFn>>(
-              CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(
+  return {std::make_unique<SumTensorLinearForm<Time::OrthonormalWaveletFn>>(
+              CreateQuadratureTensorLinearForm<Time::OrthonormalWaveletFn>(
                   time_g1, space_g1, 2, 2),
-              CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(
+              CreateQuadratureTensorLinearForm<Time::OrthonormalWaveletFn>(
                   time_g2, space_g2, 1, 4)),
-          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(u0, 4)};
+          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(
+              u0, /* apply_quadrature*/ true, /* quadrature_order*/ 4)};
 }
 
 // Singular problem: u0 = 1, f = 0.
@@ -34,7 +35,8 @@ SingularProblem() {
   auto u0 = [](double x, double y) { return 1.0; };
 
   return {std::make_unique<NoOpLinearForm<Time::OrthonormalWaveletFn>>(),
-          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(u0, 1)};
+          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(
+              u0, /* apply_quadrature*/ true, /* quadrature_order */ 1)};
 }
 
 // Problem with u0 = 0 and rhs f = t * 1_{x^2 + y^2 < 1/4}.
@@ -43,7 +45,7 @@ std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
 CylinderProblem(size_t space_order = 2) {
   auto time_f = [](double t) { return t; };
   auto space_f = [](double x, double y) { return (x * x + y * y < 0.25); };
-  return {CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(
+  return {CreateQuadratureTensorLinearForm<Time::OrthonormalWaveletFn>(
               time_f, space_f, /* time_order */ 1, space_order),
           std::make_unique<NoOpLinearForm<Time::ThreePointWaveletFn>>()};
 }

@@ -6,8 +6,7 @@ namespace applications::ErrorEstimator {
 namespace {
 double u0L2NormSquared(HeatEquation &heat,
                        LinearFormBase<ThreePointWaveletFn> &u0_lf) {
-  auto u0_functional = u0_lf.SpaceLF().Functional();
-  auto u0 = u0_functional->Function();
+  auto u0 = u0_lf.SpaceLF().Function();
   double u0_norm_sq = 0.0;
   auto space_metaroot = heat.vec_X()->Project_1()->node()->vertex();
   assert(space_metaroot->is_metaroot());
@@ -16,7 +15,8 @@ double u0L2NormSquared(HeatEquation &heat,
   assert(elem_metaroot->is_metaroot());
   auto u0_sq = [&u0](double x, double y) { return u0(x, y) * u0(x, y); };
   for (auto &elem : elem_metaroot->children())
-    u0_norm_sq += space::Integrate(u0_sq, *elem, 2 * u0_functional->Order());
+    u0_norm_sq +=
+        space::Integrate(u0_sq, *elem, 2 * u0_lf.SpaceLF().QuadratureOrder());
   return u0_norm_sq;
 }
 

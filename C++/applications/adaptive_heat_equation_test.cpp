@@ -9,11 +9,7 @@
 
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
-using spacetime::CreateQuadratureLinearForm;
-using spacetime::CreateZeroEvalLinearForm;
 using spacetime::GenerateYDelta;
-using spacetime::LinearForm;
-using spacetime::SumLinearForm;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 

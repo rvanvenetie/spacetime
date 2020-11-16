@@ -6,11 +6,6 @@
 #include "basis.hpp"
 namespace Time {
 template <>
-struct FunctionTrait<ContLinearScalingFn> {
-  using Wavelet = ThreePointWaveletFn;
-};
-
-template <>
 struct FunctionTrait<ThreePointWaveletFn> {
   using Scaling = ContLinearScalingFn;
 };
@@ -59,6 +54,7 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
 
   friend datastructures::Tree<ContLinearScalingFn>;
   friend ThreePointWaveletFn;
+  friend HierarchicalWaveletFn;
   friend Element1D;
 };
 

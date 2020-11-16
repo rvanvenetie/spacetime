@@ -15,6 +15,7 @@ using spacetime::SchurBilinearForm;
 using spacetime::SumBilinearForm;
 using spacetime::SymmetricBilinearForm;
 using spacetime::TransposeBilinearForm;
+using Time::HierarchicalWaveletFn;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
@@ -51,6 +52,8 @@ class HeatEquation {
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeYVector =
       DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>;
+  using TypeInterpolVector =
+      DoubleTreeVector<HierarchicalWaveletFn, HierarchicalBasisFn>;
 
   // The symmetric operator acting from Y_delta to Y_delta.
   using TypeA =
@@ -69,7 +72,7 @@ class HeatEquation {
   // The transpose of B is the sum of the transpose of these two operators.
   using TypeBT = BilinearFormBase<TypeYVector, TypeXVector>;
 
-  // The trace operator maps between X_delta and X_delta.
+  // The gamma_0'gamma_0 operator maps between X_delta and X_delta.
   using TypeG = SymmetricBilinearForm<Time::ZeroEvalOperator,
                                       space::MassOperator, ThreePointWaveletFn>;
 

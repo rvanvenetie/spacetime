@@ -24,6 +24,12 @@ auto GenerateSigma(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out);
 template <class DblTreeIn, class DblTreeOut>
 auto GenerateTheta(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out);
 
+void GenerateZDelta(
+    const datastructures::DoubleTreeVector<Time::ThreePointWaveletFn,
+                                           space::HierarchicalBasisFn> &X_delta,
+    datastructures::DoubleTreeVector<Time::HierarchicalWaveletFn,
+                                     space::HierarchicalBasisFn> *Z_delta);
+
 // Template specializations for GenerateYDelta.
 extern template datastructures::DoubleTreeView<Time::OrthonormalWaveletFn,
                                                space::HierarchicalBasisFn>
