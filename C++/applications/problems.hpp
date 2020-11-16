@@ -25,7 +25,7 @@ SmoothProblem() {
               CreateQuadratureTensorLinearForm<Time::OrthonormalWaveletFn>(
                   time_g2, space_g2, 1, 4)),
           CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(
-              u0, /* apply_quadrature*/ true, /* quadrature_order*/ 5)};
+              u0, /* apply_quadrature*/ true, /* quadrature_order*/ 4)};
 }
 
 // Singular problem: u0 = 1, f = 0.
