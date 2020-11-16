@@ -59,7 +59,7 @@ double ComputeTraceError(
       gamma_u_delta.root(), gamma_u_delta.root(), space_opts)
       .Apply();
 
-  return sqrt(gamma_u_delta.ToVectorContainer().dot(vec));
+  return gamma_u_delta.ToVectorContainer().dot(vec);
 }
 
 GlobalError ComputeGlobalError(const Eigen::VectorXd &g_min_Bu,
