@@ -259,15 +259,15 @@ int main(int argc, char* argv[]) {
 
     if (print_centers) {
       vec_Xd->FromVectorContainer(solution);
+      std::cerr << std::endl;
       for (auto dblnode : vec_Xd->Bfs()) {
         std::cerr << "((" << dblnode->node_0()->level() << ","
                   << dblnode->node_0()->center() << "),"
                   << "(" << dblnode->node_1()->level() << ",("
                   << dblnode->node_1()->center().first << ","
                   << dblnode->node_1()->center().second
-                  << ")) : " << dblnode->value() << ";";
+                  << ")) : " << dblnode->value() << ";" << std::flush;
       }
-      std::cerr << std::endl;
     }
 
     if (print_time_slices.size()) {
