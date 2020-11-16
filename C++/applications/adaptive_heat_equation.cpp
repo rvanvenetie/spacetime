@@ -67,11 +67,11 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     global_error =
         ErrorEstimator::ComputeGlobalError(g_min_Bu, PY_g_min_Bu, G_u_dd_dd, u0,
                                            heat_dd_dd, u_dd_dd, *u0_lin_form_);
-    // Calculate the error in two different ways
-    vec_Xd_->FromVectorContainer(u_dd_d);
+
+    // Calculate the trace error using the interpolant.
+    vec_Xdd_->FromVectorContainer(u_dd_dd);
     double trace_error = ErrorEstimator::ComputeTraceError(
-        0.0, u0_lin_form_->SpaceLF().Function(), vec_Xd_.get());
-    std::cerr << global_error.error_t0 << "\t" << trace_error << std::endl;
+        0.0, u0_lin_form_->SpaceLF().Function(), vec_Xdd_.get());
 
     vec_Xdd_->FromVectorContainer(residual);
     // Let heat_dd_dd go out of scope..
