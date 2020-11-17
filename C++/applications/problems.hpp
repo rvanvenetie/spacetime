@@ -61,7 +61,7 @@ MovingPeakProblem(std::shared_ptr<datastructures::DoubleTreeVector<
   auto u0 = [](double x, double y) {
     return sin(M_PI * x) * sin(M_PI * y) * exp(-100 * (x * x + y * y));
   };
-  auto g = [](double x, double y, double t) {
+  auto g = [](double t, double x, double y) {
     double sinPIx = sin(M_PI * x);
     double sinPIy = sin(M_PI * y);
     double cosPIx = cos(M_PI * x);
