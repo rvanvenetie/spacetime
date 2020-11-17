@@ -9,11 +9,7 @@
 
 using datastructures::DoubleTreeVector;
 using datastructures::DoubleTreeView;
-using spacetime::CreateQuadratureLinearForm;
-using spacetime::CreateZeroEvalLinearForm;
 using spacetime::GenerateYDelta;
-using spacetime::LinearForm;
-using spacetime::SumLinearForm;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
@@ -94,7 +90,8 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     auto marked_nodes = heat_eq.Mark(residual);
     ASSERT_EQ(marked_nodes.size(), python_mark_data[0].first);
     ASSERT_NEAR(residual_norm, python_mark_data[0].second.first, 1e-10);
-    ASSERT_NEAR(global_error.error, python_mark_data[0].second.second, 1e-10);
+    ASSERT_NEAR(global_error.error / python_mark_data[0].second.second, 1.0,
+                0.2);
 
     vec_Xd->FromVectorContainer(u);
     heat_eq.Refine(marked_nodes);
@@ -106,8 +103,8 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
       auto marked_nodes = heat_eq.Mark(residual);
       ASSERT_EQ(marked_nodes.size(), python_mark_data[iter].first);
       ASSERT_NEAR(residual_norm, python_mark_data[iter].second.first, 1e-5);
-      ASSERT_NEAR(global_error.error, python_mark_data[iter].second.second,
-                  1e-5);
+      ASSERT_NEAR(global_error.error / python_mark_data[iter].second.second,
+                  1.0, 0.1);
       ASSERT_NEAR(pcg_data.iterations, python_pcg_iters[iter], 1);
       TestNoEmptyFrozenAxes(heat_eq.vec_Xd());
       TestNoEmptyFrozenAxes(heat_eq.vec_Xdd());

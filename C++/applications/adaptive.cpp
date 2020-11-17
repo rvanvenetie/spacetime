@@ -34,20 +34,7 @@ std::istream& operator>>(std::istream& in,
 }
 
 void PrintTimeSliceSS(double t, AdaptiveHeatEquation::TypeXVector* solution) {
-  datastructures::TreeVector<HierarchicalBasisFn> time_slice(
-      solution->root()->node_1());
-  for (auto psi_time : solution->Project_0()->Bfs())
-    if (psi_time->node()->Eval(t) != 0) {
-      double time_val = psi_time->node()->Eval(t);
-      // time_slice += time_val * psi_time->FrozenOtherAxis()
-      time_slice.root()->Union(
-          psi_time->FrozenOtherAxis(),
-          /* call_filter*/ datastructures::func_true, /* call_postprocess*/
-          [time_val](const auto& my_node, const auto& other_node) {
-            my_node->set_value(my_node->value() +
-                               time_val * other_node->value());
-          });
-    }
+  auto time_slice = spacetime::Trace(t, *solution);
 
   // Calculate the triangulation corresponding to this space mesh.
   space::TriangulationView triang(time_slice.Bfs());
@@ -181,10 +168,14 @@ int main(int argc, char* argv[]) {
   std::cout << "t_init: " << t_delta << std::endl;
   size_t iter = 0;
   while (ndof_X < max_dofs) {
+    // Store a vector of all the nodes having maximum gradedness;
+    std::vector<typename HeatEquation::TypeXVector::DNType*> max_gradedness;
+
     ndof_X = vec_Xd->Bfs().size();             // A slight overestimate.
     ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
     std::cout << "iter: " << ++iter << "\n\tXDelta-size: " << ndof_X
-              << "\n\tXDelta-Gradedness: " << vec_Xd->Gradedness()
+              << "\n\tXDelta-Gradedness: "
+              << vec_Xd->Gradedness(&max_gradedness)
               << "\n\tYDeltaDelta-size: " << ndof_Y
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
 
@@ -272,15 +263,20 @@ int main(int argc, char* argv[]) {
 
     if (print_centers) {
       vec_Xd->FromVectorContainer(solution);
-      for (auto dblnode : vec_Xd->Bfs()) {
-        std::cerr << "((" << dblnode->node_0()->level() << ","
+      auto print_dblnode = [](auto dblnode) {
+        std::cout << "((" << dblnode->node_0()->level() << ","
                   << dblnode->node_0()->center() << "),"
                   << "(" << dblnode->node_1()->level() << ",("
                   << dblnode->node_1()->center().first << ","
                   << dblnode->node_1()->center().second
                   << ")) : " << dblnode->value() << ";";
-      }
-      std::cerr << std::endl;
+      };
+
+      std::cout << "\n\tcenters: ";
+      for (auto dblnode : vec_Xd->Bfs()) print_dblnode(dblnode);
+
+      std::cout << "\n\tcenters-max-gradedness: ";
+      for (auto dblnode : max_gradedness) print_dblnode(dblnode);
     }
 
     if (print_time_slices.size()) {

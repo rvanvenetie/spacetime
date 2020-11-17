@@ -28,3 +28,6 @@ target_link_libraries(space_operators_test space)
 
 package_add_test(space_integration_test integration_test.cpp)
 target_link_libraries(space_integration_test space)
+
+package_add_test(space_interpolant_test interpolant_test.cpp)
+target_link_libraries(space_interpolant_test space)

@@ -6,8 +6,7 @@ namespace applications::ErrorEstimator {
 namespace {
 double u0L2NormSquared(HeatEquation &heat,
                        LinearFormBase<ThreePointWaveletFn> &u0_lf) {
-  auto u0_functional = u0_lf.SpaceLF().Functional();
-  auto u0 = u0_functional->Function();
+  auto u0 = u0_lf.SpaceLF().Function();
   double u0_norm_sq = 0.0;
   auto space_metaroot = heat.vec_X()->Project_1()->node()->vertex();
   assert(space_metaroot->is_metaroot());
@@ -16,7 +15,8 @@ double u0L2NormSquared(HeatEquation &heat,
   assert(elem_metaroot->is_metaroot());
   auto u0_sq = [&u0](double x, double y) { return u0(x, y) * u0(x, y); };
   for (auto &elem : elem_metaroot->children())
-    u0_norm_sq += space::Integrate(u0_sq, *elem, 2 * u0_functional->Order());
+    u0_norm_sq +=
+        space::Integrate(u0_sq, *elem, 2 * u0_lf.SpaceLF().QuadratureOrder());
   return u0_norm_sq;
 }
 
@@ -37,6 +37,30 @@ void ApplyMeanZero(
   }
 }
 }  // namespace
+
+double ComputeTraceError(
+    double t, std::function<double(double, double)> u_t,
+    DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *u_delta) {
+  // Calculate the trace of u_delta at t.
+  auto gamma_u_delta = spacetime::Trace(t, *u_delta);
+  auto vec = gamma_u_delta.ToVectorContainer();
+
+  // Interpolate u_t.
+  space::Interpolate(u_t, gamma_u_delta.root());
+
+  // Calculate the difference between gamma_u_delta and u_t.
+  vec -= gamma_u_delta.ToVectorContainer();
+  gamma_u_delta.FromVectorContainer(vec);
+
+  // Now apply the mass matrix on this vector.
+  space::OperatorOptions space_opts(
+      {.dirichlet_boundary = false, .build_mat = false});
+  space::CreateBilinearForm<space::MassOperator>(
+      gamma_u_delta.root(), gamma_u_delta.root(), space_opts)
+      .Apply();
+
+  return gamma_u_delta.ToVectorContainer().dot(vec);
+}
 
 GlobalError ComputeGlobalError(const Eigen::VectorXd &g_min_Bu,
                                const Eigen::VectorXd &PY_g_min_Bu,
