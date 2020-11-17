@@ -62,19 +62,23 @@ MovingPeakProblem(std::shared_ptr<datastructures::DoubleTreeVector<
     return sin(M_PI * x) * sin(M_PI * y) * exp(-100 * (x * x + y * y));
   };
   auto g = [](double x, double y, double t) {
-    double dt_u = -100 * ((x - t) * (x - t) + (y - t) * (y - t)) *
-                  sin(M_PI * x) * sin(M_PI * y) *
-                  exp(-100 * ((x - t) * (x - t) + (y - t) * (y - t)));
-    double dxx_u = sin(M_PI * y) *
-                   (400 * M_PI * (t - x) * cos(M_PI * x) +
-                    200 * (200 * (t - x) * (t - x) - 1) * sin(M_PI * x) -
-                    M_PI * M_PI * sin(M_PI * x)) *
-                   exp(-100 * ((x - t) * (x - t) + (y - t) * (y - t)));
-    double dyy_u = sin(M_PI * x) *
-                   (400 * M_PI * (t - y) * cos(M_PI * y) +
-                    200 * (200 * (t - y) * (t - y) - 1) * sin(M_PI * y) -
-                    M_PI * M_PI * sin(M_PI * y)) *
-                   exp(-100 * ((x - t) * (x - t) + (y - t) * (y - t)));
+    double sinPIx = sin(M_PI * x);
+    double sinPIy = sin(M_PI * y);
+    double cosPIx = cos(M_PI * x);
+    double cosPIy = cos(M_PI * y);
+    double txy = ((x - t) * (x - t) + (y - t) * (y - t));
+    double exptxy = exp(-100 * txy);
+    double dt_u = -100 * txy * sinPIx * sinPIy * exptxy;
+    double dxx_u =
+        sinPIy *
+        (400 * M_PI * (t - x) * cosPIx +
+         200 * (200 * (t - x) * (t - x) - 1) * sinPIx - M_PI * M_PI * sinPIx) *
+        exptxy;
+    double dyy_u =
+        sinPIx *
+        (400 * M_PI * (t - y) * cosPIy +
+         200 * (200 * (t - y) * (t - y) - 1) * sinPIy - M_PI * M_PI * sinPIy) *
+        exptxy;
     return dt_u - dxx_u - dxx_u;
   };
   return {std::make_unique<spacetime::InterpolationLinearForm>(X_delta, g),
