@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+
 #include "../spacetime/linear_form.hpp"
 #include "../time/basis.hpp"
 
@@ -54,7 +55,9 @@ CylinderProblem(size_t space_order = 2) {
 // Problem with u = sin(pi x) sin(pi y) exp(-100 ((t-x)^2 + (t-y)^2))
 std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
           std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
-MovingPeakProblem(size_t space_order = 2) {
+MovingPeakProblem(std::shared_ptr<datastructures::DoubleTreeVector<
+                      Time::ThreePointWaveletFn, space::HierarchicalBasisFn>>
+                      X_delta) {
   auto u0 = [](double x, double y) {
     return sin(M_PI * x) * sin(M_PI * y) * exp(-100 * (x * x + y * y));
   };
@@ -74,9 +77,9 @@ MovingPeakProblem(size_t space_order = 2) {
                    exp(-100 * ((x - t) * (x - t) + (y - t) * (y - t)));
     return dt_u - dxx_u - dxx_u;
   };
-  return {CreateQuadratureLinearForm<Time::OrthonormalWaveletFn>(
-              time_f, space_f, /* time_order */ 1, space_order),
-          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(u0, 1)};
+  return {std::make_unique<spacetime::InterpolationLinearForm>(X_delta, g),
+          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(
+              u0, /* apply_quadrature*/ false)};
 }
 
 }  // namespace applications

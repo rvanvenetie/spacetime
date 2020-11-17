@@ -126,4 +126,58 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     }
   }
 }
+
+TEST(AdaptiveHeatEquation, MovingPeak) {
+  bool use_cache = false;
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(1);
+  B.ortho_tree.UniformRefine(1);
+  B.three_point_tree.UniformRefine(1);
+
+  auto u = [](double t, double x, double y) {
+    return sin(M_PI * x) * sin(M_PI * y) *
+           exp(-100 * ((t - x) * (t - x) + (t - y) * (t - y)));
+  };
+  auto vec_Xd = std::make_shared<
+      DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
+      B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+  vec_Xd->SparseRefine(1);
+  auto [g_lf, u0_lf] = MovingPeakProblem(vec_Xd);
+
+  AdaptiveHeatEquationOptions opts;
+  AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf), opts);
+
+  Eigen::VectorXd solution = Eigen::VectorXd::Zero(vec_Xd->container().size());
+  for (int i = 0; i < 15; i++) {
+    std::cout << "\n\niteration " << i;
+    // Solve.
+    auto [new_solution, pcg_data] = heat_eq.Solve(
+        solution, 1e-6, tools::linalg::StoppingCriterium::Relative);
+    solution = new_solution;
+
+    // Estimate.
+    auto [residual, global_errors] = heat_eq.Estimate(solution);
+    auto [residual_norm, global_error] = global_errors;
+    std::cout << "\n\tresidual-norm: " << residual_norm
+              << "\n\tglobal-error: " << global_error.error
+              << "\n\tYnorm-error: " << global_error.error_Yprime
+              << "\n\tT0-error: " << global_error.error_t0 << std::flush;
+
+    std::cout << "\n\ttrace-error-Xd: ";
+    for (double t : {0.0, 0.25, 0.5, 0.75, 1.0}) {
+      auto vec_Xd = heat_eq.vec_Xd();
+      vec_Xd->FromVectorContainer(solution);
+      double error_t = ErrorEstimator::ComputeTraceError(
+          t, [&](double x, double y) { return u(t, x, y); }, vec_Xd.get());
+      std::cout << "\n\t\t" << t << " : " << sqrt(error_t);
+    }
+
+    // Mark - refine
+    auto marked_nodes = heat_eq.Mark(residual);
+    vec_Xd->FromVectorContainer(solution);
+    heat_eq.Refine(marked_nodes);
+    solution = vec_Xd->ToVectorContainer();
+  }
+}
 }  // namespace applications

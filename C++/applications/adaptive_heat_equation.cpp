@@ -56,10 +56,10 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
 
     // Calculate the residual and store inside the dbltree.
     Eigen::VectorXd g_min_Bu =
-        g_lin_form_->Apply(heat_dd_dd.vec_Y()) - heat_dd_dd.B()->Apply(u_dd_dd);
+        g_lin_form_->Apply(vec_Ydd_.get()) - heat_dd_dd.B()->Apply(u_dd_dd);
     Eigen::VectorXd PY_g_min_Bu = heat_dd_dd.P_Y()->Apply(g_min_Bu);
     // \gamma_0' (u0 - \gamma_0 u^\delta)
-    Eigen::VectorXd u0 = u0_lin_form_->Apply(heat_dd_dd.vec_X());
+    Eigen::VectorXd u0 = u0_lin_form_->Apply(vec_Xdd_.get());
     Eigen::VectorXd G_u_dd_dd = heat_dd_dd.G()->Apply(u_dd_dd);
     Eigen::VectorXd residual =
         heat_dd_dd.BT()->Apply(PY_g_min_Bu) + (u0 - G_u_dd_dd);

@@ -133,20 +133,6 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
   std::cout << adapt_opts << std::endl;
 
-  std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
-            std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
-      problem_data;
-  if (problem == "smooth")
-    problem_data = SmoothProblem();
-  else if (problem == "singular")
-    problem_data = SingularProblem();
-  else if (problem == "cylinder")
-    problem_data = CylinderProblem();
-  else {
-    std::cout << "problem not recognized :-(" << std::endl;
-    return 1;
-  }
-
   auto T = InitialTriangulation(domain, initial_refines);
   auto B = Time::Bases();
 
@@ -158,6 +144,22 @@ int main(int argc, char* argv[]) {
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
       B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
   vec_Xd->SparseRefine(1);
+
+  std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
+            std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
+      problem_data;
+  if (problem == "smooth")
+    problem_data = SmoothProblem();
+  else if (problem == "singular")
+    problem_data = SingularProblem();
+  else if (problem == "cylinder")
+    problem_data = CylinderProblem();
+  else if (problem == "moving-peak")
+    problem_data = MovingPeakProblem(vec_Xd);
+  else {
+    std::cout << "problem not recognized :-(" << std::endl;
+    return 1;
+  }
 
   AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                std::move(problem_data.second), adapt_opts);
