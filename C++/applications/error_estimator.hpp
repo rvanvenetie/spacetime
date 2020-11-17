@@ -25,6 +25,11 @@ GlobalError ComputeGlobalError(const Eigen::VectorXd &g_min_Bu,
                                const Eigen::VectorXd &u_dd_dd,
                                LinearFormBase<ThreePointWaveletFn> &u0_lf);
 
+// Computes \|u_t - \gamma_t u_delta\|_{L_2(\Omega)} using interpolation on u_t.
+double ComputeTraceError(
+    double t, std::function<double(double, double)> u_t,
+    DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *u_delta);
+
 double ComputeLocalErrors(
     DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *residual_dd_dd,
     bool mean_zero = true);

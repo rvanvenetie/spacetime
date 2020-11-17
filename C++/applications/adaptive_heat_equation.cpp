@@ -64,9 +64,16 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     Eigen::VectorXd residual =
         heat_dd_dd.BT()->Apply(PY_g_min_Bu) + (u0 - G_u_dd_dd);
 
-    global_error =
-        ErrorEstimator::ComputeGlobalError(g_min_Bu, PY_g_min_Bu, G_u_dd_dd, u0,
-                                           heat_dd_dd, u_dd_dd, *u0_lin_form_);
+    // Calculate the global error using the interpolant.
+    vec_Xdd_->FromVectorContainer(u_dd_dd);
+    double error_Yprime_sq = PY_g_min_Bu.dot(g_min_Bu);
+    double error_t0 = ErrorEstimator::ComputeTraceError(
+        0.0, u0_lin_form_->SpaceLF().Function(), vec_Xdd_.get());
+
+    global_error.error = sqrt(error_Yprime_sq + error_t0);
+    global_error.error_Yprime = sqrt(error_Yprime_sq);
+    global_error.error_t0 = sqrt(error_t0);
+
     vec_Xdd_->FromVectorContainer(residual);
     // Let heat_dd_dd go out of scope..
   }
