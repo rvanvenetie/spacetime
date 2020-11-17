@@ -15,6 +15,29 @@ using Time::ThreePointWaveletFn;
 
 namespace applications {
 
+// Creates a slice in *space*.
+template <typename BasisTime>
+datastructures::TreeVector<BasisTime> SpaceSlice(
+    double x, double y,
+    const datastructures::DoubleTreeVector<
+        BasisTime, space::HierarchicalBasisFn> &dbltree) {
+  datastructures::TreeVector<BasisTime> space_slice(dbltree.root()->node_0());
+
+  for (auto psi_space : dbltree.Project_1()->Bfs()) {
+    double space_val = psi_space->node()->Eval(x, y);
+    if (space_val != 0) {
+      space_slice.root()->Union(
+          psi_space->FrozenOtherAxis(),
+          /* call_filter*/ datastructures::func_true, /* call_postprocess*/
+          [space_val](const auto &my_node, const auto &other_node) {
+            my_node->set_value(my_node->value() +
+                               space_val * other_node->value());
+          });
+    }
+  }
+  return space_slice;
+}
+
 template <typename DblVecTree>
 void TestNoEmptyFrozenAxes(std::shared_ptr<DblVecTree> vec) {
   for (auto phi : vec->Project_0()->Bfs())
@@ -97,7 +120,8 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     heat_eq.Refine(marked_nodes);
 
     for (size_t iter = 1; iter < 5; iter++) {
-      auto [u, pcg_data] = heat_eq.Solve(vec_Xd->ToVectorContainer());
+      auto [u, pcg_data] =
+          heat_eq.Solve(vec_Xd->ToVectorContainer(), heat_eq.RHS());
       auto [residual, global_errors] = heat_eq.Estimate(u);
       auto [residual_norm, global_error] = global_errors;
       auto marked_nodes = heat_eq.Mark(residual);
@@ -149,28 +173,85 @@ TEST(AdaptiveHeatEquation, MovingPeak) {
   AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf), opts);
 
   Eigen::VectorXd solution = Eigen::VectorXd::Zero(vec_Xd->container().size());
-  for (int i = 0; i < 15; i++) {
-    std::cout << "\n\niteration " << i;
+  std::vector<double> err_inf;
+  std::vector<double> err_X;
+  std::vector<double> size_X;
+  for (int i = 0; i < 9; i++) {
+    size_X.push_back(vec_Xd->Bfs().size());
+
     // Solve.
-    auto [new_solution, pcg_data] = heat_eq.Solve(
-        solution, 1e-6, tools::linalg::StoppingCriterium::Relative);
+    auto [new_solution, pcg_data] =
+        heat_eq.Solve(solution, heat_eq.RHS(), 1e-8,
+                      tools::linalg::StoppingCriterium::Relative);
     solution = new_solution;
 
     // Estimate.
     auto [residual, global_errors] = heat_eq.Estimate(solution);
     auto [residual_norm, global_error] = global_errors;
-    std::cout << "\n\tresidual-norm: " << residual_norm
-              << "\n\tglobal-error: " << global_error.error
-              << "\n\tYnorm-error: " << global_error.error_Yprime
-              << "\n\tT0-error: " << global_error.error_t0 << std::flush;
+    err_X.emplace_back(global_error.error);
+    if (i > 5) {
+      double rate =
+          log(err_X[i] / err_X[i - 1]) / log(size_X[i - 1] / size_X[i]);
+      ASSERT_GE(rate, 0.5);
+    }
 
-    std::cout << "\n\ttrace-error-Xd: ";
-    for (double t : {0.0, 0.25, 0.5, 0.75, 1.0}) {
-      auto vec_Xd = heat_eq.vec_Xd();
-      vec_Xd->FromVectorContainer(solution);
-      double error_t = ErrorEstimator::ComputeTraceError(
-          t, [&](double x, double y) { return u(t, x, y); }, vec_Xd.get());
-      std::cout << "\n\t\t" << t << " : " << sqrt(error_t);
+    // Estimate the infinity norm.
+    double err_inf_norm = 0.0;
+    std::vector<double> pts{
+        0.,         0.00961538, 0.01923077, 0.02884615, 0.03846154, 0.04807692,
+        0.05769231, 0.06730769, 0.07692308, 0.08653846, 0.09615385, 0.10576923,
+        0.11538462, 0.125,      0.13461538, 0.14423077, 0.15384615, 0.16346154,
+        0.17307692, 0.18269231, 0.19230769, 0.20192308, 0.21153846, 0.22115385,
+        0.23076923, 0.24038462, 0.25,       0.25961538, 0.26923077, 0.27884615,
+        0.28846154, 0.29807692, 0.30769231, 0.31730769, 0.32692308, 0.33653846,
+        0.34615385, 0.35576923, 0.36538462, 0.375,      0.38461538, 0.39423077,
+        0.40384615, 0.41346154, 0.42307692, 0.43269231, 0.44230769, 0.45192308,
+        0.46153846, 0.47115385, 0.48076923, 0.49038462, 0.5,        0.50961538,
+        0.51923077, 0.52884615, 0.53846154, 0.54807692, 0.55769231, 0.56730769,
+        0.57692308, 0.58653846, 0.59615385, 0.60576923, 0.61538462, 0.625,
+        0.63461538, 0.64423077, 0.65384615, 0.66346154, 0.67307692, 0.68269231,
+        0.69230769, 0.70192308, 0.71153846, 0.72115385, 0.73076923, 0.74038462,
+        0.75,       0.75961538, 0.76923077, 0.77884615, 0.78846154, 0.79807692,
+        0.80769231, 0.81730769, 0.82692308, 0.83653846, 0.84615385, 0.85576923,
+        0.86538462, 0.875,      0.88461538, 0.89423077, 0.90384615, 0.91346154,
+        0.92307692, 0.93269231, 0.94230769, 0.95192308, 0.96153846, 0.97115385,
+        0.98076923, 0.99038462, 1.};
+    vec_Xd->FromVectorContainer(solution);
+    double max_t, max_x, max_y;
+    for (double x : pts)
+      for (double y : pts) {
+        if (abs(x - y) > 0.15) continue;
+        auto space_slice = SpaceSlice(x, y, *vec_Xd);
+        auto space_slice_nodes = space_slice.Bfs();
+        auto u_delta = [&](double t) {
+          double result = 0;
+          for (int i = 0; i < space_slice_nodes.size(); ++i) {
+            result += space_slice_nodes[i]->node()->Eval(t) *
+                      space_slice_nodes[i]->value();
+          }
+          return result;
+        };
+
+        for (double t : pts) {
+          if (abs(x - t) > 0.15 || abs(y - t) > 0.15) continue;
+          double error_txy = abs(u(t, x, y) - u_delta(t));
+          if (error_txy > err_inf_norm) {
+            err_inf_norm = error_txy;
+            max_t = t;
+            max_x = x;
+            max_y = y;
+          }
+        }
+      }
+    err_inf.emplace_back(err_inf_norm);
+    if (i > 5) {
+      double rate =
+          log(err_inf[i] / err_inf[i - 1]) / log(size_X[i - 1] / size_X[i]);
+      std::cout << rate << std::endl;
+
+      ASSERT_LE(err_inf[i], 7);
+      ASSERT_LE(err_inf[i], err_inf[i - 1]);
+      ASSERT_GE(rate, 0.5);
     }
 
     // Mark - refine

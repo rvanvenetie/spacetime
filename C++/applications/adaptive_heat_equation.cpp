@@ -20,22 +20,22 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
       u0_lin_form_(std::move(u0_lin_form)),
       opts_(opts) {}
 
-Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
-  Eigen::VectorXd rhs = g_lin_form_->Apply(heat.vec_Y());
-  rhs = heat.P_Y()->Apply(rhs);
-  rhs = heat.BT()->Apply(rhs);
+Eigen::VectorXd AdaptiveHeatEquation::RHS() {
+  Eigen::VectorXd rhs = g_lin_form_->Apply(heat_d_dd_->vec_Y());
+  rhs = heat_d_dd_->P_Y()->Apply(rhs);
+  rhs = heat_d_dd_->BT()->Apply(rhs);
 
-  rhs += u0_lin_form_->Apply(heat.vec_X());
+  rhs += u0_lin_form_->Apply(heat_d_dd_->vec_X());
   return rhs;
 }
 
 std::pair<Eigen::VectorXd, tools::linalg::SolverData>
-AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0, double tol,
+AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0,
+                            const Eigen::VectorXd &rhs, double tol,
                             enum tools::linalg::StoppingCriterium crit) {
   assert(heat_d_dd_);
-  return tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
-                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit, tol,
-                            crit);
+  return tools::linalg::PCG(*heat_d_dd_->S(), rhs, *heat_d_dd_->P_X(), x0,
+                            opts_.solve_maxit, tol, crit);
 }
 
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
