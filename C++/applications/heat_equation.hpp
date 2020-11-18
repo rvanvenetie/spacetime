@@ -21,7 +21,7 @@ using Time::ThreePointWaveletFn;
 
 struct HeatEquationOptions {
   // Whether or not to cache the bilinear forms.
-  bool use_cache = false;
+  bool use_cache = true;
 
   // Whether or not to build the space matrices.
   bool build_space_mats = false;
