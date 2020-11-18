@@ -21,7 +21,7 @@ using Time::ThreePointWaveletFn;
 
 struct HeatEquationOptions {
   // Whether or not to cache the bilinear forms.
-  bool use_cache = true;
+  bool use_cache = false;
 
   // Whether or not to build the space matrices.
   bool build_space_mats = false;
@@ -31,8 +31,8 @@ struct HeatEquationOptions {
 
   // Options for the inversion of space matrices, necessary for preconditioners.
   enum SpaceInverse { DirectInverse, Multigrid };
-  SpaceInverse PX_inv = SpaceInverse::DirectInverse;
-  SpaceInverse PY_inv = SpaceInverse::DirectInverse;
+  SpaceInverse PX_inv = SpaceInverse::Multigrid;
+  SpaceInverse PY_inv = SpaceInverse::Multigrid;
 
   // For multigrid Preconditioner, sets whether to build the forward matrix.
   bool PXY_mg_build = false;

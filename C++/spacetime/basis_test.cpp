@@ -97,6 +97,7 @@ TEST(GenerateSigma, SmallSigma) {
   auto Lambda = DoubleTreeVector<HaarWaveletFn, HaarWaveletFn>(
       B.haar_tree.meta_root(), B.haar_tree.meta_root());
   Lambda.UniformRefine(2);
+  Lambda.ComputeFibers();
   auto Sigma = GenerateSigma(Lambda, Lambda);
   auto sigma_nodes = Sigma->Bfs();
 
@@ -122,10 +123,12 @@ TEST(GenerateSigma, FullTensorSigma) {
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>(
             B.ortho_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     Lambda_in.UniformRefine(level);
+    Lambda_in.ComputeFibers();
     auto Lambda_out =
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
             B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     Lambda_out.UniformRefine(level);
+    Lambda_out.ComputeFibers();
 
     auto Sigma = GenerateSigma(Lambda_in, Lambda_out);
     auto sigma_nodes = Sigma->Bfs();
@@ -154,10 +157,12 @@ TEST(GenerateTheta, FullTensorTheta) {
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>(
             B.ortho_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     Lambda_in.UniformRefine(level);
+    Lambda_in.ComputeFibers();
     auto Lambda_out =
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>(
             B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     Lambda_out.UniformRefine(level);
+    Lambda_out.ComputeFibers();
 
     auto Theta = GenerateTheta(Lambda_in, Lambda_out);
     auto theta_nodes = Theta->Bfs();
