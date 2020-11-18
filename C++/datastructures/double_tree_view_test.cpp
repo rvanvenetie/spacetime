@@ -54,6 +54,7 @@ TEST(DoubleTreeView, Union) {
   auto from_tree =
       DoubleTreeView<Vertex, Element2D>(T.vertex_meta_root, T.elem_meta_root);
   from_tree.DeepRefine();
+  from_tree.ComputeFibers();
   auto to_tree =
       DoubleTreeView<Vertex, Element2D>(T.vertex_meta_root, T.elem_meta_root);
 
@@ -146,6 +147,7 @@ TEST(DoubleTreeVector, frozen_vector) {
   for (auto db_node : db_tree.Bfs()) ASSERT_EQ(db_node->value(), 1.0);
 
   // Check that this also holds for the fibers.
+  db_tree.ComputeFibers();
   for (auto labda : db_tree.Project_0()->Bfs()) {
     auto fiber = db_tree.Fiber_1(labda->node());
     for (auto f_node : fiber->Bfs()) ASSERT_EQ(f_node->value(), 1.0);

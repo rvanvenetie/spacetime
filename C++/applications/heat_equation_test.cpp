@@ -38,6 +38,8 @@ TEST(HeatEquation, CompareToPython) {
     HeatEquationOptions opts;
     opts.use_cache = use_cache;
     opts.PX_alpha = 1.0;
+    opts.PX_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
+    opts.PY_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
     HeatEquation heat_eq(X_delta, opts);
 
     // Set double-tree vectors
@@ -128,7 +130,10 @@ TEST(HeatEquation, SchurCG) {
         B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
     X_delta.SparseRefine(level);
 
-    HeatEquation heat_eq(X_delta);
+    HeatEquationOptions opts;
+    opts.PX_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
+    opts.PY_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
+    HeatEquation heat_eq(X_delta, opts);
 
     // Generate some rhs.
     for (auto nv : heat_eq.vec_X()->Bfs()) {
@@ -209,12 +214,15 @@ TEST(HeatEquation, SchurPCG) {
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
       B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
 
+  HeatEquationOptions opts;
+  opts.PX_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
+  opts.PY_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
   for (int level = 1; level < max_level; level++) {
     T.hierarch_basis_tree.UniformRefine(level);
     B.ortho_tree.UniformRefine(level);
     B.three_point_tree.UniformRefine(level);
     X_delta.SparseRefine(level, {2, 1});
-    HeatEquation heat_eq(X_delta);
+    HeatEquation heat_eq(X_delta, opts);
 
     // Generate some rhs.
     for (auto nv : heat_eq.vec_X()->Bfs()) {
@@ -248,13 +256,16 @@ TEST(HeatEquation, LanczosDirectInverse) {
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
       B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
 
+  HeatEquationOptions opts;
+  opts.PX_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
+  opts.PY_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
   for (int level = 1; level <= max_level; level++) {
     if (level % 2) continue;
     T.hierarch_basis_tree.UniformRefine(level);
     B.ortho_tree.UniformRefine(level);
     B.three_point_tree.UniformRefine(level);
     X_delta.SparseRefine(level, {2, 1});
-    HeatEquation heat_eq(X_delta);
+    HeatEquation heat_eq(X_delta, opts);
 
     std::cout << "Level " << level << "; #(X_delta, Y_delta) = ("
               << heat_eq.vec_X()->Bfs().size() << ", "
