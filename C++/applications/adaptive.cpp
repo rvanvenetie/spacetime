@@ -309,15 +309,19 @@ int main(int argc, char* argv[]) {
 
     // Mark - Refine.
     auto marked_nodes = heat_eq.Mark(residual);
-    vec_Xd->FromVectorContainer(solution);
 
     start = std::chrono::steady_clock::now();
-    heat_eq.Refine(marked_nodes);
+    vec_Xd->FromVectorContainer(solution);
+    auto r_info = heat_eq.Refine(marked_nodes);
+    x0 = vec_Xd->ToVectorContainer();
     std::chrono::duration<double> duration_refine =
         std::chrono::steady_clock::now() - start;
-    x0 = vec_Xd->ToVectorContainer();
 
-    std::cout << "\n\trefine-time: " << duration_refine.count() << std::endl;
+    std::cout << "\n\tnodes-marked" << r_info.nodes_marked
+              << "\n\tnodes-conforming" << r_info.nodes_conforming
+              << "\n\tresidual-norm-marked: " << r_info.res_norm_marked
+              << "\n\tresidual-norm-conforming: " << r_info.res_norm_conforming
+              << "\n\trefine-time" << duration_refine.count() << std::endl;
   }
 
   return 0;

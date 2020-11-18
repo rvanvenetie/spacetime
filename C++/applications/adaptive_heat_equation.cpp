@@ -108,10 +108,26 @@ auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
   return nodes;
 }
 
-void AdaptiveHeatEquation::Refine(
+RefineInfo AdaptiveHeatEquation::Refine(
     const std::vector<TypeXNode *> &nodes_to_add) {
+  RefineInfo info;
+  {
+    double sq_norm = 0.0;
+    info.nodes_marked = nodes_to_add.size();
+    for (auto n : nodes_to_add) sq_norm += n->value() * n->value();
+    info.res_norm_marked = sqrt(sq_norm);
+  }
+
   // Refine the solution vector, requires vec_Xdd_.
-  vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
+  size_t Xd_size = vec_Xd_->container().size();
+  auto nodes_Xdd_ = vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
+
+  {
+    double sq_norm = 0.0;
+    info.nodes_conforming = vec_Xd_->container().size() - Xd_size;
+    for (auto n : nodes_Xdd_) sq_norm += n->value() * n->value();
+    info.res_norm_conforming = sqrt(sq_norm);
+  }
 
   // Reset the objects that we no longer need, this will free the memory.
   heat_d_dd_.reset();
@@ -136,5 +152,7 @@ void AdaptiveHeatEquation::Refine(
 #endif
 
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
+
+  return info;
 }
 };  // namespace applications

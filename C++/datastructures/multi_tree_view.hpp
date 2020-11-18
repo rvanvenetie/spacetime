@@ -282,8 +282,9 @@ class MultiTreeView {
   MT_other DeepCopy(const FuncPost& call_postprocess = func_noop) const;
 
   template <typename I_other = I, typename MT_other = MultiTreeView<I_other>>
-  void ConformingRefinement(const MT_other& supertree,
-                            const std::vector<I_other*>& nodes_to_add) const;
+  std::vector<I_other*> ConformingRefinement(
+      const MT_other& supertree,
+      const std::vector<I_other*>& nodes_to_add) const;
 
   // Simple helpers.
   std::vector<I*> Bfs(bool include_metaroot = false) const {
