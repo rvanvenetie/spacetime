@@ -1,4 +1,6 @@
 #pragma once
+#include <cmath>
+
 #include "../spacetime/linear_form.hpp"
 #include "../time/basis.hpp"
 
@@ -48,6 +50,41 @@ CylinderProblem(size_t space_order = 2) {
   return {CreateQuadratureTensorLinearForm<Time::OrthonormalWaveletFn>(
               time_f, space_f, /* time_order */ 1, space_order),
           std::make_unique<NoOpLinearForm<Time::ThreePointWaveletFn>>()};
+}
+
+// Problem with u = sin(pi x) sin(pi y) exp(-100 ((t-x)^2 + (t-y)^2))
+std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
+          std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
+MovingPeakProblem(std::shared_ptr<datastructures::DoubleTreeVector<
+                      Time::ThreePointWaveletFn, space::HierarchicalBasisFn>>
+                      X_delta) {
+  auto u0 = [](double x, double y) {
+    return sin(M_PI * x) * sin(M_PI * y) * exp(-100 * (x * x + y * y));
+  };
+  auto g = [](double t, double x, double y) {
+    double sinPIx = sin(M_PI * x);
+    double sinPIy = sin(M_PI * y);
+    double cosPIx = cos(M_PI * x);
+    double cosPIy = cos(M_PI * y);
+    double txy = ((x - t) * (x - t) + (y - t) * (y - t));
+    double exptxy = exp(-100 * txy);
+
+    double dt_u = -100 * txy * sinPIx * sinPIy * exptxy;
+    double dxx_u =
+        sinPIy *
+        (400 * M_PI * (t - x) * cosPIx +
+         200 * (200 * (t - x) * (t - x) - 1) * sinPIx - M_PI * M_PI * sinPIx) *
+        exptxy;
+    double dyy_u =
+        sinPIx *
+        (400 * M_PI * (t - y) * cosPIy +
+         200 * (200 * (t - y) * (t - y) - 1) * sinPIy - M_PI * M_PI * sinPIy) *
+        exptxy;
+    return dt_u - dxx_u - dxx_u;
+  };
+  return {std::make_unique<spacetime::InterpolationLinearForm>(X_delta, g),
+          CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(
+              u0, /* apply_quadrature*/ false)};
 }
 
 }  // namespace applications

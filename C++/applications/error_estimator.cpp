@@ -38,6 +38,30 @@ void ApplyMeanZero(
 }
 }  // namespace
 
+double ComputeTraceError(
+    double t, std::function<double(double, double)> u_t,
+    DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn> *u_delta) {
+  // Calculate the trace of u_delta at t.
+  auto gamma_u_delta = spacetime::Trace(t, *u_delta);
+  auto vec = gamma_u_delta.ToVectorContainer();
+
+  // Interpolate u_t.
+  space::Interpolate(u_t, gamma_u_delta.root());
+
+  // Calculate the difference between gamma_u_delta and u_t.
+  vec -= gamma_u_delta.ToVectorContainer();
+  gamma_u_delta.FromVectorContainer(vec);
+
+  // Now apply the mass matrix on this vector.
+  space::OperatorOptions space_opts(
+      {.dirichlet_boundary = false, .build_mat = false});
+  space::CreateBilinearForm<space::MassOperator>(
+      gamma_u_delta.root(), gamma_u_delta.root(), space_opts)
+      .Apply();
+
+  return gamma_u_delta.ToVectorContainer().dot(vec);
+}
+
 GlobalError ComputeGlobalError(const Eigen::VectorXd &g_min_Bu,
                                const Eigen::VectorXd &PY_g_min_Bu,
                                const Eigen::VectorXd &G_u_dd_dd,

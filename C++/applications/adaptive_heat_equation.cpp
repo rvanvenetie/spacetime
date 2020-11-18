@@ -20,22 +20,22 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
       u0_lin_form_(std::move(u0_lin_form)),
       opts_(opts) {}
 
-Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
-  Eigen::VectorXd rhs = g_lin_form_->Apply(heat.vec_Y());
-  rhs = heat.P_Y()->Apply(rhs);
-  rhs = heat.BT()->Apply(rhs);
+Eigen::VectorXd AdaptiveHeatEquation::RHS() {
+  Eigen::VectorXd rhs = g_lin_form_->Apply(heat_d_dd_->vec_Y());
+  rhs = heat_d_dd_->P_Y()->Apply(rhs);
+  rhs = heat_d_dd_->BT()->Apply(rhs);
 
-  rhs += u0_lin_form_->Apply(heat.vec_X());
+  rhs += u0_lin_form_->Apply(heat_d_dd_->vec_X());
   return rhs;
 }
 
 std::pair<Eigen::VectorXd, tools::linalg::SolverData>
-AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0, double tol,
+AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0,
+                            const Eigen::VectorXd &rhs, double tol,
                             enum tools::linalg::StoppingCriterium crit) {
   assert(heat_d_dd_);
-  return tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
-                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit, tol,
-                            crit);
+  return tools::linalg::PCG(*heat_d_dd_->S(), rhs, *heat_d_dd_->P_X(), x0,
+                            opts_.solve_maxit, tol, crit);
 }
 
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
@@ -56,17 +56,24 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
 
     // Calculate the residual and store inside the dbltree.
     Eigen::VectorXd g_min_Bu =
-        g_lin_form_->Apply(heat_dd_dd.vec_Y()) - heat_dd_dd.B()->Apply(u_dd_dd);
+        g_lin_form_->Apply(vec_Ydd_.get()) - heat_dd_dd.B()->Apply(u_dd_dd);
     Eigen::VectorXd PY_g_min_Bu = heat_dd_dd.P_Y()->Apply(g_min_Bu);
     // \gamma_0' (u0 - \gamma_0 u^\delta)
-    Eigen::VectorXd u0 = u0_lin_form_->Apply(heat_dd_dd.vec_X());
+    Eigen::VectorXd u0 = u0_lin_form_->Apply(vec_Xdd_.get());
     Eigen::VectorXd G_u_dd_dd = heat_dd_dd.G()->Apply(u_dd_dd);
     Eigen::VectorXd residual =
         heat_dd_dd.BT()->Apply(PY_g_min_Bu) + (u0 - G_u_dd_dd);
 
-    global_error =
-        ErrorEstimator::ComputeGlobalError(g_min_Bu, PY_g_min_Bu, G_u_dd_dd, u0,
-                                           heat_dd_dd, u_dd_dd, *u0_lin_form_);
+    // Calculate the global error using the interpolant.
+    vec_Xdd_->FromVectorContainer(u_dd_dd);
+    double error_Yprime_sq = PY_g_min_Bu.dot(g_min_Bu);
+    double error_t0 = ErrorEstimator::ComputeTraceError(
+        0.0, u0_lin_form_->SpaceLF().Function(), vec_Xdd_.get());
+
+    global_error.error = sqrt(error_Yprime_sq + error_t0);
+    global_error.error_Yprime = sqrt(error_Yprime_sq);
+    global_error.error_t0 = sqrt(error_t0);
+
     vec_Xdd_->FromVectorContainer(residual);
     // Let heat_dd_dd go out of scope..
   }
@@ -101,10 +108,38 @@ auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
   return nodes;
 }
 
-void AdaptiveHeatEquation::Refine(
+RefineInfo AdaptiveHeatEquation::Refine(
     const std::vector<TypeXNode *> &nodes_to_add) {
+  RefineInfo info;
+  size_t Xd_size = 0;
+
+  // Calculate information before the conforming refinement.
+  {
+    double sq_norm = 0.0;
+    info.nodes_marked = nodes_to_add.size();
+    for (auto n : nodes_to_add) sq_norm += n->value() * n->value();
+    info.res_norm_marked = sqrt(sq_norm);
+
+    Xd_size =
+        std::count_if(vec_Xd_->container().begin(), vec_Xd_->container().end(),
+                      [](const auto &n) { return !n.is_metaroot(); });
+  }
+
   // Refine the solution vector, requires vec_Xdd_.
-  vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
+  auto nodes_conforming =
+      vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
+
+  // Calculate information after the conforming refinement.
+  {
+    double sq_norm = 0.0;
+    for (auto n : nodes_conforming) sq_norm += n->value() * n->value();
+    info.res_norm_conforming = sqrt(sq_norm);
+
+    size_t Xd_conf_size =
+        std::count_if(vec_Xd_->container().begin(), vec_Xd_->container().end(),
+                      [](const auto &n) { return !n.is_metaroot(); });
+    info.nodes_conforming = Xd_conf_size - Xd_size;
+  }
 
   // Reset the objects that we no longer need, this will free the memory.
   heat_d_dd_.reset();
@@ -129,5 +164,7 @@ void AdaptiveHeatEquation::Refine(
 #endif
 
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
+
+  return info;
 }
 };  // namespace applications
