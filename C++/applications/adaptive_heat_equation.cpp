@@ -108,10 +108,38 @@ auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
   return nodes;
 }
 
-void AdaptiveHeatEquation::Refine(
+RefineInfo AdaptiveHeatEquation::Refine(
     const std::vector<TypeXNode *> &nodes_to_add) {
+  RefineInfo info;
+  size_t Xd_size = 0;
+
+  // Calculate information before the conforming refinement.
+  {
+    double sq_norm = 0.0;
+    info.nodes_marked = nodes_to_add.size();
+    for (auto n : nodes_to_add) sq_norm += n->value() * n->value();
+    info.res_norm_marked = sqrt(sq_norm);
+
+    Xd_size =
+        std::count_if(vec_Xd_->container().begin(), vec_Xd_->container().end(),
+                      [](const auto &n) { return !n.is_metaroot(); });
+  }
+
   // Refine the solution vector, requires vec_Xdd_.
-  vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
+  auto nodes_conforming =
+      vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
+
+  // Calculate information after the conforming refinement.
+  {
+    double sq_norm = 0.0;
+    for (auto n : nodes_conforming) sq_norm += n->value() * n->value();
+    info.res_norm_conforming = sqrt(sq_norm);
+
+    size_t Xd_conf_size =
+        std::count_if(vec_Xd_->container().begin(), vec_Xd_->container().end(),
+                      [](const auto &n) { return !n.is_metaroot(); });
+    info.nodes_conforming = Xd_conf_size - Xd_size;
+  }
 
   // Reset the objects that we no longer need, this will free the memory.
   heat_d_dd_.reset();
@@ -136,5 +164,7 @@ void AdaptiveHeatEquation::Refine(
 #endif
 
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
+
+  return info;
 }
 };  // namespace applications

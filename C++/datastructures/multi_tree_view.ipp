@@ -274,7 +274,7 @@ inline MT_other MultiTreeView<I>::DeepCopy(
 
 template <typename I>
 template <typename I_other, typename MT_other>
-void MultiTreeView<I>::ConformingRefinement(
+std::vector<I_other*> MultiTreeView<I>::ConformingRefinement(
     const MT_other& supertree,
     const std::vector<I_other*>& nodes_to_add) const {
   assert(root_->is_root() && supertree.root()->is_root());
@@ -318,5 +318,6 @@ void MultiTreeView<I>::ConformingRefinement(
                });
 
   for (auto super_mltnode : marked) super_mltnode->set_marked(false);
+  return marked;
 }
 };  // namespace datastructures

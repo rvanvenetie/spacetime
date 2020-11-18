@@ -61,6 +61,16 @@ struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   }
 };
 
+struct RefineInfo {
+  // Data on the nodes that we have marked.
+  size_t nodes_marked = 0;
+  double res_norm_marked = 0.0;
+
+  // Data on the nodes including the double tree constraint.
+  size_t nodes_conforming = 0;
+  double res_norm_conforming = 0;
+};
+
 class AdaptiveHeatEquation {
  public:
   using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
@@ -97,7 +107,7 @@ class AdaptiveHeatEquation {
   std::vector<TypeXNode *> Mark(TypeXVector *residual);
 
   // Refines the grid and prolongates a solution living on Xd_.
-  void Refine(const std::vector<TypeXNode *> &nodes_to_add);
+  RefineInfo Refine(const std::vector<TypeXNode *> &nodes_to_add);
 
   std::shared_ptr<TypeXVector> vec_Xd() { return vec_Xd_; }
   std::shared_ptr<TypeXVector> vec_Xdd() { return vec_Xdd_; }
