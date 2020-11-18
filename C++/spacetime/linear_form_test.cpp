@@ -86,10 +86,12 @@ TEST(LinearForm, InterpolationExact) {
   // We shall fix Y_delta, and check whether the interpolation linear form
   // converges.
   Y_delta.UniformRefine(3);
+  Y_delta.ComputeFibers();
   auto vec_quad = linform_quadrature->Apply(&Y_delta);
 
   for (int level = 0; level < max_level; level++) {
     X_delta->SparseRefine(level);
+    X_delta->ComputeFibers();
     auto vec_interpol = linform_interpol.Apply(&Y_delta);
     ASSERT_TRUE(vec_interpol.isApprox(vec_quad));
   }
@@ -128,7 +130,9 @@ TEST(LinearForm, InterpolationConverges) {
 
   for (int level = 0; level < max_level; level++) {
     X_delta->SparseRefine(2 * level, {2, 1});
+    X_delta->ComputeFibers();
     Y_delta.SparseRefine(2 * (level + 1), {2, 1});
+    Y_delta.ComputeFibers();
 
     auto vec_quad = linform_quadrature->Apply(&Y_delta);
     auto vec_interpol = linform_interpol.Apply(&Y_delta);

@@ -75,6 +75,8 @@ TEST(AdaptiveHeatEquation, CompareToPython) {
     opts.use_cache = use_cache;
     opts.mark_theta = 0.7;
     opts.PX_alpha = 0.35;
+    opts.PX_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
+    opts.PY_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf),
                                  opts);
 
