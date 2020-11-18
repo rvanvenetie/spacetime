@@ -133,20 +133,6 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
   std::cout << adapt_opts << std::endl;
 
-  std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
-            std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
-      problem_data;
-  if (problem == "smooth")
-    problem_data = SmoothProblem();
-  else if (problem == "singular")
-    problem_data = SingularProblem();
-  else if (problem == "cylinder")
-    problem_data = CylinderProblem();
-  else {
-    std::cout << "problem not recognized :-(" << std::endl;
-    return 1;
-  }
-
   auto T = InitialTriangulation(domain, initial_refines);
   auto B = Time::Bases();
 
@@ -158,6 +144,22 @@ int main(int argc, char* argv[]) {
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
       B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
   vec_Xd->SparseRefine(1);
+
+  std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
+            std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
+      problem_data;
+  if (problem == "smooth")
+    problem_data = SmoothProblem();
+  else if (problem == "singular")
+    problem_data = SingularProblem();
+  else if (problem == "cylinder")
+    problem_data = CylinderProblem();
+  else if (problem == "moving-peak")
+    problem_data = MovingPeakProblem(vec_Xd);
+  else {
+    std::cout << "problem not recognized :-(" << std::endl;
+    return 1;
+  }
 
   AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                std::move(problem_data.second), adapt_opts);
@@ -210,13 +212,24 @@ int main(int argc, char* argv[]) {
     double total_error;
     AdaptiveHeatEquation::TypeXVector* residual;
     int cycle = 1;
+
     auto start = std::chrono::steady_clock::now();
+    auto rhs = heat_eq.RHS();
+    std::chrono::duration<double> duration_rhs =
+        std::chrono::steady_clock::now() - start;
+    std::cout << "\n\trhs-time: " << duration_rhs.count();
+    std::cout << "\n\trhs-g-linform-time: "
+              << heat_eq.g_lin_form()->TimeLastApply();
+    std::cout << "\n\trhs-u0-linform-time: "
+              << heat_eq.u0_lin_form()->TimeLastApply();
+
+    auto start_solve_estimate = std::chrono::steady_clock::now();
     do {
       t_delta /= adapt_opts.solve_factor;
       std::cout << "\n\tcycle: " << cycle << "\n\t\tt_delta: " << t_delta;
       // Solve.
       start = std::chrono::steady_clock::now();
-      auto [cur_solution, pcg_data] = heat_eq.Solve(solution, t_delta);
+      auto [cur_solution, pcg_data] = heat_eq.Solve(solution, rhs, t_delta);
       solution = cur_solution;
       t_delta = pcg_data.algebraic_error;
       std::chrono::duration<double> duration_solve =
@@ -244,6 +257,10 @@ int main(int argc, char* argv[]) {
       cycle++;
     } while (t_delta > adapt_opts.solve_xi * total_error);
     t_delta = total_error;
+
+    std::chrono::duration<double> duration_solve_estimate =
+        std::chrono::steady_clock::now() - start_solve_estimate;
+    std::cout << "\n\tsolve-estimate-time: " << duration_solve_estimate.count();
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();

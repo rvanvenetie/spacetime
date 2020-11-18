@@ -80,14 +80,16 @@ class AdaptiveHeatEquation {
       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
+  Eigen::VectorXd RHS();
   std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
-      const Eigen::VectorXd &x0, double tol = 1e-5,
+      const Eigen::VectorXd &x0, const Eigen::VectorXd &rhs, double tol = 1e-5,
       enum tools::linalg::StoppingCriterium crit =
           tools::linalg::StoppingCriterium::Algebraic);
   std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
       double tol = 1e-5, enum tools::linalg::StoppingCriterium crit =
                              tools::linalg::StoppingCriterium::Algebraic) {
-    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()), tol, crit);
+    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()), RHS(), tol,
+                 crit);
   }
 
   std::pair<TypeXVector *, std::pair<double, ErrorEstimator::GlobalError>>
@@ -101,10 +103,10 @@ class AdaptiveHeatEquation {
   std::shared_ptr<TypeXVector> vec_Xdd() { return vec_Xdd_; }
   std::shared_ptr<TypeYVector> vec_Ydd() { return vec_Ydd_; }
   HeatEquation *heat_d_dd() { return heat_d_dd_.get(); }
+  TypeYLinForm *g_lin_form() { return g_lin_form_.get(); }
+  TypeXLinForm *u0_lin_form() { return u0_lin_form_.get(); }
 
  protected:
-  Eigen::VectorXd RHS(HeatEquation &heat);
-
   std::shared_ptr<TypeXVector> vec_Xd_, vec_Xdd_;
   std::shared_ptr<TypeYVector> vec_Ydd_;
   std::unique_ptr<HeatEquation> heat_d_dd_;

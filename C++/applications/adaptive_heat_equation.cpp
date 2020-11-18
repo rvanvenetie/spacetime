@@ -20,22 +20,22 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
       u0_lin_form_(std::move(u0_lin_form)),
       opts_(opts) {}
 
-Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
-  Eigen::VectorXd rhs = g_lin_form_->Apply(heat.vec_Y());
-  rhs = heat.P_Y()->Apply(rhs);
-  rhs = heat.BT()->Apply(rhs);
+Eigen::VectorXd AdaptiveHeatEquation::RHS() {
+  Eigen::VectorXd rhs = g_lin_form_->Apply(heat_d_dd_->vec_Y());
+  rhs = heat_d_dd_->P_Y()->Apply(rhs);
+  rhs = heat_d_dd_->BT()->Apply(rhs);
 
-  rhs += u0_lin_form_->Apply(heat.vec_X());
+  rhs += u0_lin_form_->Apply(heat_d_dd_->vec_X());
   return rhs;
 }
 
 std::pair<Eigen::VectorXd, tools::linalg::SolverData>
-AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0, double tol,
+AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0,
+                            const Eigen::VectorXd &rhs, double tol,
                             enum tools::linalg::StoppingCriterium crit) {
   assert(heat_d_dd_);
-  return tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
-                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit, tol,
-                            crit);
+  return tools::linalg::PCG(*heat_d_dd_->S(), rhs, *heat_d_dd_->P_X(), x0,
+                            opts_.solve_maxit, tol, crit);
 }
 
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
@@ -56,10 +56,10 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
 
     // Calculate the residual and store inside the dbltree.
     Eigen::VectorXd g_min_Bu =
-        g_lin_form_->Apply(heat_dd_dd.vec_Y()) - heat_dd_dd.B()->Apply(u_dd_dd);
+        g_lin_form_->Apply(vec_Ydd_.get()) - heat_dd_dd.B()->Apply(u_dd_dd);
     Eigen::VectorXd PY_g_min_Bu = heat_dd_dd.P_Y()->Apply(g_min_Bu);
     // \gamma_0' (u0 - \gamma_0 u^\delta)
-    Eigen::VectorXd u0 = u0_lin_form_->Apply(heat_dd_dd.vec_X());
+    Eigen::VectorXd u0 = u0_lin_form_->Apply(vec_Xdd_.get());
     Eigen::VectorXd G_u_dd_dd = heat_dd_dd.G()->Apply(u_dd_dd);
     Eigen::VectorXd residual =
         heat_dd_dd.BT()->Apply(PY_g_min_Bu) + (u0 - G_u_dd_dd);

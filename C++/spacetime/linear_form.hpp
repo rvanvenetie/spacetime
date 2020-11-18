@@ -19,6 +19,10 @@ class LinearFormBase {
   // Function that must be implemented.
   virtual Eigen::VectorXd Apply(DblVec *vec) = 0;
   virtual const space::LinearForm &SpaceLF() const = 0;
+  double TimeLastApply() const { return time_last_apply_.count(); }
+
+ protected:
+  std::chrono::duration<double> time_last_apply_{0};
 };
 
 template <typename TimeBasis>
@@ -32,6 +36,8 @@ class TensorLinearForm : public LinearFormBase<TimeBasis> {
         space_linform_(std::move(space_linform)) {}
 
   Eigen::VectorXd Apply(DblVec *vec) final {
+    auto time_start = std::chrono::steady_clock::now();
+
     vec->Reset();
     auto project_0 = vec->Project_0();
     auto project_1 = vec->Project_1();
@@ -62,6 +68,9 @@ class TensorLinearForm : public LinearFormBase<TimeBasis> {
       phi->node()->reset_data();
       phi->set_value(0.0);
     }
+
+    time_last_apply_ = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - time_start);
     return vec->ToVectorContainer();
   }
 
@@ -71,6 +80,9 @@ class TensorLinearForm : public LinearFormBase<TimeBasis> {
  protected:
   Time::LinearForm<TimeBasis> time_linform_;
   space::LinearForm space_linform_;
+
+  // Debug information.
+  using LinearFormBase<TimeBasis>::time_last_apply_;
 };
 
 template <typename TimeBasis>
@@ -84,8 +96,13 @@ class NoOpLinearForm : public LinearFormBase<TimeBasis> {
                        /* space_order */ 0) {}
 
   Eigen::VectorXd Apply(DblVec *vec) final {
+    auto time_start = std::chrono::steady_clock::now();
+
     Eigen::VectorXd result = Eigen::VectorXd::Zero(vec->container().size());
     vec->FromVectorContainer(result);
+
+    time_last_apply_ = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - time_start);
     return result;
   }
 
@@ -93,6 +110,9 @@ class NoOpLinearForm : public LinearFormBase<TimeBasis> {
 
  protected:
   space::LinearForm space_linform_;
+
+  // Debug information.
+  using LinearFormBase<TimeBasis>::time_last_apply_;
 };
 
 template <typename TimeBasis>
@@ -105,9 +125,14 @@ class SumTensorLinearForm : public LinearFormBase<TimeBasis> {
       : a_(std::move(a)), b_(std::move(b)) {}
 
   Eigen::VectorXd Apply(DblVec *vec) final {
+    auto time_start = std::chrono::steady_clock::now();
+
     auto result = a_->Apply(vec);
     result += b_->Apply(vec);
     vec->FromVectorContainer(result);
+
+    time_last_apply_ = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - time_start);
     return result;
   }
   const space::LinearForm &SpaceLF() const final {
@@ -117,6 +142,9 @@ class SumTensorLinearForm : public LinearFormBase<TimeBasis> {
  protected:
   std::unique_ptr<TensorLinearForm<TimeBasis>> a_;
   std::unique_ptr<TensorLinearForm<TimeBasis>> b_;
+
+  // Debug information.
+  using LinearFormBase<TimeBasis>::time_last_apply_;
 };
 
 class InterpolationLinearForm
@@ -147,6 +175,7 @@ class InterpolationLinearForm
                X_delta->root()->node_1()) {}
 
   Eigen::VectorXd Apply(DblVecY *vec_Y) final {
+    auto time_start = std::chrono::steady_clock::now();
     // Grow Z_delta and interpolate.
     GenerateZDelta(*X_delta_, &vec_Z_);
     auto g_vec_Z = Interpolate(g_, vec_Z_);
@@ -168,6 +197,8 @@ class InterpolationLinearForm
       i++;
     }
 
+    time_last_apply_ = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - time_start);
     return result;
   }
 
@@ -180,6 +211,9 @@ class InterpolationLinearForm
   std::shared_ptr<DblVecX> X_delta_;
   std::function<double(double, double, double)> g_;
   DblVecZ vec_Z_;
+
+  // Debug information.
+  using LinearFormBase<Time::OrthonormalWaveletFn>::time_last_apply_;
 };
 
 template <typename TimeBasis>
@@ -198,7 +232,7 @@ std::unique_ptr<TensorLinearForm<TimeBasis>> CreateQuadratureTensorLinearForm(
 template <typename TimeBasis>
 std::unique_ptr<TensorLinearForm<TimeBasis>> CreateZeroEvalLinearForm(
     std::function<double(double, double)> space_f, bool space_apply_quadrature,
-    size_t space_order) {
+    size_t space_order = 0) {
   using TimeScalingBasis = typename Time::FunctionTrait<TimeBasis>::Scaling;
   return std::make_unique<TensorLinearForm<TimeBasis>>(
       Time::LinearForm<TimeBasis>(
