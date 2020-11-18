@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
       problem_data = SingularProblem();
     else if (problem == "cylinder")
       problem_data = CylinderProblem();
-    else if (problem == "peak")
+    else if (problem == "moving-peak")
       problem_data = MovingPeakProblem(vec_Xd);
     else {
       std::cout << "problem not recognized :-(" << std::endl;
