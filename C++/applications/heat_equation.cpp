@@ -19,6 +19,9 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
                            bool Yd_is_GenerateYDelta_Xd,
                            const HeatEquationOptions &opts)
     : vec_X_(vec_X), vec_Y_(vec_Y), A_(A), P_Y_(P_Y), opts_(opts) {
+  vec_X_->ComputeFibers();
+  vec_Y_->ComputeFibers();
+
   space::OperatorOptions space_opts({.build_mat = opts_.build_space_mats});
   if (!A) A_ = std::make_shared<TypeA>(vec_Y.get(), opts.use_cache, space_opts);
 

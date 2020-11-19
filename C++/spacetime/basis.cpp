@@ -130,6 +130,7 @@ void GenerateZDelta(
 
   // Make sure that we are *growing* Z_delta.
   assert(X_delta.container().size() == Z_delta->container().size());
+  Z_delta->ComputeFibers();
 }
 
 // Template specializations for GenerateYDelta.
