@@ -66,10 +66,10 @@ MovingPeakProblem(std::shared_ptr<datastructures::DoubleTreeVector<
     double sinPIy = sin(M_PI * y);
     double cosPIx = cos(M_PI * x);
     double cosPIy = cos(M_PI * y);
-    double txy = ((x - t) * (x - t) + (y - t) * (y - t));
-    double exptxy = exp(-100 * txy);
+    double exptxy = exp(-100 * ((x - t) * (x - t) + (y - t) * (y - t)));
 
-    double dt_u = -100 * txy * sinPIx * sinPIy * exptxy;
+    double dt_u =
+        -100 * (-2 * (x - t) - 2 * (y - t)) * sinPIx * sinPIy * exptxy;
     double dxx_u =
         sinPIy *
         (400 * M_PI * (t - x) * cosPIx +
