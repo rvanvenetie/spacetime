@@ -105,8 +105,7 @@ int main(int argc, char* argv[]) {
   std::cout << "\tDomain: " << domain
             << "; initial-refines: " << initial_refines << std::endl;
   std::cout << std::endl;
-  std::cout << adapt_opts << std::endl;
-  std::cout << "\tsolve-rtol: " << solve_rtol << std::endl;
+  std::cout << adapt_opts << "\tsolve-rtol: " << solve_rtol << std::endl << std::endl;
 
   assert(num_threads > 0 && num_threads <= omp_get_max_threads() &&
          num_threads <= MAX_NUMBER_THREADS);
