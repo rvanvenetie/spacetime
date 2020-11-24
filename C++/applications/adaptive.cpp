@@ -62,8 +62,8 @@ void PrintTimeSliceSS(double t, AdaptiveHeatEquation::TypeXVector* solution) {
 
 // Compile time constants.
 constexpr size_t N_t = 20;
-constexpr size_t N_x = 297;
-constexpr size_t N_y = 299;
+constexpr size_t N_x = 197;
+constexpr size_t N_y = 199;
 
 std::vector<std::tuple<float, float, float, double>> PrintSampling(
     AdaptiveHeatEquation::TypeXVector* solution) {
