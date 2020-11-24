@@ -147,6 +147,10 @@ class Function : public datastructures::Node<I> {
   std::pair<double, double> Interval() const {
     return {support_[0]->Interval().first, support_.back()->Interval().second};
   }
+  bool Contains(double t) const {
+    auto [t_begin, t_end] = Interval();
+    return (t_begin <= t && t <= t_end);
+  }
 
   friend std::ostream &operator<<(std::ostream &os, const Function<I> &fn) {
     os << I::name << "(" << fn.level() << ", " << fn.index() << ")";
