@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
   bool sparse_refine = true;
   bool calculate_condition_numbers = false;
   bool print_time_apply = false;
-  double solve_rtol = 1e-6;
+  double solve_rtol = 1e-5;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
   problem_optdesc.add_options()(
@@ -105,7 +105,8 @@ int main(int argc, char* argv[]) {
   std::cout << "\tDomain: " << domain
             << "; initial-refines: " << initial_refines << std::endl;
   std::cout << std::endl;
-  std::cout << adapt_opts << "\tsolve-rtol: " << solve_rtol << std::endl << std::endl;
+  std::cout << adapt_opts << "\tsolve-rtol: " << solve_rtol << std::endl
+            << std::endl;
 
   assert(num_threads > 0 && num_threads <= omp_get_max_threads() &&
          num_threads <= MAX_NUMBER_THREADS);
@@ -116,6 +117,7 @@ int main(int argc, char* argv[]) {
   auto vec_Xd = std::make_shared<
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
       B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+  auto start_algorithm = std::chrono::steady_clock::now();
 
   for (int level = 1; level < max_level; level++) {
     std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
@@ -141,18 +143,6 @@ int main(int argc, char* argv[]) {
     else
       vec_Xd->UniformRefine({level, 2 * level});
     size_t ndof_X = vec_Xd->Bfs().size();  // A slight overestimate.
-    int max_node_time = 0, max_node_space = 0;
-    for (auto node : vec_Xd->Bfs()) {
-      max_node_time =
-          std::max(max_node_time, std::get<0>(node->nodes())->level());
-      max_node_space =
-          std::max(max_node_space, std::get<1>(node->nodes())->level());
-    }
-    int max_space_tree_lvl = 0;
-    for (auto node : T.hierarch_basis_tree.Bfs())
-      max_space_tree_lvl = std::max(max_space_tree_lvl, node->level());
-    std::cout << ndof_X << " " << max_node_time << " " << max_node_space << " "
-              << max_space_tree_lvl << std::endl;
     if (ndof_X == 0) continue;
     if (ndof_X > max_dofs) break;
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
@@ -194,7 +184,8 @@ int main(int argc, char* argv[]) {
     // Solve - estimate.
     auto start = std::chrono::steady_clock::now();
     auto [solution, pcg_data] =
-        heat_eq.Solve(solve_rtol, tools::linalg::StoppingCriterium::Relative);
+        heat_eq.Solve(vec_Xd->ToVectorContainer(), heat_eq.RHS(), solve_rtol,
+                      tools::linalg::StoppingCriterium::Relative);
     std::chrono::duration<double> duration_solve =
         std::chrono::steady_clock::now() - start;
     std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
@@ -223,12 +214,20 @@ int main(int argc, char* argv[]) {
     std::chrono::duration<double> duration_estimate =
         std::chrono::steady_clock::now() - start;
 
+    // Set the solution into vec Xd.
+    vec_Xd->FromVectorContainer(solution);
+
     std::cout << "\n\tresidual-norm: " << residual_norm
               << "\n\testimate-time: " << duration_estimate.count()
               << "\n\testimate-memory: " << getmem() << std::flush;
     std::cout << "\n\tglobal-error: " << global_error.error
               << "\n\tYnorm-error: " << global_error.error_Yprime
-              << "\n\tT0-error: " << global_error.error_t0 << std::flush;
+              << "\n\tT0-error: " << global_error.error_t0
+              << "\n\ttotal-time-algorithm: "
+              << std::chrono::duration<double>(
+                     std::chrono::steady_clock::now() - start_algorithm)
+                     .count()
+              << std::flush;
 
 #ifdef VERBOSE
     std::cerr << std::endl << "Adaptive::Trees" << std::endl;
