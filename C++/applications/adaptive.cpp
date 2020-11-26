@@ -169,6 +169,7 @@ int main(int argc, char* argv[]) {
   double t_delta = heat_eq.Estimate(x0).second.second.error;
   std::cout << "t_init: " << t_delta << std::endl;
   size_t iter = 0;
+  auto start_algorithm = std::chrono::steady_clock::now();
   while (ndof_X < max_dofs) {
     // Store a vector of all the nodes having maximum gradedness;
     std::vector<typename HeatEquation::TypeXVector::DNType*> max_gradedness;
@@ -338,7 +339,12 @@ int main(int argc, char* argv[]) {
               << "\n\tnodes-conforming: " << r_info.nodes_conforming
               << "\n\tresidual-norm-marked: " << r_info.res_norm_marked
               << "\n\tresidual-norm-conforming: " << r_info.res_norm_conforming
-              << "\n\trefine-time: " << duration_refine.count() << std::endl;
+              << "\n\trefine-time: " << duration_refine.count()
+              << "\n\ttotal-time-algorithm: "
+              << std::chrono::duration<double>(
+                     std::chrono::steady_clock::now() - start_algorithm)
+                     .count()
+              << std::endl;
   }
 
   return 0;

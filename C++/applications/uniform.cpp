@@ -19,6 +19,21 @@ using Time::ThreePointWaveletFn;
 using namespace applications;
 namespace po = boost::program_options;
 
+namespace applications {
+std::istream& operator>>(std::istream& in,
+                         HeatEquationOptions::SpaceInverse& inverse_type) {
+  std::string token;
+  in >> token;
+  if (token == "DirectInverse" || token == "di")
+    inverse_type = HeatEquationOptions::SpaceInverse::DirectInverse;
+  else if (token == "Multigrid" || token == "mg")
+    inverse_type = HeatEquationOptions::SpaceInverse::Multigrid;
+  else
+    in.setstate(std::ios_base::failbit);
+  return in;
+}
+}  // namespace applications
+
 space::InitialTriangulation InitialTriangulation(std::string domain,
                                                  size_t initial_refines) {
   if (domain == "square" || domain == "unit-square")
@@ -38,6 +53,8 @@ int main(int argc, char* argv[]) {
   size_t max_dofs = 0;
   bool sparse_refine = true;
   bool calculate_condition_numbers = false;
+  bool print_time_apply = false;
+  double solve_rtol = 1e-5;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
   problem_optdesc.add_options()(
@@ -50,11 +67,32 @@ int main(int argc, char* argv[]) {
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
       "sparse_refine", po::value<bool>(&sparse_refine))(
+      "print_time_apply", po::value<bool>(&print_time_apply))(
       "calculate_condition_numbers",
       po::value<bool>(&calculate_condition_numbers));
 
+  AdaptiveHeatEquationOptions adapt_opts;
+  boost::program_options::options_description adapt_optdesc(
+      "AdaptiveHeatEquation options");
+  adapt_optdesc.add_options()("use_cache",
+                              po::value<bool>(&adapt_opts.use_cache))(
+      "build_space_mats", po::value<bool>(&adapt_opts.build_space_mats))(
+      "solve_rtol", po::value<double>(&solve_rtol))(
+      "solve_maxit", po::value<size_t>(&adapt_opts.solve_maxit))(
+      "estimate_saturation_layers",
+      po::value<size_t>(&adapt_opts.estimate_saturation_layers))(
+      "estimate_mean_zero", po::value<bool>(&adapt_opts.estimate_mean_zero))(
+      "mark_theta", po::value<double>(&adapt_opts.mark_theta))(
+      "PX_alpha", po::value<double>(&adapt_opts.PX_alpha))(
+      "PX_inv",
+      po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.PX_inv))(
+      "PY_inv",
+      po::value<HeatEquationOptions::SpaceInverse>(&adapt_opts.PY_inv))(
+      "PXY_mg_build", po::value<bool>(&adapt_opts.PXY_mg_build))(
+      "PX_mg_cycles", po::value<size_t>(&adapt_opts.PX_mg_cycles))(
+      "PY_mg_cycles", po::value<size_t>(&adapt_opts.PY_mg_cycles));
   boost::program_options::options_description cmdline_options;
-  cmdline_options.add(problem_optdesc);
+  cmdline_options.add(problem_optdesc).add(adapt_optdesc);
 
   po::variables_map vm;
   po::store(po::command_line_parser(argc, argv).options(cmdline_options).run(),
@@ -65,13 +103,17 @@ int main(int argc, char* argv[]) {
   std::cout << "\tDomain: " << domain
             << "; initial-refines: " << initial_refines << std::endl;
   std::cout << std::endl;
+  std::cout << adapt_opts << "\tsolve-rtol: " << solve_rtol << std::endl
+            << std::endl;
 
   auto T = InitialTriangulation(domain, initial_refines);
   auto B = Time::Bases();
   auto vec_Xd = std::make_shared<
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
       B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+  auto start_algorithm = std::chrono::steady_clock::now();
 
+  Eigen::VectorXd solution = Eigen::VectorXd::Zero(vec_Xd->container().size());
   for (int level = 1; level < max_level; level++) {
     std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
               std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
@@ -91,27 +133,16 @@ int main(int argc, char* argv[]) {
     B.ortho_tree.UniformRefine(level + 1);
     B.three_point_tree.UniformRefine(level + 1);
     T.hierarch_basis_tree.UniformRefine(2 * (level + 1));
+    vec_Xd->FromVectorContainer(solution);
     if (sparse_refine)
       vec_Xd->SparseRefine(2 * level, {2, 1});
     else
       vec_Xd->UniformRefine({level, 2 * level});
+
+    auto x0 = vec_Xd->ToVectorContainer();
     size_t ndof_X = vec_Xd->Bfs().size();  // A slight overestimate.
-    int max_node_time = 0, max_node_space = 0;
-    for (auto node : vec_Xd->Bfs()) {
-      max_node_time =
-          std::max(max_node_time, std::get<0>(node->nodes())->level());
-      max_node_space =
-          std::max(max_node_space, std::get<1>(node->nodes())->level());
-    }
-    int max_space_tree_lvl = 0;
-    for (auto node : T.hierarch_basis_tree.Bfs())
-      max_space_tree_lvl = std::max(max_space_tree_lvl, node->level());
-    std::cout << ndof_X << " " << max_node_time << " " << max_node_space << " "
-              << max_space_tree_lvl << std::endl;
     if (ndof_X == 0) continue;
     if (ndof_X > max_dofs) break;
-    AdaptiveHeatEquationOptions adapt_opts;
-    adapt_opts.use_cache = false;
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                  std::move(problem_data.second), adapt_opts);
     size_t ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
@@ -150,12 +181,31 @@ int main(int argc, char* argv[]) {
 
     // Solve - estimate.
     auto start = std::chrono::steady_clock::now();
-    auto [solution, pcg_data] = heat_eq.Solve();
+    auto [cur_solution, pcg_data] =
+        heat_eq.Solve(x0, heat_eq.RHS(), solve_rtol,
+                      tools::linalg::StoppingCriterium::Relative);
+    solution = cur_solution;
     std::chrono::duration<double> duration_solve =
         std::chrono::steady_clock::now() - start;
     std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
               << "\n\tsolve-time: " << duration_solve.count()
               << "\n\tsolve-memory: " << getmem() << std::flush;
+
+    if (print_time_apply) {
+      auto heat_d_dd = heat_eq.heat_d_dd();
+      std::cout << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
+                << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
+                << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
+                << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
+                << "\n\tP_Y-time-per-apply: "
+                << heat_d_dd->P_Y()->TimePerApply()
+                << "\n\tP_X-time-per-apply: "
+                << heat_d_dd->P_X()->TimePerApply()
+                << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
+                << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
+                << "\n\ttotal-time-construct: "
+                << heat_d_dd->TotalTimeConstruct() << std::flush;
+    }
 
     start = std::chrono::steady_clock::now();
     auto [residual, global_errors] = heat_eq.Estimate(solution);
@@ -168,7 +218,12 @@ int main(int argc, char* argv[]) {
               << "\n\testimate-memory: " << getmem() << std::flush;
     std::cout << "\n\tglobal-error: " << global_error.error
               << "\n\tYnorm-error: " << global_error.error_Yprime
-              << "\n\tT0-error: " << global_error.error_t0 << std::flush;
+              << "\n\tT0-error: " << global_error.error_t0
+              << "\n\ttotal-time-algorithm: "
+              << std::chrono::duration<double>(
+                     std::chrono::steady_clock::now() - start_algorithm)
+                     .count()
+              << std::flush;
 
 #ifdef VERBOSE
     std::cerr << std::endl << "Adaptive::Trees" << std::endl;
