@@ -39,7 +39,7 @@ struct HeatEquationOptions {
 
   // If a multigrid Preconditioner is chosen, this sets the number of cycles.
   size_t PX_mg_cycles = 3;
-  size_t PY_mg_cycles = 3;
+  size_t PY_mg_cycles = 1;
 };
 
 // Base class for constructing the operators necessary.
