@@ -307,6 +307,8 @@ TEST(HeatEquation, LanczosMG) {
     X_delta.SparseRefine(level, {2, 1});
 
     HeatEquationOptions heat_eq_opts;
+    heat_eq_opts.PX_mg_cycles = 3;
+    heat_eq_opts.PY_mg_cycles = 3;
     heat_eq_opts.PX_inv = HeatEquationOptions::SpaceInverse::Multigrid;
     heat_eq_opts.PY_inv = HeatEquationOptions::SpaceInverse::Multigrid;
     HeatEquation heat_eq(X_delta, heat_eq_opts);

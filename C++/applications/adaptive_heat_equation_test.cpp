@@ -172,6 +172,7 @@ TEST(AdaptiveHeatEquation, MovingPeak) {
   auto [g_lf, u0_lf] = MovingPeakProblem(vec_Xd);
 
   AdaptiveHeatEquationOptions opts;
+  opts.PY_mg_cycles = 3;
   AdaptiveHeatEquation heat_eq(vec_Xd, std::move(g_lf), std::move(u0_lf), opts);
 
   Eigen::VectorXd solution = Eigen::VectorXd::Zero(vec_Xd->container().size());
