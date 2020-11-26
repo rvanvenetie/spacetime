@@ -119,6 +119,7 @@ int main(int argc, char* argv[]) {
       B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
   auto start_algorithm = std::chrono::steady_clock::now();
 
+  Eigen::VectorXd solution = Eigen::VectorXd::Zero(vec_Xd->container().size());
   for (int level = 1; level < max_level; level++) {
     std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
               std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
@@ -138,10 +139,13 @@ int main(int argc, char* argv[]) {
     B.ortho_tree.UniformRefine(level + 1);
     B.three_point_tree.UniformRefine(level + 1);
     T.hierarch_basis_tree.UniformRefine(2 * (level + 1));
+    vec_Xd->FromVectorContainer(solution);
     if (sparse_refine)
       vec_Xd->SparseRefine(2 * level, {2, 1});
     else
       vec_Xd->UniformRefine({level, 2 * level});
+
+    auto x0 = vec_Xd->ToVectorContainer();
     size_t ndof_X = vec_Xd->Bfs().size();  // A slight overestimate.
     if (ndof_X == 0) continue;
     if (ndof_X > max_dofs) break;
@@ -183,9 +187,10 @@ int main(int argc, char* argv[]) {
 
     // Solve - estimate.
     auto start = std::chrono::steady_clock::now();
-    auto [solution, pcg_data] =
-        heat_eq.Solve(vec_Xd->ToVectorContainer(), heat_eq.RHS(), solve_rtol,
+    auto [cur_solution, pcg_data] =
+        heat_eq.Solve(x0, heat_eq.RHS(), solve_rtol,
                       tools::linalg::StoppingCriterium::Relative);
+    solution = cur_solution;
     std::chrono::duration<double> duration_solve =
         std::chrono::steady_clock::now() - start;
     std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
@@ -213,9 +218,6 @@ int main(int argc, char* argv[]) {
     auto [residual_norm, global_error] = global_errors;
     std::chrono::duration<double> duration_estimate =
         std::chrono::steady_clock::now() - start;
-
-    // Set the solution into vec Xd.
-    vec_Xd->FromVectorContainer(solution);
 
     std::cout << "\n\tresidual-norm: " << residual_norm
               << "\n\testimate-time: " << duration_estimate.count()
