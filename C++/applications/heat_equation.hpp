@@ -21,7 +21,7 @@ using Time::ThreePointWaveletFn;
 
 struct HeatEquationOptions {
   // Whether or not to cache the bilinear forms.
-  bool use_cache = true;
+  bool use_cache = false;
 
   // Whether or not to build the space matrices.
   bool build_space_mats = false;
@@ -39,7 +39,7 @@ struct HeatEquationOptions {
 
   // If a multigrid Preconditioner is chosen, this sets the number of cycles.
   size_t PX_mg_cycles = 3;
-  size_t PY_mg_cycles = 3;
+  size_t PY_mg_cycles = 1;
 };
 
 // Base class for constructing the operators necessary.
