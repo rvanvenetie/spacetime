@@ -59,7 +59,41 @@ void PrintTimeSliceSS(double t, AdaptiveHeatEquation::TypeXVector* solution) {
               << nv->node()->center().second << ") : " << nv->value() << ";";
   std::cerr << "}";
 }
-}  // namespace applications
+
+// Compile time constants.
+constexpr size_t N_t = 20;
+constexpr size_t N_x = 197;
+constexpr size_t N_y = 199;
+
+std::vector<std::tuple<float, float, float, double>> PrintSampling(
+    AdaptiveHeatEquation::TypeXVector* solution) {
+  int cnt[N_t + 1][N_x + 1][N_y + 1] = {0};
+  double h_t = 1.0 / N_t;
+  double h_x = 1.0 / N_x;
+  double h_y = 1.0 / N_y;
+  for (auto dblnode : solution->Bfs())
+    for (int t = 0; t <= N_t; t++) {
+      if (dblnode->node_0()->Eval(t * h_t) == 0) continue;
+      for (int x = 0; x <= N_x; x++) {
+        if (!dblnode->node_1()->Contains(x * h_x,
+                                         dblnode->node_1()->center().second))
+          continue;
+        for (int y = 0; y <= N_y; y++) {
+          if (dblnode->node_1()->Eval(x * h_x, y * h_y) == 0) continue;
+          cnt[t][x][y]++;
+        }
+      }
+    }
+
+  std::vector<std::tuple<float, float, float, double>> result;
+  for (int t = 0; t <= N_t; t++)
+    for (int x = 0; x <= N_x; x++)
+      for (int y = 0; y <= N_y; y++) {
+        result.emplace_back(t * h_t, x * h_x, y * h_y, cnt[t][x][y]);
+      }
+
+  return result;
+}
 
 space::InitialTriangulation InitialTriangulation(std::string domain,
                                                  size_t initial_refines) {
@@ -72,6 +106,7 @@ space::InitialTriangulation InitialTriangulation(std::string domain,
     exit(1);
   }
 }
+}  // namespace applications
 
 int main(int argc, char* argv[]) {
   std::string problem, domain;
@@ -81,6 +116,7 @@ int main(int argc, char* argv[]) {
   bool calculate_condition_numbers = false;
   bool print_centers = false;
   bool print_time_apply = true;
+  bool print_sampling = false;
   std::vector<double> print_time_slices;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
@@ -93,6 +129,7 @@ int main(int argc, char* argv[]) {
       "calculate_condition_numbers",
       po::value<bool>(&calculate_condition_numbers))(
       "print_centers", po::value<bool>(&print_centers))(
+      "print_sampling", po::value<bool>(&print_sampling))(
       "print_time_slices",
       po::value<std::vector<double>>(&print_time_slices)->multitoken())(
       "print_time_apply", po::value<bool>(&print_time_apply))(
@@ -193,6 +230,14 @@ int main(int argc, char* argv[]) {
               << vec_Xd->Gradedness(&max_gradedness)
               << "\n\tYDeltaDelta-size: " << ndof_Y
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
+
+    if (print_sampling) {
+      auto sampling = PrintSampling(vec_Xd.get());
+      std::cout << "\n\tsampling: ";
+      for (auto [t, x, y, val] : sampling)
+        std::cout << "" << t << "," << x << "," << y << "," << val << ";";
+      std::cout << std::endl;
+    }
 
     if (calculate_condition_numbers) {
       auto start = std::chrono::steady_clock::now();

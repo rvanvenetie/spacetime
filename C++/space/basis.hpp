@@ -29,6 +29,7 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
   double Volume() const;
 
   double Eval(double x, double y) const;
+  bool Contains(double x, double y) const;
   Eigen::Vector2d EvalGrad(double x, double y) const;
 
   friend std::ostream &operator<<(std::ostream &os,
