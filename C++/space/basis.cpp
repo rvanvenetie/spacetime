@@ -41,6 +41,14 @@ double HierarchicalBasisFn::Eval(double x, double y) const {
   return 0;
 }
 
+bool HierarchicalBasisFn::Contains(double x, double y) const {
+  for (auto elem : support()) {
+    auto bary = elem->BarycentricCoordinates(x, y);
+    if ((bary.array() >= 0).all()) return true;
+  }
+  return false;
+}
+
 Eigen::Vector2d HierarchicalBasisFn::EvalGrad(double x, double y) const {
   for (auto elem : support()) {
     auto bary = elem->BarycentricCoordinates(x, y);
