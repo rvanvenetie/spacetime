@@ -54,6 +54,7 @@ int main(int argc, char* argv[]) {
   std::string refine;
   bool calculate_condition_numbers = false;
   bool print_time_apply = false;
+  bool print_centers = false;
   double solve_rtol = 1e-5;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
@@ -67,6 +68,7 @@ int main(int argc, char* argv[]) {
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
       "refine", po::value<std::string>(&refine)->default_value("sparse"))(
+      "print_centers", po::value<bool>(&print_centers))(
       "print_time_apply", po::value<bool>(&print_time_apply))(
       "calculate_condition_numbers",
       po::value<bool>(&calculate_condition_numbers));
@@ -160,18 +162,6 @@ int main(int argc, char* argv[]) {
             dblnode->node_1()->Refine();
           });
 
-    auto print_dblnode = [](auto dblnode) {
-      std::cout << "((" << dblnode->node_0()->level() << ","
-                << dblnode->node_0()->center() << "),"
-                << "(" << dblnode->node_1()->level() << ",("
-                << dblnode->node_1()->center().first << ","
-                << dblnode->node_1()->center().second
-                << ")) : " << dblnode->value() << ";";
-    };
-
-    std::cout << "\n\tcenters: ";
-    for (auto dblnode : vec_Xd->Bfs()) print_dblnode(dblnode);
-
     auto x0 = vec_Xd->ToVectorContainer();
     size_t ndof_X = vec_Xd->Bfs().size();  // A slight overestimate.
     if (ndof_X == 0) continue;
@@ -238,6 +228,21 @@ int main(int argc, char* argv[]) {
                 << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
                 << "\n\ttotal-time-construct: "
                 << heat_d_dd->TotalTimeConstruct() << std::flush;
+    }
+
+    if (print_centers) {
+      vec_Xd->FromVectorContainer(solution);
+      auto print_dblnode = [](auto dblnode) {
+        std::cout << "((" << dblnode->node_0()->level() << ","
+                  << dblnode->node_0()->center() << "),"
+                  << "(" << dblnode->node_1()->level() << ",("
+                  << dblnode->node_1()->center().first << ","
+                  << dblnode->node_1()->center().second
+                  << ")) : " << dblnode->value() << ";";
+      };
+
+      std::cout << "\n\tcenters: ";
+      for (auto dblnode : vec_Xd->Bfs()) print_dblnode(dblnode);
     }
 
     start = std::chrono::steady_clock::now();
