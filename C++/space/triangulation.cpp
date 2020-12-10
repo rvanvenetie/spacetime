@@ -4,6 +4,20 @@
 
 namespace space {
 
+bool Vertex::Refine() {
+  if (is_full()) return false;
+  for (auto &elem : patch) elem->Refine();
+  assert(is_full());
+  return true;
+}
+
+bool Vertex::is_full() const {
+  if (is_metaroot()) return children().size();
+  for (auto &elem : patch)
+    if (!elem->is_full()) return false;
+  return true;
+}
+
 HierarchicalBasisFn *Vertex::RefineHierarchicalBasisFn() {
   // This creates HierarhicalBasisFunctions functions on this vertex.
   if (!phi_) {

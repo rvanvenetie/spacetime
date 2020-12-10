@@ -26,6 +26,13 @@ class HierarchicalBasisFn : public datastructures::Node<HierarchicalBasisFn> {
   std::pair<double, double> center() const { return {vertex_->x, vertex_->y}; }
   inline bool on_domain_boundary() const { return vertex_->on_domain_boundary; }
 
+  // Whether some element in the support touches the boundary.}
+  inline bool TouchesDomainBoundary() const {
+    for (auto elem : support())
+      if (elem->TouchesDomainBoundary()) return true;
+    return false;
+  }
+
   double Volume() const;
 
   double Eval(double x, double y) const;
