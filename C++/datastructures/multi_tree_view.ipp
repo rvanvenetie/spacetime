@@ -242,25 +242,57 @@ inline I* MultiNodeViewInterface<I, T...>::FindBrother(const TupleNodes& nodes,
 }
 
 template <typename I>
-inline void MultiTreeView<I>::UniformRefine(std::array<int, dim> max_levels) {
-  DeepRefine([&](const typename I::TupleNodes& nodes) {
-    bool result = true;
-    static_for<dim>([&](auto i) {
-      result = result && (std::get<i>(nodes)->level() <= max_levels[i]);
-    });
-    return result;
-  });
+inline void MultiTreeView<I>::UniformRefine(std::array<int, dim> max_levels,
+                                            bool grow_tree) {
+  DeepRefine(
+      /* call_filter */
+      [&](const typename I::TupleNodes& nodes) {
+        bool result = true;
+        static_for<dim>([&](auto i) {
+          result = result && (std::get<i>(nodes)->level() <= max_levels[i]);
+        });
+        return result;
+      },
+      /* call_postprocess */
+      [&](auto dblnode) {
+        // Grow underlying trees if necessary.
+        if (grow_tree)
+          static_for<dim>([&](auto i) {
+            if (std::get<i>(dblnode->nodes())->level() < max_levels[i])
+              std::get<i>(dblnode->nodes())->Refine();
+          });
+      });
 }
 
 template <typename I>
 inline void MultiTreeView<I>::SparseRefine(int max_level,
-                                           std::array<int, dim> weights) {
-  DeepRefine([&](const typename I::TupleNodes& nodes) {
-    auto lvls = levels(nodes);
+                                           std::array<int, dim> weights,
+                                           bool grow_tree) {
+  auto WeightedLevel = [&](std::array<int, dim> lvls) {
     int w_level = 0;
     for (int i = 0; i < dim; ++i) w_level += weights[i] * std::max(0, lvls[i]);
-    return w_level <= max_level;
-  });
+    return w_level;
+  };
+
+  DeepRefine(
+      /* call_filter */
+      [&](const typename I::TupleNodes& nodes) {
+        return WeightedLevel(levels(nodes)) <= max_level;
+      },
+      /* call_postprocess */
+      [&](auto dblnode) {
+        // If we want to grow the underlying tree, add refine nodes
+        // that are required.
+        if (grow_tree) {
+          auto lvls = levels(dblnode->nodes());
+          static_for<dim>([&](auto i) {
+            lvls[i]++;
+            if (WeightedLevel(lvls) <= max_level)
+              std::get<i>(dblnode->nodes())->Refine();
+            lvls[i]--;
+          });
+        }
+      });
 }
 
 template <typename I>

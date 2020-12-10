@@ -51,6 +51,9 @@ class Vertex : public datastructures::Node<Vertex> {
     return os;
   }
 
+  bool Refine();
+  bool is_full() const;
+
   // This returns the associated HierarchicalBasisFn.
   HierarchicalBasisFn *RefineHierarchicalBasisFn();
 
@@ -82,6 +85,12 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   Vertex *newest_vertex() const { return vertices_[0]; }
   std::array<Vertex *, 2> edge(int i) const;
   std::array<Vertex *, 2> reversed_edge(int i) const;
+
+  inline bool TouchesDomainBoundary() const {
+    for (auto nbr : neighbours)
+      if (!nbr) return true;
+    return false;
+  }
 
   Eigen::Vector3d BarycentricCoordinates(double x, double y) const;
   std::pair<double, double> GlobalCoordinates(double bary2, double bary3) const;

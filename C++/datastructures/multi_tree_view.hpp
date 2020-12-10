@@ -262,7 +262,7 @@ class MultiTreeView {
   MultiTreeView<I>& operator=(MultiTreeView<I>&&) = default;
 
   // Uniform refine, nodes->level() <= max_levels.
-  void UniformRefine(std::array<int, dim> max_levels);
+  void UniformRefine(std::array<int, dim> max_levels, bool grow_tree = false);
   void UniformRefine(int max_level) {
     std::array<int, dim> arg;
     arg.fill(max_level);
@@ -270,7 +270,8 @@ class MultiTreeView {
   }
 
   // Sparse refine, lin_comb(nodes->level()) <= max_level
-  void SparseRefine(int max_level, std::array<int, dim> weights);
+  void SparseRefine(int max_level, std::array<int, dim> weights,
+                    bool grow_tree = false);
   void SparseRefine(int max_level) {
     std::array<int, dim> arg;
     arg.fill(1);
