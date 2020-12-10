@@ -87,10 +87,9 @@ class Element2D : public datastructures::BinaryNode<Element2D> {
   std::array<Vertex *, 2> reversed_edge(int i) const;
 
   inline bool TouchesDomainBoundary() const {
-    size_t cnt_bdr = 0;
-    for (const auto &vtx : vertices_)
-      if (vtx->on_domain_boundary) cnt_bdr++;
-    return (cnt_bdr >= 2);
+    for (auto nbr : neighbours)
+      if (!nbr) return true;
+    return false;
   }
 
   Eigen::Vector3d BarycentricCoordinates(double x, double y) const;
