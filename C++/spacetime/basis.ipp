@@ -1,4 +1,6 @@
 #pragma once
+#include <boost/core/demangle.hpp>
+#include <iomanip>
 #include <vector>
 
 #include "basis.hpp"
@@ -51,6 +53,23 @@ auto GenerateSigma(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out) {
       delete data;
     }
   Sigma->ComputeFibers();
+
+#ifdef VERBOSE
+  std::cerr << std::left;
+  std::cerr << "GenerateSigma("
+            << boost::core::demangle(typeid(DblTreeIn).name()) << ", "
+            << boost::core::demangle(typeid(DblTreeIn).name()) << std::endl;
+  std::cerr << "  Lambda_in:  #bfs = " << std::setw(10)
+            << Lambda_in.Bfs().size()
+            << "#container = " << Lambda_in.container().size() << std::endl;
+  std::cerr << "  Lambda_out: #bfs = " << std::setw(10)
+            << Lambda_out.Bfs().size()
+            << "#container = " << Lambda_out.container().size() << std::endl;
+  std::cerr << "  Sigma:   #bfs = " << std::setw(10) << Sigma->Bfs().size()
+            << "#container = " << Sigma->container().size() << std::endl;
+  std::cerr << std::right;
+#endif
+
   return Sigma;
 }
 
@@ -82,6 +101,22 @@ auto GenerateTheta(const DblTreeIn &Lambda_in, const DblTreeOut &Lambda_out) {
         elem->set_marked(false);
   }
   Theta->ComputeFibers();
+
+#ifdef VERBOSE
+  std::cerr << std::left;
+  std::cerr << "GenerateTheta("
+            << boost::core::demangle(typeid(DblTreeIn).name()) << ", "
+            << boost::core::demangle(typeid(DblTreeIn).name()) << std::endl;
+  std::cerr << "  Lambda_in:  #bfs = " << std::setw(10)
+            << Lambda_in.Bfs().size()
+            << "#container = " << Lambda_in.container().size() << std::endl;
+  std::cerr << "  Lambda_out: #bfs = " << std::setw(10)
+            << Lambda_out.Bfs().size()
+            << "#container = " << Lambda_out.container().size() << std::endl;
+  std::cerr << "  Theta:   #bfs = " << std::setw(10) << Theta->Bfs().size()
+            << "#container = " << Theta->container().size() << std::endl;
+  std::cerr << std::right;
+#endif
   return Theta;
 }
 }  // namespace spacetime
