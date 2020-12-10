@@ -202,3 +202,59 @@ TEST(Gradedness, SparseTensor) {
     ASSERT_EQ(X_delta.Gradedness(), L);
   }
 }
+
+TEST(XDelta, SparseRefine) {
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  B.three_point_tree.UniformRefine(max_level);
+  T.hierarch_basis_tree.UniformRefine(2 * max_level);
+  std::vector<int> n_lvl_t;
+  std::vector<int> n_lvl_x;
+  for (auto nodes : B.three_point_tree.NodesPerLevel())
+    n_lvl_t.push_back(nodes.size());
+  for (auto nodes : T.hierarch_basis_tree.NodesPerLevel())
+    n_lvl_x.push_back(nodes.size());
+
+  for (int L = 1; L <= max_level; L++) {
+    // Reset the underlying trees.
+    auto B = Time::Bases();
+    auto T = space::InitialTriangulation::UnitSquare();
+
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+    X_delta.SparseRefine(2 * L, {2, 1}, /* grow_tree */ true);
+
+    auto ndofs = X_delta.Bfs().size();
+    size_t ndofs_expected = 0;
+    for (int L_t = 0; L_t <= 2 * L; L_t++)
+      for (int L_x = 0; L_x <= 2 * L; L_x++)
+        if (2 * L_t + L_x <= 2 * L)
+          ndofs_expected += n_lvl_t.at(L_t) * n_lvl_x.at(L_x);
+
+    ASSERT_EQ(ndofs, ndofs_expected);
+  }
+}
+
+TEST(XDelta, UniformRefine) {
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  B.three_point_tree.UniformRefine(max_level);
+  T.hierarch_basis_tree.UniformRefine(2 * max_level);
+  std::vector<int> n_t{0};
+  std::vector<int> n_x{0};
+  for (auto nodes : B.three_point_tree.NodesPerLevel())
+    n_t.push_back(nodes.size() + n_t.back());
+  for (auto nodes : T.hierarch_basis_tree.NodesPerLevel())
+    n_x.push_back(nodes.size() + n_x.back());
+
+  for (int L = 1; L <= max_level; L++) {
+    // Reset the underlying trees.
+    auto B = Time::Bases();
+    auto T = space::InitialTriangulation::UnitSquare();
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+    X_delta.UniformRefine({L, 2 * L}, /* grow_tree */ true);
+
+    ASSERT_EQ(X_delta.Bfs().size(), n_t.at(L + 1) * n_x.at(2 * L + 1));
+  }
+}

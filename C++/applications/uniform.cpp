@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
   size_t initial_refines = 0;
   size_t max_level = 0;
   size_t max_dofs = 0;
-  bool sparse_refine = true;
+  std::string refine;
   bool calculate_condition_numbers = false;
   bool print_time_apply = false;
   double solve_rtol = 1e-5;
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
           ->default_value(std::numeric_limits<std::size_t>::max()))(
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
-      "sparse_refine", po::value<bool>(&sparse_refine))(
+      "refine", po::value<std::string>(&refine)->default_value("sparse"))(
       "print_time_apply", po::value<bool>(&print_time_apply))(
       "calculate_condition_numbers",
       po::value<bool>(&calculate_condition_numbers));
@@ -98,10 +98,17 @@ int main(int argc, char* argv[]) {
   po::store(po::command_line_parser(argc, argv).options(cmdline_options).run(),
             vm);
   po::notify(vm);
+  if (refine != "sparse" && refine != "full" && refine != "local") {
+    std::cout << "Refine method `" << refine << "` not recognized."
+              << std::endl;
+    return 1;
+  }
+
   std::cout << "Problem options:" << std::endl;
   std::cout << "\tProblem: " << problem << std::endl;
   std::cout << "\tDomain: " << domain
             << "; initial-refines: " << initial_refines << std::endl;
+  std::cout << "\tRefinement method: " << refine << std::endl;
   std::cout << std::endl;
   std::cout << adapt_opts << "\tsolve-rtol: " << solve_rtol << std::endl
             << std::endl;
@@ -130,14 +137,40 @@ int main(int argc, char* argv[]) {
       std::cout << "problem not recognized :-(" << std::endl;
       return 1;
     }
-    B.ortho_tree.UniformRefine(level + 1);
-    B.three_point_tree.UniformRefine(level + 1);
-    T.hierarch_basis_tree.UniformRefine(2 * (level + 1));
     vec_Xd->FromVectorContainer(solution);
-    if (sparse_refine)
-      vec_Xd->SparseRefine(2 * level, {2, 1});
-    else
-      vec_Xd->UniformRefine({level, 2 * level});
+
+    // Refine underlying
+    if (refine == "sparse")
+      vec_Xd->SparseRefine(2 * level, {2, 1}, /* grow_tree */ true);
+    else if (refine == "full")
+      vec_Xd->UniformRefine({level, 2 * level}, /* grow_tree */ true);
+    else if (refine == "local")
+      vec_Xd->DeepRefine(
+          [level](auto dblnode) {
+            auto [psi_time, psi_space] = dblnode;
+            if (2 * psi_time->level() + psi_space->level() > 2 * level)
+              return false;
+            return (psi_time->is_metaroot() ||
+                    psi_time->Interval().first == 0) &&
+                   (psi_space->is_metaroot() ||
+                    psi_space->TouchesDomainBoundary());
+          },
+          [&](auto dblnode) {
+            dblnode->node_0()->Refine();
+            dblnode->node_1()->Refine();
+          });
+
+    auto print_dblnode = [](auto dblnode) {
+      std::cout << "((" << dblnode->node_0()->level() << ","
+                << dblnode->node_0()->center() << "),"
+                << "(" << dblnode->node_1()->level() << ",("
+                << dblnode->node_1()->center().first << ","
+                << dblnode->node_1()->center().second
+                << ")) : " << dblnode->value() << ";";
+    };
+
+    std::cout << "\n\tcenters: ";
+    for (auto dblnode : vec_Xd->Bfs()) print_dblnode(dblnode);
 
     auto x0 = vec_Xd->ToVectorContainer();
     size_t ndof_X = vec_Xd->Bfs().size();  // A slight overestimate.
@@ -146,7 +179,7 @@ int main(int argc, char* argv[]) {
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                  std::move(problem_data.second), adapt_opts);
     size_t ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
-    std::cout << "level: " << level << "\n\tXDelta-size: " << ndof_X
+    std::cout << "\nlevel: " << level << "\n\tXDelta-size: " << ndof_X
               << "\n\tXDelta-Gradedness: " << vec_Xd->Gradedness()
               << "\n\tYDeltaDelta-size: " << ndof_Y
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
