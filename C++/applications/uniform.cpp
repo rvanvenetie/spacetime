@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
             dblnode->node_1()->Refine();
           });
 
-    auto x0 = vec_Xd->ToVectorContainer();
+    solution = vec_Xd->ToVectorContainer();
     size_t ndof_X = vec_Xd->Bfs().size();  // A slight overestimate.
     if (ndof_X == 0) continue;
     if (ndof_X > max_dofs) break;
@@ -211,7 +211,7 @@ int main(int argc, char* argv[]) {
     // Solve - estimate.
     auto start = std::chrono::steady_clock::now();
     auto [cur_solution, pcg_data] =
-        heat_eq.Solve(x0, heat_eq.RHS(), solve_rtol,
+        heat_eq.Solve(solution, heat_eq.RHS(), solve_rtol,
                       tools::linalg::StoppingCriterium::Relative);
     solution = cur_solution;
     std::chrono::duration<double> duration_solve =
