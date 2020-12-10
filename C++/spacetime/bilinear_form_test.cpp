@@ -408,33 +408,24 @@ TEST(BilinearForm, SymmetricSigmaTheta) {
 TEST(BilinearForm, SigmaThetaLocal) {
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::LShape();
-  T.hierarch_basis_tree.UniformRefine(3);
-  B.ortho_tree.UniformRefine(3);
-  B.three_point_tree.UniformRefine(3);
 
   for (int level = 1; level < 10; level++) {
     // Create locally refined basis trees.
-    T.hierarch_basis_tree.DeepRefine([level](auto node) {
-      return node->is_metaroot() ||
-             ((node->level() < level) && (node->on_domain_boundary()));
-    });
-    B.ortho_tree.DeepRefine([level](auto node) {
-      return node->is_metaroot() ||
-             ((node->level() < level) && (node->Interval().first == 0));
-    });
-    B.three_point_tree.DeepRefine([level](auto node) {
-      return node->is_metaroot() ||
-             ((node->level() < level) && (node->Interval().first == 0));
-    });
-
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
         B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
-    X_delta.DeepRefine([level](auto dblnode) {
-      auto [psi_time, psi_space] = dblnode;
-      return psi_time->is_metaroot() || psi_space->is_metaroot() ||
-             (psi_time->Interval().first == 0) ||
-             psi_space->on_domain_boundary();
-    });
+    X_delta.DeepRefine(
+        [level](auto dblnode) {
+          auto [psi_time, psi_space] = dblnode;
+          if (2 * psi_time->level() + psi_space->level() > 2 * level)
+            return false;
+          return (psi_time->is_metaroot() || psi_time->Interval().first == 0) &&
+                 (psi_space->is_metaroot() ||
+                  psi_space->TouchesDomainBoundary());
+        },
+        [&](auto dblnode) {
+          dblnode->node_0()->Refine();
+          dblnode->node_1()->Refine();
+        });
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
     auto vec_X = std::make_shared<
