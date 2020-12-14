@@ -209,7 +209,7 @@ int main(int argc, char* argv[]) {
         std::cout << "\n\tlmin-PX-S: " << lanczos_X.min()
                   << "\n\tlmax-PX-S: " << lanczos_X.max();
       }
-      std::cout << "\n\tcond-time: " << duration_cond.count() << std::endl;
+      std::cout << "\n\tcond-time: " << duration_cond.count();
       continue;
     }
 
@@ -290,7 +290,6 @@ int main(int argc, char* argv[]) {
     std::cerr << "  B.ortho:    #bfs =  " << B.ortho_tree.Bfs().size()
               << std::endl;
 #endif
-    std::cout << std::endl;
   }
 
   return 0;
