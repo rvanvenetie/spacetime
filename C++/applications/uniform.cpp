@@ -53,7 +53,8 @@ int main(int argc, char* argv[]) {
   size_t max_dofs = 0;
   size_t num_threads = 1;
   std::string refine;
-  bool calculate_condition_numbers = false;
+  bool calculate_condition_PY = false;
+  bool calculate_condition_PX = false;
   bool print_time_apply = false;
   bool print_centers = false;
   double solve_rtol = 1e-5;
@@ -72,8 +73,8 @@ int main(int argc, char* argv[]) {
       "refine", po::value<std::string>(&refine)->default_value("sparse"))(
       "print_centers", po::value<bool>(&print_centers))(
       "print_time_apply", po::value<bool>(&print_time_apply))(
-      "calculate_condition_numbers",
-      po::value<bool>(&calculate_condition_numbers));
+      "calculate_condition_PX", po::value<bool>(&calculate_condition_PX))(
+      "calculate_condition_PY", po::value<bool>(&calculate_condition_PY));
 
   AdaptiveHeatEquationOptions adapt_opts;
   boost::program_options::options_description adapt_optdesc(
@@ -180,31 +181,35 @@ int main(int argc, char* argv[]) {
               << "\n\tYDeltaDelta-size: " << ndof_Y
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
 
-    if (calculate_condition_numbers) {
+    if (calculate_condition_PY || calculate_condition_PX) {
       auto start = std::chrono::steady_clock::now();
       std::chrono::duration<double> duration_cond =
           std::chrono::steady_clock::now() - start;
 
-      // Set the initial vector to something valid.
-      heat_eq.vec_Ydd()->Reset();
-      for (auto nv : heat_eq.vec_Ydd()->Bfs())
-        if (!nv->node_1()->on_domain_boundary()) nv->set_random();
-      auto lanczos_Y = tools::linalg::Lanczos(
-          *heat_eq.heat_d_dd()->A(), *heat_eq.heat_d_dd()->P_Y(),
-          heat_eq.vec_Ydd()->ToVectorContainer());
+      if (calculate_condition_PY) {
+        // Set the initial vector to something valid.
+        heat_eq.vec_Ydd()->Reset();
+        for (auto nv : heat_eq.vec_Ydd()->Bfs())
+          if (!nv->node_1()->on_domain_boundary()) nv->set_random();
+        auto lanczos_Y = tools::linalg::Lanczos(
+            *heat_eq.heat_d_dd()->A(), *heat_eq.heat_d_dd()->P_Y(),
+            heat_eq.vec_Ydd()->ToVectorContainer());
+        std::cout << "\n\tlmin-PY-A: " << lanczos_Y.min()
+                  << "\n\tlmax-PY-A: " << lanczos_Y.max();
+      }
 
-      // Set the initial vector to something valid.
-      heat_eq.vec_Xd()->Reset();
-      for (auto nv : heat_eq.vec_Xd()->Bfs())
-        if (!nv->node_1()->on_domain_boundary()) nv->set_random();
-      auto lanczos_X = tools::linalg::Lanczos(
-          *heat_eq.heat_d_dd()->S(), *heat_eq.heat_d_dd()->P_X(),
-          heat_eq.vec_Xd()->ToVectorContainer());
-      std::cout << "\n\tlmin-PY-A: " << lanczos_Y.min()
-                << "\n\tlmax-PY-A: " << lanczos_Y.max()
-                << "\n\tlmin-PX-S: " << lanczos_X.min()
-                << "\n\tlmax-PX-S: " << lanczos_X.max()
-                << "\n\tcond-time: " << duration_cond.count() << std::endl;
+      if (calculate_condition_PX) {
+        // Set the initial vector to something valid.
+        heat_eq.vec_Xd()->Reset();
+        for (auto nv : heat_eq.vec_Xd()->Bfs())
+          if (!nv->node_1()->on_domain_boundary()) nv->set_random();
+        auto lanczos_X = tools::linalg::Lanczos(
+            *heat_eq.heat_d_dd()->S(), *heat_eq.heat_d_dd()->P_X(),
+            heat_eq.vec_Xd()->ToVectorContainer());
+        std::cout << "\n\tlmin-PX-S: " << lanczos_X.min()
+                  << "\n\tlmax-PX-S: " << lanczos_X.max();
+      }
+      std::cout << "\n\tcond-time: " << duration_cond.count() << std::endl;
       continue;
     }
 
