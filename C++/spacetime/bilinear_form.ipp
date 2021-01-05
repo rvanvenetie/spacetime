@@ -401,9 +401,19 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
       // Set the level of the time wavelet.
       space_opts_.time_level = std::get<0>(psi_out_labda->nodes())->level();
+
+      // Create Bilform.
+      auto time_compute = std::chrono::steady_clock::now();
       auto bil_form = space::CreateBilinearForm<OperatorSpace>(
           fiber_in, fiber_out, space_opts_);
+      time_apply_split_[0] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
+
+      // Apply Bilform.
+      time_compute = std::chrono::steady_clock::now();
       bil_form.Apply();
+      time_apply_split_[1] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
     }
   } else {
     // Apply the space bilforms.
