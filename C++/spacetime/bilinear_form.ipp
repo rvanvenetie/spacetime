@@ -280,6 +280,7 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
 
   if (!use_cache_) {
     // Calculate R_sigma(Id x A_1)I_Lambda.
+    auto time_compute = std::chrono::steady_clock::now();
     for (auto psi_in_labda : vec_->Project_0()->Bfs()) {
       auto fiber_in = vec_->Fiber_1(psi_in_labda->node());
       auto fiber_out = psi_in_labda->FrozenOtherAxis();
@@ -288,8 +289,11 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
           fiber_in, fiber_out, space_opts_);
       bil_form.Apply();
     }
+    time_apply_split_[0] += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - time_compute);
 
     // Calculate R_Lambda(L_0 x Id)I_Sigma.
+    time_compute = std::chrono::steady_clock::now();
     for (auto psi_out_labda : vec_->Project_1()->Bfs()) {
       auto fiber_in = vec_->Fiber_0(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
@@ -298,11 +302,14 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
           Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
       bil_form.ApplyLow();
     }
+    time_apply_split_[1] += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - time_compute);
 
     v_lower = vec_->ToVectorContainer();
     vec_->FromVectorContainer(v_in);
 
     // Calculate R_Sigma(U_1 x Id)I_Lambda.
+    time_compute = std::chrono::steady_clock::now();
     for (auto psi_in_labda : vec_->Project_1()->Bfs()) {
       auto fiber_out = vec_->Fiber_0(psi_in_labda->node());
       if (fiber_out->children().empty()) continue;
@@ -311,7 +318,11 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
           Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
       bil_form.ApplyUpp();
     }
+    time_apply_split_[2] += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - time_compute);
+
     // Calculate R_Lambda(Id x A2)I_Sigma.
+    time_compute = std::chrono::steady_clock::now();
     for (auto psi_out_labda : vec_->Project_0()->Bfs()) {
       auto fiber_out = vec_->Fiber_1(psi_out_labda->node());
       auto fiber_in = psi_out_labda->FrozenOtherAxis();
@@ -320,6 +331,8 @@ SymmetricBilinearForm<OperatorTime, OperatorSpace, BasisTime>::Apply(
           fiber_in, fiber_out, space_opts_);
       bil_form.Apply();
     }
+    time_apply_split_[3] += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - time_compute);
   } else {
     // Apply the lower part using cached bil forms.
     for (auto &bil_form : bil_space_low_) bil_form.Apply();

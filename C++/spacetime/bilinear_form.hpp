@@ -157,6 +157,7 @@ class SymmetricBilinearForm
   // Debug information.
   using BilinearFormBase<DblVec, DblVec>::time_construct_;
   using BilinearFormBase<DblVec, DblVec>::time_apply_;
+  using BilinearFormBase<DblVec, DblVec>::time_apply_split_;
   using BilinearFormBase<DblVec, DblVec>::num_apply_;
 
   // Define frozen templates, useful for storing the bil forms.

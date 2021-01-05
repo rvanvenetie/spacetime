@@ -139,7 +139,7 @@ class SumBilinearForm : public BilinearFormBase<typename BilFormA::DblVecIn,
     time_apply_ += std::chrono::duration<double>(
         std::chrono::steady_clock::now() - time_start);
     for (size_t i = 0; i < time_apply_split_.size(); i++)
-      time_apply_split_[i] += a_->TimeApplySplit()[i] + b_->TimeApplySplit()[i];
+      time_apply_split_[i] = a_->TimeApplySplit()[i] + b_->TimeApplySplit()[i];
 
     return result;
   }
@@ -230,9 +230,9 @@ class SchurBilinearForm
     time_apply_ += std::chrono::duration<double>(
         std::chrono::steady_clock::now() - time_start);
     for (size_t i = 0; i < time_apply_split_.size(); i++)
-      time_apply_split_[i] +=
-          b_->TimeApplySplit()[i] + a_inv_->TimeApplySplit()[i] +
-          bt_->TimeApplySplit()[i] + g_->TimeApplySplit()[i];
+      time_apply_split_[i] = b_->TimeApplySplit()[i] +
+                             a_inv_->TimeApplySplit()[i] +
+                             bt_->TimeApplySplit()[i] + g_->TimeApplySplit()[i];
 
     return result;
   }
