@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
   bool calculate_condition_numbers = false;
   bool print_centers = false;
   bool print_sampling = false;
-  bool print_time_apply = false;
+  bool print_time_apply = true;
   std::vector<double> print_time_slices;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
