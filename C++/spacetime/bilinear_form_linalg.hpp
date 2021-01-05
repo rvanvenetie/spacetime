@@ -58,11 +58,11 @@ class BilinearFormBase
   double TimeApply() const { return time_apply_.count(); };
   const auto &TimeApplySplit() const { return time_apply_split_; }
   std::string TimePerApply() const {
-    if (num_apply_ == 0) return "(0, 0, 0, 0, 0)";
+    if (num_apply_ == 0) return "(0,0,0,0,0)";
     std::stringstream result;
     result << "(" << time_apply_.count() / num_apply_;
     for (const auto &time : time_apply_split_)
-      result << ", " << time.count() / num_apply_;
+      result << "," << time.count() / num_apply_;
     result << ")";
     return result.str();
   };
