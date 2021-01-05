@@ -211,9 +211,13 @@ int main(int argc, char* argv[]) {
     // Store a vector of all the nodes having maximum gradedness;
     std::vector<typename HeatEquation::TypeXVector::DNType*> max_gradedness;
 
-    ndof_X = vec_Xd->Bfs().size();             // A slight overestimate.
+    ndof_X = vec_Xd->Bfs().size();  // A slight overestimate.
+    size_t ndof_X_time = vec_Xd->Project_0()->Bfs().size();
+    size_t ndof_X_space = vec_Xd->Project_1()->Bfs().size();
     ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
     std::cout << "iter: " << ++iter << "\n\tXDelta-size: " << ndof_X
+              << "\n\tXDelta-space-size: " << ndof_X_space
+              << "\n\tXDelta-time-size: " << ndof_X_time
               << "\n\tXDelta-Gradedness: "
               << vec_Xd->Gradedness(&max_gradedness)
               << "\n\tYDeltaDelta-size: " << ndof_Y
