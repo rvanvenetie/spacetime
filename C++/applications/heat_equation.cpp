@@ -23,7 +23,11 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
   vec_Y_->ComputeFibers();
 
   space::OperatorOptions space_opts({.build_mat = opts_.build_space_mats});
-  if (!A) A_ = std::make_shared<TypeA>(vec_Y.get(), opts.use_cache, space_opts);
+
+  if (!A)
+    // By choice of Y, we have sigma=theta=vec_Y.
+    A_ = std::make_shared<TypeA>(vec_Y.get(), vec_Y.get(), /* sigma */ vec_Y,
+                                 /* theta */ vec_Y, opts.use_cache, space_opts);
 
   // Create first part of B.
   std::shared_ptr<TypeB_t> B_t;
@@ -46,7 +50,8 @@ HeatEquation::HeatEquation(std::shared_ptr<TypeXVector> vec_X,
   InitializeBT();
 
   // Create gamma_0'gamma_0 operator.
-  G_ = std::make_shared<TypeG>(vec_X_.get(), opts_.use_cache, space_opts);
+  G_ = std::make_shared<TypeG>(vec_X_.get(), vec_X.get(), /* sigma */ vec_X,
+                               /* theta */ vec_X, opts_.use_cache, space_opts);
 
   // Create the negative gamma_0'gamma_0 operator.
   auto minus_G = std::make_shared<NegativeBilinearForm<TypeG>>(G_);
