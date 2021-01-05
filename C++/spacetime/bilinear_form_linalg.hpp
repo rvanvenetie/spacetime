@@ -72,7 +72,7 @@ class BilinearFormBase
   // Timing debug information.
   std::chrono::duration<double> time_construct_{0};
   std::chrono::duration<double> time_apply_{0};
-  std::array<std::chrono::duration<double>, 4> time_apply_split_{};
+  std::array<std::chrono::duration<double>, 8> time_apply_split_{};
   size_t num_apply_ = 0;
 };
 
