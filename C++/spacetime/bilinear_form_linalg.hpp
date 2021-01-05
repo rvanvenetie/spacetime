@@ -56,9 +56,15 @@ class BilinearFormBase
   }
 
   double TimeApply() const { return time_apply_.count(); };
-  double TimePerApply() const {
-    if (num_apply_ == 0) return 0;
-    return time_apply_.count() / num_apply_;
+  const auto &TimeApplySplit() const { return time_apply_split_; }
+  std::string TimePerApply() const {
+    if (num_apply_ == 0) return "(0, 0, 0, 0, 0)";
+    std::stringstream result;
+    result << "(" << time_apply_.count() / num_apply_;
+    for (const auto &time : time_apply_split_)
+      result << ", " << time.count() / num_apply_;
+    result << ")";
+    return result.str();
   };
   double TimeConstruct() const { return time_construct_.count(); }
 
@@ -66,6 +72,7 @@ class BilinearFormBase
   // Timing debug information.
   std::chrono::duration<double> time_construct_{0};
   std::chrono::duration<double> time_apply_{0};
+  std::array<std::chrono::duration<double>, 4> time_apply_split_{};
   size_t num_apply_ = 0;
 };
 
@@ -131,6 +138,8 @@ class SumBilinearForm : public BilinearFormBase<typename BilFormA::DblVecIn,
     // Store timing results.
     time_apply_ += std::chrono::duration<double>(
         std::chrono::steady_clock::now() - time_start);
+    for (size_t i = 0; i < time_apply_split_.size(); i++)
+      time_apply_split_[i] += a_->TimeApplySplit()[i] + b_->TimeApplySplit()[i];
 
     return result;
   }
@@ -138,6 +147,9 @@ class SumBilinearForm : public BilinearFormBase<typename BilFormA::DblVecIn,
   DblVecOut *vec_out() const final { return a_->vec_out(); }
   auto sigma() { return a_->sigma(); }
   auto theta() { return a_->theta(); }
+
+  std::shared_ptr<BilFormA> A() { return a_; }
+  std::shared_ptr<BilFormB> B() { return b_; }
 
   auto Transpose() {
     auto a_t = a_->Transpose();
@@ -152,6 +164,7 @@ class SumBilinearForm : public BilinearFormBase<typename BilFormA::DblVecIn,
   std::shared_ptr<BilFormB> b_;
 
   using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_split_;
   using BilinearFormBase<DblVecIn, DblVecOut>::num_apply_;
 };
 
@@ -216,6 +229,10 @@ class SchurBilinearForm
     // Store timing results.
     time_apply_ += std::chrono::duration<double>(
         std::chrono::steady_clock::now() - time_start);
+    for (size_t i = 0; i < time_apply_split_.size(); i++)
+      time_apply_split_[i] +=
+          b_->TimeApplySplit()[i] + a_inv_->TimeApplySplit()[i] +
+          bt_->TimeApplySplit()[i] + g_->TimeApplySplit()[i];
 
     return result;
   }
@@ -230,6 +247,7 @@ class SchurBilinearForm
   std::shared_ptr<G> g_;
 
   using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_split_;
   using BilinearFormBase<DblVecIn, DblVecOut>::num_apply_;
 };
 }  // namespace spacetime
