@@ -18,13 +18,14 @@ int bsd_rnd() {
 using namespace space;
 using namespace datastructures;
 
-constexpr int max_level = 25;
 constexpr int bilform_iters = 5;
 
 int main() {
   auto T = InitialTriangulation::UnitSquare();
 
-  for (size_t level = 0; level < max_level; level++) {
+  size_t level = 0;
+  while (true) {
+    level++;
     T.hierarch_basis_tree.UniformRefine(level);
     std::chrono::duration<double> time_create{0};
     std::chrono::duration<double> time_apply{0};
