@@ -4,10 +4,26 @@
 #include "operators.hpp"
 #include "triangulation_view.hpp"
 
+// This is a base class for turning a bilinear form into an Eigen matvec.
+namespace space {
+template <typename Operator, typename I_in, typename I_out = I_in>
+class BilinearForm;
+}
+
+// Define a necessary Eigen trait.
+namespace Eigen {
+namespace internal {
+template <typename Operator, typename I_in, typename I_out>
+struct traits<space::BilinearForm<Operator, I_in, I_out>>
+    : public Eigen::internal::traits<Eigen::SparseMatrix<double>> {};
+}  // namespace internal
+}  // namespace Eigen
+
 namespace space {
 
-template <typename Operator, typename I_in, typename I_out = I_in>
-class BilinearForm {
+template <typename Operator, typename I_in, typename I_out>
+class BilinearForm
+    : public Eigen::EigenBase<BilinearForm<Operator, I_in, I_out>> {
  public:
   BilinearForm(I_in* root_vec_in, I_out* root_vec_out,
                const OperatorOptions& opts);
@@ -35,6 +51,26 @@ class BilinearForm {
   }
 
   Eigen::MatrixXd ToMatrix();
+
+  // These are the functions that must be implemented for Eigen to work.
+  Eigen::Index rows() const { return nodes_vec_out_->size(); }
+  Eigen::Index cols() const { return nodes_vec_in_->size(); }
+
+  using Scalar = double;
+  using RealScalar = double;
+  using StorageIndex = int;
+  enum {
+    ColsAtCompileTime = Eigen::Dynamic,
+    MaxColsAtCompileTime = Eigen::Dynamic,
+    IsRowMajor = false
+  };
+
+  template <typename Rhs>
+  Eigen::VectorXd operator*(const Eigen::MatrixBase<Rhs>& x) const {
+    FromVector(*nodes_vec_in_, x);
+    const_cast<BilinearForm*>(this)->Apply();
+    return ToVector(*nodes_vec_out_);
+  }
 
  protected:
   // Protected constructor, and give transpose operator access.

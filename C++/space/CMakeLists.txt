@@ -1,6 +1,9 @@
 add_library(space STATIC triangulation.cpp initial_triangulation.cpp basis.cpp operators.cpp triangulation_view.cpp multigrid_triangulation_view.cpp linear_form.cpp integration.cpp)
 
 # Executables
+add_executable(space_adaptive adaptive.cpp)
+target_link_libraries(space_adaptive space)
+
 add_executable(triangulation_view_performance triangulation_view_performance.cpp)
 target_link_libraries(triangulation_view_performance space)
 
