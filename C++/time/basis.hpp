@@ -101,7 +101,8 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  Element1D(Deque<Element1D> *container) : BinaryNode(container), index_(0) {
+  Element1D(datastructures::TreeContainer<Element1D> *container)
+      : BinaryNode(container), index_(0) {
     make_child(/* parent */ this, /* index */ 0);
   }
 
@@ -159,7 +160,7 @@ class Function : public datastructures::Node<I> {
 
  protected:
   // Protected constructor for creating a metaroot.
-  Function(Deque<I> *container)
+  Function(datastructures::TreeContainer<I> *container)
       : datastructures::Node<I>(container), index_(0) {}
 
   // The index inside this level.

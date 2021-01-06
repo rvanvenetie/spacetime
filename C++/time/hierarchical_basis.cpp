@@ -5,7 +5,7 @@
 #include <memory>
 namespace Time {
 HierarchicalWaveletFn::HierarchicalWaveletFn(
-    Deque<HierarchicalWaveletFn> *container,
+    datastructures::TreeContainer<HierarchicalWaveletFn> *container,
     const SmallVector<
         ContLinearScalingFn *,
         datastructures::NodeTrait<ContLinearScalingFn>::N_children>

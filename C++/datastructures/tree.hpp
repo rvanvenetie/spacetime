@@ -18,6 +18,12 @@ using T_func_true = decltype(func_true);
 using T_func_false = decltype(func_false);
 
 template <typename I>
+using TreeContainer = std::deque<
+    boost::container::deque<I, void,
+                            typename boost::container::deque_options<
+                                boost::container::block_size<128>>::type>>;
+
+template <typename I>
 struct NodeTrait;  // This should define N_children and N_parents.
 
 template <typename I>
@@ -102,16 +108,18 @@ class Node {
   StaticVector<I *, NodeTrait<I>::N_parents> parents_;
 
   // Pointer to the deque that holds all the childen.
-  Deque<I> *container_ = nullptr;
+  TreeContainer<I> *container_ = nullptr;
 
   template <typename... Args>
   inline I *make_child(Args &&... args) {
-    container_->emplace_back(std::forward<Args>(args)...);
-    children_.emplace_back(&container_->back());
-    return &container_->back();
+    if (level_ + 1 >= container_->size()) container_->emplace_back();
+    container_->at(level_ + 1).emplace_back(std::forward<Args>(args)...);
+    children_.emplace_back(&container_->at(level_ + 1).back());
+    return children_.back();
   }
 
-  explicit Node(Deque<I> *container) : level_(-1), container_(container) {}
+  explicit Node(TreeContainer<I> *container)
+      : level_(-1), container_(container) {}
 };
 
 template <typename I>
@@ -177,7 +185,7 @@ class Tree {
   I *meta_root() { return &meta_root_; }
 
  protected:
-  Deque<I> nodes_;
+  TreeContainer<I> nodes_;
   I meta_root_;
 };
 

@@ -38,7 +38,7 @@ class HierarchicalWaveletFn : public WaveletFn<HierarchicalWaveletFn> {
  protected:
   // Protected constructor for creating a metaroot.
   HierarchicalWaveletFn(
-      Deque<HierarchicalWaveletFn> *container,
+      datastructures::TreeContainer<HierarchicalWaveletFn> *container,
       const SmallVector<
           ContLinearScalingFn *,
           datastructures::NodeTrait<ContLinearScalingFn>::N_children>
