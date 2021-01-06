@@ -50,7 +50,8 @@ int main() {
       // Create BilForm.
       auto time_compute = std::chrono::high_resolution_clock::now();
       auto bilform =
-          CreateBilinearForm<space::MassOperator>(vec_in, vec_in, space_opts);
+          CreateBilinearForm<MultigridPreconditioner<StiffnessOperator>>(
+              vec_in, vec_in, space_opts);
       time_create += std::chrono::duration<double>(
           std::chrono::high_resolution_clock::now() - time_compute);
       time_create_bfs += bilform.time_bfs_;
