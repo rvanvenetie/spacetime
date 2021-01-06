@@ -7,6 +7,7 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
                                                   I_out* root_vec_out,
                                                   const OperatorOptions& opts)
     : vec_in_(root_vec_in), vec_out_(root_vec_out) {
+  auto time_start = std::chrono::high_resolution_clock::now();
   assert(vec_in_->is_root());
   assert(vec_out_->is_root());
   nodes_vec_in_ = std::make_shared<std::vector<I_in*>>(vec_in_->Bfs());
@@ -33,6 +34,10 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
       }
   }
 
+  time_bfs_ = std::chrono::duration<double>(
+      std::chrono::high_resolution_clock::now() - time_start);
+
+  time_start = std::chrono::high_resolution_clock::now();
   switch (inclusion_type_) {
     case Subset:
       // Assert that vec_out_ is a refinement of vec_in_.
@@ -51,8 +56,13 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
     default:
       assert(false);
   }
+  time_tview_ = std::chrono::duration<double>(
+      std::chrono::high_resolution_clock::now() - time_start);
 
+  time_start = std::chrono::high_resolution_clock::now();
   operator_ = std::make_shared<Operator>(*triang_, opts);
+  time_operator_ = std::chrono::duration<double>(
+      std::chrono::high_resolution_clock::now() - time_start);
 }
 
 template <typename Operator, typename I_in, typename I_out>

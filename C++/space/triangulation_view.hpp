@@ -12,6 +12,9 @@ namespace space {
 
 class TriangulationView {
  public:
+  std::chrono::duration<double> time_mark_{0};
+  std::chrono::duration<double> time_bfs_{0};
+  std::chrono::duration<double> time_transform_{0};
   TriangulationView(std::vector<Vertex *> &&vertices);
 
   template <typename Iterable>
@@ -63,10 +66,13 @@ class TriangulationView {
   }
   template <typename Iterable>
   std::vector<Vertex *> Transform(const Iterable &nodes) {
+    auto time_start = std::chrono::high_resolution_clock::now();
     std::vector<Vertex *> result;
     assert(nodes.size());
     result.reserve(nodes.size());
     for (const auto nv : nodes) result.emplace_back(ToVertex(nv->node()));
+    time_transform_ = std::chrono::duration<double>(
+        std::chrono::high_resolution_clock::now() - time_start);
     return result;
   }
 };

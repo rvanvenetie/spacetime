@@ -9,10 +9,15 @@ namespace space {
 template <typename Operator, typename I_in, typename I_out = I_in>
 class BilinearForm {
  public:
+  std::chrono::duration<double> time_bfs_{0};
+  std::chrono::duration<double> time_tview_{0};
+  std::chrono::duration<double> time_operator_{0};
+
   BilinearForm(I_in* root_vec_in, I_out* root_vec_out,
                const OperatorOptions& opts);
 
   void Apply();
+  std::shared_ptr<TriangulationView> TView() { return triang_; }
 
   auto Transpose() const {
     auto transpose = BilinearForm<Operator, I_out, I_in>();

@@ -9,6 +9,7 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
       godparents_(V, {0, 0}) {
   assert(V >= 3);
 
+  auto time_start = std::chrono::high_resolution_clock::now();
   // First, we mark all vertices.
   std::vector<uint> indices(V);
   initial_vertices_ = 0;
@@ -27,6 +28,8 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
       for (int gp = 0; gp < 2; gp++)
         godparents_[i][gp] = *vtx->godparents[gp]->template data<uint>();
   }
+  time_mark_ = std::chrono::duration<double>(
+      std::chrono::high_resolution_clock::now() - time_start);
 
   // If we only have initial vertices, set the total.
   if (initial_vertices_ == 0) initial_vertices_ = V;
@@ -35,6 +38,7 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
   Element2D *elem_meta_root = vertices_[0]->patch[0]->parents()[0];
   assert(elem_meta_root->is_metaroot());
 
+  time_start = std::chrono::high_resolution_clock::now();
   std::queue<Element2D *> queue;
   element_leaves_.reserve(V * 2);
   for (auto root : elem_meta_root->children()) queue.emplace(root);
@@ -54,6 +58,8 @@ TriangulationView::TriangulationView(std::vector<Vertex *> &&vertices)
       element_leaves_.emplace_back(elem, std::move(Vids));
     }
   }
+  time_bfs_ = std::chrono::duration<double>(
+      std::chrono::high_resolution_clock::now() - time_start);
 
   // Unset the data stored in the vertices.
   for (auto nv : vertices_) nv->reset_data();
