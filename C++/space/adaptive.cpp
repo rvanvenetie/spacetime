@@ -144,8 +144,8 @@ int main() {
     std::cout << "\n\ttime-mark-refine: "
               << std::chrono::duration<double>(
                      std::chrono::high_resolution_clock::now() - time_start)
-                     .count() std::cout
-              << std::endl;
+                     .count();
+    std::cout << std::endl;
   }
   return 0;
 }
