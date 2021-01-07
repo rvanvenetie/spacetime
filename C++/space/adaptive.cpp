@@ -62,7 +62,7 @@ int main() {
   x_d.DeepRefine();
   auto solution = x_d.ToVector();
 
-  auto lf = LinearForm(f, /* apply_quadrature*/ true, /*order*/ 1,
+  auto lf = LinearForm(f, /* apply_quadrature*/ true, /*order*/ 0,
                        /* dirichlet_boundary */ true);
   space::OperatorOptions space_opts({.build_mat = false, .mg_cycles = 2});
   size_t iter = 0;
@@ -97,11 +97,16 @@ int main() {
               << std::flush;
 
     // Solve.
+    time_start = std::chrono::high_resolution_clock::now();
     auto [new_solution, pcg_data] =
         tools::linalg::PCG(bilform, rhs, precond, solution, pcg_iters, 1e-16);
 
     std::cout << "\n\ttime-stiff-per-apply: " << bilform.TimePerApply()
               << "\n\ttime-mg-per-apply: " << precond.TimePerApply()
+              << "\n\ttime-solve: "
+              << std::chrono::duration<double>(
+                     std::chrono::high_resolution_clock::now() - time_start)
+                     .count()
               << "\n\tsolve-PCG-steps: " << pcg_data.iterations
               << "\n\tsolve-PCG-relative-residual: "
               << pcg_data.relative_residual
@@ -127,6 +132,7 @@ int main() {
               << std::flush;
 
     // Mark.
+    time_start = std::chrono::high_resolution_clock::now();
     x_dd.FromVector(residual);
     auto marked_nodes = Mark(x_dd);
     std::cout << "\n\tmarked-nodes: " << marked_nodes.size() << std::flush;
@@ -135,7 +141,11 @@ int main() {
     x_d.FromVector(new_solution);
     x_d.ConformingRefinement(x_dd, marked_nodes);
     solution = x_d.ToVector();
-    std::cout << std::endl;
+    std::cout << "\n\ttime-mark-refine: "
+              << std::chrono::duration<double>(
+                     std::chrono::high_resolution_clock::now() - time_start)
+                     .count() std::cout
+              << std::endl;
   }
   return 0;
 }
