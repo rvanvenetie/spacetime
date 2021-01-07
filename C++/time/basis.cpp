@@ -59,7 +59,7 @@ HierarchicalWaveletFn *Element1D::RefinePsiHierarchical() {
 
 std::pair<double, double> Element1D::Interval() const {
   assert(!is_metaroot());
-  double h = 1.0 / (1 << level_);
+  double h = 1.0 / (1LL << level_);
   return {h * index_, h * (index_ + 1)};
 }
 

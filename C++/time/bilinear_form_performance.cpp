@@ -22,32 +22,29 @@ constexpr int bilform_iters = 10;
 constexpr int inner_iters = 150;
 
 int main() {
+  bool print_mesh = false;
   Bases B;
-  B.ortho_tree.UniformRefine(::level);
-
-  for (size_t j = 0; j < ::bilform_iters; ++j) {
-    // Set up ortho tree.
-    auto vec_in = TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root());
-    auto vec_out = TreeVector<OrthonormalWaveletFn>(B.ortho_tree.meta_root());
-    vec_in.DeepRefine(
-        /* call_filter */ [](auto&& nv) {
-          return nv->level() <= 0 || bsd_rnd() % 3 != 0;
-        });
-    vec_out.DeepRefine(
-        /* call_filter */ [](auto&& nv) {
-          return nv->level() <= 0 || bsd_rnd() % 3 != 0;
-        });
-
-    auto bil_form = CreateBilinearForm<MassOperator>(vec_in, vec_out);
-    for (size_t k = 0; k < ::inner_iters; k++) {
-      for (auto& nv : vec_in.Bfs()) {
-        nv->set_value(bsd_rnd());
-      }
-      bil_form.ApplyLow();
-      vec_out.Reset();
-      bil_form.ApplyUpp();
-      vec_out.Reset();
+  size_t iter = 0;
+  while (true) {
+    std::cout << "iter: " << ++iter;
+    if (print_mesh) {
+      std::cout << "\n\tmesh: [";
+      for (auto nv : B.ortho_tree.Bfs()) std::cout << nv->center() << ",";
+      std::cout << "]" << std::flush;
     }
+    // Refine towards the corner.
+    for (auto psi : B.ortho_tree.Bfs())
+      if (!psi->is_full() && psi->index() <= std::pow(1.3, psi->level()))
+        psi->Refine();
+    for (auto psi : B.three_point_tree.Bfs())
+      if (!psi->is_full() && psi->index() <= std::pow(1.3, psi->level()))
+        psi->Refine();
+
+    std::cout << "\n\tortho-tree-size: " << B.ortho_tree.Bfs().size()
+              << std::endl;
+    std::cout << "\n\tthreept-tree-size: " << B.three_point_tree.Bfs().size()
+              << std::endl;
+    std::cout << std::endl;
   }
   return 0;
 }

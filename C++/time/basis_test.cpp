@@ -184,7 +184,7 @@ TEST(ThreePointBasis, LocalRefinement) {
   // Reset the persistent trees.
   Bases B;
 
-  int ml = 15;
+  int ml = 34;
   // First check what happens when we only refine near the origin.
   B.three_point_tree.DeepRefine([ml](auto node) {
     return node->is_metaroot() || (node->level() < ml && node->index() == 0);
@@ -206,7 +206,7 @@ TEST(ThreePointBasis, LocalRefinement) {
     return node->is_metaroot() ||
            (node->level() < ml &&
             (node->index() == 0 ||
-             node->index() == (1 << (node->level() - 1)) - 1));
+             node->index() == (1LL << (node->level() - 1)) - 1));
   });
   Lambda = B.three_point_tree.NodesPerLevel();
   Delta = B.cont_lin_tree.NodesPerLevel();
@@ -215,8 +215,8 @@ TEST(ThreePointBasis, LocalRefinement) {
     ASSERT_EQ(Delta[l].size(), 10);
     ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0));
     ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1));
-    ASSERT_EQ(Lambda[l][2]->labda(), std::pair(l, (1 << (l - 1)) - 2));
-    ASSERT_EQ(Lambda[l][3]->labda(), std::pair(l, (1 << (l - 1)) - 1));
+    ASSERT_EQ(Lambda[l][2]->labda(), std::pair(l, (1LL << (l - 1)) - 2));
+    ASSERT_EQ(Lambda[l][3]->labda(), std::pair(l, (1LL << (l - 1)) - 1));
   }
 }
 

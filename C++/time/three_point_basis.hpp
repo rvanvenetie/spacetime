@@ -24,7 +24,7 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
       assert(!support[0]->phi_cont_lin_[1]);
       support[0]->phi_cont_lin_[1] = this;
     }
-    if (index < (1 << level())) {
+    if (index < (1LL << level())) {
       assert(!support.back()->phi_cont_lin_[0]);
       support.back()->phi_cont_lin_[0] = this;
     }
