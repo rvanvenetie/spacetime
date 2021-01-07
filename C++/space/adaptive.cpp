@@ -62,6 +62,9 @@ int main() {
   x_d.DeepRefine();
   auto solution = x_d.ToVector();
 
+  auto lf = LinearForm(f, /* apply_quadrature*/ true, /*order*/ 1,
+                       /* dirichlet_boundary */ true);
+  space::OperatorOptions space_opts({.build_mat = false, .mg_cycles = 2});
   size_t iter = 0;
   while (true) {
     std::cout << "iter: " << ++iter << "\n\tXDelta-size: " << x_d.Bfs().size()
@@ -76,29 +79,37 @@ int main() {
     }
 
     // Create linform + bilform + precond.
-    auto lf = LinearForm(f, /* apply_quadrature*/ true, /*order*/ 2,
-                         /* dirichlet_boundary */ true);
-    space::OperatorOptions space_opts({.build_mat = false, .mg_cycles = 2});
     auto bilform = CreateBilinearForm<StiffnessOperator>(x_d, x_d, space_opts);
     auto precond =
         CreateBilinearForm<MultigridPreconditioner<StiffnessOperator>>(
             x_d, x_d, space_opts);
+    std::cout << "\n\ttime-stiff-create: " << bilform.TimeCreate()
+              << "\n\ttime-mg-create: " << precond.TimeCreate();
 
     // Calculate rhs.
+    auto time_start = std::chrono::high_resolution_clock::now();
     lf.Apply(x_d.root());
     auto rhs = x_d.ToVector();
+    std::cout << "\n\ttime-rhs: "
+              << std::chrono::duration<double>(
+                     std::chrono::high_resolution_clock::now() - time_start)
+                     .count()
+              << std::flush;
 
     // Solve.
     auto [new_solution, pcg_data] =
         tools::linalg::PCG(bilform, rhs, precond, solution, pcg_iters, 1e-16);
 
-    std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
+    std::cout << "\n\ttime-stiff-per-apply: " << bilform.TimePerApply()
+              << "\n\ttime-mg-per-apply: " << precond.TimePerApply()
+              << "\n\tsolve-PCG-steps: " << pcg_data.iterations
               << "\n\tsolve-PCG-relative-residual: "
               << pcg_data.relative_residual
               << "\n\tsolve-PCG-algebraic-error: " << pcg_data.algebraic_error
               << std::flush;
 
     // Estimate.
+    time_start = std::chrono::high_resolution_clock::now();
     auto x_dd = x_d.DeepCopy();
     x_dd.FromVector(new_solution);
     UniformRefine(x_dd);
@@ -109,6 +120,11 @@ int main() {
     lf.Apply(x_dd.root());
     residual -= x_dd.ToVector();
     std::cout << "\n\tresidual-norm: " << residual.norm() << std::flush;
+    std::cout << "\n\ttime-estimate: "
+              << std::chrono::duration<double>(
+                     std::chrono::high_resolution_clock::now() - time_start)
+                     .count()
+              << std::flush;
 
     // Mark.
     x_dd.FromVector(residual);

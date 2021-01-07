@@ -34,6 +34,14 @@ class BilinearForm {
     return transpose;
   }
 
+  double TimeCreate() const { return time_create_.count(); }
+  double TimePerApply() const {
+    if (num_apply_ == 0)
+      return 0;
+    else
+      return time_apply_.count() / num_apply_;
+  }
+
   Eigen::MatrixXd ToMatrix();
 
   // These are the functions that must be implemented for Eigen to work.
@@ -65,6 +73,11 @@ class BilinearForm {
   // A flattened bfs view of input/output vectors.
   std::shared_ptr<std::vector<I_in*>> nodes_vec_in_;
   std::shared_ptr<std::vector<I_out*>> nodes_vec_out_;
+
+  // Some timing results -- debug info.
+  std::chrono::duration<double> time_create_;
+  std::chrono::duration<double> time_apply_{0};
+  size_t num_apply_ = 0;
 };
 
 // Helper functions.
