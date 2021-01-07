@@ -50,8 +50,9 @@ auto Mark(TreeVector<HierarchicalBasisFn> &residual, double theta = 0.8) {
 }
 
 constexpr int level = 15;
-constexpr int iters = 10;
-constexpr int apply_iters = 10;
+constexpr int pcg_iters = 4;
+constexpr int create_iters = 5;
+constexpr bool print_mesh = false;
 
 int main() {
   auto T = InitialTriangulation::LShape();
@@ -65,6 +66,14 @@ int main() {
   while (true) {
     std::cout << "iter: " << ++iter << "\n\tXDelta-size: " << x_d.Bfs().size()
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
+
+    if (print_mesh) {
+      std::cout << "\n\tmesh: [";
+      for (auto nv : x_d.Bfs())
+        std::cout << "[" << nv->node()->center().first << ","
+                  << nv->node()->center().second << "],";
+      std::cout << "]" << std::flush;
+    }
 
     // Create linform + bilform + precond.
     auto lf = LinearForm(f, /* apply_quadrature*/ true, /*order*/ 2,
@@ -81,7 +90,7 @@ int main() {
 
     // Solve.
     auto [new_solution, pcg_data] =
-        tools::linalg::PCG(bilform, rhs, precond, solution, 100, 1e-8);
+        tools::linalg::PCG(bilform, rhs, precond, solution, pcg_iters, 1e-16);
 
     std::cout << "\n\tsolve-PCG-steps: " << pcg_data.iterations
               << "\n\tsolve-PCG-relative-residual: "
