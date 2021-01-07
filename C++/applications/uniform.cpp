@@ -124,6 +124,7 @@ int main(int argc, char* argv[]) {
   auto start_algorithm = std::chrono::steady_clock::now();
 
   Eigen::VectorXd solution = Eigen::VectorXd::Zero(vec_Xd->container().size());
+  std::vector<typename HeatEquation::TypeXVector::DNType*> max_gradedness;
   for (int level = 1; level < max_level; level++) {
     std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
               std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
