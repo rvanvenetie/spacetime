@@ -164,15 +164,18 @@ int main(int argc, char* argv[]) {
           });
 
     solution = vec_Xd->ToVectorContainer();
-    size_t ndof_X = vec_Xd->Bfs().size();  // A slight overestimate.
-    if (ndof_X == 0) continue;
-    if (ndof_X > max_dofs) break;
+    size_t ndof_Xd = vec_Xd->Bfs().size();  // A slight overestimate.
+    if (ndof_Xd == 0) continue;
+    if (ndof_Xd > max_dofs) break;
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                  std::move(problem_data.second), adapt_opts);
-    size_t ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
-    std::cout << "\nlevel: " << level << "\n\tXDelta-size: " << ndof_X
-              << "\n\tXDelta-Gradedness: " << vec_Xd->Gradedness()
-              << "\n\tYDeltaDelta-size: " << ndof_Y
+    size_t ndof_Xdd = heat_eq.vec_Xdd()->Bfs().size();
+    size_t ndof_Ydd = heat_eq.vec_Ydd()->Bfs().size();
+    std::cout << "\nlevel: " << level << "\n\tXDelta-size: " << ndof_Xd
+              << "\n\tXDelta-Gradedness: "
+              << vec_Xd->Gradedness(&max_gradedness)
+              << "\n\tXDeltaDelta-size: " << ndof_Xdd
+              << "\n\tYDeltaDelta-size: " << ndof_Ydd
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
 
     if (calculate_condition_PY || calculate_condition_PX) {
