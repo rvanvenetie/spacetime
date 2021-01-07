@@ -1,3 +1,4 @@
+#include <boost/program_options.hpp>
 #include <cmath>
 #include <map>
 #include <random>
@@ -14,6 +15,7 @@
 
 using namespace space;
 using namespace datastructures;
+namespace po = boost::program_options;
 
 Eigen::VectorXd RandomVector(const TriangulationView &triang,
                              bool dirichlet_boundary = true) {
@@ -54,7 +56,20 @@ constexpr int pcg_iters = 4;
 constexpr int create_iters = 5;
 constexpr bool print_mesh = false;
 
-int main() {
+int main(int argc, char *argv[]) {
+  double mark_theta = 0.5;
+  boost::program_options::options_description adapt_optdesc("Adaptive options");
+  adapt_optdesc.add_options()("mark_theta", po::value<double>(&mark_theta));
+  boost::program_options::options_description cmdline_options;
+  cmdline_options.add(adapt_optdesc);
+
+  po::variables_map vm;
+  po::store(po::command_line_parser(argc, argv).options(cmdline_options).run(),
+            vm);
+  po::notify(vm);
+  std::cout << "Adaptive options:" << std::endl;
+  std::cout << "\tTheta: " << mark_theta << std::endl;
+
   auto T = InitialTriangulation::LShape();
   auto f = [](double x, double y) { return 1; };
 
@@ -111,7 +126,7 @@ int main() {
               << "\n\tsolve-PCG-relative-residual: "
               << pcg_data.relative_residual
               << "\n\tsolve-PCG-algebraic-error: " << pcg_data.algebraic_error
-              << std::flush;
+              << "\n\tsolve-memory: " << getmem() << std::flush;
 
     // Estimate.
     time_start = std::chrono::high_resolution_clock::now();
@@ -129,12 +144,12 @@ int main() {
               << std::chrono::duration<double>(
                      std::chrono::high_resolution_clock::now() - time_start)
                      .count()
-              << std::flush;
+              << "\n\testimate-memory: " << getmem() << std::flush;
 
     // Mark.
     time_start = std::chrono::high_resolution_clock::now();
     x_dd.FromVector(residual);
-    auto marked_nodes = Mark(x_dd);
+    auto marked_nodes = Mark(x_dd, mark_theta);
     std::cout << "\n\tmarked-nodes: " << marked_nodes.size() << std::flush;
 
     // Refine.
