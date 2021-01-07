@@ -102,9 +102,11 @@ auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
   size_t last_idx = 0;
   for (; last_idx < nodes.size(); last_idx++) {
     cur_sq_norm += nodes[last_idx]->value() * nodes[last_idx]->value();
-    if (cur_sq_norm >= opts_.mark_theta * opts_.mark_theta * sq_norm) break;
+    if (cur_sq_norm >= opts_.mark_theta * opts_.mark_theta * sq_norm) {
+      nodes.resize(last_idx + 1);
+      break;
+    }
   }
-  nodes.resize(last_idx + 1);
   return nodes;
 }
 

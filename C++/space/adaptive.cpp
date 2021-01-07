@@ -45,21 +45,25 @@ auto Mark(TreeVector<HierarchicalBasisFn> &residual, double theta = 0.8) {
   size_t last_idx = 0;
   for (; last_idx < nodes.size(); last_idx++) {
     cur_sq_norm += nodes[last_idx]->value() * nodes[last_idx]->value();
-    if (cur_sq_norm >= theta * theta * sq_norm) break;
+    if (cur_sq_norm >= theta * theta * sq_norm) {
+      nodes.resize(last_idx + 1);
+      break;
+    }
   }
-  nodes.resize(last_idx + 1);
   return nodes;
 }
 
 constexpr int level = 15;
-constexpr int pcg_iters = 4;
 constexpr int create_iters = 5;
-constexpr bool print_mesh = false;
 
 int main(int argc, char *argv[]) {
   double mark_theta = 0.5;
+  bool print_mesh = false;
+  int max_iter = 4;
   boost::program_options::options_description adapt_optdesc("Adaptive options");
-  adapt_optdesc.add_options()("mark_theta", po::value<double>(&mark_theta));
+  adapt_optdesc.add_options()("mark_theta", po::value<double>(&mark_theta))(
+      "print_mesh", po::value<bool>(&print_mesh))("max_iters",
+                                                  po::value<int>(&max_iter));
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(adapt_optdesc);
 
@@ -68,7 +72,8 @@ int main(int argc, char *argv[]) {
             vm);
   po::notify(vm);
   std::cout << "Adaptive options:" << std::endl;
-  std::cout << "\tTheta: " << mark_theta << std::endl;
+  std::cout << "\ttheta: " << mark_theta << std::endl;
+  std::cout << "\tmax_iter: " << max_iter << std::endl;
 
   auto T = InitialTriangulation::LShape();
   auto f = [](double x, double y) { return 1; };
@@ -114,7 +119,7 @@ int main(int argc, char *argv[]) {
     // Solve.
     time_start = std::chrono::high_resolution_clock::now();
     auto [new_solution, pcg_data] =
-        tools::linalg::PCG(bilform, rhs, precond, solution, pcg_iters, 1e-16);
+        tools::linalg::PCG(bilform, rhs, precond, solution, max_iter, 1e-16);
 
     std::cout << "\n\ttime-stiff-per-apply: " << bilform.TimePerApply()
               << "\n\ttime-mg-per-apply: " << precond.TimePerApply()

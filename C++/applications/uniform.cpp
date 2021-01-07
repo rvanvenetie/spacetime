@@ -175,6 +175,8 @@ int main(int argc, char* argv[]) {
     std::cout << "\nlevel: " << level << "\n\tXDelta-size: " << ndof_Xd
               << "\n\tXDelta-Gradedness: "
               << vec_Xd->Gradedness(&max_gradedness)
+              << "\n\tXDelta-time-size: " << vec_Xd->Project_0()->Bfs().size()
+              << "\n\tXDelta-space-size: " << vec_Xd->Project_1()->Bfs().size()
               << "\n\tXDeltaDelta-size: " << ndof_Xdd
               << "\n\tYDeltaDelta-size: " << ndof_Ydd
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
