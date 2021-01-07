@@ -284,6 +284,8 @@ int main(int argc, char* argv[]) {
       std::chrono::duration<double> duration_solve =
           std::chrono::steady_clock::now() - start;
       std::cout << "\n\t\tsolve-PCG-steps: " << pcg_data.iterations
+                << "\n\t\tsolve-PCG-initial-algebraic-error: "
+                << pcg_data.initial_algebraic_error
                 << "\n\t\tsolve-PCG-algebraic-error: "
                 << pcg_data.algebraic_error
                 << "\n\t\tsolve-time: " << duration_solve.count()

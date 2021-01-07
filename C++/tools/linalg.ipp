@@ -30,8 +30,9 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
 
   Eigen::VectorXd p = M * residual;
   Eigen::VectorXd z(n), tmp(n);
-  double abs_r = residual.dot(p);
+  double abs_r_initial = residual.dot(p);
 
+  double abs_r = abs_r_initial;
   size_t i = 0;
   bool converged = false;
   if (stopping == StoppingCriterium::Algebraic && abs_r < alg_threshold)
@@ -64,6 +65,7 @@ std::pair<Eigen::VectorXd, SolverData> PCG(const MatType &A,
 
   return {x,
           {.relative_residual = sqrt(sq_res_norm / sq_rhs_norm),
+           .initial_algebraic_error = sqrt(abs_r_initial),
            .algebraic_error = sqrt(abs_r),
            .iterations = i,
            .converged = converged}};
