@@ -17,7 +17,7 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
   constexpr static const char *name = "CLS";
 
   explicit ContLinearScalingFn(const std::vector<ContLinearScalingFn *> parents,
-                               int index,
+                               long long index,
                                const std::vector<Element1D *> support)
       : ScalingFn<ContLinearScalingFn>(parents, index, support) {
     if (index > 0) {
@@ -63,7 +63,7 @@ class ThreePointWaveletFn : public WaveletFn<ThreePointWaveletFn> {
   constexpr static const char *name = "Three";
 
   explicit ThreePointWaveletFn(const std::vector<ThreePointWaveletFn *> parents,
-                               int index,
+                               long long index,
                                SparseVector<ContLinearScalingFn> &&single_scale)
       : WaveletFn(parents, index, std::move(single_scale)) {}
 

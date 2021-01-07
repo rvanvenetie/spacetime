@@ -17,7 +17,7 @@ TEST(HaarBasis, functions) {
   ASSERT_EQ(B.haar_tree.meta_root()->children().size(), 1);
 
   auto mother_scaling = B.disc_cons_tree.meta_root()->children()[0];
-  ASSERT_EQ(mother_scaling->labda(), std::make_pair(0, 0));
+  ASSERT_EQ(mother_scaling->labda(), std::make_pair(0, 0LL));
   ASSERT_EQ(mother_scaling->Eval(0.25), 1.0);
   ASSERT_EQ(mother_scaling->Eval(0.85), 1.0);
 
@@ -120,7 +120,7 @@ TEST(OrthonormalBasis, LocalRefinement) {
   for (int l = 2; l <= ml; ++l) {
     ASSERT_EQ(Lambda[l].size(), 4);
     ASSERT_EQ(Delta[l].size(), 8);
-    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0));
+    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0LL));
   }
 }
 
@@ -197,8 +197,8 @@ TEST(ThreePointBasis, LocalRefinement) {
   for (int l = 2; l <= ml; ++l) {
     ASSERT_EQ(Lambda[l].size(), 2);
     ASSERT_EQ(Delta[l].size(), 5);
-    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0));
-    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1));
+    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0LL));
+    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1LL));
   }
 
   // Now we check what happens when we also refine near the end points.
@@ -213,8 +213,8 @@ TEST(ThreePointBasis, LocalRefinement) {
   for (int l = 4; l <= ml; ++l) {
     ASSERT_EQ(Lambda[l].size(), 4);
     ASSERT_EQ(Delta[l].size(), 10);
-    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0));
-    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1));
+    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0LL));
+    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1LL));
     ASSERT_EQ(Lambda[l][2]->labda(), std::pair(l, (1LL << (l - 1)) - 2));
     ASSERT_EQ(Lambda[l][3]->labda(), std::pair(l, (1LL << (l - 1)) - 1));
   }

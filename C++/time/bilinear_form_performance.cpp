@@ -22,6 +22,9 @@ constexpr int bilform_iters = 10;
 constexpr int inner_iters = 150;
 
 int main() {
+  std::cout << sizeof(int) << std::endl;
+  std::cout << sizeof(long) << std::endl;
+  std::cout << sizeof(long long) << std::endl;
   bool print_mesh = false;
   Bases B;
   size_t iter = 0;
