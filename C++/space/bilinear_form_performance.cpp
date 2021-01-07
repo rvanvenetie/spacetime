@@ -35,14 +35,16 @@ int main() {
     std::chrono::duration<double> time_tview_bfs{0};
     std::chrono::duration<double> time_create_operator{0};
     std::chrono::duration<double> time_apply{0};
-    size_t dofs = 0;
+
+    // Create Tree.
+    auto vec_in = TreeVector<HierarchicalBasisFn>(T.hierarch_basis_meta_root);
+    vec_in.UniformRefine(level);
+    size_t dofs = vec_in.Bfs().size();
+
     for (size_t j = 0; j < ::bilform_iters; ++j) {
       space::OperatorOptions space_opts({.build_mat = false, .mg_cycles = 1});
 
-      // Set random tree.
-      auto vec_in = TreeVector<HierarchicalBasisFn>(T.hierarch_basis_meta_root);
-      vec_in.UniformRefine(level);
-      dofs = vec_in.Bfs().size();
+      // Set Random values.
       for (auto v : vec_in.Bfs())
         if (!v->node()->on_domain_boundary())
           v->set_value(static_cast<double>(std::rand()) / RAND_MAX);
@@ -50,7 +52,7 @@ int main() {
       // Create BilForm.
       auto time_compute = std::chrono::high_resolution_clock::now();
       auto bilform =
-          CreateBilinearForm<MultigridPreconditioner<StiffnessOperator>>(
+          CreateBilinearForm<StiffnessOperator>(
               vec_in, vec_in, space_opts);
       time_create += std::chrono::duration<double>(
           std::chrono::high_resolution_clock::now() - time_compute);
