@@ -68,7 +68,7 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
   // Constructors given the parent.
   explicit Element1D(Element1D *parent, long long index)
       : BinaryNode(parent), index_(index) {
-    assert(this->level_ <= 63);  // Overflow on index.
+    assert(this->level_ < 63);  // Overflow on index.
   }
   explicit Element1D(Element1D *parent, bool left_child)
       : Element1D(parent, parent->index() * 2 + (left_child ? 0 : 1)) {}
@@ -130,7 +130,7 @@ class Function : public datastructures::Node<I> {
   explicit Function(const std::vector<I *> &parents, long long index,
                     const std::vector<Element1D *> &support = {})
       : datastructures::Node<I>(parents), index_(index), support_(support) {
-    assert(this->level_ <= 63);  // Overflow on index.
+    assert(this->level_ < 63);  // Overflow on index.
     for (size_t i = 0; i < support_.size(); ++i) {
       assert(support[i]->level() == this->level_);
       if (i > 0) assert(support_[i - 1]->index() + 1 == support_[i]->index());
