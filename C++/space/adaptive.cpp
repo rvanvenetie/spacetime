@@ -53,6 +53,11 @@ auto Mark(TreeVector<HierarchicalBasisFn> &residual, double theta = 0.8) {
   return nodes;
 }
 
+auto Now() { return std::chrono::steady_clock::now(); }
+double Duration(std::chrono::steady_clock::time_point start) {
+  return std::chrono::duration<double>(Now() - start).count();
+}
+
 constexpr size_t mg_cycles = 4;
 constexpr size_t mg_inner_cycles = 5;
 
@@ -105,10 +110,7 @@ int main(int argc, char *argv[]) {
         if (elem->level() >= hist.size()) hist.resize(elem->level() + 1, 0);
         hist[elem->level()]++;
       }
-      std::cout << "\n\ttime-tview-XDelta: "
-                << std::chrono::duration<double>(
-                       std::chrono::steady_clock::now() - time_start)
-                       .count();
+      std::cout << "\n\ttime-tview-XDelta: " << Duration(time_start);
       std::cout << "\n\tmesh-info: [";
       for (auto val : hist) std::cout << val << ",";
       std::cout << "]" << std::flush;
@@ -135,20 +137,13 @@ int main(int argc, char *argv[]) {
     auto time_start = std::chrono::steady_clock::now();
     lf.Apply(x_d.root());
     auto rhs = x_d.ToVector();
-    std::cout << "\n\ttime-rhs: "
-              << std::chrono::duration<double>(
-                     std::chrono::steady_clock::now() - time_start)
-                     .count()
-              << std::flush;
+    std::cout << "\n\ttime-rhs: " << Duration(time_start) << std::flush;
 
     // Solve.
     time_start = std::chrono::steady_clock::now();
     auto [new_solution, pcg_data] =
         tools::linalg::PCG(bilform, rhs, precond, solution, max_iter, 1e-16);
-    std::cout << "\n\ttime-solve: "
-              << std::chrono::duration<double>(
-                     std::chrono::steady_clock::now() - time_start)
-                     .count()
+    std::cout << "\n\ttime-solve: " << Duration(time_start)
               << "\n\tsolve-PCG-steps: " << pcg_data.iterations
               << "\n\tsolve-PCG-relative-residual: "
               << pcg_data.relative_residual
@@ -171,10 +166,7 @@ int main(int argc, char *argv[]) {
         std::cout << "\n\ttime-MG(" << mg
                   << ")-per-apply: " << mg_bilform.TimePerApply() << std::flush;
       }
-      std::cout << "time-mg-test: "
-                << std::chrono::duration<double>(
-                       std::chrono::steady_clock::now() - time_start)
-                       .count();
+      std::cout << "\n\ttime-mg-test: " << Duration(time_start);
     }
 
     // Estimate.
@@ -189,10 +181,7 @@ int main(int argc, char *argv[]) {
     lf.Apply(x_dd.root());
     residual -= x_dd.ToVector();
     std::cout << "\n\tresidual-norm: " << residual.norm() << std::flush;
-    std::cout << "\n\ttime-estimate: "
-              << std::chrono::duration<double>(
-                     std::chrono::steady_clock::now() - time_start)
-                     .count()
+    std::cout << "\n\ttime-estimate: " << Duration(time_start)
               << "\n\testimate-memory: " << getmem() << std::flush;
 
     // Mark.
@@ -200,29 +189,16 @@ int main(int argc, char *argv[]) {
     x_dd.FromVector(residual);
     auto marked_nodes = Mark(x_dd, mark_theta);
     std::cout << "\n\tmarked-nodes: " << marked_nodes.size()
-              << "\n\ttime-mark: "
-              << std::chrono::duration<double>(
-                     std::chrono::steady_clock::now() - time_start)
-                     .count()
-              << std::flush;
+              << "\n\ttime-mark: " << Duration(time_start) << std::flush;
 
     // Refine.
     time_start = std::chrono::steady_clock::now();
     x_d.FromVector(new_solution);
     x_d.ConformingRefinement(x_dd, marked_nodes);
     solution = x_d.ToVector();
-    std::cout << "\n\ttime-refine: "
-              << std::chrono::duration<double>(
-                     std::chrono::steady_clock::now() - time_start)
-                     .count()
-              << "\n\ttime-iteration: "
-              << std::chrono::duration<double>(
-                     std::chrono::steady_clock::now() - start_iteration)
-                     .count()
-              << "\n\ttime-total-algorithm: "
-              << std::chrono::duration<double>(
-                     std::chrono::steady_clock::now() - start_algorithm)
-                     .count()
+    std::cout << "\n\ttime-refine: " << Duration(time_start)
+              << "\n\ttime-iteration: " << Duration(start_iteration)
+              << "\n\ttime-total-algorithm: " << Duration(start_algorithm)
               << std::endl;
   }
   return 0;
