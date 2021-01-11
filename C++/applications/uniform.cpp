@@ -40,6 +40,8 @@ space::InitialTriangulation InitialTriangulation(std::string domain,
     return space::InitialTriangulation::UnitSquare(initial_refines);
   else if (domain == "lshape" || domain == "l-shape")
     return space::InitialTriangulation::LShape(initial_refines);
+  else if (domain == "pacman")
+    return space::InitialTriangulation::Pacman(initial_refines);
   else {
     std::cout << "domain not recognized :-(" << std::endl;
     exit(1);
