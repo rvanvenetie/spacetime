@@ -54,6 +54,7 @@ auto Mark(TreeVector<HierarchicalBasisFn> &residual, double theta = 0.8) {
 }
 
 constexpr size_t mg_cycles = 4;
+constexpr size_t mg_inner_cycles = 5;
 
 int main(int argc, char *argv[]) {
   double mark_theta = 0.5;
@@ -127,7 +128,8 @@ int main(int argc, char *argv[]) {
         CreateBilinearForm<MultigridPreconditioner<StiffnessOperator>>(
             x_d, x_d, space_opts);
     std::cout << "\n\ttime-stiff-create: " << bilform.TimeCreate()
-              << "\n\ttime-MG-create: " << precond.TimeCreate();
+              << "\n\ttime-MG(" << mg_cycles
+              << ")-create: " << precond.TimeCreate();
 
     // Calculate rhs.
     auto time_start = std::chrono::steady_clock::now();
@@ -153,7 +155,8 @@ int main(int argc, char *argv[]) {
               << "\n\tsolve-PCG-algebraic-error: " << pcg_data.algebraic_error
               << "\n\tsolve-memory: " << getmem()
               << "\n\ttime-stiff-per-apply: " << bilform.TimePerApply()
-              << std::flush;
+              << "\n\ttime-MG(" << mg_cycles
+              << ")-per-apply: " << precond.TimePerApply();
 
     // Time preconds apply time.
     if (time_mg_cycles) {
@@ -161,13 +164,13 @@ int main(int argc, char *argv[]) {
         auto mg_bilform =
             CreateBilinearForm<MultigridPreconditioner<StiffnessOperator>>(
                 x_d, x_d, {.build_mat = false, .mg_cycles = mg});
-        mg_bilform.Apply();
+        for (int i = 0; i < mg_inner_cycles; i++) mg_bilform.Apply();
+        std::cout << "\n\ttime-MG(" << mg
+                  << ")-create: " << mg_bilform.TimeCreate() << std::flush;
         std::cout << "\n\ttime-MG(" << mg
                   << ")-per-apply: " << mg_bilform.TimePerApply() << std::flush;
       }
     }
-    std::cout << "\n\ttime-MG(" << mg_cycles
-              << ")-per-apply: " << precond.TimePerApply() << std::flush;
 
     // Estimate.
     time_start = std::chrono::steady_clock::now();
