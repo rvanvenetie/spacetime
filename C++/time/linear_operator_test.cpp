@@ -88,7 +88,7 @@ TEST(ContLinearScaling, ProlongateEval) {
   // Reset the persistent trees.
   Bases B;
 
-  int ml = 15;
+  int ml = 30;
   // Now we check what happens when we also refine near the end points.
   B.three_point_tree.DeepRefine([ml](auto node) {
     return node->is_metaroot() ||
