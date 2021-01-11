@@ -184,7 +184,7 @@ TEST(ThreePointBasis, LocalRefinement) {
   // Reset the persistent trees.
   Bases B;
 
-  int ml = 15;
+  int ml = 30;
   // First check what happens when we only refine near the origin.
   B.three_point_tree.DeepRefine([ml](auto node) {
     return node->is_metaroot() || (node->level() < ml && node->index() == 0);
