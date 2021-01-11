@@ -117,6 +117,7 @@ InitialTriangulation InitialTriangulation::LShape(size_t initial_refinement) {
                                               {5, 4, 0}, {5, 0, 6}, {7, 6, 0}};
   return CreateInitialTriangulation(vertices, elements, initial_refinement);
 }
+
 InitialTriangulation InitialTriangulation::Pacman(size_t initial_refinement) {
   std::vector<std::array<double, 2>> vertices = {{0, 0},  {-1, 0}, {-1, 1},
                                                  {0, 1},  {1, 1},  {1, 0},
@@ -124,7 +125,7 @@ InitialTriangulation InitialTriangulation::Pacman(size_t initial_refinement) {
   std::vector<std::array<int, 3>> elements = {{1, 0, 2}, {3, 2, 0}, {3, 0, 4},
                                               {5, 4, 0}, {5, 0, 6}, {7, 6, 0},
                                               {1, 8, 0}};
-};
-return CreateInitialTriangulation(vertices, elements, initial_refinement);
-}  // namespace space
+  return CreateInitialTriangulation(vertices, elements, initial_refinement);
+}
+
 }  // namespace space
