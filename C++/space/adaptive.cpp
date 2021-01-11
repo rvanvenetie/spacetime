@@ -160,6 +160,7 @@ int main(int argc, char *argv[]) {
 
     // Time preconds apply time.
     if (time_mg_cycles) {
+      time_start = std::chrono::steady_clock::now();
       for (size_t mg = 1; mg < mg_cycles; ++mg) {
         auto mg_bilform =
             CreateBilinearForm<MultigridPreconditioner<StiffnessOperator>>(
@@ -170,6 +171,10 @@ int main(int argc, char *argv[]) {
         std::cout << "\n\ttime-MG(" << mg
                   << ")-per-apply: " << mg_bilform.TimePerApply() << std::flush;
       }
+      std::cout << "time-mg-test: "
+                << std::chrono::duration<double>(
+                       std::chrono::steady_clock::now() - time_start)
+                       .count();
     }
 
     // Estimate.
