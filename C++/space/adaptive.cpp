@@ -53,17 +53,20 @@ auto Mark(TreeVector<HierarchicalBasisFn> &residual, double theta = 0.8) {
   return nodes;
 }
 
-constexpr int level = 15;
-constexpr int create_iters = 5;
+constexpr size_t mg_cycles = 4;
 
 int main(int argc, char *argv[]) {
   double mark_theta = 0.5;
   bool print_mesh = false;
+  bool print_mesh_info = true;
+  bool time_mg_cycles = true;
   int max_iter = 4;
   boost::program_options::options_description adapt_optdesc("Adaptive options");
   adapt_optdesc.add_options()("mark_theta", po::value<double>(&mark_theta))(
       "print_mesh", po::value<bool>(&print_mesh))("max_iters",
-                                                  po::value<int>(&max_iter));
+                                                  po::value<int>(&max_iter))(
+      "print_mesh_info", po::value<bool>(&print_mesh_info))(
+      "time_mg_cycles", po::value<bool>(&time_mg_cycles));
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(adapt_optdesc);
 
@@ -84,11 +87,31 @@ int main(int argc, char *argv[]) {
 
   auto lf = LinearForm(f, /* apply_quadrature*/ true, /*order*/ 0,
                        /* dirichlet_boundary */ true);
-  space::OperatorOptions space_opts({.build_mat = false, .mg_cycles = 2});
+  space::OperatorOptions space_opts(
+      {.build_mat = false, .mg_cycles = mg_cycles});
   size_t iter = 0;
+  auto start_algorithm = std::chrono::steady_clock::now();
   while (true) {
+    auto start_iteration = std::chrono::steady_clock::now();
     std::cout << "iter: " << ++iter << "\n\tXDelta-size: " << x_d.Bfs().size()
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
+
+    if (print_mesh_info) {
+      auto time_start = std::chrono::steady_clock::now();
+      TriangulationView t_view(x_d.Bfs());
+      std::vector<int> hist;
+      for (auto &&[elem, _] : t_view.element_leaves()) {
+        if (elem->level() >= hist.size()) hist.resize(elem->level() + 1, 0);
+        hist[elem->level()]++;
+      }
+      std::cout << "\n\ttime-tview-XDelta: "
+                << std::chrono::duration<double>(
+                       std::chrono::steady_clock::now() - time_start)
+                       .count();
+      std::cout << "\n\tmesh-info: [";
+      for (auto val : hist) std::cout << val << ",";
+      std::cout << "]" << std::flush;
+    }
 
     if (print_mesh) {
       std::cout << "\n\tmesh: [";
@@ -104,37 +127,50 @@ int main(int argc, char *argv[]) {
         CreateBilinearForm<MultigridPreconditioner<StiffnessOperator>>(
             x_d, x_d, space_opts);
     std::cout << "\n\ttime-stiff-create: " << bilform.TimeCreate()
-              << "\n\ttime-mg-create: " << precond.TimeCreate();
+              << "\n\ttime-MG-create: " << precond.TimeCreate();
 
     // Calculate rhs.
-    auto time_start = std::chrono::high_resolution_clock::now();
+    auto time_start = std::chrono::steady_clock::now();
     lf.Apply(x_d.root());
     auto rhs = x_d.ToVector();
     std::cout << "\n\ttime-rhs: "
               << std::chrono::duration<double>(
-                     std::chrono::high_resolution_clock::now() - time_start)
+                     std::chrono::steady_clock::now() - time_start)
                      .count()
               << std::flush;
 
     // Solve.
-    time_start = std::chrono::high_resolution_clock::now();
+    time_start = std::chrono::steady_clock::now();
     auto [new_solution, pcg_data] =
         tools::linalg::PCG(bilform, rhs, precond, solution, max_iter, 1e-16);
-
-    std::cout << "\n\ttime-stiff-per-apply: " << bilform.TimePerApply()
-              << "\n\ttime-mg-per-apply: " << precond.TimePerApply()
-              << "\n\ttime-solve: "
+    std::cout << "\n\ttime-solve: "
               << std::chrono::duration<double>(
-                     std::chrono::high_resolution_clock::now() - time_start)
+                     std::chrono::steady_clock::now() - time_start)
                      .count()
               << "\n\tsolve-PCG-steps: " << pcg_data.iterations
               << "\n\tsolve-PCG-relative-residual: "
               << pcg_data.relative_residual
               << "\n\tsolve-PCG-algebraic-error: " << pcg_data.algebraic_error
-              << "\n\tsolve-memory: " << getmem() << std::flush;
+              << "\n\tsolve-memory: " << getmem()
+              << "\n\ttime-stiff-per-apply: " << bilform.TimePerApply()
+              << std::flush;
+
+    // Time preconds apply time.
+    if (time_mg_cycles) {
+      for (size_t mg = 1; mg < mg_cycles; ++mg) {
+        auto mg_bilform =
+            CreateBilinearForm<MultigridPreconditioner<StiffnessOperator>>(
+                x_d, x_d, {.build_mat = false, .mg_cycles = mg});
+        mg_bilform.Apply();
+        std::cout << "\n\ttime-MG(" << mg
+                  << ")-per-apply: " << mg_bilform.TimePerApply() << std::flush;
+      }
+    }
+    std::cout << "\n\ttime-MG(" << mg_cycles
+              << ")-per-apply: " << precond.TimePerApply() << std::flush;
 
     // Estimate.
-    time_start = std::chrono::high_resolution_clock::now();
+    time_start = std::chrono::steady_clock::now();
     auto x_dd = x_d.DeepCopy();
     x_dd.FromVector(new_solution);
     UniformRefine(x_dd);
@@ -147,25 +183,39 @@ int main(int argc, char *argv[]) {
     std::cout << "\n\tresidual-norm: " << residual.norm() << std::flush;
     std::cout << "\n\ttime-estimate: "
               << std::chrono::duration<double>(
-                     std::chrono::high_resolution_clock::now() - time_start)
+                     std::chrono::steady_clock::now() - time_start)
                      .count()
               << "\n\testimate-memory: " << getmem() << std::flush;
 
     // Mark.
-    time_start = std::chrono::high_resolution_clock::now();
+    time_start = std::chrono::steady_clock::now();
     x_dd.FromVector(residual);
     auto marked_nodes = Mark(x_dd, mark_theta);
-    std::cout << "\n\tmarked-nodes: " << marked_nodes.size() << std::flush;
+    std::cout << "\n\tmarked-nodes: " << marked_nodes.size()
+              << "\n\ttime-mark: "
+              << std::chrono::duration<double>(
+                     std::chrono::steady_clock::now() - time_start)
+                     .count()
+              << std::flush;
 
     // Refine.
+    time_start = std::chrono::steady_clock::now();
     x_d.FromVector(new_solution);
     x_d.ConformingRefinement(x_dd, marked_nodes);
     solution = x_d.ToVector();
-    std::cout << "\n\ttime-mark-refine: "
+    std::cout << "\n\ttime-refine: "
               << std::chrono::duration<double>(
-                     std::chrono::high_resolution_clock::now() - time_start)
-                     .count();
-    std::cout << std::endl;
+                     std::chrono::steady_clock::now() - time_start)
+                     .count()
+              << "\n\ttime-iteration: "
+              << std::chrono::duration<double>(
+                     std::chrono::steady_clock::now() - start_iteration)
+                     .count()
+              << "\n\ttime-total-algorithm: "
+              << std::chrono::duration<double>(
+                     std::chrono::steady_clock::now() - start_algorithm)
+                     .count()
+              << std::endl;
   }
   return 0;
 }
