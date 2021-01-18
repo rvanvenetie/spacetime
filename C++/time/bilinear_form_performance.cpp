@@ -95,9 +95,11 @@ void TimeBilForm(std::string name,
 int main(int argc, char *argv[]) {
   double theta = 0.3;
   bool print_mesh = false;
+  size_t max_iter = 999;
   boost::program_options::options_description adapt_optdesc("Refine options");
   adapt_optdesc.add_options()("theta", po::value<double>(&theta))(
-      "print_mesh", po::value<bool>(&print_mesh));
+      "print_mesh", po::value<bool>(&print_mesh))("max_iter",
+                                                  po::value<size_t>(&max_iter));
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(adapt_optdesc);
 
@@ -106,11 +108,11 @@ int main(int argc, char *argv[]) {
             vm);
   po::notify(vm);
   std::cout << "Adaptive options:" << std::endl;
-  std::cout << "\ttheta: " << theta << std::endl;
+  std::cout << "\ttheta: " << theta << std::endl << std::endl;
 
   Bases B;
   size_t iter = 0;
-  while (true) {
+  while (iter < max_iter) {
     std::cout << "iter: " << ++iter;
 
     auto ortho_tree_0 = GradedTree(B.ortho_tree.meta_root(), iter, true, theta);
@@ -141,19 +143,23 @@ int main(int argc, char *argv[]) {
     if (print_mesh) {
       std::cout << "\n\tortho-tree-0: [";
       for (auto nv : ortho_tree_0.Bfs())
-        std::cout << nv->node()->center() << ",";
+        std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
+                  << "),";
       std::cout << "]" << std::flush;
       std::cout << "\n\tortho-tree-1: [";
       for (auto nv : ortho_tree_1.Bfs())
-        std::cout << nv->node()->center() << ",";
+        std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
+                  << "),";
       std::cout << "]" << std::flush;
       std::cout << "\n\tthreept-tree-0: [";
       for (auto nv : threept_tree_0.Bfs())
-        std::cout << nv->node()->center() << ",";
+        std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
+                  << "),";
       std::cout << "]" << std::flush;
       std::cout << "\n\tthreept-tree-1: [";
       for (auto nv : threept_tree_1.Bfs())
-        std::cout << nv->node()->center() << ",";
+        std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
+                  << "),";
       std::cout << "]" << std::flush;
     }
     std::cout << std::endl;
