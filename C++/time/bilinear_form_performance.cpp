@@ -5,6 +5,7 @@
 #include <random>
 #include <set>
 
+#include "../tools/util.hpp"
 #include "bases.hpp"
 #include "bilinear_form.hpp"
 
@@ -61,7 +62,6 @@ double Duration(std::chrono::high_resolution_clock::time_point start) {
   return std::chrono::duration<double>(Now() - start).count();
 }
 
-constexpr size_t iters = 10;
 template <template <typename, typename> class Operator, typename WaveletBasisIn,
           typename WaveletBasisOut>
 void TimeBilForm(std::string name,
@@ -69,7 +69,9 @@ void TimeBilForm(std::string name,
                  const datastructures::TreeVector<WaveletBasisOut> &vec_out) {
   double time_create = 0, time_apply = 0, time_apply_upp = 0,
          time_apply_low = 0;
-  for (size_t i = 0; i < iters; ++i) {
+  size_t iters = 0;
+  while (time_apply < 20 && iters < 30) {
+    ++iters;
     auto time_start = Now();
     auto bilform = CreateBilinearForm<Operator>(vec_in, vec_out);
     time_create += Duration(time_start);
@@ -111,56 +113,73 @@ int main(int argc, char *argv[]) {
   std::cout << "\ttheta: " << theta << std::endl << std::endl;
 
   Bases B;
-  size_t iter = 0;
+  int iter = 0;
+  bool uniform_refine = theta >= 1;
   while (iter < max_iter) {
     std::cout << "iter: " << ++iter;
 
-    auto ortho_tree_0 = GradedTree(B.ortho_tree.meta_root(), iter, true, theta);
-    auto ortho_tree_1 =
-        GradedTree(B.ortho_tree.meta_root(), iter, false, theta);
-    auto threept_tree_0 =
-        GradedTree(B.three_point_tree.meta_root(), iter, true, theta);
-    auto threept_tree_1 =
-        GradedTree(B.three_point_tree.meta_root(), iter, false, theta);
-    std::cout << "\n\tortho-tree-0-size: " << ortho_tree_0.Bfs().size()
-              << "\n\tortho-tree-1-size: " << ortho_tree_1.Bfs().size()
-              << "\n\tthreept-tree-0-size: " << threept_tree_0.Bfs().size()
-              << "\n\tthreept-tree-1-size: " << threept_tree_1.Bfs().size();
+    if (uniform_refine) {
+      TreeVector<OrthonormalWaveletFn> ortho_tree(B.ortho_tree.meta_root());
+      TreeVector<ThreePointWaveletFn> threept_tree(
+          B.three_point_tree.meta_root());
+      ortho_tree.UniformRefine(std::array{iter}, /* grow_tree */ true);
+      threept_tree.UniformRefine(std::array{iter}, /* grow_tree */ true);
+      std::cout << "\n\tortho-tree-size: " << ortho_tree.Bfs().size()
+                << "\n\tthreept-tree-size: " << threept_tree.Bfs().size()
+                << "\n\ttotal-memory-kB: " << getmem() << std::flush;
+      TimeBilForm<TransportOperator>("T-t-o", threept_tree, ortho_tree);
+      TimeBilForm<TransportOperator>("M-t-o", threept_tree, ortho_tree);
+    } else {
+      // Local refine.
+      auto ortho_tree_0 =
+          GradedTree(B.ortho_tree.meta_root(), iter, true, theta);
+      auto ortho_tree_1 =
+          GradedTree(B.ortho_tree.meta_root(), iter, false, theta);
+      auto threept_tree_0 =
+          GradedTree(B.three_point_tree.meta_root(), iter, true, theta);
+      auto threept_tree_1 =
+          GradedTree(B.three_point_tree.meta_root(), iter, false, theta);
+      std::cout << "\n\tortho-tree-0-size: " << ortho_tree_0.Bfs().size()
+                << "\n\tortho-tree-1-size: " << ortho_tree_1.Bfs().size()
+                << "\n\tthreept-tree-0-size: " << threept_tree_0.Bfs().size()
+                << "\n\tthreept-tree-1-size: " << threept_tree_1.Bfs().size()
+                << "\n\ttotal-memory-kB: " << getmem() << std::flush;
 
-    TimeBilForm<MassOperator>("M-o0-o0", ortho_tree_0, ortho_tree_0);
-    TimeBilForm<MassOperator>("M-o0-o1", ortho_tree_0, ortho_tree_1);
-    TimeBilForm<MassOperator>("M-t0-t0", threept_tree_0, threept_tree_0);
-    TimeBilForm<MassOperator>("M-t0-t1", threept_tree_0, threept_tree_1);
-    TimeBilForm<MassOperator>("M-o0-t0", ortho_tree_0, threept_tree_0);
-    TimeBilForm<MassOperator>("M-o0-t1", ortho_tree_0, threept_tree_1);
-    TimeBilForm<MassOperator>("M-t0-o0", threept_tree_0, ortho_tree_0);
-    TimeBilForm<MassOperator>("M-t0-o1", threept_tree_0, ortho_tree_1);
+      TimeBilForm<MassOperator>("M-o0-o0", ortho_tree_0, ortho_tree_0);
+      TimeBilForm<MassOperator>("M-o0-o1", ortho_tree_0, ortho_tree_1);
+      TimeBilForm<MassOperator>("M-t0-t0", threept_tree_0, threept_tree_0);
+      TimeBilForm<MassOperator>("M-t0-t1", threept_tree_0, threept_tree_1);
+      TimeBilForm<MassOperator>("M-o0-t0", ortho_tree_0, threept_tree_0);
+      TimeBilForm<MassOperator>("M-o0-t1", ortho_tree_0, threept_tree_1);
+      TimeBilForm<MassOperator>("M-t0-o0", threept_tree_0, ortho_tree_0);
+      TimeBilForm<MassOperator>("M-t0-o1", threept_tree_0, ortho_tree_1);
 
-    TimeBilForm<TransportOperator>("T-t0-o0", threept_tree_0, ortho_tree_0);
-    TimeBilForm<TransportOperator>("T-t0-o1", threept_tree_0, ortho_tree_1);
-    TimeBilForm<TransportOperator>("T-t1-o0", threept_tree_1, ortho_tree_0);
+      TimeBilForm<TransportOperator>("T-t0-o0", threept_tree_0, ortho_tree_0);
+      TimeBilForm<TransportOperator>("T-t0-o1", threept_tree_0, ortho_tree_1);
+      TimeBilForm<TransportOperator>("T-t1-o0", threept_tree_1, ortho_tree_0);
 
-    if (print_mesh) {
-      std::cout << "\n\tortho-tree-0: [";
-      for (auto nv : ortho_tree_0.Bfs())
-        std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
-                  << "),";
-      std::cout << "]" << std::flush;
-      std::cout << "\n\tortho-tree-1: [";
-      for (auto nv : ortho_tree_1.Bfs())
-        std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
-                  << "),";
-      std::cout << "]" << std::flush;
-      std::cout << "\n\tthreept-tree-0: [";
-      for (auto nv : threept_tree_0.Bfs())
-        std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
-                  << "),";
-      std::cout << "]" << std::flush;
-      std::cout << "\n\tthreept-tree-1: [";
-      for (auto nv : threept_tree_1.Bfs())
-        std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
-                  << "),";
-      std::cout << "]" << std::flush;
+      if (print_mesh) {
+        std::cout << "\n\tortho-tree-0: [";
+        for (auto nv : ortho_tree_0.Bfs())
+          std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
+                    << "),";
+        std::cout << "]" << std::flush;
+        std::cout << "\n\tortho-tree-1: [";
+        for (auto nv : ortho_tree_1.Bfs())
+          std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
+                    << "),";
+        std::cout << "]" << std::flush;
+        std::cout << "\n\tthreept-tree-0: [";
+        for (auto nv : threept_tree_0.Bfs())
+          std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
+                    << "),";
+        std::cout << "]" << std::flush;
+        std::cout << "\n\tthreept-tree-1: [";
+        for (auto nv : threept_tree_1.Bfs())
+          std::cout << "(" << nv->node()->level() << "," << nv->node()->center()
+                    << "),";
+        std::cout << "]" << std::flush;
+      }
     }
     std::cout << std::endl;
   }
