@@ -92,6 +92,7 @@ void TimeBilForm(std::string name,
   std::cout << "\n\ttime-" << name << "-apply: " << time_apply / iters;
   std::cout << "\n\ttime-" << name << "-apply-upp: " << time_apply_upp / iters;
   std::cout << "\n\ttime-" << name << "-apply-low: " << time_apply_low / iters;
+  std::cout << std::flush;
 }
 
 int main(int argc, char *argv[]) {
@@ -127,8 +128,9 @@ int main(int argc, char *argv[]) {
       std::cout << "\n\tortho-tree-size: " << ortho_tree.Bfs().size()
                 << "\n\tthreept-tree-size: " << threept_tree.Bfs().size()
                 << "\n\ttotal-memory-kB: " << getmem() << std::flush;
+      TimeBilForm<MassOperator>("M-o-o", ortho_tree, ortho_tree);
+      TimeBilForm<MassOperator>("M-t-o", threept_tree, ortho_tree);
       TimeBilForm<TransportOperator>("T-t-o", threept_tree, ortho_tree);
-      TimeBilForm<TransportOperator>("M-t-o", threept_tree, ortho_tree);
     } else {
       // Local refine.
       auto ortho_tree_0 =
