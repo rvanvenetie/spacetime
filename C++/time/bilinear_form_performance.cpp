@@ -146,17 +146,18 @@ int main(int argc, char *argv[]) {
                 << "\n\ttotal-memory-kB: " << getmem() << std::flush;
 
       TimeBilForm<MassOperator>("M-o0-o0", ortho_tree_0, ortho_tree_0);
-      TimeBilForm<MassOperator>("M-o0-o1", ortho_tree_0, ortho_tree_1);
-      TimeBilForm<MassOperator>("M-t0-t0", threept_tree_0, threept_tree_0);
-      TimeBilForm<MassOperator>("M-t0-t1", threept_tree_0, threept_tree_1);
-      TimeBilForm<MassOperator>("M-o0-t0", ortho_tree_0, threept_tree_0);
-      TimeBilForm<MassOperator>("M-o0-t1", ortho_tree_0, threept_tree_1);
+      // TimeBilForm<MassOperator>("M-o0-o1", ortho_tree_0, ortho_tree_1);
+      // TimeBilForm<MassOperator>("M-t0-t0", threept_tree_0, threept_tree_0);
+      // TimeBilForm<MassOperator>("M-t0-t1", threept_tree_0, threept_tree_1);
+      // TimeBilForm<MassOperator>("M-o0-t0", ortho_tree_0, threept_tree_0);
+      // TimeBilForm<MassOperator>("M-o0-t1", ortho_tree_0, threept_tree_1);
       TimeBilForm<MassOperator>("M-t0-o0", threept_tree_0, ortho_tree_0);
       TimeBilForm<MassOperator>("M-t0-o1", threept_tree_0, ortho_tree_1);
 
       TimeBilForm<TransportOperator>("T-t0-o0", threept_tree_0, ortho_tree_0);
       TimeBilForm<TransportOperator>("T-t0-o1", threept_tree_0, ortho_tree_1);
-      TimeBilForm<TransportOperator>("T-t1-o0", threept_tree_1, ortho_tree_0);
+      // TimeBilForm<TransportOperator>("T-t1-o0", threept_tree_1,
+      // ortho_tree_0);
 
       if (print_mesh) {
         std::cout << "\n\tortho-tree-0: [";
