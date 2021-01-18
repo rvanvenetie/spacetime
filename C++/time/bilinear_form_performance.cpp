@@ -112,6 +112,7 @@ int main(int argc, char *argv[]) {
   po::notify(vm);
   std::cout << "Adaptive options:" << std::endl;
   std::cout << "\ttheta: " << theta << std::endl << std::endl;
+  std::cout << std::endl;
 
   Bases B;
   int iter = 0;
