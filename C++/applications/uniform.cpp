@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
   std::string refine;
   bool calculate_condition_PY = false;
   bool calculate_condition_PX = false;
-  bool print_time_apply = false;
+  bool print_time_apply = true;
   bool print_centers = false;
   double solve_rtol = 1e-5;
   boost::program_options::options_description problem_optdesc(
