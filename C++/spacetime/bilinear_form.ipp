@@ -117,6 +117,7 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
     #pragma omp parallel
     {
       // Calculate R_sigma(Id x A_1)I_Lambda.
+      auto time_compute = std::chrono::steady_clock::now();
       #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < sigma_proj_0.size(); ++i) {
         auto psi_in_labda = sigma_proj_0[i];
@@ -127,8 +128,11 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
             fiber_in, fiber_out, space_opts_);
         bil_form.Apply();
       }
+      time_apply_split_[0] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
 
       // Calculate R_Lambda(L_0 x Id)I_Sigma.
+      time_compute = std::chrono::steady_clock::now();
       #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < vec_out_proj_1.size(); ++i) {
         auto psi_out_labda = vec_out_proj_1[i];
@@ -139,6 +143,8 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
             Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
         bil_form.ApplyLow();
       }
+      time_apply_split_[1] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
 
       #pragma omp single
       {
@@ -152,6 +158,7 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       }
 
       // Calculate R_Theta(U_1 x Id)I_Lambda.
+      time_compute = std::chrono::steady_clock::now();
       #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < theta_proj_1.size(); ++i) {
         auto psi_in_labda = theta_proj_1[i];
@@ -162,8 +169,11 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
             Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
         bil_form.ApplyUpp();
       }
+      time_apply_split_[2] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
 
       // Calculate R_Lambda(Id x A2)I_Theta.
+      time_compute = std::chrono::steady_clock::now();
       #pragma omp for schedule(dynamic, 2)
       for (int i = 0; i < vec_out_proj_0.size(); ++i) {
         auto psi_out_labda = vec_out_proj_0[i];
@@ -174,6 +184,9 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
             fiber_in, fiber_out, space_opts_);
         bil_form.Apply();
       }
+      time_apply_split_[3] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
+
     }
   } else {
     // Apply the lower part using cached bil forms.

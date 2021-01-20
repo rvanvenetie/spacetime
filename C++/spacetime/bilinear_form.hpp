@@ -72,6 +72,7 @@ class BilinearForm
   // Debug information.
   using BilinearFormBase<DblVecIn, DblVecOut>::time_construct_;
   using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_split_;
   using BilinearFormBase<DblVecIn, DblVecOut>::num_apply_;
 
   // Define frozen templates, useful for storing the bil forms.
@@ -157,6 +158,7 @@ class BlockDiagonalBilinearForm
   // Debug information.
   using BilinearFormBase<DblVecIn, DblVecOut>::time_construct_;
   using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_split_;
   using BilinearFormBase<DblVecIn, DblVecOut>::num_apply_;
 
   // The (cached) bilinear forms.
