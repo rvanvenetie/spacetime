@@ -128,8 +128,9 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
             fiber_in, fiber_out, space_opts_);
         bil_form.Apply();
       }
-      time_apply_split_[0] += std::chrono::duration<double>(
-          std::chrono::steady_clock::now() - time_compute);
+      if (omp_get_thread_num() == 0)
+        time_apply_split_[0] += std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - time_compute);
 
       // Calculate R_Lambda(L_0 x Id)I_Sigma.
       time_compute = std::chrono::steady_clock::now();
@@ -143,8 +144,9 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
             Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
         bil_form.ApplyLow();
       }
-      time_apply_split_[1] += std::chrono::duration<double>(
-          std::chrono::steady_clock::now() - time_compute);
+      if (omp_get_thread_num() == 0)
+        time_apply_split_[1] += std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - time_compute);
 
       #pragma omp single
       {
@@ -169,8 +171,9 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
             Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
         bil_form.ApplyUpp();
       }
-      time_apply_split_[2] += std::chrono::duration<double>(
-          std::chrono::steady_clock::now() - time_compute);
+      if (omp_get_thread_num() == 0)
+        time_apply_split_[2] += std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - time_compute);
 
       // Calculate R_Lambda(Id x A2)I_Theta.
       time_compute = std::chrono::steady_clock::now();
@@ -184,8 +187,9 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
             fiber_in, fiber_out, space_opts_);
         bil_form.Apply();
       }
-      time_apply_split_[3] += std::chrono::duration<double>(
-          std::chrono::steady_clock::now() - time_compute);
+      if (omp_get_thread_num() == 0)
+        time_apply_split_[3] += std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - time_compute);
 
     }
   } else {
