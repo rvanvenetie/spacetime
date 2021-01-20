@@ -111,9 +111,17 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       auto fiber_in = vec_in_->Fiber_1(psi_in_labda->node());
       auto fiber_out = psi_in_labda->FrozenOtherAxis();
       if (fiber_out->children().empty()) continue;
+
+      auto time_compute = std::chrono::steady_clock::now();
       auto bil_form = space::CreateBilinearForm<OperatorSpace>(
           fiber_in, fiber_out, space_opts_);
+      time_apply_split_[0] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
+
+      time_compute = std::chrono::steady_clock::now();
       bil_form.Apply();
+      time_apply_split_[1] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
     }
 
     // Calculate R_Lambda(L_0 x Id)I_Sigma.
@@ -121,9 +129,17 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       auto fiber_in = sigma_->Fiber_0(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
+
+      auto time_compute = std::chrono::steady_clock::now();
       auto bil_form =
           Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
+      time_apply_split_[2] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
+
+      time_compute = std::chrono::steady_clock::now();
       bil_form.ApplyLow();
+      time_apply_split_[3] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
     }
 
     // Store the lower output.
@@ -139,9 +155,17 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       auto fiber_in = vec_in_->Fiber_0(psi_in_labda->node());
       auto fiber_out = psi_in_labda->FrozenOtherAxis();
       if (fiber_out->children().empty()) continue;
+
+      auto time_compute = std::chrono::steady_clock::now();
       auto bil_form =
           Time::CreateBilinearForm<OperatorTime>(fiber_in, fiber_out);
+      time_apply_split_[4] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
+
+      time_compute = std::chrono::steady_clock::now();
       bil_form.ApplyUpp();
+      time_apply_split_[5] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
     }
 
     // Calculate R_Lambda(Id x A2)I_Theta.
@@ -149,9 +173,17 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       auto fiber_in = theta_->Fiber_1(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
+
+      auto time_compute = std::chrono::steady_clock::now();
       auto bil_form = space::CreateBilinearForm<OperatorSpace>(
           fiber_in, fiber_out, space_opts_);
+      time_apply_split_[6] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
+
+      time_compute = std::chrono::steady_clock::now();
       bil_form.Apply();
+      time_apply_split_[7] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
     }
   } else {
     // Apply the lower part using cached bil forms.
@@ -269,9 +301,19 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
       // Set the level of the time wavelet.
       space_opts_.time_level = std::get<0>(psi_out_labda->nodes())->level();
+
+      // Create Bilform.
+      auto time_compute = std::chrono::steady_clock::now();
       auto bil_form = space::CreateBilinearForm<OperatorSpace>(
           fiber_in, fiber_out, space_opts_);
+      time_apply_split_[0] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
+
+      // Apply Bilform.
+      time_compute = std::chrono::steady_clock::now();
       bil_form.Apply();
+      time_apply_split_[1] += std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - time_compute);
     }
   } else {
     // Apply the space bilforms.

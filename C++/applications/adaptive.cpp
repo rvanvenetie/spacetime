@@ -117,7 +117,7 @@ int main(int argc, char* argv[]) {
   bool calculate_condition_numbers = false;
   bool print_centers = false;
   bool print_sampling = false;
-  bool print_time_apply = false;
+  bool print_time_apply = true;
   std::vector<double> print_time_slices;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
@@ -215,9 +215,13 @@ int main(int argc, char* argv[]) {
 
     // A slight overestimate.
     ndof_Xd = vec_Xd->Bfs().size();
+    size_t ndof_Xd_time = vec_Xd->Project_0()->Bfs().size();
+    size_t ndof_Xd_space = vec_Xd->Project_1()->Bfs().size();
     size_t ndof_Xdd = heat_eq.vec_Xdd()->Bfs().size();
     size_t ndof_Ydd = heat_eq.vec_Ydd()->Bfs().size();
     std::cout << "iter: " << ++iter << "\n\tXDelta-size: " << ndof_Xd
+              << "\n\tXDelta-space-size: " << ndof_X_space
+              << "\n\tXDelta-time-size: " << ndof_X_time
               << "\n\tXDelta-Gradedness: "
               << vec_Xd->Gradedness(&max_gradedness)
               << "\n\tXDeltaDelta-size: " << ndof_Xdd
@@ -317,18 +321,19 @@ int main(int argc, char* argv[]) {
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();
-      std::cout << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
-                << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
-                << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
-                << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
-                << "\n\tP_Y-time-per-apply: "
-                << heat_d_dd->P_Y()->TimePerApply()
-                << "\n\tP_X-time-per-apply: "
-                << heat_d_dd->P_X()->TimePerApply()
-                << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
-                << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
-                << "\n\ttotal-time-construct: "
-                << heat_d_dd->TotalTimeConstruct() << std::flush;
+      std::cout
+          << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
+          << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
+          << "\n\tB-A-time-per-apply: " << heat_d_dd->B()->A()->TimePerApply()
+          << "\n\tB-B-time-per-apply: " << heat_d_dd->B()->B()->TimePerApply()
+          << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
+          << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
+          << "\n\tP_Y-time-per-apply: " << heat_d_dd->P_Y()->TimePerApply()
+          << "\n\tP_X-time-per-apply: " << heat_d_dd->P_X()->TimePerApply()
+          << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
+          << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
+          << "\n\ttotal-time-construct: " << heat_d_dd->TotalTimeConstruct()
+          << std::flush;
     }
 
     if (print_centers) {
