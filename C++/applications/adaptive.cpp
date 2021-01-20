@@ -101,6 +101,8 @@ space::InitialTriangulation InitialTriangulation(std::string domain,
     return space::InitialTriangulation::UnitSquare(initial_refines);
   else if (domain == "lshape" || domain == "l-shape")
     return space::InitialTriangulation::LShape(initial_refines);
+  else if (domain == "pacman")
+    return space::InitialTriangulation::Pacman(initial_refines);
   else {
     std::cout << "domain not recognized :-(" << std::endl;
     exit(1);
@@ -213,22 +215,25 @@ int main(int argc, char* argv[]) {
   AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                std::move(problem_data.second), adapt_opts);
 
-  size_t ndof_X = 0, ndof_Y = 0;
+  size_t ndof_Xd = 0;
   Eigen::VectorXd x0 = Eigen::VectorXd::Zero(vec_Xd->container().size());
   double t_delta = heat_eq.Estimate(x0).second.second.error;
   std::cout << "t_init: " << t_delta << std::endl;
   size_t iter = 0;
   auto start_algorithm = std::chrono::steady_clock::now();
-  while (ndof_X < max_dofs) {
+  while (ndof_Xd < max_dofs) {
     // Store a vector of all the nodes having maximum gradedness;
     std::vector<typename HeatEquation::TypeXVector::DNType*> max_gradedness;
 
-    ndof_X = vec_Xd->Bfs().size();             // A slight overestimate.
-    ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
-    std::cout << "iter: " << ++iter << "\n\tXDelta-size: " << ndof_X
+    // A slight overestimate.
+    ndof_Xd = vec_Xd->Bfs().size();
+    size_t ndof_Xdd = heat_eq.vec_Xdd()->Bfs().size();
+    size_t ndof_Ydd = heat_eq.vec_Ydd()->Bfs().size();
+    std::cout << "iter: " << ++iter << "\n\tXDelta-size: " << ndof_Xd
               << "\n\tXDelta-Gradedness: "
               << vec_Xd->Gradedness(&max_gradedness)
-              << "\n\tYDeltaDelta-size: " << ndof_Y
+              << "\n\tXDeltaDelta-size: " << ndof_Xdd
+              << "\n\tYDeltaDelta-size: " << ndof_Ydd
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
 
     if (print_sampling) {
@@ -293,6 +298,8 @@ int main(int argc, char* argv[]) {
       std::chrono::duration<double> duration_solve =
           std::chrono::steady_clock::now() - start;
       std::cout << "\n\t\tsolve-PCG-steps: " << pcg_data.iterations
+                << "\n\t\tsolve-PCG-initial-algebraic-error: "
+                << pcg_data.initial_algebraic_error
                 << "\n\t\tsolve-PCG-algebraic-error: "
                 << pcg_data.algebraic_error
                 << "\n\t\tsolve-time: " << duration_solve.count()

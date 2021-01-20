@@ -2,7 +2,7 @@ add_library(time STATIC basis.cpp haar_basis.cpp orthonormal_basis.cpp three_poi
 target_link_libraries(time PUBLIC OpenMP::OpenMP_CXX)
 
 add_executable(bilinear_form_performance bilinear_form_performance.cpp)
-target_link_libraries(bilinear_form_performance time)
+target_link_libraries(bilinear_form_performance time BoostProgramOptions)
 
 # Create tests
 package_add_test(basis_test basis_test.cpp)

@@ -40,6 +40,8 @@ space::InitialTriangulation InitialTriangulation(std::string domain,
     return space::InitialTriangulation::UnitSquare(initial_refines);
   else if (domain == "lshape" || domain == "l-shape")
     return space::InitialTriangulation::LShape(initial_refines);
+  else if (domain == "pacman")
+    return space::InitialTriangulation::Pacman(initial_refines);
   else {
     std::cout << "domain not recognized :-(" << std::endl;
     exit(1);
@@ -130,6 +132,7 @@ int main(int argc, char* argv[]) {
   auto start_algorithm = std::chrono::steady_clock::now();
 
   Eigen::VectorXd solution = Eigen::VectorXd::Zero(vec_Xd->container().size());
+  std::vector<typename HeatEquation::TypeXVector::DNType*> max_gradedness;
   for (int level = 1; level < max_level; level++) {
     std::pair<std::unique_ptr<LinearFormBase<Time::OrthonormalWaveletFn>>,
               std::unique_ptr<LinearFormBase<Time::ThreePointWaveletFn>>>
@@ -170,15 +173,20 @@ int main(int argc, char* argv[]) {
           });
 
     solution = vec_Xd->ToVectorContainer();
-    size_t ndof_X = vec_Xd->Bfs().size();  // A slight overestimate.
-    if (ndof_X == 0) continue;
-    if (ndof_X > max_dofs) break;
+    size_t ndof_Xd = vec_Xd->Bfs().size();  // A slight overestimate.
+    if (ndof_Xd == 0) continue;
+    if (ndof_Xd > max_dofs) break;
     AdaptiveHeatEquation heat_eq(vec_Xd, std::move(problem_data.first),
                                  std::move(problem_data.second), adapt_opts);
-    size_t ndof_Y = heat_eq.vec_Ydd()->Bfs().size();  // A slight overestimate.
-    std::cout << "\nlevel: " << level << "\n\tXDelta-size: " << ndof_X
-              << "\n\tXDelta-Gradedness: " << vec_Xd->Gradedness()
-              << "\n\tYDeltaDelta-size: " << ndof_Y
+    size_t ndof_Xdd = heat_eq.vec_Xdd()->Bfs().size();
+    size_t ndof_Ydd = heat_eq.vec_Ydd()->Bfs().size();
+    std::cout << "\nlevel: " << level << "\n\tXDelta-size: " << ndof_Xd
+              << "\n\tXDelta-Gradedness: "
+              << vec_Xd->Gradedness(&max_gradedness)
+              << "\n\tXDelta-time-size: " << vec_Xd->Project_0()->Bfs().size()
+              << "\n\tXDelta-space-size: " << vec_Xd->Project_1()->Bfs().size()
+              << "\n\tXDeltaDelta-size: " << ndof_Xdd
+              << "\n\tYDeltaDelta-size: " << ndof_Ydd
               << "\n\ttotal-memory-kB: " << getmem() << std::flush;
 
     if (calculate_condition_PY || calculate_condition_PX) {

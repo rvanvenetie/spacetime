@@ -329,23 +329,29 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
   static thread_local std::vector<double> e;
   e.reserve(V * 3);
 
+  // Reuse a static variable for storing the residual in the downard cycle.
+  static thread_local std::vector<double> r_down;
+  r_down.reserve(V * 3);
+
   // Initialize the multigrid matrix (row_mat).
   InitializeMultigridMatrix();
 
   // Take zero vector as initial guess.
   Eigen::VectorXd u = Eigen::VectorXd::Zero(V);
+  Eigen::VectorXd residual;
 
   // Do a V-cycle.
   for (size_t cycle = 0; cycle < opts_.mg_cycles; cycle++) {
     // Part 1: Down-cycle, calculates corrections while coarsening.
     {
       // Initialize the residual vector with  a(f, \Phi) - a(u, \Phi).
-      Eigen::VectorXd residual = u;
+      residual = u;
       forward_op_.ApplySingleScale(residual);
       residual = rhs - residual;
 
       // Store all the corrections found in this downward cycle in a vector.
       e.clear();
+      r_down.clear();
 
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
       uint idx = 0;
@@ -369,79 +375,49 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           // Add this correction to our estimate.
           e.emplace_back(e_vi);
 
+          // Store corrected residual.
+          r_down.push_back(residual[vi]);
+
           // Update the residual with this new correction  a(e_vi, \cdot).
-          for (const auto &[vj, val] : row_mat[idx++])
-            residual[vj] -= e_vi * val;
+          for (const auto &[vj, val] : row_mat[idx]) residual[vj] -= e_vi * val;
+
+          idx++;
         }
 
         // Coarsen mesh, and restrict the residual calculated thus far.
         Restrict(vertex, residual);
       }
-
-      // Step 3: Do an upward cycle to calculate the correction on finest
-      // mesh.
-      Eigen::VectorXd e_SS = Eigen::VectorXd::Zero(V);
-      idx = e.size();
-      assert(e.size() == row_mat.size());
-      for (uint vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
-        // Prolongate the current correction to the next level.
-        Prolongate(vertex, e_SS);
-
-        const auto godparents = triang_.Godparents(vertex);
-        for (uint vi : {vertex, godparents[0], godparents[1]}) {
-          if (!IsDof(vi)) continue;
-
-          // Add the the correction we have calculated in the above loop, in
-          // reversed order of course.
-          e_SS[vi] += e[--idx];
-        }
-      }
-
-      // Step 4: Update u with the new correction.
-      u += e_SS;
     }
 
-    // Part 2:  Do exact solve on coarest level and do an up cycle.
+    // Part 2:  Do exact solve on coarest level.
+    Eigen::VectorXd e_0 = residual.head(triang_.InitialVertices());
+    initial_triang_solver_.ApplySingleScale(e_0);
+
+    // Create vector that will contain corrections in single scale basis.
+    Eigen::VectorXd e_SS = Eigen::VectorXd::Zero(V);
+    e_SS.head(triang_.InitialVertices()) = e_0;
+
+    // Part 3: do an upward cycle
     {
-      // Initialize the residual vector with  a(f, \Phi) - a(u, \Phi).
-      Eigen::VectorXd residual = u;
-      forward_op_.ApplySingleScale(residual);
-      residual = rhs - residual;
-
-      // Step 1: Do a downward-cycle restrict the residual on the coarsest
-      // mesh.
-      for (uint vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex)
-        Restrict(vertex, residual);
-
-      // Step 2: Solve on coarsest level.
-      Eigen::VectorXd e_0 = residual.head(triang_.InitialVertices());
-      initial_triang_solver_.ApplySingleScale(e_0);
-
-      // Create vector that will contain corrections in single scale basis.
-      Eigen::VectorXd e_SS = Eigen::VectorXd::Zero(V);
-      e_SS.head(triang_.InitialVertices()) = e_0;
-
-      // Step 3: Walk back up and do 1-dimensional corrections.
-      uint idx = row_mat.size();
+      // Step 1: Walk back up and do 1-dimensional corrections.
+      uint idx = row_mat.size() - 1;
       for (uint vertex = triang_.InitialVertices(); vertex < V; ++vertex) {
         // Prolongate the current correction to the next level.
         Prolongate(vertex, e_SS);
 
-        // Calculate the residual on the next level.
-        RestrictInverse(vertex, residual);
-
-        // Find vertex + its godparents.
+        // Step 2: Calculate corrections for these three vertices.
         const auto godparents = triang_.Godparents(vertex);
-
-        // Step 4: Calculate corrections for these three vertices.
         for (uint vi : {vertex, godparents[0], godparents[1]}) {
           // There is no correction if its not a dof.
           if (!IsDof(vi)) continue;
 
+          // Add the correction vi found in the downward cycle.
+          e_SS[vi] += e[idx];
+
           // Calculate a(phi_vi, phi_vi) and a(e_SS, phi_vi).
           double a_phi_vi_phi_vi = 0;
           double a_e_phi_vi = 0;
-          for (const auto &[vj, val] : row_mat[--idx]) {
+          for (const auto &[vj, val] : row_mat[idx]) {
             // Calculate the inner product with itself.
             if (vj == vi) a_phi_vi_phi_vi += 1 * val;
 
@@ -450,16 +426,18 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           }
 
           // Calculate the correction in phi_vi.
-          const double e_i = (residual[vi] - a_e_phi_vi) / a_phi_vi_phi_vi;
+          const double e_i = (r_down[idx] - a_e_phi_vi) / a_phi_vi_phi_vi;
 
           // Add this correction
           e_SS[vi] += e_i;
+
+          idx--;
         }
       }
-
-      // Step 5: Update approximation.
-      u += e_SS;
     }
+
+    // Part 3: Update approximation.
+    u += e_SS;
   }
 
   // Finally: set the approximation as result.

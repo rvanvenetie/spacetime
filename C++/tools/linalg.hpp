@@ -7,10 +7,11 @@
 namespace tools::linalg {
 
 struct SolverData {
-  double relative_residual;
-  double algebraic_error;
-  size_t iterations;
-  bool converged;
+  double relative_residual = 0;
+  double initial_algebraic_error = 0;
+  double algebraic_error = 0;
+  size_t iterations = 0;
+  bool converged = false;
 };
 
 enum StoppingCriterium { Relative, Algebraic };
