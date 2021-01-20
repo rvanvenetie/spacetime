@@ -67,11 +67,16 @@ BilinearForm<Operator, I_in, I_out>::BilinearForm(I_in* root_vec_in,
 
 template <typename Operator, typename I_in, typename I_out>
 void BilinearForm<Operator, I_in, I_out>::Apply() {
+  auto time_start = std::chrono::high_resolution_clock::now();
+  num_apply_++;
+
   if (inclusion_type_ == InclusionType::Equal) {
     // vec_in == vec_out.
     auto v = ToVector(*nodes_vec_in_);
     operator_->Apply(v);
     FromVector(*nodes_vec_out_, v);
+    time_apply_ += std::chrono::duration<double>(
+        std::chrono::high_resolution_clock::now() - time_start);
     return;
   }
 
@@ -105,6 +110,8 @@ void BilinearForm<Operator, I_in, I_out>::Apply() {
     assert(s == nodes_vec_out_->size() + 1);
     FromVector(*nodes_vec_in_, v_in);
   }
+  time_apply_ += std::chrono::duration<double>(
+      std::chrono::high_resolution_clock::now() - time_start);
 }
 
 template <typename Operator, typename I_in, typename I_out>

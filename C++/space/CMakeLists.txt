@@ -4,6 +4,9 @@ add_library(space STATIC triangulation.cpp initial_triangulation.cpp basis.cpp o
 add_executable(space_bilinear_form_performance bilinear_form_performance.cpp)
 target_link_libraries(space_bilinear_form_performance space)
 
+add_executable(space_adaptive adaptive.cpp)
+target_link_libraries(space_adaptive space BoostProgramOptions)
+
 add_executable(triangulation_view_performance triangulation_view_performance.cpp)
 target_link_libraries(triangulation_view_performance space)
 

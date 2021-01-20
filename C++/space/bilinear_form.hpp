@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <utility>
 
 #include "operators.hpp"
@@ -39,7 +40,26 @@ class BilinearForm {
     return transpose;
   }
 
+  double TimeCreate() const { return time_create_.count(); }
+  double TimePerApply() const {
+    if (num_apply_ == 0)
+      return 0;
+    else
+      return time_apply_.count() / num_apply_;
+  }
+
   Eigen::MatrixXd ToMatrix();
+
+  // These are the functions that must be implemented for Eigen to work.
+  Eigen::Index rows() const { return nodes_vec_out_->size(); }
+  Eigen::Index cols() const { return nodes_vec_in_->size(); }
+
+  template <typename Rhs>
+  Eigen::VectorXd operator*(const Eigen::MatrixBase<Rhs>& x) const {
+    FromVector(*nodes_vec_in_, x);
+    const_cast<BilinearForm*>(this)->Apply();
+    return ToVector(*nodes_vec_out_);
+  }
 
  protected:
   // Protected constructor, and give transpose operator access.
@@ -59,6 +79,11 @@ class BilinearForm {
   // A flattened bfs view of input/output vectors.
   std::shared_ptr<std::vector<I_in*>> nodes_vec_in_;
   std::shared_ptr<std::vector<I_out*>> nodes_vec_out_;
+
+  // Some timing results -- debug info.
+  std::chrono::duration<double> time_create_;
+  std::chrono::duration<double> time_apply_{0};
+  size_t num_apply_ = 0;
 };
 
 // Helper functions.
