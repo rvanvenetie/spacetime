@@ -119,6 +119,7 @@ int main(int argc, char* argv[]) {
   bool print_centers = false;
   bool print_sampling = false;
   bool print_time_apply = true;
+  bool print_bilforms = false;
   std::vector<double> print_time_slices;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
@@ -135,6 +136,7 @@ int main(int argc, char* argv[]) {
       "print_time_slices",
       po::value<std::vector<double>>(&print_time_slices)->multitoken())(
       "print_time_apply", po::value<bool>(&print_time_apply))(
+      "print_bilforms", po::value<bool>(&print_bilforms))(
       "num_threads", po::value<size_t>(&num_threads));
 
   std::sort(print_time_slices.begin(), print_time_slices.end());
@@ -333,24 +335,25 @@ int main(int argc, char* argv[]) {
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();
-      std::cout << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
-                << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
-                << "\n\tB-A-time-per-apply: "
-                << heat_d_dd->B()->A()->TimePerApply()
-                //<< "\n\tB-A-bilforms: " << heat_d_dd->B()->A()->Information()
-                << "\n\tB-B-time-per-apply: "
-                << heat_d_dd->B()->B()->TimePerApply()
-                << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
-                << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
-                << "\n\tP_Y-time-per-apply: "
-                << heat_d_dd->P_Y()->TimePerApply()
-                //<< "\n\tP_Y-bilforms: " << heat_d_dd->P_Y()->Information()
-                << "\n\tP_X-time-per-apply: "
-                << heat_d_dd->P_X()->TimePerApply()
-                << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
-                << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
-                << "\n\ttotal-time-construct: "
-                << heat_d_dd->TotalTimeConstruct() << std::flush;
+      std::cout
+          << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
+          << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
+          << "\n\tB-A-time-per-apply: " << heat_d_dd->B()->A()->TimePerApply()
+          << "\n\tB-B-time-per-apply: " << heat_d_dd->B()->B()->TimePerApply()
+          << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
+          << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
+          << "\n\tP_Y-time-per-apply: " << heat_d_dd->P_Y()->TimePerApply()
+          << "\n\tP_X-time-per-apply: " << heat_d_dd->P_X()->TimePerApply()
+          << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
+          << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
+          << "\n\ttotal-time-construct: " << heat_d_dd->TotalTimeConstruct()
+          << std::flush;
+    }
+    if (print_bilforms) {
+      auto heat_d_dd = heat_eq.heat_d_dd();
+      std::cout << "\n\tB-A-bilforms: " << heat_d_dd->B()->A()->Information()
+                << "\n\tP_Y-bilforms: " << heat_d_dd->P_Y()->Information()
+                << std::flush;
     }
 
     if (print_centers) {
