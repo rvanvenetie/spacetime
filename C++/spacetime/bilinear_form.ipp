@@ -92,7 +92,9 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
     ordering_vec_out_.resize(vec_out_proj_0_.size());
 #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < vec_out_proj_0_.size(); ++i) {
-      sizes[i] = vec_out_proj_0_[i]->FrozenOtherAxis()->Bfs().size();
+      sizes[i] =
+          std::max(vec_out_proj_0_[i]->FrozenOtherAxis()->Bfs().size(),
+                   theta_->Fiber_1(vec_out_proj_0_[i]->node())->Bfs().size());
       ordering_vec_out_[i] = i;
     }
     std::sort(ordering_vec_out_.begin(), ordering_vec_out_.end(),
@@ -102,7 +104,9 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
     ordering_sigma_.resize(sigma_proj_0_.size());
 #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < sigma_proj_0_.size(); ++i) {
-      sizes[i] = sigma_proj_0_[i]->FrozenOtherAxis()->Bfs().size();
+      sizes[i] =
+          std::max(sigma_proj_0_[i]->FrozenOtherAxis()->Bfs().size(),
+                   vec_in_->Fiber_1(sigma_proj_0_[i]->node())->Bfs().size());
       ordering_sigma_[i] = i;
     }
     std::sort(ordering_sigma_.begin(), ordering_sigma_.end(),
