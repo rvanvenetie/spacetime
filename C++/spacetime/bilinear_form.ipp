@@ -31,7 +31,9 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
       use_cache_(use_cache),
       space_opts_(std::move(space_opts)),
       vec_out_proj_0_(vec_out_->Project_0()->Bfs()),
-      sigma_proj_0_(sigma_->Project_0()->Bfs()) {
+      vec_out_proj_1_(vec_out_->Project_1()->Bfs()),
+      sigma_proj_0_(sigma_->Project_0()->Bfs()),
+      theta_proj_1_(theta_->Project_1()->Bfs()) {
   auto time_start = std::chrono::steady_clock::now();
 #ifdef VERBOSE
   std::cerr << std::left;
