@@ -93,7 +93,9 @@ class BilinearForm
 
   // Store ordering for spatial parallism.
   std::vector<FI<0> *> sigma_proj_0_;
+  std::vector<FO<1> *> theta_proj_1_;
   std::vector<FO<0> *> vec_out_proj_0_;
+  std::vector<FO<1> *> vec_out_proj_1_;
   std::vector<size_t> ordering_sigma_;
   std::vector<size_t> ordering_vec_out_;
 };
