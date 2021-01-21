@@ -70,6 +70,8 @@ class BilinearFormBase
   };
   double TimeConstruct() const { return time_construct_.count(); }
 
+  virtual std::string Information() { assert(false); }
+
  protected:
   // Timing debug information.
   std::chrono::duration<double> time_construct_{0};

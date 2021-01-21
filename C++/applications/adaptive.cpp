@@ -333,19 +333,24 @@ int main(int argc, char* argv[]) {
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();
-      std::cout
-          << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
-          << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
-          << "\n\tB-A-time-per-apply: " << heat_d_dd->B()->A()->TimePerApply()
-          << "\n\tB-B-time-per-apply: " << heat_d_dd->B()->B()->TimePerApply()
-          << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
-          << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
-          << "\n\tP_Y-time-per-apply: " << heat_d_dd->P_Y()->TimePerApply()
-          << "\n\tP_X-time-per-apply: " << heat_d_dd->P_X()->TimePerApply()
-          << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
-          << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
-          << "\n\ttotal-time-construct: " << heat_d_dd->TotalTimeConstruct()
-          << std::flush;
+      std::cout << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
+                << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
+                << "\n\tB-A-time-per-apply: "
+                << heat_d_dd->B()->A()->TimePerApply()
+                //<< "\n\tB-A-bilforms: " << heat_d_dd->B()->A()->Information()
+                << "\n\tB-B-time-per-apply: "
+                << heat_d_dd->B()->B()->TimePerApply()
+                << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
+                << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
+                << "\n\tP_Y-time-per-apply: "
+                << heat_d_dd->P_Y()->TimePerApply()
+                //<< "\n\tP_Y-bilforms: " << heat_d_dd->P_Y()->Information()
+                << "\n\tP_X-time-per-apply: "
+                << heat_d_dd->P_X()->TimePerApply()
+                << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
+                << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
+                << "\n\ttotal-time-construct: "
+                << heat_d_dd->TotalTimeConstruct() << std::flush;
     }
 
     if (print_centers) {

@@ -57,6 +57,8 @@ class BilinearForm
   auto sigma() { return sigma_; }
   auto theta() { return theta_; }
 
+  std::string Information() final;
+
  protected:
   // References to in/out vectors.
   DblVecIn *vec_in_;
@@ -147,6 +149,7 @@ class BlockDiagonalBilinearForm
   Eigen::VectorXd Apply(const Eigen::VectorXd &v) final;
   DblVecIn *vec_in() const final { return vec_in_; }
   DblVecOut *vec_out() const final { return vec_out_; }
+  std::string Information() final;
 
  protected:
   bool use_cache_;
@@ -166,6 +169,9 @@ class BlockDiagonalBilinearForm
   using FI = datastructures::FrozenDoubleNode<
       datastructures::DoubleNodeVector<BasisTimeIn, BasisSpace>, i>;
   std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> space_bilforms_;
+
+  std::vector<FI<0> *> vec_out_proj_0_;
+  std::vector<size_t> ordering_;
 };
 
 template <typename OpSpace, typename BTimeIn, typename BTimeOut>

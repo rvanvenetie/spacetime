@@ -90,6 +90,44 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
 
 template <template <typename, typename> class OperatorTime,
           typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
+std::string BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
+                         BasisTimeOut>::Information() {
+  std::stringstream result;
+  result << "([";
+  for (auto psi_in_labda : sigma_->Project_0()->Bfs()) {
+    auto fiber_in = vec_in_->Fiber_1(psi_in_labda->node());
+    auto fiber_out = psi_in_labda->FrozenOtherAxis();
+    result << "(" << fiber_in->Bfs().size() << "," << fiber_out->Bfs().size()
+           << "),";
+  }
+  result << "],[";
+  for (auto psi_out_labda : vec_out_->Project_1()->Bfs()) {
+    auto fiber_in = sigma_->Fiber_0(psi_out_labda->node());
+    auto fiber_out = psi_out_labda->FrozenOtherAxis();
+    result << "(" << fiber_in->Bfs().size() << "," << fiber_out->Bfs().size()
+           << "),";
+  }
+  result << "],[";
+  for (auto psi_in_labda : theta_->Project_1()->Bfs()) {
+    auto fiber_in = vec_in_->Fiber_0(psi_in_labda->node());
+    auto fiber_out = psi_in_labda->FrozenOtherAxis();
+    result << "(" << fiber_in->Bfs().size() << "," << fiber_out->Bfs().size()
+           << "),";
+  }
+  result << "],[";
+  // Calculate R_Lambda(Id x A2)I_Theta.
+  for (auto psi_out_labda : vec_out_->Project_0()->Bfs()) {
+    auto fiber_in = theta_->Fiber_1(psi_out_labda->node());
+    auto fiber_out = psi_out_labda->FrozenOtherAxis();
+    result << "(" << fiber_in->Bfs().size() << "," << fiber_out->Bfs().size()
+           << "),";
+  }
+  result << "])";
+  return result.str();
+}
+
+template <template <typename, typename> class OperatorTime,
+          typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
 Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
                              BasisTimeOut>::Apply(const Eigen::VectorXd &v_in) {
   if (v_in.squaredNorm() == 0)
@@ -270,12 +308,13 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::
     : vec_in_(vec_in),
       vec_out_(vec_out),
       use_cache_(use_cache),
-      space_opts_(std::move(space_opts)) {
+      space_opts_(std::move(space_opts)),
+      vec_out_proj_0_(vec_out->Project_0()->Bfs()) {
   auto time_start = std::chrono::steady_clock::now();
   assert(vec_in->container().size() == vec_out->container().size());
   // If use cache, cache the bil forms here.
   if (use_cache_) {
-    for (auto psi_out_labda : vec_out_->Project_0()->Bfs()) {
+    for (auto psi_out_labda : vec_out_proj_0_) {
       auto fiber_in = vec_in_->Fiber_1(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
@@ -283,9 +322,34 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::
       space_opts_.time_level = std::get<0>(psi_out_labda->nodes())->level();
       space_bilforms_.emplace_back(fiber_in, fiber_out, space_opts_);
     }
+  } else {
+    std::vector<size_t> sizes(vec_out_proj_0_.size());
+    ordering_.resize(vec_out_proj_0_.size());
+    for (int i = 0; i < vec_out_proj_0_.size(); ++i)  {
+        sizes[i] = vec_out_proj_0_[i]->FrozenOtherAxis()->Bfs().size();
+        ordering_[i] = i;
+    }
+    std::sort(ordering_.begin(), ordering_.end(), [&sizes](int i, int j) {
+            return sizes[i] > sizes[j];
+            });
   }
   time_construct_ = std::chrono::duration<double>(
       std::chrono::steady_clock::now() - time_start);
+}
+
+template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
+std::string BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Information()
+{
+  std::stringstream result;
+  result << "[";
+  for (auto psi_out_labda : vec_out_proj_0_) {
+    auto fiber_in = vec_in_->Fiber_1(psi_out_labda->node());
+    auto fiber_out = psi_out_labda->FrozenOtherAxis();
+    result << "(" << fiber_in->Bfs().size() << "," << fiber_out->Bfs().size()
+           << "),";
+  }
+  result << "]";
+  return result.str();
 }
 
 template <typename OperatorSpace, typename BasisTimeIn, typename BasisTimeOut>
@@ -303,11 +367,10 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
   vec_in_->FromVectorContainer(v_in);
 
   if (!use_cache_) {
-    auto vec_out_proj_0 = vec_out_->Project_0()->Bfs();
-
     #pragma omp parallel for schedule(dynamic, 2)
-    for (int i = 0; i < vec_out_proj_0.size(); ++i) {
-      auto psi_out_labda = vec_out_proj_0[i];
+    for (int j = 0; j < vec_out_proj_0_.size(); ++j) {
+      int i = ordering_[j];
+      auto psi_out_labda = vec_out_proj_0_[i];
       auto fiber_in = vec_in_->Fiber_1(psi_out_labda->node());
       if (fiber_in->children().empty()) continue;
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
