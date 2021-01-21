@@ -29,7 +29,9 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
       sigma_(sigma),
       theta_(theta),
       use_cache_(use_cache),
-      space_opts_(std::move(space_opts)) {
+      space_opts_(std::move(space_opts)),
+      vec_out_proj_0_(vec_out_->Project_0()->Bfs()),
+      sigma_proj_0_(sigma_->Project_0()->Bfs()) {
   auto time_start = std::chrono::steady_clock::now();
 #ifdef VERBOSE
   std::cerr << std::left;
@@ -83,7 +85,26 @@ BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn, BasisTimeOut>::
       auto fiber_out = psi_out_labda->FrozenOtherAxis();
       bil_space_upp_.emplace_back(fiber_in, fiber_out, space_opts_);
     }
+  } else {
+    std::vector<size_t> sizes(vec_out_proj_0_.size());
+    ordering_vec_out_.resize(vec_out_proj_0_.size());
+    for (int i = 0; i < vec_out_proj_0_.size(); ++i) {
+      sizes[i] = vec_out_proj_0_[i]->FrozenOtherAxis()->Bfs().size();
+      ordering_vec_out_[i] = i;
+    }
+    std::sort(ordering_vec_out_.begin(), ordering_vec_out_.end(),
+              [&sizes](int i, int j) { return sizes[i] > sizes[j]; });
+
+    sizes.resize(sigma_proj_0_.size());
+    ordering_sigma_.resize(sigma_proj_0_.size());
+    for (int i = 0; i < sigma_proj_0_.size(); ++i) {
+      sizes[i] = sigma_proj_0_[i]->FrozenOtherAxis()->Bfs().size();
+      ordering_sigma_[i] = i;
+    }
+    std::sort(ordering_sigma_.begin(), ordering_sigma_.end(),
+              [&sizes](int i, int j) { return sizes[i] > sizes[j]; });
   }
+
   time_construct_ = std::chrono::duration<double>(
       std::chrono::steady_clock::now() - time_start);
 }
@@ -145,20 +166,30 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
   // clang-format off
   // Check whether we have to recalculate the bilinear forms.
   if (!use_cache_) {
-    // Load some variables in single threading.
-    auto vec_out_proj_0 = vec_out_->Project_0()->Bfs();
-    auto vec_out_proj_1 = vec_out_->Project_1()->Bfs();
-    auto sigma_proj_0 = sigma_->Project_0()->Bfs();
-    auto theta_proj_1 = theta_->Project_1()->Bfs();
+    std::vector<FO<1> *> vec_out_proj_1;
+    std::vector<FO<1> *> theta_proj_1;
 
     // Execute the rest parallel.
     #pragma omp parallel
     {
+      if (vec_out_ == theta_.get())
+      #pragma single
+      {
+        vec_out_proj_1 = vec_out_->Project_1()->Bfs(); 
+        theta_proj_1 = theta_->Project_1()->Bfs();
+      } else {
+        #pragma single nowait
+        vec_out_proj_1 = vec_out_->Project_1()->Bfs(); 
+        #pragma single 
+        theta_proj_1 = theta_->Project_1()->Bfs();
+      }
+
       // Calculate R_sigma(Id x A_1)I_Lambda.
       auto time_compute = std::chrono::steady_clock::now();
       #pragma omp for schedule(dynamic, 1)
-      for (int i = 0; i < sigma_proj_0.size(); ++i) {
-        auto psi_in_labda = sigma_proj_0[i];
+      for (int j = 0; j < sigma_proj_0_.size(); ++j) {
+        int i = ordering_sigma_[j];
+        auto psi_in_labda = sigma_proj_0_[i];
         auto fiber_in = vec_in_->Fiber_1(psi_in_labda->node());
         auto fiber_out = psi_in_labda->FrozenOtherAxis();
         if (fiber_out->children().empty()) continue;
@@ -200,8 +231,9 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
 
       // Calculate R_Theta(U_1 x Id)I_Lambda.
       time_compute = std::chrono::steady_clock::now();
-      #pragma omp for schedule(dynamic, 10)
-      for (int i = 0; i < theta_proj_1.size(); ++i) {
+      #pragma omp for schedule(guided)
+      for (int j = 0; j < theta_proj_1.size(); ++j) {
+        int i = theta_proj_1.size() - 1 - j;
         auto psi_in_labda = theta_proj_1[i];
         auto fiber_in = vec_in_->Fiber_0(psi_in_labda->node());
         auto fiber_out = psi_in_labda->FrozenOtherAxis();
@@ -217,8 +249,9 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
       // Calculate R_Lambda(Id x A2)I_Theta.
       time_compute = std::chrono::steady_clock::now();
       #pragma omp for schedule(dynamic, 1)
-      for (int i = 0; i < vec_out_proj_0.size(); ++i) {
-        auto psi_out_labda = vec_out_proj_0[i];
+      for (int j = 0; j < vec_out_proj_0_.size(); ++j) {
+        int i = ordering_vec_out_[j];
+        auto psi_out_labda = vec_out_proj_0_[i];
         auto fiber_in = theta_->Fiber_1(psi_out_labda->node());
         if (fiber_in->children().empty()) continue;
         auto fiber_out = psi_out_labda->FrozenOtherAxis();
@@ -343,7 +376,9 @@ std::string BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>:
 {
   std::stringstream result;
   result << "[";
-  for (auto psi_out_labda : vec_out_proj_0_) {
+  for (int j = 0; j < vec_out_proj_0_.size(); ++j) {
+    int i = ordering_[j];
+    auto psi_out_labda = vec_out_proj_0_[i];
     auto fiber_in = vec_in_->Fiber_1(psi_out_labda->node());
     auto fiber_out = psi_out_labda->FrozenOtherAxis();
     result << "(" << fiber_in->Bfs().size() << "," << fiber_out->Bfs().size()

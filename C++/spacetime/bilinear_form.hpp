@@ -90,6 +90,12 @@ class BilinearForm
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_low_;
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_upp_;
   std::vector<space::BilinearForm<OperatorSpace, FO<1>, FO<1>>> bil_space_upp_;
+
+  // Store ordering for spatial parallism.
+  std::vector<FI<0> *> sigma_proj_0_;
+  std::vector<FO<0> *> vec_out_proj_0_;
+  std::vector<size_t> ordering_sigma_;
+  std::vector<size_t> ordering_vec_out_;
 };
 
 // Helper functions.
