@@ -156,7 +156,7 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
     {
       // Calculate R_sigma(Id x A_1)I_Lambda.
       auto time_compute = std::chrono::steady_clock::now();
-      #pragma omp for schedule(dynamic, 2)
+      #pragma omp for schedule(dynamic, 1)
       for (int i = 0; i < sigma_proj_0.size(); ++i) {
         auto psi_in_labda = sigma_proj_0[i];
         auto fiber_in = vec_in_->Fiber_1(psi_in_labda->node());
@@ -215,7 +215,7 @@ Eigen::VectorXd BilinearForm<OperatorTime, OperatorSpace, BasisTimeIn,
 
       // Calculate R_Lambda(Id x A2)I_Theta.
       time_compute = std::chrono::steady_clock::now();
-      #pragma omp for schedule(dynamic, 2)
+      #pragma omp for schedule(dynamic, 1)
       for (int i = 0; i < vec_out_proj_0.size(); ++i) {
         auto psi_out_labda = vec_out_proj_0[i];
         auto fiber_in = theta_->Fiber_1(psi_out_labda->node());
@@ -367,7 +367,7 @@ BlockDiagonalBilinearForm<OperatorSpace, BasisTimeIn, BasisTimeOut>::Apply(
   vec_in_->FromVectorContainer(v_in);
 
   if (!use_cache_) {
-    #pragma omp parallel for schedule(dynamic, 2)
+    #pragma omp parallel for schedule(dynamic, 1)
     for (int j = 0; j < vec_out_proj_0_.size(); ++j) {
       int i = ordering_[j];
       auto psi_out_labda = vec_out_proj_0_[i];
