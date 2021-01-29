@@ -1,9 +1,21 @@
-[![Build Status](https://semaphoreci.com/api/v1/projects/44ef465e-22c0-49eb-8aaf-8612ba40b4be/2971664/badge.svg)](https://semaphoreci.com/rvanvenetie-66/spacetime)
+# A wavelet-in-time, finite element-in-space adaptive method for parabolic evolution equations
+This repository contains an implementation of arXiv:2101.03956, as described in.
 
-In this project, we attempt to compute numerical solutions of linear parabolic 
-PDEs, with the heat equation being the main example. Our goal is to solve these
-equations in the lowest possible computational complexity. For this, we implement
-a space-time variational formulation of the PDE at hand, with a wavelet basis in
-the temporal direction and finite elements in the spatial direction.
+This project provides a linear complexity implementation of a space-time
+adaptive solver for parabolic evolution equations.  The trial spaces that
+we consider here are given as sparse tensor product approximations
+of wavelets-in-time and (locally refined) finite element spaces-in-space.
+Special care has to be taken to evaluate matrix-vector products, as the
+system-matrix wrt. such a multi-level type basis is not sparse. By restricting
+to bases that are span by tensor products having index sets that form double-trees,
+we can still evaluatie system matrices in linear complexity.
 
-The project is still under development.
+Aiming at a truly linear-complexity implementation, we implemented this algorithm
+using tree-based algorithms, without the use of hash maps.
+
+## Requirements
+- A C++17 compliant compiler
+- CMake, version >= 3.15
+
+## License
+This project is licensed under the terms of the [MIT license](LICENSE.md).
