@@ -279,7 +279,6 @@ void MultigridPreconditioner<ForwardOp>::InitializeMultigridMatrix() const {
   const std::vector<Vertex *> &vertices = triang_.vertices();
   for (uint i = 0; i < V; ++i) {
     indices[i] = i;
-    vertices[i]->set_data(&indices[i]);
     patches[i].clear();
     patches[i].reserve(4);
   }
@@ -287,6 +286,21 @@ void MultigridPreconditioner<ForwardOp>::InitializeMultigridMatrix() const {
   // Initialize patches var with the triangulation on the finest level.
   for (const auto &[elem, Vids] : triang_.element_leaves())
     for (int vi : Vids) patches[vi].emplace_back(elem);
+
+  std::vector<bool> done(V, false);
+  std::vector<int> nodes;
+  nodes.reserve(V);
+  for (int k = J; k >= 0; --k) {
+    for (int vertex = triang_.vertices_per_level[k];
+         vertex < trian_.vertices_per_level[k + 1]) {
+      const auto godparents = triang_.Godparents(vertex);
+      for (uint vi : {vertex, godparents[0], godparents[1]})
+        if (!done[vi] && IsDof(vi)) {
+          done[vi] = true;
+          nodes.push_back(vi)
+        }
+    }
+  }
 
   uint idx = 0;
   for (uint vertex = V - 1; vertex >= triang_.InitialVertices(); --vertex) {
@@ -314,9 +328,6 @@ void MultigridPreconditioner<ForwardOp>::InitializeMultigridMatrix() const {
     }
   }
   row_mat.resize(idx);
-
-  // Unset the data stored in the vertices.
-  for (auto nv : vertices) nv->reset_data();
 }
 
 template <typename ForwardOp>
