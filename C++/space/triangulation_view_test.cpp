@@ -66,4 +66,11 @@ TEST(TriangulationView, VertexSubTree) {
       ASSERT_TRUE(vertices_subtree.count(vtx));
     }
   }
+
+  // Check levels are correct or whatever
+  ASSERT_EQ(T_view.J, max_level);
+  for (int k = 0; k <= max_level; k++)
+    for (uint vertex = T_view.VerticesPerLevel(k);
+         vertex < T_view.VerticesPerLevel(k + 1); vertex++)
+      ASSERT_EQ(T_view.vertices().at(vertex)->level(), k);
 }
