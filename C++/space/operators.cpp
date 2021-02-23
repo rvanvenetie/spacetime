@@ -275,8 +275,14 @@ inline void MultigridPreconditioner<ForwardOp>::RowMatrix(
 template <typename ForwardOp>
 void MultigridPreconditioner<ForwardOp>::InitializeMultigridMatrix() const {
   const uint V = triang_.V;
-  patches.resize(V);
-  row_mat.resize(V * 3);
+  const uint J = triang_.J;
+
+  // Resize static arrays if necessary.
+  if (V > patches.size()) {
+    patches.resize(V);
+    row_mat.resize(V * 3);
+  }
+  if (J >= vertices_relaxation.size()) vertices_relaxation.resize(J + 1);
 
   // Store indices in the tree.
   std::vector<uint> indices(V);
@@ -294,9 +300,8 @@ void MultigridPreconditioner<ForwardOp>::InitializeMultigridMatrix() const {
 
   // Keep track of vertices included on the current level.
   std::vector<bool> included(V, false);
-  vertices_relaxation.resize(triang_.J + 1);
   uint idx = 0;
-  for (int k = triang_.J; k >= 1; --k) {
+  for (int k = J; k >= 1; --k) {
     vertices_relaxation[k].clear();
     for (uint vertex = triang_.VerticesPerLevel(k);
          vertex < triang_.VerticesPerLevel(k + 1); vertex++) {
@@ -334,8 +339,6 @@ void MultigridPreconditioner<ForwardOp>::InitializeMultigridMatrix() const {
     }
   }
 
-  row_mat.resize(idx);
-
   // Unset the data stored in the vertices.
   for (auto nv : vertices) nv->reset_data();
 }
@@ -363,6 +366,9 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
   // Do a V-cycle.
   for (size_t cycle = 0; cycle < opts_.mg_cycles; cycle++) {
+    // Keep track of current index inside the mg_matrix.
+    uint idx = 0;
+
     // Part 1: Down-cycle, calculates corrections while coarsening.
     {
       // Initialize the residual vector with  a(f, \Phi) - a(u, \Phi).
@@ -375,7 +381,6 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       r_down.clear();
 
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
-      uint idx = 0;
       for (int k = triang_.J; k >= 1; --k) {
         for (uint vi : vertices_relaxation[k]) {
           // Calculate a(phi_vi, phi_vi).
@@ -416,7 +421,6 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
     // Part 3: do an upward cycle
     {
       // Step 1: Walk back up and do 1-dimensional corrections.
-      uint idx = row_mat.size() - 1;
       for (int k = 1; k <= triang_.J; k++) {
         // Prolongate the current correction to the next level.
         for (uint vertex = triang_.VerticesPerLevel(k);
@@ -425,6 +429,8 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
         // Step 2: Calculate corrections for these vertices.
         for (uint vi : boost::adaptors::reverse(vertices_relaxation[k])) {
+          idx--;
+
           // Add the correction vi found in the downward cycle.
           e_SS[vi] += e[idx];
 
@@ -444,10 +450,10 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
 
           // Add this correction
           e_SS[vi] += e_i;
-
-          idx--;
         }
       }
+
+      assert(idx == 0);
     }
 
     // Part 3: Update approximation.
