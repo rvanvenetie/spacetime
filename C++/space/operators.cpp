@@ -377,7 +377,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
       // Step 1: Do a down-cycle and calculate 3 corrections per level.
       uint idx = 0;
       for (int k = triang_.J; k >= 1; --k) {
-        for (uint vi : boost::adaptors::reverse(vertices_relaxation[k])) {
+        for (uint vi : vertices_relaxation[k]) {
           // Calculate a(phi_vi, phi_vi).
           double a_phi_vi_phi_vi = 0;
           for (const auto &[vj, val] : row_mat[idx])
@@ -424,7 +424,7 @@ void MultigridPreconditioner<ForwardOp>::ApplySingleScale(
           Prolongate(vertex, e_SS);
 
         // Step 2: Calculate corrections for these vertices.
-        for (uint vi : vertices_relaxation[k]) {
+        for (uint vi : boost::adaptors::reverse(vertices_relaxation[k])) {
           // Add the correction vi found in the downward cycle.
           e_SS[vi] += e[idx];
 
