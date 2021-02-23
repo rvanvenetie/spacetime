@@ -1,4 +1,4 @@
-add_library(space STATIC triangulation.cpp initial_triangulation.cpp basis.cpp operators.cpp triangulation_view.cpp multigrid_triangulation_view.cpp linear_form.cpp integration.cpp)
+add_library(space STATIC triangulation.cpp initial_triangulation.cpp basis.cpp operators.cpp triangulation_view.cpp linear_form.cpp integration.cpp)
 
 # Executables
 add_executable(space_adaptive adaptive.cpp)
@@ -16,9 +16,6 @@ target_link_libraries(triangulation_test space)
 
 package_add_test(triangulation_view_test triangulation_view_test.cpp)
 target_link_libraries(triangulation_view_test space)
-
-package_add_test(multigrid_triangulation_view_test multigrid_triangulation_view_test.cpp)
-target_link_libraries(multigrid_triangulation_view_test space)
 
 package_add_test(space_bilinear_form_test bilinear_form_test.cpp)
 target_link_libraries(space_bilinear_form_test space)
