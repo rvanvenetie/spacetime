@@ -14,4 +14,4 @@ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 130 --slave /
 sudo pip install cmake
 
 # Build.
-cmake -S C++ -B C++/build
+cmake -S src -B src/build
