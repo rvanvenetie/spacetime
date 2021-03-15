@@ -66,15 +66,14 @@ namespace Time {
 class Element1D : public datastructures::BinaryNode<Element1D> {
  public:
   // Constructors given the parent.
-  explicit Element1D(Element1D *parent, int index)
+  explicit Element1D(Element1D *parent, long long index)
       : BinaryNode(parent), index_(index) {
-    assert(this->level_ < 31);  // Overflow on index.
+    assert(this->level_ < 63);  // Overflow on index.
   }
-
   explicit Element1D(Element1D *parent, bool left_child)
       : Element1D(parent, parent->index() * 2 + (left_child ? 0 : 1)) {}
 
-  int index() const { return index_; }
+  long long index() const { return index_; }
 
   // Refines the actual element.
   bool Refine();
@@ -105,10 +104,10 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
  protected:
   // Protected constructor for creating a metaroot.
   Element1D(Deque<Element1D> *container) : BinaryNode(container), index_(0) {
-    make_child(/* parent */ this, /* index */ 0);
+    make_child(/* parent */ this, /* index */ 0LL);
   }
 
-  int index_;
+  long long index_;
 
   // There is a mapping between the element and the basis functions.
   DiscConstantScalingFn *phi_disc_const_ = nullptr;
@@ -128,20 +127,20 @@ class Element1D : public datastructures::BinaryNode<Element1D> {
 template <typename I>
 class Function : public datastructures::Node<I> {
  public:
-  explicit Function(const std::vector<I *> &parents, int index,
+  explicit Function(const std::vector<I *> &parents, long long index,
                     const std::vector<Element1D *> &support = {})
       : datastructures::Node<I>(parents), index_(index), support_(support) {
-    assert(this->level_ < 31);  // Overflow on index.
+    assert(this->level_ < 63);  // Overflow on index.
     for (size_t i = 0; i < support_.size(); ++i) {
       assert(support[i]->level() == this->level_);
       if (i > 0) assert(support_[i - 1]->index() + 1 == support_[i]->index());
     }
   }
 
-  inline std::pair<int, int> labda() const {
+  inline std::pair<int, long long> labda() const {
     return {this->level_, this->index_};
   }
-  inline int index() const { return index_; }
+  inline long long index() const { return index_; }
   const std::vector<Element1D *> &support() const { return support_; }
   double center() const {
     return (support_[0]->Interval().first +
@@ -167,7 +166,7 @@ class Function : public datastructures::Node<I> {
       : datastructures::Node<I>(container), index_(0) {}
 
   // The index inside this level.
-  int index_;
+  long long index_;
 
   // The vector of elements that make up this functions support.
   std::vector<Element1D *> support_;
@@ -183,11 +182,11 @@ template <typename I>
 class ScalingFn : public Function<I> {
  public:
   double Eval(double t, bool deriv = false) const {
-    int l = this->level_;
-    int n = this->index_;
-    double chain_rule_constant = deriv ? (1 << l) : 1;
+    auto l = this->level_;
+    auto n = this->index_;
+    double chain_rule_constant = deriv ? (1LL << l) : 1;
     return chain_rule_constant *
-           static_cast<const I &>(*this).EvalMother((1 << l) * t - n, deriv);
+           static_cast<const I &>(*this).EvalMother((1LL << l) * t - n, deriv);
   }
 
  protected:
@@ -199,7 +198,7 @@ class WaveletFn : public Function<I> {
  public:
   using ScalingType = typename FunctionTrait<I>::Scaling;
 
-  explicit WaveletFn(const std::vector<I *> &parents, int index,
+  explicit WaveletFn(const std::vector<I *> &parents, long long index,
                      SparseVector<ScalingType> &&single_scale)
       : Function<I>(parents, index), single_scale_(std::move(single_scale)) {
     // Now do two things:

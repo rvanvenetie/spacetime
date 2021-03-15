@@ -18,7 +18,7 @@ class DiscLinearScalingFn : public ScalingFn<DiscLinearScalingFn> {
   constexpr static const char *name = "DLS";
 
   explicit DiscLinearScalingFn(const std::vector<DiscLinearScalingFn *> parents,
-                               int index,
+                               long long index,
                                const std::vector<Element1D *> support)
       : ScalingFn<DiscLinearScalingFn>(parents, index, support) {
     if (pw_constant())
@@ -55,7 +55,7 @@ class OrthonormalWaveletFn : public WaveletFn<OrthonormalWaveletFn> {
   constexpr static const char *name = "Ortho";
 
   explicit OrthonormalWaveletFn(
-      const std::vector<OrthonormalWaveletFn *> parents, int index,
+      const std::vector<OrthonormalWaveletFn *> parents, long long index,
       SparseVector<DiscLinearScalingFn> &&single_scale)
       : WaveletFn(parents, index, std::move(single_scale)) {
     for (auto &elem : support()) {

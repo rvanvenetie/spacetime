@@ -118,7 +118,7 @@ inline Eigen::Matrix3d StiffPlusScaledMassOperator::ElementMatrix(
     const Element2D *elem, const OperatorOptions &opts) {
   // alpha * Stiff + 2^|labda| * Mass.
   return opts.alpha * StiffnessOperator::ElementMatrix(elem, opts) +
-         (1 << opts.time_level) * MassOperator::ElementMatrix(elem, opts);
+         (1LL << opts.time_level) * MassOperator::ElementMatrix(elem, opts);
 }
 
 BackwardOperator::BackwardOperator(const TriangulationView &triang,
