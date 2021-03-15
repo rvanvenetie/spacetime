@@ -219,7 +219,7 @@ template <typename ForwardOp>
 thread_local std::vector<std::vector<Element2D *>>
     MultigridPreconditioner<ForwardOp>::patches;
 template <typename ForwardOp>
-std::vector<std::vector<uint>>
+thread_local std::vector<std::vector<uint>>
     MultigridPreconditioner<ForwardOp>::vertices_relaxation;
 
 template <typename ForwardOp>
