@@ -18,7 +18,7 @@ using tree-based algorithms, without the use of hash maps.
 - CMake, version >= 3.15
 
 ## Install instructions
-Download the release or clone this repository.  Then, build using CMake :
+Download the release or clone this repository. Then, build using CMake:
 
 ```bash
 cd spacetime
