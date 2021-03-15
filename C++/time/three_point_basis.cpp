@@ -41,7 +41,7 @@ ContLinearScalingFn *ContLinearScalingFn::RefineMiddle() {
 
     std::vector<Element1D *> child_support;
     if (n > 0) child_support.push_back(support_[0]->children()[1]);
-    if (n < (1 << l)) child_support.push_back(support_.back()->children()[0]);
+    if (n < (1LL << l)) child_support.push_back(support_.back()->children()[0]);
 
     // Create child, and add accordingly.
     child_middle_ = make_child(
@@ -187,7 +187,7 @@ bool ThreePointWaveletFn::Refine() {
     phi_children = {phi_middle->child_middle_, phi_middle->child_right_,
                     phi_right->child_middle_};
 
-    if (n == (1 << (l - 1)) - 1) {
+    if (n == (1LL << (l - 1)) - 1) {
       make_child(
           /* parents */ std::vector{this},
           /* index */ 2 * index_ + 1,

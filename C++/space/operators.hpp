@@ -223,6 +223,7 @@ class MultigridPreconditioner : public BackwardOperator {
   // (Static) variables reused for calculation of the multigrid matrix.
   static thread_local std::vector<std::vector<std::pair<uint, double>>> row_mat;
   static thread_local std::vector<std::vector<Element2D *>> patches;
+  static thread_local std::vector<std::vector<uint>> vertices_relaxation;
 };
 
 template <template <typename> class InverseOp>

@@ -15,7 +15,7 @@ class HierarchicalWaveletFn : public WaveletFn<HierarchicalWaveletFn> {
   constexpr static const char *name = "Hierarch";
 
   explicit HierarchicalWaveletFn(
-      const std::vector<HierarchicalWaveletFn *> parents, int index,
+      const std::vector<HierarchicalWaveletFn *> parents, long long index,
       SparseVector<ContLinearScalingFn> &&single_scale)
       : WaveletFn(parents, index, std::move(single_scale)) {
     assert(single_scale_.size() == 1);

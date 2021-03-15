@@ -39,8 +39,8 @@ double DiscLinearScalingFn::EvalMother(double t, bool deriv) const {
 
 double DiscLinearScalingFn::Eval(double t, bool deriv) const {
   auto [l, n] = labda();
-  double chain_rule_constant = deriv ? (1 << l) : 1;
-  return chain_rule_constant * EvalMother((1 << l) * t - (n / 2), deriv);
+  double chain_rule_constant = deriv ? (1LL << l) : 1;
+  return chain_rule_constant * EvalMother((1LL << l) * t - (n / 2), deriv);
 }
 
 bool DiscLinearScalingFn::Refine() {

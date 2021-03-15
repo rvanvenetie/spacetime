@@ -8,13 +8,7 @@ from .sparse_vector import SparseVector
 
 
 class Applicator(ApplicatorInterface):
-    """ Class that can apply multiscale operators with minimal overhead.
-
-    See also github.com/skestler/lawa-phd-skestler/LAWA-lite/
-        lawa/methods/adaptive/operators/localoperators/localoperator1d.{h,tcpp}
-    for some (tough to read) C++ code that implements the same operators in
-    a probably more optimized fashion.
-    """
+    """ Class that can apply multiscale operators with minimal overhead.  """
     def __init__(self, singlescale_operator, basis_in, basis_out=None):
         """ Initialize the applicator.
 
