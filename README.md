@@ -6,7 +6,7 @@ adaptive solver for parabolic evolution equations.  The trial spaces that
 we consider here are given as sparse tensor product approximations
 of wavelets-in-time and (locally refined) finite element spaces-in-space.
 Special care has to be taken to evaluate matrix-vector products, as the
-system-matrix wrt. such a multi-level type basis is not sparse. By restricting
+system-matrix w.r.t. such a multi-level type basis is not sparse. By restricting
 to bases that are span by tensor products having index sets that form double-trees,
 we can still evaluatie system matrices in linear complexity.
 
@@ -16,6 +16,15 @@ using tree-based algorithms, without the use of hash maps.
 ## Requirements
 - A C++17 compliant compiler
 - CMake, version >= 3.15
+
+## Install instructions
+Download the release or clone this repository. Then, build using CMake:
+
+```bash
+cd spacetime
+cmake -S src -B build
+cmake --build build
+```
 
 ## License
 This project is licensed under the terms of the [MIT license](LICENSE.md).
