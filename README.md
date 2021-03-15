@@ -28,7 +28,7 @@ cmake --build build
 
 The tests can be run using `make -C build test`. The adapative method,
 used for the numerical results in the paper, is given in
-`src/applications/adaptive.cpp`. It can be run using
+`src/applications/adaptive.cpp`. It can be run using the flags specified in the source, e.g.
 ```bash
 build/applications/adaptive --problem singular --mark_theta 0.5 --domain l-shape
 ```
