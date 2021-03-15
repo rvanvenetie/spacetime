@@ -91,11 +91,11 @@ class ForwardOperator : public Operator {
     return matrix_;
   }
 
- protected:
   // Hierarhical Basis Transformations from HB to SS, and its transpose.
   void ApplyHierarchToSingle(Eigen::VectorXd &vec_HB) const;
   void ApplyTransposeHierarchToSingle(Eigen::VectorXd &vec_SS) const;
 
+ protected:
   void InitializeMatrixSingleScale();
   Eigen::SparseMatrix<double> matrix_;
 };
@@ -223,6 +223,7 @@ class MultigridPreconditioner : public BackwardOperator {
   // (Static) variables reused for calculation of the multigrid matrix.
   static std::vector<std::vector<std::pair<uint, double>>> row_mat;
   static std::vector<std::vector<Element2D *>> patches;
+  static std::vector<std::vector<uint>> vertices_relaxation;
 };
 
 template <template <typename> class InverseOp>

@@ -1,6 +1,7 @@
 #pragma once
 #include "basis.hpp"
 #include "haar_basis.hpp"
+#include "hierarchical_basis.hpp"
 #include "orthonormal_basis.hpp"
 #include "three_point_basis.hpp"
 
@@ -20,9 +21,12 @@ struct Bases {
   datastructures::Tree<ContLinearScalingFn> cont_lin_tree;
   datastructures::Tree<ThreePointWaveletFn> three_point_tree;
 
-  // Reset the orthonormal tree.
+  // The orthonormal tree.
   datastructures::Tree<DiscLinearScalingFn> disc_lin_tree;
   datastructures::Tree<OrthonormalWaveletFn> ortho_tree;
+
+  // The hierarhical basisfn tree.
+  datastructures::Tree<HierarchicalWaveletFn> hierarch_tree;
 
   Bases()
       : elem_tree(),
@@ -32,7 +36,8 @@ struct Bases {
         cont_lin_tree(mother_element),
         three_point_tree(cont_lin_tree.meta_root()->children()),
         disc_lin_tree(mother_element),
-        ortho_tree(disc_lin_tree.meta_root()->children()) {}
+        ortho_tree(disc_lin_tree.meta_root()->children()),
+        hierarch_tree(cont_lin_tree.meta_root()->children()) {}
 };
 
 }  // namespace Time

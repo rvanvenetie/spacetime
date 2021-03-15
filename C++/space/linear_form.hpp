@@ -7,42 +7,45 @@
 
 namespace space {
 
-class LinearFunctional {
+class LinearForm {
  public:
-  virtual ~LinearFunctional() {}
-  virtual std::array<double, 3> Eval(Element2D *elem) const = 0;
-};
+  LinearForm(std::function<double(double, double)> f, bool apply_quadrature,
+             size_t quad_order, bool dirichlet_boundary = true)
+      : f_(f),
+        apply_quadrature_(apply_quadrature),
+        quad_order_(quad_order),
+        dirichlet_boundary_(dirichlet_boundary) {}
 
-class QuadratureFunctional : public LinearFunctional {
- public:
-  QuadratureFunctional(std::function<double(double, double)> f, size_t order)
-      : f_(f), order_(order) {}
-  std::array<double, 3> Eval(Element2D *elem) const final;
+  // Two methods of applying this linear form, using quadrature or
+  // interpolation.
+  template <typename I>
+  void ApplyQuadrature(I *root);
 
-  std::function<double(double, double)> Function() const { return f_; }
-  size_t Order() const { return order_; }
+  template <typename I>
+  void ApplyInterpolation(I *root);
+
+  // Resort to default setting.
+  template <typename I>
+  void Apply(I *root) {
+    if (apply_quadrature_)
+      ApplyQuadrature(root);
+    else
+      ApplyInterpolation(root);
+  }
+
+  size_t QuadratureOrder() const { return quad_order_; }
+  const auto &Function() const { return f_; }
 
  protected:
   std::function<double(double, double)> f_;
-  size_t order_;
-};
-
-class LinearForm {
- public:
-  LinearForm(std::unique_ptr<LinearFunctional> &&functional,
-             bool dirichlet_boundary = true)
-      : functional_(std::move(functional)),
-        dirichlet_boundary_(dirichlet_boundary) {}
-
-  template <typename I>
-  void Apply(I *root);
-
-  LinearFunctional *Functional() { return functional_.get(); }
-
- protected:
-  std::unique_ptr<LinearFunctional> functional_;
+  size_t quad_order_;
   bool dirichlet_boundary_;
+  bool apply_quadrature_;
+
+  // Evaluate the inner product between hat functions and f on elem.
+  std::array<double, 3> QuadEval(Element2D *elem) const;
 };
+
 }  // namespace space
 
 #include "linear_form.ipp"

@@ -119,6 +119,8 @@ void TestSpacetimeLinearity(
   // Create two random vectors.
   auto vec_in_1 = vec_in.DeepCopy();
   auto vec_in_2 = vec_in.DeepCopy();
+  vec_in_1.ComputeFibers();
+  vec_in_2.ComputeFibers();
   for (auto nv : vec_in_1.Bfs()) {
     if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
     nv->set_random();
@@ -131,6 +133,7 @@ void TestSpacetimeLinearity(
   // Also calculate a lin. comb. of this vector
   double alpha = 1.337;
   auto vec_in_comb = vec_in_1.DeepCopy();
+  vec_in_comb.ComputeFibers();
   vec_in_comb *= alpha;
   vec_in_comb += vec_in_2;
 
@@ -172,8 +175,10 @@ void TestSpacetimeQuadrature(
       vec_in, vec_out);
 
   // Create a bilinear form and do some quadrature tests.
-  auto bil_form = CreateBilinearForm<OperatorTime, OperatorSpace>(
+  auto bil_form_cache = CreateBilinearForm<OperatorTime, OperatorSpace>(
       &vec_in, &vec_out, /*use_cache*/ true);
+  auto bil_form_nocache = CreateBilinearForm<OperatorTime, OperatorSpace>(
+      &vec_in, &vec_out, /*use_cache*/ false);
 
   // Simply put some random values into vec_in.
   for (auto nv : vec_in.Bfs()) {
@@ -183,7 +188,8 @@ void TestSpacetimeQuadrature(
 
   // Apply the spacetime bilinear form.
   auto v_in = vec_in.ToVectorContainer();
-  auto v_out = bil_form->Apply(v_in);
+  auto v_out_cache = bil_form_cache->Apply(v_in);
+  auto v_out_nocache = bil_form_nocache->Apply(v_in);
 
   // Now compare this to the matrix approach
   const auto &db_nodes_in = vec_in.container();
@@ -201,7 +207,8 @@ void TestSpacetimeQuadrature(
           SpaceQuadrature(std::get<1>(db_nodes_in[i].nodes()),
                           std::get<1>(db_nodes_out[j].nodes()), deriv_space);
     }
-    ASSERT_NEAR(quad_val, v_out[j], 1e-10);
+    ASSERT_NEAR(quad_val, v_out_cache[j], 1e-10);
+    ASSERT_NEAR(quad_val, v_out_nocache[j], 1e-10);
   }
 }
 
@@ -222,6 +229,8 @@ TEST(BilinearForm, SparseQuadrature) {
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
     auto vec_Y = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    vec_X.ComputeFibers();
+    vec_Y.ComputeFibers();
 
     // Test the actual operators that we use.
     TestSpacetimeQuadrature<Time::MassOperator, space::StiffnessOperator,
@@ -265,6 +274,7 @@ TEST(BilinearForm, SparseQuadrature) {
     // Check that it also works for different vec_out.
     auto vec_Y_cpy = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    vec_Y_cpy.ComputeFibers();
     TestSpacetimeQuadrature<Time::MassOperator, space::StiffnessOperator,
                             OrthonormalWaveletFn, OrthonormalWaveletFn>(
         vec_Y, vec_Y_cpy, /* deriv_space */ true,
@@ -290,6 +300,8 @@ TEST(BilinearForm, Transpose) {
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
     auto vec_Y = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    vec_X.ComputeFibers();
+    vec_Y.ComputeFibers();
 
     // Test the actual operators that we use.
     auto A_s = CreateBilinearForm<Time::MassOperator, space::StiffnessOperator>(
@@ -322,7 +334,7 @@ TEST(BilinearForm, Transpose) {
   }
 }
 
-TEST(SymmetricBilinearForm, Works) {
+TEST(BilinearForm, SymmetricSigmaTheta) {
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(6);
@@ -335,10 +347,16 @@ TEST(SymmetricBilinearForm, Works) {
     X_delta.SparseRefine(level);
     auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
 
-    auto vec_X = X_delta.template DeepCopy<
-        DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
-    auto vec_Y = Y_delta.template DeepCopy<
-        DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    auto vec_X = std::make_shared<
+        DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
+        X_delta.template DeepCopy<
+            DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>());
+    auto vec_Y = std::make_shared<
+        DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>(
+        Y_delta.template DeepCopy<
+            DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>());
+    vec_X->ComputeFibers();
+    vec_Y->ComputeFibers();
 
     // Test the actual operators that we use.
     for (bool use_cache : {true, false}) {
@@ -346,17 +364,18 @@ TEST(SymmetricBilinearForm, Works) {
       {
         BilinearForm<Time::MassOperator, space::StiffnessOperator,
                      OrthonormalWaveletFn, OrthonormalWaveletFn>
-            A_normal(&vec_Y, &vec_Y, /* use_cache */ use_cache);
-        SymmetricBilinearForm<Time::MassOperator, space::StiffnessOperator,
-                              OrthonormalWaveletFn>
-            A_symm(&vec_Y, /* use_cache */ use_cache);
+            A_normal(vec_Y.get(), vec_Y.get(), /* use_cache */ use_cache);
+        BilinearForm<Time::MassOperator, space::StiffnessOperator,
+                     OrthonormalWaveletFn>
+            A_symm(vec_Y.get(), vec_Y.get(), /* sigma */ vec_Y,
+                   /* theta */ vec_Y, /* use_cache */ use_cache);
 
         // Put some random values into vec_Y.
-        for (auto nv : vec_Y.Bfs()) {
+        for (auto nv : vec_Y->Bfs()) {
           if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
           nv->set_random();
         }
-        Eigen::VectorXd v_in = vec_Y.ToVectorContainer();
+        Eigen::VectorXd v_in = vec_Y->ToVectorContainer();
 
         // Test that the results equal.
         ASSERT_TRUE(A_normal.Apply(v_in).isApprox(A_symm.Apply(v_in)));
@@ -366,17 +385,99 @@ TEST(SymmetricBilinearForm, Works) {
       {
         BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
                      ThreePointWaveletFn, ThreePointWaveletFn>
-            G_normal(&vec_X, &vec_X, /* use_cache */ use_cache);
-        SymmetricBilinearForm<Time::ZeroEvalOperator, space::MassOperator,
-                              ThreePointWaveletFn>
-            G_symm(&vec_X, /* use_cache */ use_cache);
+            G_normal(vec_X.get(), vec_X.get(), /* use_cache */ use_cache);
+        BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
+                     ThreePointWaveletFn>
+            G_symm(vec_X.get(), vec_X.get(), /* sigma */ vec_X,
+                   /* theta */ vec_X, /* use_cache */ use_cache);
 
-        // Put some random values into vec_Y.
-        for (auto nv : vec_X.Bfs()) {
+        // Put some random values into vec_X.
+        for (auto nv : vec_X->Bfs()) {
           if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
           nv->set_random();
         }
-        Eigen::VectorXd v_in = vec_X.ToVectorContainer();
+        Eigen::VectorXd v_in = vec_X->ToVectorContainer();
+
+        // Test that the results equal.
+        ASSERT_TRUE(G_normal.Apply(v_in).isApprox(G_symm.Apply(v_in)));
+      }
+    }
+  }
+}
+
+TEST(BilinearForm, SigmaThetaLocal) {
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::LShape();
+
+  for (int level = 1; level < 10; level++) {
+    // Create locally refined basis trees.
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+    X_delta.DeepRefine(
+        [level](auto dblnode) {
+          auto [psi_time, psi_space] = dblnode;
+          if (2 * psi_time->level() + psi_space->level() > 2 * level)
+            return false;
+          return (psi_time->is_metaroot() || psi_time->Interval().first == 0) &&
+                 (psi_space->is_metaroot() ||
+                  psi_space->TouchesDomainBoundary());
+        },
+        [&](auto dblnode) {
+          dblnode->node_0()->Refine();
+          dblnode->node_1()->Refine();
+        });
+    auto Y_delta = GenerateYDelta<DoubleTreeView>(X_delta);
+
+    auto vec_X = std::make_shared<
+        DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>(
+        X_delta.template DeepCopy<
+            DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>());
+    auto vec_Y = std::make_shared<
+        DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>(
+        Y_delta.template DeepCopy<
+            DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>());
+    vec_X->ComputeFibers();
+    vec_Y->ComputeFibers();
+
+    // Test the actual operators that we use.
+    for (bool use_cache : {true, false}) {
+      // A_s
+      {
+        BilinearForm<Time::MassOperator, space::StiffnessOperator,
+                     OrthonormalWaveletFn, OrthonormalWaveletFn>
+            A_normal(vec_Y.get(), vec_Y.get(), /* use_cache */ use_cache);
+        BilinearForm<Time::MassOperator, space::StiffnessOperator,
+                     OrthonormalWaveletFn>
+            A_symm(vec_Y.get(), vec_Y.get(), /* sigma */ vec_Y,
+                   /* theta */ vec_Y, /* use_cache */ use_cache);
+
+        // Put some random values into vec_Y.
+        for (auto nv : vec_Y->Bfs()) {
+          if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
+          nv->set_random();
+        }
+        Eigen::VectorXd v_in = vec_Y->ToVectorContainer();
+
+        // Test that the results equal.
+        ASSERT_TRUE(A_normal.Apply(v_in).isApprox(A_symm.Apply(v_in)));
+      }
+
+      // G
+      {
+        BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
+                     ThreePointWaveletFn, ThreePointWaveletFn>
+            G_normal(vec_X.get(), vec_X.get(), /* use_cache */ use_cache);
+        BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
+                     ThreePointWaveletFn>
+            G_symm(vec_X.get(), vec_X.get(), /* sigma */ vec_X,
+                   /* theta */ vec_X, /* use_cache */ use_cache);
+
+        // Put some random values into vec_X.
+        for (auto nv : vec_X->Bfs()) {
+          if (std::get<1>(nv->nodes())->on_domain_boundary()) continue;
+          nv->set_random();
+        }
+        Eigen::VectorXd v_in = vec_X->ToVectorContainer();
 
         // Test that the results equal.
         ASSERT_TRUE(G_normal.Apply(v_in).isApprox(G_symm.Apply(v_in)));
@@ -400,17 +501,22 @@ TEST(BlockDiagonalBilinearForm, CanBeConstructed) {
 
     auto vec_Y = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    vec_Y.ComputeFibers();
 
-    auto A_s = CreateBlockDiagonalBilinearForm<space::StiffnessOperator>(
-        &vec_Y, &vec_Y, /*use_cache*/ true);
-    auto mat_A_s = ToMatrix(*A_s);
+    for (bool use_cache : {true, false}) {
+      auto A_s = CreateBlockDiagonalBilinearForm<space::StiffnessOperator>(
+          &vec_Y, &vec_Y, /*use_cache*/ use_cache);
+      auto mat_A_s = ToMatrix(*A_s);
 
-    auto P_Y = CreateBlockDiagonalBilinearForm<
-        space::DirectInverse<space::StiffnessOperator>>(&vec_Y, &vec_Y,
-                                                        /*use_cache*/ true);
-    auto mat_P_Y = ToMatrix(*P_Y);
+      auto P_Y = CreateBlockDiagonalBilinearForm<
+          space::DirectInverse<space::StiffnessOperator>>(
+          &vec_Y, &vec_Y,
+          /*use_cache*/ use_cache);
+      auto mat_P_Y = ToMatrix(*P_Y);
 
-    ASSERT_TRUE((mat_A_s * mat_P_Y).isApprox(mat_P_Y * mat_A_s));
+      ASSERT_TRUE((mat_A_s * mat_P_Y).isApprox(mat_P_Y * mat_A_s));
+    }
   }
 }
+
 }  // namespace spacetime

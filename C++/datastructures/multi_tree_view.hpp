@@ -262,7 +262,7 @@ class MultiTreeView {
   MultiTreeView<I>& operator=(MultiTreeView<I>&&) = default;
 
   // Uniform refine, nodes->level() <= max_levels.
-  void UniformRefine(std::array<int, dim> max_levels);
+  void UniformRefine(std::array<int, dim> max_levels, bool grow_tree = false);
   void UniformRefine(int max_level) {
     std::array<int, dim> arg;
     arg.fill(max_level);
@@ -270,7 +270,8 @@ class MultiTreeView {
   }
 
   // Sparse refine, lin_comb(nodes->level()) <= max_level
-  void SparseRefine(int max_level, std::array<int, dim> weights);
+  void SparseRefine(int max_level, std::array<int, dim> weights,
+                    bool grow_tree = false);
   void SparseRefine(int max_level) {
     std::array<int, dim> arg;
     arg.fill(1);
@@ -282,8 +283,9 @@ class MultiTreeView {
   MT_other DeepCopy(const FuncPost& call_postprocess = func_noop) const;
 
   template <typename I_other = I, typename MT_other = MultiTreeView<I_other>>
-  void ConformingRefinement(const MT_other& supertree,
-                            const std::vector<I_other*>& nodes_to_add) const;
+  std::vector<I_other*> ConformingRefinement(
+      const MT_other& supertree,
+      const std::vector<I_other*>& nodes_to_add) const;
 
   // Simple helpers.
   std::vector<I*> Bfs(bool include_metaroot = false) const {

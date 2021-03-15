@@ -88,6 +88,14 @@ TEST(Triangulation, OnDomainBoundary) {
     ASSERT_EQ(vertex->on_domain_boundary, (vertex->x == 0 || vertex->x == 1 ||
                                            vertex->y == 0 || vertex->y == 1));
   }
+
+  for (auto elem : init_triang.elem_meta_root->Bfs()) {
+    size_t bdr_vtx = 0;
+    for (auto vertex : elem->vertices())
+      if (vertex->x == 0 || vertex->x == 1 || vertex->y == 0 || vertex->y == 1)
+        bdr_vtx++;
+    ASSERT_EQ(elem->TouchesDomainBoundary(), bdr_vtx > 1);
+  }
 }
 
 TEST(Triangulation, UniformRefinement) {

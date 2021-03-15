@@ -31,13 +31,12 @@ TEST(HeatEquation, CompareToPython) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
         B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
 
-    T.hierarch_basis_tree.UniformRefine(level);
-    B.ortho_tree.UniformRefine(level);
-    B.three_point_tree.UniformRefine(level);
-    X_delta.SparseRefine(level, {2, 1});
+    X_delta.SparseRefine(level, {2, 1}, /* grow_tree */ true);
     HeatEquationOptions opts;
     opts.use_cache = use_cache;
     opts.PX_alpha = 1.0;
+    opts.PX_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
+    opts.PY_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
     HeatEquation heat_eq(X_delta, opts);
 
     // Set double-tree vectors
@@ -119,16 +118,16 @@ TEST(HeatEquation, SchurCG) {
   int max_level = 7;
   auto B = Time::Bases();
   auto T = space::InitialTriangulation::UnitSquare();
-  T.hierarch_basis_tree.UniformRefine(max_level);
-  B.ortho_tree.UniformRefine(max_level);
-  B.three_point_tree.UniformRefine(max_level);
 
   for (int level = 1; level < max_level; level++) {
     auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
         B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
-    X_delta.SparseRefine(level);
+    X_delta.SparseRefine(level, {1, 1}, /* grow_tree */ true);
 
-    HeatEquation heat_eq(X_delta);
+    HeatEquationOptions opts;
+    opts.PX_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
+    opts.PY_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
+    HeatEquation heat_eq(X_delta, opts);
 
     // Generate some rhs.
     for (auto nv : heat_eq.vec_X()->Bfs()) {
@@ -209,12 +208,12 @@ TEST(HeatEquation, SchurPCG) {
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
       B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
 
+  HeatEquationOptions opts;
+  opts.PX_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
+  opts.PY_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
   for (int level = 1; level < max_level; level++) {
-    T.hierarch_basis_tree.UniformRefine(level);
-    B.ortho_tree.UniformRefine(level);
-    B.three_point_tree.UniformRefine(level);
-    X_delta.SparseRefine(level, {2, 1});
-    HeatEquation heat_eq(X_delta);
+    X_delta.SparseRefine(level, {2, 1}, /* grow_tree */ true);
+    HeatEquation heat_eq(X_delta, opts);
 
     // Generate some rhs.
     for (auto nv : heat_eq.vec_X()->Bfs()) {
@@ -248,13 +247,13 @@ TEST(HeatEquation, LanczosDirectInverse) {
   auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
       B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
 
+  HeatEquationOptions opts;
+  opts.PX_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
+  opts.PY_inv = HeatEquationOptions::SpaceInverse::DirectInverse;
   for (int level = 1; level <= max_level; level++) {
     if (level % 2) continue;
-    T.hierarch_basis_tree.UniformRefine(level);
-    B.ortho_tree.UniformRefine(level);
-    B.three_point_tree.UniformRefine(level);
-    X_delta.SparseRefine(level, {2, 1});
-    HeatEquation heat_eq(X_delta);
+    X_delta.SparseRefine(level, {2, 1}, /* grow_tree */ true);
+    HeatEquation heat_eq(X_delta, opts);
 
     std::cout << "Level " << level << "; #(X_delta, Y_delta) = ("
               << heat_eq.vec_X()->Bfs().size() << ", "
@@ -290,12 +289,11 @@ TEST(HeatEquation, LanczosMG) {
 
   for (int level = 1; level <= max_level; level++) {
     if (level % 2) continue;
-    T.hierarch_basis_tree.UniformRefine(level);
-    B.ortho_tree.UniformRefine(level);
-    B.three_point_tree.UniformRefine(level);
-    X_delta.SparseRefine(level, {2, 1});
+    X_delta.SparseRefine(level, {2, 1}, /* grow_tree */ true);
 
     HeatEquationOptions heat_eq_opts;
+    heat_eq_opts.PX_mg_cycles = 3;
+    heat_eq_opts.PY_mg_cycles = 3;
     heat_eq_opts.PX_inv = HeatEquationOptions::SpaceInverse::Multigrid;
     heat_eq_opts.PY_inv = HeatEquationOptions::SpaceInverse::Multigrid;
     HeatEquation heat_eq(X_delta, heat_eq_opts);

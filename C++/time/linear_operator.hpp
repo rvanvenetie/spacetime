@@ -52,10 +52,8 @@ class WaveletToScaling
   static inline const auto &Column(Wavelet *psi_in) {
     return psi_in->single_scale();
   }
-  static inline const auto &Row(
-      typename FunctionTrait<Wavelet>::Scaling *phi_out) {
-    return phi_out->multi_scale();
-  }
+
+  // We do not have an implementation of the transpose.
 };
 
 /**

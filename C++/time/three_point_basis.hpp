@@ -6,11 +6,6 @@
 #include "basis.hpp"
 namespace Time {
 template <>
-struct FunctionTrait<ContLinearScalingFn> {
-  using Wavelet = ThreePointWaveletFn;
-};
-
-template <>
 struct FunctionTrait<ThreePointWaveletFn> {
   using Scaling = ContLinearScalingFn;
 };
@@ -22,14 +17,14 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
   constexpr static const char *name = "CLS";
 
   explicit ContLinearScalingFn(const std::vector<ContLinearScalingFn *> parents,
-                               int index,
+                               long long index,
                                const std::vector<Element1D *> support)
       : ScalingFn<ContLinearScalingFn>(parents, index, support) {
     if (index > 0) {
       assert(!support[0]->phi_cont_lin_[1]);
       support[0]->phi_cont_lin_[1] = this;
     }
-    if (index < (1 << level())) {
+    if (index < (1LL << level())) {
       assert(!support.back()->phi_cont_lin_[0]);
       support.back()->phi_cont_lin_[0] = this;
     }
@@ -59,6 +54,7 @@ class ContLinearScalingFn : public ScalingFn<ContLinearScalingFn> {
 
   friend datastructures::Tree<ContLinearScalingFn>;
   friend ThreePointWaveletFn;
+  friend HierarchicalWaveletFn;
   friend Element1D;
 };
 
@@ -67,7 +63,7 @@ class ThreePointWaveletFn : public WaveletFn<ThreePointWaveletFn> {
   constexpr static const char *name = "Three";
 
   explicit ThreePointWaveletFn(const std::vector<ThreePointWaveletFn *> parents,
-                               int index,
+                               long long index,
                                SparseVector<ContLinearScalingFn> &&single_scale)
       : WaveletFn(parents, index, std::move(single_scale)) {}
 

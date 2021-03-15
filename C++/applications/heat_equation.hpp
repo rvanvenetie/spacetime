@@ -13,14 +13,14 @@ using spacetime::BlockDiagonalBilinearForm;
 using spacetime::NegativeBilinearForm;
 using spacetime::SchurBilinearForm;
 using spacetime::SumBilinearForm;
-using spacetime::SymmetricBilinearForm;
 using spacetime::TransposeBilinearForm;
+using Time::HierarchicalWaveletFn;
 using Time::OrthonormalWaveletFn;
 using Time::ThreePointWaveletFn;
 
 struct HeatEquationOptions {
   // Whether or not to cache the bilinear forms.
-  bool use_cache = true;
+  bool use_cache = false;
 
   // Whether or not to build the space matrices.
   bool build_space_mats = false;
@@ -30,15 +30,15 @@ struct HeatEquationOptions {
 
   // Options for the inversion of space matrices, necessary for preconditioners.
   enum SpaceInverse { DirectInverse, Multigrid };
-  SpaceInverse PX_inv = SpaceInverse::DirectInverse;
-  SpaceInverse PY_inv = SpaceInverse::DirectInverse;
+  SpaceInverse PX_inv = SpaceInverse::Multigrid;
+  SpaceInverse PY_inv = SpaceInverse::Multigrid;
 
   // For multigrid Preconditioner, sets whether to build the forward matrix.
   bool PXY_mg_build = false;
 
   // If a multigrid Preconditioner is chosen, this sets the number of cycles.
   size_t PX_mg_cycles = 3;
-  size_t PY_mg_cycles = 3;
+  size_t PY_mg_cycles = 1;
 };
 
 // Base class for constructing the operators necessary.
@@ -51,11 +51,12 @@ class HeatEquation {
       DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>;
   using TypeYVector =
       DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>;
+  using TypeInterpolVector =
+      DoubleTreeVector<HierarchicalWaveletFn, HierarchicalBasisFn>;
 
   // The symmetric operator acting from Y_delta to Y_delta.
-  using TypeA =
-      SymmetricBilinearForm<Time::MassOperator, space::StiffnessOperator,
-                            OrthonormalWaveletFn>;
+  using TypeA = BilinearForm<Time::MassOperator, space::StiffnessOperator,
+                             OrthonormalWaveletFn>;
   // The (transport) part of operator B acting from X_delta to Y_delta.
   using TypeB_t = BilinearForm<Time::TransportOperator, space::MassOperator,
                                ThreePointWaveletFn, OrthonormalWaveletFn>;
@@ -69,9 +70,9 @@ class HeatEquation {
   // The transpose of B is the sum of the transpose of these two operators.
   using TypeBT = BilinearFormBase<TypeYVector, TypeXVector>;
 
-  // The trace operator maps between X_delta and X_delta.
-  using TypeG = SymmetricBilinearForm<Time::ZeroEvalOperator,
-                                      space::MassOperator, ThreePointWaveletFn>;
+  // The gamma_0'gamma_0 operator maps between X_delta and X_delta.
+  using TypeG = BilinearForm<Time::ZeroEvalOperator, space::MassOperator,
+                             ThreePointWaveletFn>;
 
   // Preconditioners.
   using TypePrecondY = BilinearFormBase<TypeYVector, TypeYVector>;
@@ -106,6 +107,16 @@ class HeatEquation {
 
   auto vec_X() { return vec_X_.get(); }
   auto vec_Y() { return vec_Y_.get(); }
+
+  double TotalTimeApply() {
+    return A()->TimeApply() + B()->TimeApply() + BT()->TimeApply() +
+           G()->TimeApply() + P_Y()->TimeApply() + P_X()->TimeApply();
+  }
+  double TotalTimeConstruct() {
+    return A()->TimeConstruct() + B()->TimeConstruct() + BT()->TimeConstruct() +
+           G()->TimeConstruct() + P_Y()->TimeConstruct() +
+           P_X()->TimeConstruct();
+  }
 
  protected:
   HeatEquationOptions opts_;

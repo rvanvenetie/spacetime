@@ -8,12 +8,15 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "space/initial_triangulation.hpp"
+#include "time/bases.hpp"
 
 using namespace space;
 using namespace datastructures;
 using ::testing::AllOf;
 using ::testing::Each;
 using ::testing::Eq;
+using Time::OrthonormalWaveletFn;
+using Time::ThreePointWaveletFn;
 
 constexpr int max_level = 5;
 
@@ -51,6 +54,7 @@ TEST(DoubleTreeView, Union) {
   auto from_tree =
       DoubleTreeView<Vertex, Element2D>(T.vertex_meta_root, T.elem_meta_root);
   from_tree.DeepRefine();
+  from_tree.ComputeFibers();
   auto to_tree =
       DoubleTreeView<Vertex, Element2D>(T.vertex_meta_root, T.elem_meta_root);
 
@@ -143,6 +147,7 @@ TEST(DoubleTreeVector, frozen_vector) {
   for (auto db_node : db_tree.Bfs()) ASSERT_EQ(db_node->value(), 1.0);
 
   // Check that this also holds for the fibers.
+  db_tree.ComputeFibers();
   for (auto labda : db_tree.Project_0()->Bfs()) {
     auto fiber = db_tree.Fiber_1(labda->node());
     for (auto f_node : fiber->Bfs()) ASSERT_EQ(f_node->value(), 1.0);
@@ -161,4 +166,95 @@ TEST(DoubleTreeVector, frozen_vector) {
   auto db_tree_copy = db_tree.DeepCopy();
   auto db_tree_copy_nodes = db_tree_copy.Bfs();
   for (auto db_node : db_tree_copy_nodes) ASSERT_EQ(db_node->value(), 1.0);
+}
+
+TEST(Gradedness, FullTensor) {
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(6);
+  B.ortho_tree.UniformRefine(6);
+  B.three_point_tree.UniformRefine(6);
+
+  for (int lvl_t = 0; lvl_t < 3; lvl_t++) {
+    for (int lvl_x = 0; lvl_x < 6; lvl_x++) {
+      auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+          B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+      X_delta.UniformRefine({lvl_t, lvl_x});
+
+      ASSERT_EQ(X_delta.Gradedness(), lvl_x + 1);
+    }
+  }
+}
+
+TEST(Gradedness, SparseTensor) {
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  T.hierarch_basis_tree.UniformRefine(6);
+  B.ortho_tree.UniformRefine(6);
+  B.three_point_tree.UniformRefine(6);
+
+  int level = 8;
+  for (int L = 1; L < 5; L++) {
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+    X_delta.SparseRefine(level, {L, 1});
+
+    ASSERT_EQ(X_delta.Gradedness(), L);
+  }
+}
+
+TEST(XDelta, SparseRefine) {
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  B.three_point_tree.UniformRefine(max_level);
+  T.hierarch_basis_tree.UniformRefine(2 * max_level);
+  std::vector<int> n_lvl_t;
+  std::vector<int> n_lvl_x;
+  for (auto nodes : B.three_point_tree.NodesPerLevel())
+    n_lvl_t.push_back(nodes.size());
+  for (auto nodes : T.hierarch_basis_tree.NodesPerLevel())
+    n_lvl_x.push_back(nodes.size());
+
+  for (int L = 1; L <= max_level; L++) {
+    // Reset the underlying trees.
+    auto B = Time::Bases();
+    auto T = space::InitialTriangulation::UnitSquare();
+
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+    X_delta.SparseRefine(2 * L, {2, 1}, /* grow_tree */ true);
+
+    auto ndofs = X_delta.Bfs().size();
+    size_t ndofs_expected = 0;
+    for (int L_t = 0; L_t <= 2 * L; L_t++)
+      for (int L_x = 0; L_x <= 2 * L; L_x++)
+        if (2 * L_t + L_x <= 2 * L)
+          ndofs_expected += n_lvl_t.at(L_t) * n_lvl_x.at(L_x);
+
+    ASSERT_EQ(ndofs, ndofs_expected);
+  }
+}
+
+TEST(XDelta, UniformRefine) {
+  auto B = Time::Bases();
+  auto T = space::InitialTriangulation::UnitSquare();
+  B.three_point_tree.UniformRefine(max_level);
+  T.hierarch_basis_tree.UniformRefine(2 * max_level);
+  std::vector<int> n_t{0};
+  std::vector<int> n_x{0};
+  for (auto nodes : B.three_point_tree.NodesPerLevel())
+    n_t.push_back(nodes.size() + n_t.back());
+  for (auto nodes : T.hierarch_basis_tree.NodesPerLevel())
+    n_x.push_back(nodes.size() + n_x.back());
+
+  for (int L = 1; L <= max_level; L++) {
+    // Reset the underlying trees.
+    auto B = Time::Bases();
+    auto T = space::InitialTriangulation::UnitSquare();
+    auto X_delta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>(
+        B.three_point_tree.meta_root(), T.hierarch_basis_tree.meta_root());
+    X_delta.UniformRefine({L, 2 * L}, /* grow_tree */ true);
+
+    ASSERT_EQ(X_delta.Bfs().size(), n_t.at(L + 1) * n_x.at(2 * L + 1));
+  }
 }

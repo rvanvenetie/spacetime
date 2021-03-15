@@ -1,4 +1,5 @@
 #pragma once
+#include "applications/error_estimator.hpp"
 #include "applications/heat_equation.hpp"
 #include "datastructures/double_tree_view.hpp"
 #include "spacetime/basis.hpp"
@@ -19,7 +20,8 @@ using Time::ThreePointWaveletFn;
 
 struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   // Solve-step parameters.
-  double solve_rtol = 1e-4;
+  double solve_factor = 3.0;  // factor to divide t_delta by at every cycle.
+  double solve_xi = 0.5;
   size_t solve_maxit = 100;
 
   // Residual estimation parameter.
@@ -35,8 +37,9 @@ struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
     os << "\tUse cache: " << (opts.use_cache ? "true" : "false") << std::endl;
     os << "\tBuild space matrices: "
        << (opts.build_space_mats ? "true" : "false") << std::endl;
-    os << "\tSolve options -- rtol: " << opts.solve_rtol
-       << "; maxit: " << opts.solve_maxit << std::endl;
+    os << "\tSolve options -- xi: " << opts.solve_xi
+       << "; maxit: " << opts.solve_maxit
+       << "; division-factor: " << opts.solve_factor << std::endl;
     os << "\tEstimate options -- saturation layers: "
        << opts.estimate_saturation_layers
        << "; mean-zero: " << opts.estimate_mean_zero << std::endl;
@@ -58,6 +61,16 @@ struct AdaptiveHeatEquationOptions : public HeatEquationOptions {
   }
 };
 
+struct RefineInfo {
+  // Data on the nodes that we have marked.
+  size_t nodes_marked = 0;
+  double res_norm_marked = 0.0;
+
+  // Data on the nodes including the double tree constraint.
+  size_t nodes_conforming = 0;
+  double res_norm_conforming = 0;
+};
+
 class AdaptiveHeatEquation {
  public:
   using TypeXDelta = DoubleTreeView<ThreePointWaveletFn, HierarchicalBasisFn>;
@@ -77,26 +90,33 @@ class AdaptiveHeatEquation {
       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
       const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
 
+  Eigen::VectorXd RHS();
   std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
-      const Eigen::VectorXd &x0);
-  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve() {
-    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()));
+      const Eigen::VectorXd &x0, const Eigen::VectorXd &rhs, double tol = 1e-5,
+      enum tools::linalg::StoppingCriterium crit =
+          tools::linalg::StoppingCriterium::Algebraic);
+  std::pair<Eigen::VectorXd, tools::linalg::SolverData> Solve(
+      double tol = 1e-5, enum tools::linalg::StoppingCriterium crit =
+                             tools::linalg::StoppingCriterium::Algebraic) {
+    return Solve(Eigen::VectorXd::Zero(vec_Xd_->container().size()), RHS(), tol,
+                 crit);
   }
 
-  double EstimateGlobalError(const Eigen::VectorXd &u_dd_d);
-  std::pair<TypeXVector *, double> Estimate(const Eigen::VectorXd &u_dd_d);
+  std::pair<TypeXVector *, std::pair<double, ErrorEstimator::GlobalError>>
+  Estimate(const Eigen::VectorXd &u_dd_d);
   std::vector<TypeXNode *> Mark(TypeXVector *residual);
 
   // Refines the grid and prolongates a solution living on Xd_.
-  void Refine(const std::vector<TypeXNode *> &nodes_to_add);
+  RefineInfo Refine(const std::vector<TypeXNode *> &nodes_to_add);
 
   std::shared_ptr<TypeXVector> vec_Xd() { return vec_Xd_; }
   std::shared_ptr<TypeXVector> vec_Xdd() { return vec_Xdd_; }
   std::shared_ptr<TypeYVector> vec_Ydd() { return vec_Ydd_; }
+  HeatEquation *heat_d_dd() { return heat_d_dd_.get(); }
+  TypeYLinForm *g_lin_form() { return g_lin_form_.get(); }
+  TypeXLinForm *u0_lin_form() { return u0_lin_form_.get(); }
 
  protected:
-  Eigen::VectorXd RHS(HeatEquation &heat);
-
   std::shared_ptr<TypeXVector> vec_Xd_, vec_Xdd_;
   std::shared_ptr<TypeYVector> vec_Ydd_;
   std::unique_ptr<HeatEquation> heat_d_dd_;

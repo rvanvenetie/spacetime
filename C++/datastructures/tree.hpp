@@ -121,7 +121,7 @@ class BinaryNode : public Node<I> {
 
   I *parent() const { return parents_[0]; }
   inline bool is_full() const {
-    if (Node<I>::is_metaroot()) return true;
+    if (Node<I>::is_metaroot()) return children_.size();
     return children_.size() == 2;
   }
 
@@ -142,7 +142,7 @@ class Tree {
       : nodes_(), meta_root_(&nodes_, std::forward<Args>(args)...) {}
 
   Tree(const Tree &) = delete;
-  Tree<I> &operator=(Tree<I> &&) = default;
+  Tree<I> &operator=(Tree<I> &&) = delete;
 
   template <typename Func = T_func_noop>
   std::vector<I *> Bfs(bool include_metaroot = false,

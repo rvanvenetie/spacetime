@@ -3,7 +3,6 @@
 #include <iomanip>
 
 #include "../tools/linalg.hpp"
-#include "error_estimator.hpp"
 
 namespace applications {
 AdaptiveHeatEquation::AdaptiveHeatEquation(
@@ -21,40 +20,33 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
       u0_lin_form_(std::move(u0_lin_form)),
       opts_(opts) {}
 
-Eigen::VectorXd AdaptiveHeatEquation::RHS(HeatEquation &heat) {
-  Eigen::VectorXd rhs = g_lin_form_->Apply(heat.vec_Y());
-  rhs = heat.P_Y()->Apply(rhs);
-  rhs = heat.BT()->Apply(rhs);
+Eigen::VectorXd AdaptiveHeatEquation::RHS() {
+  Eigen::VectorXd rhs = g_lin_form_->Apply(heat_d_dd_->vec_Y());
+  rhs = heat_d_dd_->P_Y()->Apply(rhs);
+  rhs = heat_d_dd_->BT()->Apply(rhs);
 
-  rhs += u0_lin_form_->Apply(heat.vec_X());
+  rhs += u0_lin_form_->Apply(heat_d_dd_->vec_X());
   return rhs;
 }
 
 std::pair<Eigen::VectorXd, tools::linalg::SolverData>
-AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0) {
+AdaptiveHeatEquation::Solve(const Eigen::VectorXd &x0,
+                            const Eigen::VectorXd &rhs, double tol,
+                            enum tools::linalg::StoppingCriterium crit) {
   assert(heat_d_dd_);
-  return tools::linalg::PCG(*heat_d_dd_->S(), RHS(*heat_d_dd_),
-                            *heat_d_dd_->P_X(), x0, opts_.solve_maxit,
-                            opts_.solve_rtol);
+  return tools::linalg::PCG(*heat_d_dd_->S(), rhs, *heat_d_dd_->P_X(), x0,
+                            opts_.solve_maxit, tol, crit);
 }
 
-double AdaptiveHeatEquation::EstimateGlobalError(
-    const Eigen::VectorXd &u_dd_d) {
-  assert(heat_d_dd_);
-  return ErrorEstimator::ComputeGlobalError(*heat_d_dd_, *g_lin_form_,
-                                            *u0_lin_form_, u_dd_d);
-}
 auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
-    -> std::pair<TypeXVector *, double> {
+    -> std::pair<TypeXVector *,
+                 std::pair<double, ErrorEstimator::GlobalError>> {
+  ErrorEstimator::GlobalError global_error;
   {
     assert(heat_d_dd_);
-    auto A = heat_d_dd_->A();
-    auto P_Y = heat_d_dd_->P_Y();
-    // Invalidate heat_d_dd, we no longer need these bilinear forms.
-    heat_d_dd_.reset();
-
     // Create heat equation with X_dd and Y_dd.
-    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, A, P_Y,
+    HeatEquation heat_dd_dd(vec_Xdd_, vec_Ydd_, heat_d_dd_->A(),
+                            heat_d_dd_->P_Y(),
                             /* Ydd_is_GenerateYDelta_Xdd */ true, opts_);
 
     // Prolongate u_dd_d from X_d to X_dd.
@@ -63,7 +55,25 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     Eigen::VectorXd u_dd_dd = vec_Xdd_->ToVectorContainer();
 
     // Calculate the residual and store inside the dbltree.
-    Eigen::VectorXd residual = RHS(heat_dd_dd) - heat_dd_dd.S()->Apply(u_dd_dd);
+    Eigen::VectorXd g_min_Bu =
+        g_lin_form_->Apply(vec_Ydd_.get()) - heat_dd_dd.B()->Apply(u_dd_dd);
+    Eigen::VectorXd PY_g_min_Bu = heat_dd_dd.P_Y()->Apply(g_min_Bu);
+    // \gamma_0' (u0 - \gamma_0 u^\delta)
+    Eigen::VectorXd u0 = u0_lin_form_->Apply(vec_Xdd_.get());
+    Eigen::VectorXd G_u_dd_dd = heat_dd_dd.G()->Apply(u_dd_dd);
+    Eigen::VectorXd residual =
+        heat_dd_dd.BT()->Apply(PY_g_min_Bu) + (u0 - G_u_dd_dd);
+
+    // Calculate the global error using the interpolant.
+    vec_Xdd_->FromVectorContainer(u_dd_dd);
+    double error_Yprime_sq = PY_g_min_Bu.dot(g_min_Bu);
+    double error_t0 = ErrorEstimator::ComputeTraceError(
+        0.0, u0_lin_form_->SpaceLF().Function(), vec_Xdd_.get());
+
+    global_error.error = sqrt(error_Yprime_sq + error_t0);
+    global_error.error_Yprime = sqrt(error_Yprime_sq);
+    global_error.error_t0 = sqrt(error_t0);
+
     vec_Xdd_->FromVectorContainer(residual);
     // Let heat_dd_dd go out of scope..
   }
@@ -77,7 +87,7 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
                       /*call_filter*/ datastructures::func_false);
   assert(vec_Xd_nodes.size() == vec_Xd_->container().size());
   for (auto &dblnode : vec_Xd_nodes) dblnode->set_value(0.0);
-  return {vec_Xdd_.get(), residual_error};
+  return {vec_Xdd_.get(), {residual_error, global_error}};
 }
 
 auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
@@ -92,16 +102,46 @@ auto AdaptiveHeatEquation::Mark(TypeXVector *residual)
   size_t last_idx = 0;
   for (; last_idx < nodes.size(); last_idx++) {
     cur_sq_norm += nodes[last_idx]->value() * nodes[last_idx]->value();
-    if (cur_sq_norm >= opts_.mark_theta * opts_.mark_theta * sq_norm) break;
+    if (cur_sq_norm >= opts_.mark_theta * opts_.mark_theta * sq_norm) {
+      nodes.resize(last_idx + 1);
+      break;
+    }
   }
-  nodes.resize(last_idx + 1);
   return nodes;
 }
 
-void AdaptiveHeatEquation::Refine(
+RefineInfo AdaptiveHeatEquation::Refine(
     const std::vector<TypeXNode *> &nodes_to_add) {
+  RefineInfo info;
+  size_t Xd_size = 0;
+
+  // Calculate information before the conforming refinement.
+  {
+    double sq_norm = 0.0;
+    info.nodes_marked = nodes_to_add.size();
+    for (auto n : nodes_to_add) sq_norm += n->value() * n->value();
+    info.res_norm_marked = sqrt(sq_norm);
+
+    Xd_size =
+        std::count_if(vec_Xd_->container().begin(), vec_Xd_->container().end(),
+                      [](const auto &n) { return !n.is_metaroot(); });
+  }
+
   // Refine the solution vector, requires vec_Xdd_.
-  vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
+  auto nodes_conforming =
+      vec_Xd_->ConformingRefinement(*vec_Xdd_, nodes_to_add);
+
+  // Calculate information after the conforming refinement.
+  {
+    double sq_norm = 0.0;
+    for (auto n : nodes_conforming) sq_norm += n->value() * n->value();
+    info.res_norm_conforming = sqrt(sq_norm);
+
+    size_t Xd_conf_size =
+        std::count_if(vec_Xd_->container().begin(), vec_Xd_->container().end(),
+                      [](const auto &n) { return !n.is_metaroot(); });
+    info.nodes_conforming = Xd_conf_size - Xd_size;
+  }
 
   // Reset the objects that we no longer need, this will free the memory.
   heat_d_dd_.reset();
@@ -126,5 +166,7 @@ void AdaptiveHeatEquation::Refine(
 #endif
 
   heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
+
+  return info;
 }
 };  // namespace applications

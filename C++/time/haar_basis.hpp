@@ -7,11 +7,6 @@
 namespace Time {
 
 template <>
-struct FunctionTrait<DiscConstantScalingFn> {
-  using Wavelet = HaarWaveletFn;
-};
-
-template <>
 struct FunctionTrait<HaarWaveletFn> {
   using Scaling = DiscConstantScalingFn;
 };
@@ -22,7 +17,7 @@ class DiscConstantScalingFn : public ScalingFn<DiscConstantScalingFn> {
   constexpr static bool continuous = false;
   constexpr static const char *name = "DCS";
 
-  explicit DiscConstantScalingFn(DiscConstantScalingFn *parent, int index,
+  explicit DiscConstantScalingFn(DiscConstantScalingFn *parent, long long index,
                                  Element1D *support)
       : ScalingFn<DiscConstantScalingFn>({parent}, index, {support}) {
     assert(!support->phi_disc_const_);
@@ -52,7 +47,7 @@ class HaarWaveletFn : public WaveletFn<HaarWaveletFn> {
  public:
   constexpr static const char *name = "Haar";
 
-  explicit HaarWaveletFn(HaarWaveletFn *parent, int index,
+  explicit HaarWaveletFn(HaarWaveletFn *parent, long long index,
                          SparseVector<DiscConstantScalingFn> &&single_scale)
       : WaveletFn({parent}, index, std::move(single_scale)) {}
 

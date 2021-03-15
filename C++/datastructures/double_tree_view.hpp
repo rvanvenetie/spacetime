@@ -30,8 +30,8 @@ class FrozenDoubleNode
 
   auto nodes() const { return std::tuple{std::get<i>(dbl_node_->nodes())}; }
   auto node() const { return std::get<i>(dbl_node_->nodes()); }
-  bool marked() const { return dbl_node_->marked(); }
-  void set_marked(bool value) { dbl_node_->set_marked(value); }
+  bool marked() const { return marked_; }
+  void set_marked(bool value) { marked_ = value; }
   const std::vector<Self*>& children(size_t _ = 0) {
     assert(_ == 0);
     const auto& dbl_children = dbl_node_->children(i);
@@ -90,6 +90,7 @@ class FrozenDoubleNode
   inline void set_value(double val) { dbl_node_->set_value(val); }
 
  protected:
+  bool marked_ = false;
   I_dbl* dbl_node_;
   std::vector<Self*> children_;
 };
@@ -153,11 +154,9 @@ class DoubleTreeBase : public MT_Base<I> {
   using DNType = I;
 
   FrozenDoubleNode<I, 0>* Fiber_0(T1* mu) const {
-    if (!std::get<0>(fibers_).count(mu)) compute_fibers();
     return std::get<0>(fibers_).at(mu);
   }
   FrozenDoubleNode<I, 1>* Fiber_1(T0* mu) const {
-    if (!std::get<1>(fibers_).count(mu)) compute_fibers();
     return std::get<1>(fibers_).at(mu);
   }
 
@@ -175,12 +174,36 @@ class DoubleTreeBase : public MT_Base<I> {
     return MT_Base<I>::template DeepCopy<MT_other>();
   }
 
- protected:
-  mutable std::tuple<std::unordered_map<T1*, FrozenDoubleNode<I, 0>*>,
-                     std::unordered_map<T0*, FrozenDoubleNode<I, 1>*>>
-      fibers_;
+  // Calculates the gradedness, and stores the nodes with max gradedness
+  // in the given vector.
+  size_t Gradedness(std::vector<I*>* max_gradedness = nullptr) const {
+    std::vector<I*> nodes = this->root()->Bfs();
+    std::unordered_map<I*, int> gradedness;
+    int result = 0;
 
-  void compute_fibers() const {
+    for (auto dblnode : nodes) {
+      if (dblnode->template is_full<0>()) {
+        gradedness.emplace(dblnode, 0);
+      } else if (dblnode->levels()[1] == 0) {
+        gradedness.emplace(dblnode, 1);
+      } else {
+        int min_grade = INT_MAX;
+        for (auto parent : dblnode->parents(1))
+          min_grade = std::min(min_grade, gradedness.at(parent));
+        gradedness.emplace(dblnode, 1 + min_grade);
+      }
+      result = std::max(result, gradedness.at(dblnode));
+    }
+
+    if (max_gradedness)
+      for (auto dblnode : nodes)
+        if (gradedness.at(dblnode) == result)
+          max_gradedness->emplace_back(dblnode);
+
+    return result;
+  }
+
+  void ComputeFibers() const {
     static_for<2>([&](auto i) {
       for (const auto& f_node :
            Project<i>()->Bfs(/* include_metaroot */ true)) {
@@ -189,6 +212,11 @@ class DoubleTreeBase : public MT_Base<I> {
       }
     });
   }
+
+ protected:
+  mutable std::tuple<std::unordered_map<T1*, FrozenDoubleNode<I, 0>*>,
+                     std::unordered_map<T0*, FrozenDoubleNode<I, 1>*>>
+      fibers_;
 };
 
 // DoubleNodeView + DoubleTreeView implementation.

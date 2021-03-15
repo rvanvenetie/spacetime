@@ -17,7 +17,7 @@ TEST(HaarBasis, functions) {
   ASSERT_EQ(B.haar_tree.meta_root()->children().size(), 1);
 
   auto mother_scaling = B.disc_cons_tree.meta_root()->children()[0];
-  ASSERT_EQ(mother_scaling->labda(), std::make_pair(0, 0));
+  ASSERT_EQ(mother_scaling->labda(), std::make_pair(0, 0LL));
   ASSERT_EQ(mother_scaling->Eval(0.25), 1.0);
   ASSERT_EQ(mother_scaling->Eval(0.85), 1.0);
 
@@ -120,7 +120,7 @@ TEST(OrthonormalBasis, LocalRefinement) {
   for (int l = 2; l <= ml; ++l) {
     ASSERT_EQ(Lambda[l].size(), 4);
     ASSERT_EQ(Delta[l].size(), 8);
-    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0));
+    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0LL));
   }
 }
 
@@ -131,6 +131,13 @@ TEST(ThreePointBasis, UniformRefinement) {
   int ml = 7;
 
   B.three_point_tree.UniformRefine(ml);
+
+  auto mother_scalings = B.three_point_tree.meta_root()->children();
+  ASSERT_EQ(mother_scalings[0]->Eval(0), 1.0);
+  ASSERT_EQ(mother_scalings[0]->Eval(1), 0);
+  ASSERT_EQ(mother_scalings[1]->Eval(0), 0);
+  ASSERT_EQ(mother_scalings[1]->Eval(1), 1);
+
   auto Lambda = B.three_point_tree.NodesPerLevel();
   auto Delta = B.cont_lin_tree.NodesPerLevel();
 
@@ -149,6 +156,8 @@ TEST(ThreePointBasis, UniformRefinement) {
 
       if (psi_n > 0) {
         ASSERT_EQ(psi->Eval(h * 2 * psi_n), -0.5 * pow(2, l / 2.0));
+        ASSERT_EQ(psi->Eval(0), 0);
+        ASSERT_EQ(psi->Eval(0.0001), 0);
         ASSERT_EQ(psi->support().front()->Interval().first,
                   h * (2 * psi_n - 1));
       }
@@ -162,6 +171,7 @@ TEST(ThreePointBasis, UniformRefinement) {
         ASSERT_EQ(psi->Eval(0), -pow(2, l / 2.0));
         ASSERT_EQ(psi->support().front()->Interval().first, 0);
       }
+
       if (psi_n == pow(2, l - 1) - 1) {
         ASSERT_EQ(psi->Eval(1), -pow(2, l / 2.0));
         ASSERT_EQ(psi->support().back()->Interval().second, 1);
@@ -174,7 +184,7 @@ TEST(ThreePointBasis, LocalRefinement) {
   // Reset the persistent trees.
   Bases B;
 
-  int ml = 15;
+  int ml = 34;
   // First check what happens when we only refine near the origin.
   B.three_point_tree.DeepRefine([ml](auto node) {
     return node->is_metaroot() || (node->level() < ml && node->index() == 0);
@@ -187,8 +197,8 @@ TEST(ThreePointBasis, LocalRefinement) {
   for (int l = 2; l <= ml; ++l) {
     ASSERT_EQ(Lambda[l].size(), 2);
     ASSERT_EQ(Delta[l].size(), 5);
-    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0));
-    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1));
+    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0LL));
+    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1LL));
   }
 
   // Now we check what happens when we also refine near the end points.
@@ -196,17 +206,17 @@ TEST(ThreePointBasis, LocalRefinement) {
     return node->is_metaroot() ||
            (node->level() < ml &&
             (node->index() == 0 ||
-             node->index() == (1 << (node->level() - 1)) - 1));
+             node->index() == (1LL << (node->level() - 1)) - 1));
   });
   Lambda = B.three_point_tree.NodesPerLevel();
   Delta = B.cont_lin_tree.NodesPerLevel();
   for (int l = 4; l <= ml; ++l) {
     ASSERT_EQ(Lambda[l].size(), 4);
     ASSERT_EQ(Delta[l].size(), 10);
-    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0));
-    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1));
-    ASSERT_EQ(Lambda[l][2]->labda(), std::pair(l, (1 << (l - 1)) - 2));
-    ASSERT_EQ(Lambda[l][3]->labda(), std::pair(l, (1 << (l - 1)) - 1));
+    ASSERT_EQ(Lambda[l][0]->labda(), std::pair(l, 0LL));
+    ASSERT_EQ(Lambda[l][1]->labda(), std::pair(l, 1LL));
+    ASSERT_EQ(Lambda[l][2]->labda(), std::pair(l, (1LL << (l - 1)) - 2));
+    ASSERT_EQ(Lambda[l][3]->labda(), std::pair(l, (1LL << (l - 1)) - 1));
   }
 }
 

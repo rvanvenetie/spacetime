@@ -1,5 +1,6 @@
 #include "basis.hpp"
 
+#include "hierarchical_basis.hpp"
 #include "orthonormal_basis.hpp"
 #include "three_point_basis.hpp"
 
@@ -38,9 +39,27 @@ const std::array<OrthonormalWaveletFn *, 2> &Element1D::RefinePsiOrthonormal() {
   return psi_ortho_;
 }
 
+HierarchicalWaveletFn *Element1D::RefinePsiHierarchical() {
+  assert(this->level_ != 0);
+
+  if (!psi_hierarch_) {
+    // There are two HierarchicalWavelets on level 0, so need to do
+    // a trick.
+    if (this->level_ == 1) {
+      assert(parent()->parent()->psi_hierarch_);
+      parent()->parent()->psi_hierarch_->children().at(0)->Refine();
+    } else {
+      parent()->RefinePsiHierarchical()->Refine();
+    }
+  }
+
+  assert(psi_hierarch_);
+  return psi_hierarch_;
+}
+
 std::pair<double, double> Element1D::Interval() const {
   assert(!is_metaroot());
-  double h = 1.0 / (1 << level_);
+  double h = 1.0 / (1LL << level_);
   return {h * index_, h * (index_ + 1)};
 }
 
