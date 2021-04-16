@@ -1,4 +1,4 @@
-# A wavelet-in-time, finite element-in-space adaptive method for parabolic evolution equations
+# Efficient space-time adaptivity for parabolic evolution equations using wavelets in time and finite elements in space
 This repository contains an implementation of arXiv:2101.03956, as described in.
 
 This project provides a linear complexity implementation of a space-time
@@ -7,8 +7,8 @@ we consider here are given as sparse tensor product approximations
 of wavelets-in-time and (locally refined) finite element spaces-in-space.
 Special care has to be taken to evaluate matrix-vector products, as the
 system-matrix w.r.t. such a multi-level type basis is not sparse. By restricting
-to bases that are span by tensor products having index sets that form double-trees,
-we can still evaluatie system matrices in linear complexity.
+to bases that are spanned by tensor products having index sets that form double-trees,
+we can still evaluate the system matrices in linear complexity.
 
 Aiming at a truly linear-complexity implementation, we implemented this algorithm
 using tree-based algorithms, without the use of hash maps.
