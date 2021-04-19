@@ -1,4 +1,5 @@
 add_library(space STATIC triangulation.cpp initial_triangulation.cpp basis.cpp operators.cpp triangulation_view.cpp linear_form.cpp integration.cpp)
+target_link_libraries(space PUBLIC OpenMP::OpenMP_CXX)
 
 # Executables
 add_executable(space_adaptive adaptive.cpp)

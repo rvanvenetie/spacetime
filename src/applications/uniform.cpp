@@ -53,10 +53,11 @@ int main(int argc, char* argv[]) {
   size_t initial_refines = 0;
   size_t max_level = 0;
   size_t max_dofs = 0;
+  size_t num_threads = 1;
   std::string refine;
   bool calculate_condition_PY = false;
   bool calculate_condition_PX = false;
-  bool print_time_apply = false;
+  bool print_time_apply = true;
   bool print_centers = false;
   double solve_rtol = 1e-5;
   boost::program_options::options_description problem_optdesc(
@@ -70,6 +71,7 @@ int main(int argc, char* argv[]) {
           ->default_value(std::numeric_limits<std::size_t>::max()))(
       "max_dofs", po::value<size_t>(&max_dofs)->default_value(
                       std::numeric_limits<std::size_t>::max()))(
+      "num_threads", po::value<size_t>(&num_threads))(
       "refine", po::value<std::string>(&refine)->default_value("sparse"))(
       "print_centers", po::value<bool>(&print_centers))(
       "print_time_apply", po::value<bool>(&print_time_apply))(
@@ -117,6 +119,10 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
   std::cout << adapt_opts << "\tsolve-rtol: " << solve_rtol << std::endl
             << std::endl;
+
+  assert(num_threads > 0 && num_threads <= omp_get_max_threads() &&
+         num_threads <= MAX_NUMBER_THREADS);
+  omp_set_num_threads(num_threads);
 
   auto T = InitialTriangulation(domain, initial_refines);
   auto B = Time::Bases();
@@ -229,18 +235,19 @@ int main(int argc, char* argv[]) {
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();
-      std::cout << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
-                << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
-                << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
-                << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
-                << "\n\tP_Y-time-per-apply: "
-                << heat_d_dd->P_Y()->TimePerApply()
-                << "\n\tP_X-time-per-apply: "
-                << heat_d_dd->P_X()->TimePerApply()
-                << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
-                << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
-                << "\n\ttotal-time-construct: "
-                << heat_d_dd->TotalTimeConstruct() << std::flush;
+      std::cout
+          << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
+          << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
+          << "\n\tB-A-time-per-apply: " << heat_d_dd->B()->A()->TimePerApply()
+          << "\n\tB-B-time-per-apply: " << heat_d_dd->B()->B()->TimePerApply()
+          << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
+          << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
+          << "\n\tP_Y-time-per-apply: " << heat_d_dd->P_Y()->TimePerApply()
+          << "\n\tP_X-time-per-apply: " << heat_d_dd->P_X()->TimePerApply()
+          << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
+          << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
+          << "\n\ttotal-time-construct: " << heat_d_dd->TotalTimeConstruct()
+          << std::flush;
     }
 
     if (print_centers) {

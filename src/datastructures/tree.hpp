@@ -1,5 +1,8 @@
 #pragma once
+#include <omp.h>
+
 #include <algorithm>
+#include <array>
 #include <memory>
 #include <queue>
 #include <utility>
@@ -16,6 +19,12 @@ constexpr auto func_false = [](const auto &... x) { return false; };
 using T_func_noop = decltype(func_noop);
 using T_func_true = decltype(func_true);
 using T_func_false = decltype(func_false);
+
+// Global variable holding the current thread number.
+#ifndef MAX_NUMBER_THREADS
+#define MAX_NUMBER_THREADS 1
+#endif
+static thread_local int thread_number = omp_get_thread_num();
 
 template <typename I>
 struct NodeTrait;  // This should define N_children and N_parents.
@@ -38,8 +47,8 @@ class Node {
   }
 
   int level() const { return level_; }
-  bool marked() const { return marked_; }
-  void set_marked(bool value) { marked_ = value; }
+  bool marked() const { return marked_[thread_number]; }
+  void set_marked(bool value) { marked_[thread_number] = value; }
   bool is_leaf() const { return children_.size() == 0; }
   inline bool is_metaroot() const { return (level_ == -1); }
   const auto &parents() const { return parents_; }
@@ -48,20 +57,19 @@ class Node {
   // General data field for universal storage.
   template <typename T>
   T *data() {
-    assert(data_ != nullptr);
-    return static_cast<T *>(data_);
+    assert(data_[thread_number] != nullptr);
+    return static_cast<T *>(data_[thread_number]);
   }
-
   template <typename T>
   void set_data(T *value) {
-    assert(data_ == nullptr);
-    data_ = static_cast<void *>(value);
+    assert(data_[thread_number] == nullptr);
+    data_[thread_number] = static_cast<void *>(value);
   }
   void reset_data() {
-    assert(data_ != nullptr);
-    data_ = nullptr;
+    assert(data_[thread_number] != nullptr);
+    data_[thread_number] = nullptr;
   }
-  bool has_data() { return data_ != nullptr; }
+  bool has_data() { return data_[thread_number] != nullptr; }
 
   template <typename Func = T_func_noop>
   std::vector<I *> Bfs(bool include_metaroot = false,
@@ -93,9 +101,9 @@ class Node {
   }
 
  protected:
-  bool marked_ = false;
   int level_;
-  void *data_ = nullptr;
+  std::array<unsigned short, MAX_NUMBER_THREADS> marked_{0};
+  std::array<void *, MAX_NUMBER_THREADS> data_{nullptr};
 
   // Store children/parents as raw pointers.
   SmallVector<I *, NodeTrait<I>::N_children> children_;

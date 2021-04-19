@@ -3,6 +3,7 @@
 #include <boost/container/options.hpp>
 #include <boost/container/small_vector.hpp>
 #include <boost/container/static_vector.hpp>
+#include <vector>
 template <typename I, size_t N>
 using SmallVector = boost::container::small_vector<I, N>;
 

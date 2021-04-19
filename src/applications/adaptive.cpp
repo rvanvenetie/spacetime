@@ -114,10 +114,12 @@ int main(int argc, char* argv[]) {
   std::string problem, domain;
   size_t initial_refines = 0;
   size_t max_dofs = 0;
+  size_t num_threads = 1;
   bool calculate_condition_numbers = false;
   bool print_centers = false;
   bool print_sampling = false;
-  bool print_time_apply = false;
+  bool print_time_apply = true;
+  bool print_bilforms = false;
   std::vector<double> print_time_slices;
   boost::program_options::options_description problem_optdesc(
       "Problem options");
@@ -133,7 +135,9 @@ int main(int argc, char* argv[]) {
       "print_sampling", po::value<bool>(&print_sampling))(
       "print_time_slices",
       po::value<std::vector<double>>(&print_time_slices)->multitoken())(
-      "print_time_apply", po::value<bool>(&print_time_apply));
+      "print_time_apply", po::value<bool>(&print_time_apply))(
+      "print_bilforms", po::value<bool>(&print_bilforms))(
+      "num_threads", po::value<size_t>(&num_threads));
 
   std::sort(print_time_slices.begin(), print_time_slices.end());
 
@@ -165,10 +169,20 @@ int main(int argc, char* argv[]) {
   po::store(po::command_line_parser(argc, argv).options(cmdline_options).run(),
             vm);
   po::notify(vm);
+  assert(num_threads > 0);
+  if (num_threads > 1 && adapt_opts.use_cache) {
+    std::cout << "Multithreading is only enabled for no-cache." << std::endl;
+    return 1;
+  }
+  assert(num_threads <= omp_get_max_threads());
+  assert(num_threads <= MAX_NUMBER_THREADS);
+  omp_set_num_threads(num_threads);
+
   std::cout << "Problem options:" << std::endl;
   std::cout << "\tProblem: " << problem << std::endl;
   std::cout << "\tDomain: " << domain
             << "; initial-refines: " << initial_refines << std::endl;
+  std::cout << "\tNumber-threads: " << num_threads << std::endl;
   std::cout << std::endl;
   std::cout << adapt_opts << std::endl;
 
@@ -215,9 +229,13 @@ int main(int argc, char* argv[]) {
 
     // A slight overestimate.
     ndof_Xd = vec_Xd->Bfs().size();
+    size_t ndof_Xd_time = vec_Xd->Project_0()->Bfs().size();
+    size_t ndof_Xd_space = vec_Xd->Project_1()->Bfs().size();
     size_t ndof_Xdd = heat_eq.vec_Xdd()->Bfs().size();
     size_t ndof_Ydd = heat_eq.vec_Ydd()->Bfs().size();
     std::cout << "iter: " << ++iter << "\n\tXDelta-size: " << ndof_Xd
+              << "\n\tXDelta-space-size: " << ndof_Xd_space
+              << "\n\tXDelta-time-size: " << ndof_Xd_time
               << "\n\tXDelta-Gradedness: "
               << vec_Xd->Gradedness(&max_gradedness)
               << "\n\tXDeltaDelta-size: " << ndof_Xdd
@@ -317,18 +335,25 @@ int main(int argc, char* argv[]) {
 
     if (print_time_apply) {
       auto heat_d_dd = heat_eq.heat_d_dd();
-      std::cout << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
-                << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
-                << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
-                << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
-                << "\n\tP_Y-time-per-apply: "
-                << heat_d_dd->P_Y()->TimePerApply()
-                << "\n\tP_X-time-per-apply: "
-                << heat_d_dd->P_X()->TimePerApply()
-                << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
-                << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
-                << "\n\ttotal-time-construct: "
-                << heat_d_dd->TotalTimeConstruct() << std::flush;
+      std::cout
+          << "\n\tA-time-per-apply: " << heat_d_dd->A()->TimePerApply()
+          << "\n\tB-time-per-apply: " << heat_d_dd->B()->TimePerApply()
+          << "\n\tB-A-time-per-apply: " << heat_d_dd->B()->A()->TimePerApply()
+          << "\n\tB-B-time-per-apply: " << heat_d_dd->B()->B()->TimePerApply()
+          << "\n\tBT-time-per-apply: " << heat_d_dd->BT()->TimePerApply()
+          << "\n\tG-time-per-apply: " << heat_d_dd->G()->TimePerApply()
+          << "\n\tP_Y-time-per-apply: " << heat_d_dd->P_Y()->TimePerApply()
+          << "\n\tP_X-time-per-apply: " << heat_d_dd->P_X()->TimePerApply()
+          << "\n\tS-time-per-apply: " << heat_d_dd->S()->TimePerApply()
+          << "\n\ttotal-time-apply: " << heat_d_dd->TotalTimeApply()
+          << "\n\ttotal-time-construct: " << heat_d_dd->TotalTimeConstruct()
+          << std::flush;
+    }
+    if (print_bilforms) {
+      auto heat_d_dd = heat_eq.heat_d_dd();
+      std::cout << "\n\tB-A-bilforms: " << heat_d_dd->B()->A()->Information()
+                << "\n\tP_Y-bilforms: " << heat_d_dd->P_Y()->Information()
+                << std::flush;
     }
 
     if (print_centers) {

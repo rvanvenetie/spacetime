@@ -87,13 +87,14 @@ std::vector<I*> MultiNodeViewInterface<I, T...>::Union(
     // Now do the union magic in all dimensions.
     static_for<dim>([&queue, &my_node, &other_node, &call_filter](auto i) {
       // Get a list of all children of the other_node in axis `i`.
-      static std::vector<I_other*> filtered_children;
+      static thread_local std::vector<I_other*> filtered_children;
       filtered_children.clear();
       for (const auto& other_child_i : other_node->children(i))
         if (call_filter(other_child_i))
           filtered_children.emplace_back(other_child_i);
 
-      static std::vector<std::tuple_element_t<i, TupleNodes>> other_children_i;
+      static thread_local std::vector<std::tuple_element_t<i, TupleNodes>>
+          other_children_i;
       other_children_i.clear();
       for (const auto& other_child_i : filtered_children)
         other_children_i.emplace_back(std::get<i>(other_child_i->nodes()));

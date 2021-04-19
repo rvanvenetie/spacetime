@@ -19,12 +19,19 @@ using namespace space;
 using namespace Time;
 using namespace datastructures;
 
-constexpr int level = 10;
+constexpr int num_threads = 4;
+constexpr int level = 15;
 constexpr int bilform_iters = 5;
 constexpr int inner_iters = 10;
 constexpr bool use_cache = true;
 
 int main() {
+  omp_set_num_threads(num_threads);
+#pragma omp parallel
+  {
+    // Code inside this region runs in parallel.
+    std::cout << "Hello from thread " << omp_get_thread_num() << std::endl;
+  }
   auto B = Time::Bases();
   auto T = InitialTriangulation::UnitSquare();
   T.hierarch_basis_tree.UniformRefine(::level);
@@ -42,6 +49,8 @@ int main() {
         DoubleTreeVector<ThreePointWaveletFn, HierarchicalBasisFn>>();
     auto vec_Y = Y_delta.template DeepCopy<
         DoubleTreeVector<OrthonormalWaveletFn, HierarchicalBasisFn>>();
+    vec_X.ComputeFibers();
+    vec_Y.ComputeFibers();
     auto bil_form =
         CreateBilinearForm<Time::TransportOperator, space::MassOperator>(
             &vec_X, &vec_Y, /* use_cache */ use_cache);

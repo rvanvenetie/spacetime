@@ -45,29 +45,33 @@ double DiscLinearScalingFn::Eval(double t, bool deriv) const {
 
 bool DiscLinearScalingFn::Refine() {
   if (is_full()) return false;
-  assert(children_.empty());
-  support_[0]->Refine();
-  auto [l, n] = labda();
-  auto P = std::vector{this, nbr_};
-  auto child_elts = support_[0]->children();
-  make_child(
-      /* parents */ P, /* index */ 2 * n + 0,
-      /* support */ std::vector{child_elts[0]});
-  make_child(
-      /* parents */ P, /* index */ 2 * n + 1,
-      /* support */ std::vector{child_elts[0]});
-  make_child(
-      /* parents */ P, /* index */ 2 * n + 2,
-      /* support */ std::vector{child_elts[1]});
-  make_child(
-      /* parents */ P, /* index */ 2 * n + 3,
-      /* support */ std::vector{child_elts[1]});
 
-  nbr_->children_ = children_;
-  children_[0]->nbr_ = children_[1];
-  children_[1]->nbr_ = children_[0];
-  children_[2]->nbr_ = children_[3];
-  children_[3]->nbr_ = children_[2];
+#pragma omp critical
+  if (!is_full()) {
+    assert(children_.empty());
+    support_[0]->Refine();
+    auto [l, n] = labda();
+    auto P = std::vector{this, nbr_};
+    auto child_elts = support_[0]->children();
+    make_child(
+        /* parents */ P, /* index */ 2 * n + 0,
+        /* support */ std::vector{child_elts[0]});
+    make_child(
+        /* parents */ P, /* index */ 2 * n + 1,
+        /* support */ std::vector{child_elts[0]});
+    make_child(
+        /* parents */ P, /* index */ 2 * n + 2,
+        /* support */ std::vector{child_elts[1]});
+    make_child(
+        /* parents */ P, /* index */ 2 * n + 3,
+        /* support */ std::vector{child_elts[1]});
+
+    nbr_->children_ = children_;
+    children_[0]->nbr_ = children_[1];
+    children_[1]->nbr_ = children_[0];
+    children_[2]->nbr_ = children_[3];
+    children_[3]->nbr_ = children_[2];
+  }
   return true;
 }
 

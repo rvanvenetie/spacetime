@@ -57,6 +57,8 @@ class BilinearForm
   auto sigma() { return sigma_; }
   auto theta() { return theta_; }
 
+  std::string Information() final;
+
  protected:
   // References to in/out vectors.
   DblVecIn *vec_in_;
@@ -72,6 +74,7 @@ class BilinearForm
   // Debug information.
   using BilinearFormBase<DblVecIn, DblVecOut>::time_construct_;
   using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_split_;
   using BilinearFormBase<DblVecIn, DblVecOut>::num_apply_;
 
   // Define frozen templates, useful for storing the bil forms.
@@ -87,6 +90,14 @@ class BilinearForm
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_low_;
   std::vector<Time::BilinearForm<OperatorTime, FI<0>, FO<0>>> bil_time_upp_;
   std::vector<space::BilinearForm<OperatorSpace, FO<1>, FO<1>>> bil_space_upp_;
+
+  // Store ordering for spatial parallism.
+  std::vector<FI<0> *> sigma_proj_0_;
+  std::vector<FO<1> *> theta_proj_1_;
+  std::vector<FO<0> *> vec_out_proj_0_;
+  std::vector<FO<1> *> vec_out_proj_1_;
+  std::vector<size_t> ordering_sigma_;
+  std::vector<size_t> ordering_vec_out_;
 };
 
 // Helper functions.
@@ -146,6 +157,7 @@ class BlockDiagonalBilinearForm
   Eigen::VectorXd Apply(const Eigen::VectorXd &v) final;
   DblVecIn *vec_in() const final { return vec_in_; }
   DblVecOut *vec_out() const final { return vec_out_; }
+  std::string Information() final;
 
  protected:
   bool use_cache_;
@@ -157,6 +169,7 @@ class BlockDiagonalBilinearForm
   // Debug information.
   using BilinearFormBase<DblVecIn, DblVecOut>::time_construct_;
   using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_;
+  using BilinearFormBase<DblVecIn, DblVecOut>::time_apply_split_;
   using BilinearFormBase<DblVecIn, DblVecOut>::num_apply_;
 
   // The (cached) bilinear forms.
@@ -164,6 +177,9 @@ class BlockDiagonalBilinearForm
   using FI = datastructures::FrozenDoubleNode<
       datastructures::DoubleNodeVector<BasisTimeIn, BasisSpace>, i>;
   std::vector<space::BilinearForm<OperatorSpace, FI<1>, FI<1>>> space_bilforms_;
+
+  std::vector<FI<0> *> vec_out_proj_0_;
+  std::vector<size_t> ordering_;
 };
 
 template <typename OpSpace, typename BTimeIn, typename BTimeOut>
