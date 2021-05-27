@@ -6,6 +6,21 @@
 
 namespace applications {
 AdaptiveHeatEquation::AdaptiveHeatEquation(
+    std::shared_ptr<TypeXVector> vec_Xd, std::shared_ptr<TypeXVector> vec_Xdd,
+    std::shared_ptr<TypeYVector> vec_Ydd,
+    std::shared_ptr<HeatEquation> heat_d_dd,
+    std::unique_ptr<TypeYLinForm> &&g_lin_form,
+    std::unique_ptr<TypeXLinForm> &&u0_lin_form,
+    const AdaptiveHeatEquationOptions &opts)
+    : vec_Xd_(vec_Xd),
+      vec_Xdd_(vec_Xdd),
+      vec_Ydd_(vec_Ydd),
+      heat_d_dd_(heat_d_dd),
+      g_lin_form_(std::move(g_lin_form)),
+      u0_lin_form_(std::move(u0_lin_form)),
+      opts_(opts) {}
+
+AdaptiveHeatEquation::AdaptiveHeatEquation(
     std::shared_ptr<TypeXVector> vec_Xd,
     std::unique_ptr<TypeYLinForm> &&g_lin_form,
     std::unique_ptr<TypeXLinForm> &&u0_lin_form,
@@ -15,7 +30,7 @@ AdaptiveHeatEquation::AdaptiveHeatEquation(
           GenerateXDeltaUnderscore(*vec_Xd_, opts.estimate_saturation_layers))),
       vec_Ydd_(std::make_shared<TypeYVector>(
           GenerateYDelta<DoubleTreeVector>(*vec_Xdd_))),
-      heat_d_dd_(std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts)),
+      heat_d_dd_(std::make_shared<HeatEquation>(vec_Xd_, vec_Ydd_, opts)),
       g_lin_form_(std::move(g_lin_form)),
       u0_lin_form_(std::move(u0_lin_form)),
       opts_(opts) {}
@@ -64,15 +79,18 @@ auto AdaptiveHeatEquation::Estimate(const Eigen::VectorXd &u_dd_d)
     Eigen::VectorXd residual =
         heat_dd_dd.BT()->Apply(PY_g_min_Bu) + (u0 - G_u_dd_dd);
 
-    // Calculate the global error using the interpolant.
-    vec_Xdd_->FromVectorContainer(u_dd_dd);
-    double error_Yprime_sq = PY_g_min_Bu.dot(g_min_Bu);
-    double error_t0 = ErrorEstimator::ComputeTraceError(
-        0.0, u0_lin_form_->SpaceLF().Function(), vec_Xdd_.get());
+    // Try to calculate the global error using the interpolant.
+    try {
+      vec_Xdd_->FromVectorContainer(u_dd_dd);
+      double error_Yprime_sq = PY_g_min_Bu.dot(g_min_Bu);
+      double error_t0 = ErrorEstimator::ComputeTraceError(
+          0.0, u0_lin_form_->SpaceLF().Function(), vec_Xdd_.get());
 
-    global_error.error = sqrt(error_Yprime_sq + error_t0);
-    global_error.error_Yprime = sqrt(error_Yprime_sq);
-    global_error.error_t0 = sqrt(error_t0);
+      global_error.error = sqrt(error_Yprime_sq + error_t0);
+      global_error.error_Yprime = sqrt(error_Yprime_sq);
+      global_error.error_t0 = sqrt(error_t0);
+    } catch (...) {
+    }
 
     vec_Xdd_->FromVectorContainer(residual);
     // Let heat_dd_dd go out of scope..
@@ -165,7 +183,7 @@ RefineInfo AdaptiveHeatEquation::Refine(
   std::cerr << std::right;
 #endif
 
-  heat_d_dd_ = std::make_unique<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
+  heat_d_dd_ = std::make_shared<HeatEquation>(vec_Xd_, vec_Ydd_, opts_);
 
   return info;
 }

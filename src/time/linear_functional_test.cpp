@@ -64,4 +64,23 @@ TEST(LinearFunctional, QuadratureFunctional) {
     }
   }
 }
+
+TEST(LinearFunctional, AverageFunctional) {
+  Bases B;
+
+  int ml = 6;
+  // Now we check what happens when we also refine near the end points.
+  B.three_point_tree.UniformRefine(ml);
+
+  std::function<double(double)> f([](double t) { return 1; });
+  auto quad_func = QuadratureFunctional<ContLinearScalingFn>(f, /*order*/ 0);
+  auto phis = B.cont_lin_tree.Bfs();
+  for (auto phi : phis) {
+    double ip = 0.0;
+    for (auto elem : phi->support())
+      ip += Integrate([phi, &f](double t) { return phi->Eval(t); }, *elem,
+                      /*degree*/ 1);
+    ASSERT_NEAR(quad_func.Eval(phi), ip, 1e-10);
+  }
+}
 };  // namespace Time

@@ -85,6 +85,14 @@ class AdaptiveHeatEquation {
 
  public:
   AdaptiveHeatEquation(
+      std::shared_ptr<TypeXVector> vec_Xd, std::shared_ptr<TypeXVector> vec_Xdd,
+      std::shared_ptr<TypeYVector> vec_Ydd,
+      std::shared_ptr<HeatEquation> heat_d_dd,
+      std::unique_ptr<TypeYLinForm> &&g_lin_form,
+      std::unique_ptr<TypeXLinForm> &&u0_lin_form,
+      const AdaptiveHeatEquationOptions &opts = AdaptiveHeatEquationOptions());
+
+  AdaptiveHeatEquation(
       std::shared_ptr<TypeXVector> vec_Xd,
       std::unique_ptr<TypeYLinForm> &&g_lin_form,
       std::unique_ptr<TypeXLinForm> &&u0_lin_form,
@@ -112,14 +120,15 @@ class AdaptiveHeatEquation {
   std::shared_ptr<TypeXVector> vec_Xd() { return vec_Xd_; }
   std::shared_ptr<TypeXVector> vec_Xdd() { return vec_Xdd_; }
   std::shared_ptr<TypeYVector> vec_Ydd() { return vec_Ydd_; }
-  HeatEquation *heat_d_dd() { return heat_d_dd_.get(); }
+  std::shared_ptr<HeatEquation> heat_d_dd() { return heat_d_dd_; }
   TypeYLinForm *g_lin_form() { return g_lin_form_.get(); }
   TypeXLinForm *u0_lin_form() { return u0_lin_form_.get(); }
+  const AdaptiveHeatEquationOptions &opts() const { return opts_; }
 
  protected:
   std::shared_ptr<TypeXVector> vec_Xd_, vec_Xdd_;
   std::shared_ptr<TypeYVector> vec_Ydd_;
-  std::unique_ptr<HeatEquation> heat_d_dd_;
+  std::shared_ptr<HeatEquation> heat_d_dd_;
   std::unique_ptr<TypeYLinForm> g_lin_form_;
   std::unique_ptr<TypeXLinForm> u0_lin_form_;
 

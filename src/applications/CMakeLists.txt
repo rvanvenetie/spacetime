@@ -8,6 +8,9 @@ target_link_libraries(heat_equation_performance applications)
 add_executable(adaptive adaptive.cpp)
 target_link_libraries(adaptive applications BoostProgramOptions)
 
+add_executable(goal goal.cpp)
+target_link_libraries(goal applications BoostProgramOptions)
+
 add_executable(uniform uniform.cpp)
 target_link_libraries(uniform applications BoostProgramOptions)
 

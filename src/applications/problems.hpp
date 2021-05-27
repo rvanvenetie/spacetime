@@ -82,7 +82,9 @@ MovingPeakProblem(std::shared_ptr<datastructures::DoubleTreeVector<
         exptxy;
     return dt_u - dxx_u - dxx_u;
   };
-  return {std::make_unique<spacetime::InterpolationLinearForm>(X_delta, g),
+  return {std::make_unique<
+              spacetime::InterpolationLinearForm<Time::OrthonormalWaveletFn>>(
+              X_delta, g),
           CreateZeroEvalLinearForm<Time::ThreePointWaveletFn>(
               u0, /* apply_quadrature*/ false)};
 }
