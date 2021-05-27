@@ -147,17 +147,17 @@ class SumTensorLinearForm : public LinearFormBase<TimeBasis> {
   using LinearFormBase<TimeBasis>::time_last_apply_;
 };
 
-class InterpolationLinearForm
-    : public LinearFormBase<Time::OrthonormalWaveletFn> {
+template <typename TimeBasis>
+class InterpolationLinearForm : public LinearFormBase<TimeBasis> {
  public:
   using DblVecX =
       typename datastructures::DoubleTreeVector<Time::ThreePointWaveletFn,
                                                 space::HierarchicalBasisFn>;
-  using DblVecY =
-      typename datastructures::DoubleTreeVector<Time::OrthonormalWaveletFn,
-                                                space::HierarchicalBasisFn>;
   using DblVecZ =
       typename datastructures::DoubleTreeVector<Time::HierarchicalWaveletFn,
+                                                space::HierarchicalBasisFn>;
+  using DblVecOut =
+      typename datastructures::DoubleTreeVector<TimeBasis,
                                                 space::HierarchicalBasisFn>;
 
   InterpolationLinearForm(std::shared_ptr<DblVecX> X_delta,
@@ -174,7 +174,7 @@ class InterpolationLinearForm
                    ->RefinePsiHierarchical(),
                X_delta->root()->node_1()) {}
 
-  Eigen::VectorXd Apply(DblVecY *vec_Y) final {
+  Eigen::VectorXd Apply(DblVecOut *vec_out) final {
     auto time_start = std::chrono::steady_clock::now();
     // Grow Z_delta and interpolate.
     GenerateZDelta(*X_delta_, &vec_Z_);
@@ -185,14 +185,13 @@ class InterpolationLinearForm
     space::OperatorOptions space_opts(
         {.dirichlet_boundary = false, .build_mat = false});
     spacetime::BilinearForm<Time::MassOperator, space::MassOperator,
-                            Time::HierarchicalWaveletFn,
-                            Time::OrthonormalWaveletFn>
-        mass_bil_form(&vec_Z_, vec_Y, /* use_cache */ false, space_opts);
+                            Time::HierarchicalWaveletFn, TimeBasis>
+        mass_bil_form(&vec_Z_, vec_out, /* use_cache */ false, space_opts);
     auto result = mass_bil_form.Apply(g_vec_Z);
 
-    // We must manually set the boundary dofs in vec_Y to zero.
+    // We must manually set the boundary dofs in vec_out to zero.
     size_t i = 0;
-    for (const auto &node : vec_Y->container()) {
+    for (const auto &node : vec_out->container()) {
       if (node.node_1()->on_domain_boundary()) result[i] = 0;
       i++;
     }
@@ -213,7 +212,7 @@ class InterpolationLinearForm
   DblVecZ vec_Z_;
 
   // Debug information.
-  using LinearFormBase<Time::OrthonormalWaveletFn>::time_last_apply_;
+  using LinearFormBase<TimeBasis>::time_last_apply_;
 };
 
 template <typename TimeBasis>
